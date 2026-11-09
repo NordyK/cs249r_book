@@ -252,5 +252,62 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Accelerator anatomy",
+   "def": "Every ML accelerator is matrix, vector, and special-function units beside on-chip memory, a wide off-chip path, and a host link, and it wins by spending on dense arithmetic and local storage the transistors a CPU spends on speculation and coherence, which pays only when the workload exposes the supported operation, precision, and parallelism."
+  },
+  {
+   "term": "Matching primitives to execution units",
+   "def": "Learned layers reduce to element-wise vector work, matrix multiply, and special functions, and each maps to the unit whose reuse matches it, so routing a primitive to the wrong unit collapses throughput to a fraction of peak."
+  },
+  {
+   "term": "Operand-supply hierarchy",
+   "def": "Delivered throughput is set by where operands live, with registers and SRAM supplying the array at its rate while HBM, host memory over PCIe, and flash fall off a bandwidth taper, so the diagnostic is traffic across each boundary, not capacity alone."
+  },
+  {
+   "term": "Energy ladder",
+   "def": "A DRAM access costs on the order of a hundred times an arithmetic operation or an on-chip SRAM read, so data movement, not arithmetic, is the primary energy target, and locality structures such as systolic arrays earn their area by avoiding the costliest event on the ladder."
+  },
+  {
+   "term": "Amdahl's law",
+   "def": "Acceleration speeds only the fraction p of baseline time on the accelerated path, so speedup is 1/((1-p) + p/A) and never exceeds 1/(1-p), and the unaccelerated fraction is defined by the intervention (data loading, host overhead, unsupported operators, launches)."
+  },
+  {
+   "term": "Roofline and ridge point",
+   "def": "Attainable performance is the minimum of peak rate and bandwidth times arithmetic intensity, the ridge point (peak over bandwidth) marks where a kernel turns compute-bound, and intensity depends on implementation and batch, so the roofline bounds performance while profiling names the mechanism below the bound."
+  },
+  {
+   "term": "Stationary dataflows",
+   "def": "Every matmul operand is reused along a different loop and local storage can hold only one cheaply, so the loop order decides which operand stays (weight-, output-, or input-stationary) and two identical schedules can differ many-fold in traffic."
+  },
+  {
+   "term": "Tiling",
+   "def": "Tiling partitions an operation into blocks that fit a fast memory tier so each block is reused before eviction, with tile size bounded by every live buffer and dimensions off the tile grid paying a fringe penalty."
+  },
+  {
+   "term": "Compilers and runtimes",
+   "def": "ML compilers apply graph rewrites, kernel selection, memory planning by liveness, and scheduling over a mapping space too large for hand tuning, and runtimes dispatch precompiled tactics within declared shape ranges."
+  },
+  {
+   "term": "Heterogeneous SoCs and CMOS power",
+   "def": "Phone and embedded chips put CPU, GPU, DSP, and NPU on one shared memory system under a few-watt envelope managed by DVFS, where dynamic power scales roughly as frequency cubed, which is why accelerators favor wide arrays at moderate clocks."
+  },
+  {
+   "term": "Choosing an accelerator",
+   "def": "No datasheet chooses a machine because the limiting resource belongs to the workload on that machine, so cost and energy are divided by throughput delivered on the limiting resource, not by advertised peak."
+  },
+  {
+   "term": "Multi-chip scaling within a node",
+   "def": "Past one accelerator each added boundary lowers bandwidth and raises latency, so partitioning pays only when saved compute exceeds exposed communication (awareness in Vol I)."
+  },
+  {
+   "term": "Reduced-precision and sparse datapaths",
+   "def": "Narrower formats help twice, fewer bytes per operand and more multiply-accumulate units per area, but only on a supported kernel with a wide accumulator, and 2:4 sparse units stream compressed weights plus position metadata for an advertised 2x."
+  },
+  {
+   "term": "Fusion limits on accelerators",
+   "def": "Fusion on an accelerator is limited by register pressure, occupancy, and reductions, so a fused kernel that holds intermediates on chip trades on-chip capacity for removed memory traffic."
+  }
+ ]
 }

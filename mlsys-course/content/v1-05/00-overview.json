@@ -236,5 +236,46 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Network as linear maps and nonlinearities",
+   "def": "A layer is one matrix product plus bias followed by an element-wise activation and a network is their composition, without the nonlinearity the stack collapses to one linear map, and inference runs only the forward pass while training adds loss, backward pass, and update."
+  },
+  {
+   "term": "Cost from layer shapes",
+   "def": "Layer widths fix parameters, forward work (one multiply-accumulate, two FLOPs, per weight per example), and retained activations before any code runs, so width costs quadratically, depth costs linearly but adds sequential steps and saved activations."
+  },
+  {
+   "term": "Backprop over saved activations",
+   "def": "Backpropagation applies the chain rule layer by layer in reverse, each dense layer needs two backward products of forward size, so a training step costs about three times the forward matrix work and every forward activation must stay live, or be recomputed, until the backward pass reaches its layer."
+  },
+  {
+   "term": "Training holds four kinds of state",
+   "def": "Training memory is weights plus gradients plus optimizer state plus saved activations, while inference keeps only the weights and the largest adjacent pair of activation buffers, and raising the batch leaves parameter state fixed while multiplying saved activations."
+  },
+  {
+   "term": "Batching raises dense-layer intensity",
+   "def": "A dense layer is a matrix-vector product at batch one and a matrix-matrix product when batched, so batching reuses each weight across examples and raises arithmetic intensity (about 0.5 to 12 FLOP/byte from batch 1 to 32 for the running network), which can still sit on the bandwidth slope."
+  },
+  {
+   "term": "Activation functions",
+   "def": "Sigmoid and tanh saturate and need an exponential datapath, ReLU passes gradient one on its positive branch at the cost of a comparator and can die, and softmax normalizes output scores."
+  },
+  {
+   "term": "Loss and mini-batch descent",
+   "def": "Cross-entropy against a one-hot label reduces to the negative log of the correct-class probability, its fused softmax gradient is p minus y, and mini-batch gradient descent averages per-example gradients so the batch size becomes the main systems knob."
+  },
+  {
+   "term": "Numerical range",
+   "def": "A branch-free program fails by range rather than logic: saturating derivatives and initialization scale compound into vanishing or exploding gradients, small gradients flush below a format's smallest normal, and overflow propagates Inf and NaN, so the number format is part of the training contract."
+  },
+  {
+   "term": "Reject-option thresholds",
+   "def": "A classifier's scores become operational decisions only through a confidence threshold that routes uncertain inputs to review, chosen on a risk-coverage curve by an expected-cost rule over review and error costs."
+  },
+  {
+   "term": "Overfitting and regularization",
+   "def": "Overfitting shows as training loss that keeps falling while validation performance stalls or worsens, and regularization controls it at small systems cost, since weight penalties need no persistent state, dropout costs a fresh random mask per activation only during training, and early stopping relies on periodic validation and checkpoints."
+  }
+ ]
 }

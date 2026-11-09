@@ -250,5 +250,66 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Sensor chosen by physical quantity",
+   "def": "Each modality measures one physical quantity (bearing and appearance, metric range, Doppler velocity, contrast change, contact deformation) with its own environmental failures, so sensing is chosen by the quantity the decision needs."
+  },
+  {
+   "term": "Capture epoch",
+   "def": "A measurement is dated at its exposure midpoint or per-point firing time, never at arrival, and rolling-shutter rows and LiDAR sweeps sample the scene at different instants that capture-time geometry must undo."
+  },
+  {
+   "term": "Calibration chain",
+   "def": "Every metric claim rests on intrinsics, extrinsics, and inter-sensor time offsets composed along a frame tree at the capture instant, and angular and timing errors scale with range and turn rate."
+  },
+  {
+   "term": "Observation age",
+   "def": "Observation age runs from the exposure midpoint to dispatch, accumulates stage by stage (exposure, readout, transport, DMA, ISP, backbone, dispatch), and is paid in blind travel that no later stage returns."
+  },
+  {
+   "term": "Clearance inset from measured residuals",
+   "def": "Spatial error is spent from the same clearance as age, so the clearance inset rests on a measured high quantile of residuals against ground truth, which for stereo grows with range squared."
+  },
+  {
+   "term": "Metric veto",
+   "def": "Learned depth and semantic confidence are not metric evidence, so a learned head may classify and propose but the range that enters a clearance check comes from qualified metric sensing, which can veto."
+  },
+  {
+   "term": "Silent versus detectable failure",
+   "def": "Detectable faults raise flags and age out honestly, while silent failures (saturation, contamination, fog backscatter, a misdated frame) deliver valid tensors, so the design must convert silent modes into detectable ones."
+  },
+  {
+   "term": "Observation contract",
+   "def": "Each observation is wrapped with capture time, clock id, clock-conversion bound, frame, payload, covariance, clearance inset, health bits, and CRC so a consumer can refuse it before reading a payload byte."
+  },
+  {
+   "term": "Rolling-shutter and de-skew geometry",
+   "def": "Per-row pose interpolation for rolling shutters and per-point de-skew for LiDAR sweeps remove the motion a finite capture interval smears into geometry."
+  },
+  {
+   "term": "Current evidence age",
+   "def": "The age a consumer computes on its own clock is dispatch age plus the time elapsed since dispatch, and it keeps growing while the observation is reused."
+  },
+  {
+   "term": "Perception-side independence",
+   "def": "The proposal camera and the admission LiDAR must not share a failure mode, so the metric veto is independent evidence only when its sensing differs from the proposer's."
+  },
+  {
+   "term": "Latency waterfall",
+   "def": "Sequential capture stages add their durations while overlapped or streamed stages replace the sum, and the waterfall shows which stage spends the age budget."
+  },
+  {
+   "term": "Environmental degradation",
+   "def": "Fog, rain, glare, and retroreflective vests degrade each modality by its own physics (contrast decay, scattering, blooming, range walk), so a sensor's qualification names its weather."
+  },
+  {
+   "term": "Input-support monitors",
+   "def": "Out-of-distribution and input-support monitors flag into the health bitmask and can demote a camera to LiDAR-only operation, but they cannot certify what the transducer itself got wrong."
+  },
+  {
+   "term": "Clock domains and the clock-conversion bound",
+   "def": "Each oscillator stamps time in its own clock domain, so a capture time can be checked only after conversion to the consumer's clock, and that conversion carries a measured bound (offset tail, path asymmetry, drift between syncs) that every age check adds."
+  }
+ ]
 }

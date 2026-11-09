@@ -244,5 +244,54 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Scheduler as allocation control plane",
+   "def": "A cluster scheduler loses direct observation, atomic effect, and binary failure, so it separates admission, placement, and reconciliation, and reusing a suspect node's accelerators requires versioned allocations, leases, and fencing."
+  },
+  {
+   "term": "Gang scheduling",
+   "def": "A rigid synchronous job makes no progress below its minimum gang, so partial allocation can deadlock two jobs at full cost, and atomic all-or-nothing allocation removes hold-and-wait but needs reservation, safe backfill, and holistic preemption."
+  },
+  {
+   "term": "Feasibility before fairness",
+   "def": "A fair share of accelerators a job cannot run on delivers nothing, so the scheduler first filters feasible bundles (every resource dimension, gang atomicity, topology, memory) and only then applies dominant-resource fairness, while multi-dimensional packing strands capacity."
+  },
+  {
+   "term": "Scheduling objectives and matched signals",
+   "def": "Throughput, latency, fairness, and cost pull allocation apart, so fairness is measured as slowdown, queue delay grows with job-size variability (M/G/1), and an ML-aware policy earns its cost only when its signal matches the objective."
+  },
+  {
+   "term": "Topology-aware placement",
+   "def": "Equal-size allocations deliver different throughput because bandwidth steps down from NVLink to leaf to spine, so placement minimizes a locality cost over the job's actual traffic, judged by completion time including the wait for a compact placement."
+  },
+  {
+   "term": "Elastic scheduling contract",
+   "def": "Elasticity replaces keep-or-kill with a declared size range, valid increments, a measured transition cost, and a scaling-efficiency curve, and each resize must be amortized over the run and judged by time to target quality."
+  },
+  {
+   "term": "Interruption economics",
+   "def": "Every preemption pays discarded work since the last durable checkpoint plus reload and warmup, one admission can cascade into many evictions, and spot capacity is cheap only by effective cost after checkpoint overhead, restart, and replay."
+  },
+  {
+   "term": "Utilization tiers",
+   "def": "Utilization is worth money at fleet scale, but an unlabeled percentage conflates the allocated tier (complete allocations only), the active tier, and the productive tier (normalized to the job's fault-free step rate), and a full queue beside idle accelerators is usually a policy-infrastructure mismatch rather than an algorithm defect."
+  },
+  {
+   "term": "Batch versus declarative orchestration",
+   "def": "Slurm's imperative batch allocation and Kubernetes' level-triggered reconciliation are different contracts for which lifecycle the platform manages, chosen by workload semantics, and a hybrid works only when exactly one layer owns each placement."
+  },
+  {
+   "term": "Quota guarantees bounded by reclaim",
+   "def": "Hierarchical quotas separate a team's guarantee from its maximum and borrowing idle guarantees lifts utilization, but concurrently honored guarantees must fit the capacity the platform can reclaim in time, and a noisy neighbor, one tenant whose consumption of a shared resource slows the others, is what isolation and reclaim contracts must bound."
+  },
+  {
+   "term": "Serving envelope and accelerator sharing",
+   "def": "The orchestrator's serving unit is a ready replica sized by measured capacity at a latency target, colocation trades density against interference along an isolation spectrum (time-slicing, MPS, MIG, exclusive), and moving devices between training and serving is safe only on forecast."
+  },
+  {
+   "term": "Waiting time versus utilization",
+   "def": "Mean queue wait is a load factor rho/(1-rho) times a variability factor (1+C_s^2)/2, so waiting time bends sharply upward as offered load nears capacity, and a mixed ML queue whose job durations vary widely pays several times more wait at the same utilization than a uniform one."
+  }
+ ]
 }

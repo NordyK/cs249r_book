@@ -101,5 +101,39 @@
     "You can now apply prefix caching to reduce repeated prefill work for shared prompt prefixes in conversational serving."
    ]
   }
+ ],
+ "terms": [
+  {
+   "term": "Weight bytes moved",
+   "def": "At small decode batches, repeatedly reading model weights can dominate execution. Sharing a weight stream across requests amortizes that traffic."
+  },
+  {
+   "term": "Resident conversations",
+   "def": "Memory remaining after model weights must hold the attention state of every resident conversation."
+  },
+  {
+   "term": "KV cache per conversation",
+   "def": "Attention keys and values retained for one conversation grow with its token count and model geometry."
+  },
+  {
+   "term": "Context length",
+   "def": "Longer histories retain more token state. At fixed cache format and model geometry, the per-conversation KV footprint grows linearly."
+  },
+  {
+   "term": "Available KV memory",
+   "def": "The device memory left after weights and other resident state bounds the cache pool."
+  },
+  {
+   "term": "Model weight memory",
+   "def": "Resident weights compete with KV state for device memory. Reducing weight storage can free cache capacity, subject to runtime allocations."
+  },
+  {
+   "term": "Prefill",
+   "def": "Processing the prompt creates attention state before the first output token is generated."
+  },
+  {
+   "term": "Decode",
+   "def": "Each generation step reads retained attention state and appends state for a new token."
+  }
  ]
 }

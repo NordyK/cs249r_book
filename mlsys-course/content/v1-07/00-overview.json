@@ -248,5 +248,58 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Three framework problems",
+   "def": "Every framework must solve execution, differentiation, and hardware abstraction; the model fixes the operation count while the framework shapes the other iron-law terms, with execution bearing on overhead, differentiation on bytes, and abstraction on efficiency."
+  },
+  {
+   "term": "Eager, graph, and JIT execution",
+   "def": "Eager execution exposes intermediate values to ordinary debugging but shows the runtime one operation at a time, static graphs give the compiler whole-program visibility at the price of graph-only control flow, and graph-capture JIT guards captured regions and pays a graph break wherever capture fails."
+  },
+  {
+   "term": "Dispatch overhead law",
+   "def": "Each eagerly dispatched operation pays a fixed host cost of microseconds, so a workload of many small kernels is overhead-bound when total dispatch time exceeds device time, while large GEMM-dominated layers are device-bound; compilation, fusion, larger batches, and graph replay are the levers."
+  },
+  {
+   "term": "Kernel fusion",
+   "def": "Most elementwise and normalization operators are memory-bound, so fusing a chain of k of them into one kernel cuts idealized traffic from 2kNb to 2Nb and removes k-1 launches, but a compiler fuses only what it sees together and fusion cannot drop values a backward rule must read."
+  },
+  {
+   "term": "Reverse-mode autodiff",
+   "def": "Reverse mode propagates adjoints as vector-Jacobian products from a scalar loss and yields every gradient in one backward sweep at a small constant multiple of forward cost, never materializing a Jacobian, at the price of a recorded graph and retained forward values."
+  },
+  {
+   "term": "Saved forward state",
+   "def": "Every backward rule reads values from the forward operating point, so saved activations grow linearly with batch and depth, peak at the start of backward, and can exceed the weights by orders of magnitude, while the recorded graph decides when each is freed and recomputation or detachment changes what is kept."
+  },
+  {
+   "term": "Compilation breakeven",
+   "def": "Compiling pays only when production executions amortize compile time, with breakeven at compile time divided by the per-run saving, so prototyping loops stay eager and long training or serving runs compile."
+  },
+  {
+   "term": "Tensor metadata and placement",
+   "def": "A tensor's shape, dtype, strides, and device select the kernel and forbid silent cross-device mixing, and because the host link runs far below device memory bandwidth, placement, pinned memory, and stream overlap decide whether transfers sit on the critical path."
+  },
+  {
+   "term": "Framework abstraction ladder",
+   "def": "Frameworks accreted bottom-up from BLAS kernels through array libraries and autodiff frameworks to graph compilers, each layer automating what the one below left to the programmer and hiding shape, dtype, device, and unit assumptions that must be checked at boundaries."
+  },
+  {
+   "term": "Module abstraction",
+   "def": "A module tree provides automatic parameter discovery, a train/eval mode flag propagated from the root, and hierarchical serialization through dotted state-dict keys, so one object can be optimized, saved, frozen, and inspected."
+  },
+  {
+   "term": "Major frameworks compared",
+   "def": "TensorFlow, PyTorch, and JAX each solve all three framework problems but emphasize different paths, so the useful comparison is what each lets the compiler see and which constraint to profile, not a speed leaderboard."
+  },
+  {
+   "term": "Choosing a framework",
+   "def": "A development framework is chosen by first eliminating paths that cannot export every required operator to a runtime that fits the deployment target, then ranking survivors by team pipeline and migration cost."
+  },
+  {
+   "term": "Mixed precision and checkpointing mechanics",
+   "def": "Frameworks implement mixed precision as a dispatch policy (autocast's per-operator precision list plus a gradient scaler) and activation checkpointing as recorded segments recomputed during backward, which is the machinery a training run configures."
+  }
+ ]
 }

@@ -238,5 +238,54 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Memory-wall renewal ceiling",
+   "def": "At batch size 1 a proposer streams every weight once per fresh evaluation, so its renewal rate is bounded by sustained bandwidth over weight bytes (14 GB at 142.8 GB/s is 98 ms per sweep, about 10 Hz before vision or decoding)."
+  },
+  {
+   "term": "Prefill-decode split",
+   "def": "One evaluation's prefill reuses each fetched weight across every input token and binds on arithmetic, while each later decode token rereads all weights and binds on bandwidth, so the two halves answer to different hardware limits."
+  },
+  {
+   "term": "Quantized model is a new model",
+   "def": "Weight-only quantization shortens the bandwidth-bound decode but not the compute-bound prefill, and a quantized checkpoint is a different model whose evaluation evidence must be renewed."
+  },
+  {
+   "term": "Chunking is a supply lever",
+   "def": "Predicting H setpoints per evaluation divides weight traffic per supplied setpoint by H, but it leaves reaction latency at one renewal period plus one inference, so chunking supplies setpoints without refreshing them."
+  },
+  {
+   "term": "Two-speed brain",
+   "def": "Because a large backbone's prefill alone exceeds the chunk renewal period, the machine renews motion with a small fast chunk policy beneath a slow intent model rather than waiting for the large model."
+  },
+  {
+   "term": "Evidence horizon",
+   "def": "Every setpoint in a chunk descends from one capture, so a chunk is valid only while extrapolated target drift stays inside the tolerance margin (about 219 ms for the tracked mug against a 60 ms untracked deadline), and supply and validity are separate budgets."
+  },
+  {
+   "term": "Checkable proposer interface",
+   "def": "The permission path can refuse only claims it can compare with its own evidence, so an interface that passes a latent vector or a language subtask cannot be grounded or aged, while a geometric payload can."
+  },
+  {
+   "term": "On-time wrong proposals",
+   "def": "A smooth, in-limit chunk that meets its deadline can still target a nonexistent affordance or carry near-unity confidence far out of distribution, and the proposer cannot report either failure."
+  },
+  {
+   "term": "Temporal ensembling and real-time chunking",
+   "def": "Exponentially weighted ensembling smooths chunk seams but can blend opposite modes and must drop expired contributions, while real-time chunking freezes the committed prefix and conditions the next chunk on it."
+  },
+  {
+   "term": "Proposal payload",
+   "def": "A proposal carries its capture times, frame, and geometric content so the permission path can date it and check it against its own evidence."
+  },
+  {
+   "term": "KV cache footprint",
+   "def": "The key-value cache costs 2*L*d*S*bytes per token of context, so single-observation action models carry none and a long history buys memory traffic, not freshness."
+  },
+  {
+   "term": "Softmax illusion",
+   "def": "Softmax scores sum to one by construction and saturate far out of distribution, so a confidence score is not calibrated evidence until it is calibrated against held-out outcomes."
+  }
+ ]
 }

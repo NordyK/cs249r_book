@@ -246,5 +246,62 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Per-resource independence inventory",
+   "def": "A separate core or chip is not independent by construction, because memory protection governs where a transaction may go, not when it is served, so independence is argued row by row over every shared resource, including supply, clock, and reset."
+  },
+  {
+   "term": "Memory contention and miss handling",
+   "def": "Memory arbiters schedule bursts, not averages, so a safety read waits on the backlog ahead of it and the controller's policy, and shared-cache miss handling, not bandwidth, threatens the declared bound."
+  },
+  {
+   "term": "Thermal throttling hangover",
+   "def": "On a shared die sustained inference drives the junction past the trip point, the governor cuts the clock so every tick overruns its bound, and hysteresis holds the clock down for seconds after the burst ends."
+  },
+  {
+   "term": "Declared WCET as falsification threshold",
+   "def": "Loaded execution is isolated execution plus shared-hardware interference, and the placement claims that interference is zero, so any loaded tick above the declared WCET refutes the placement's timing premise even when it still meets the deadline."
+  },
+  {
+   "term": "Boundary contract and windowed watchdog",
+   "def": "The exchange has two separately timed obligations (board-link transport, then one bounded local publication read inside the WCET), and liveness needs a windowed watchdog that catches early feeds as well as late ones."
+  },
+  {
+   "term": "Priced remediation ladder",
+   "def": "A refuted placement forces a remedy matched to the coupling (static reservation, spatial partitioning, separate silicon), each paid in a different currency and leaving a named residual."
+  },
+  {
+   "term": "Dispatch-to-admission allocation",
+   "def": "The selected placement must allocate the interval from perception dispatch to admission (residual inference, serialization, validation, activation, up to one tick) and fit it under the stopping spare."
+  },
+  {
+   "term": "Placement record",
+   "def": "The placement record binds the declared WCET and deadline to the execution domain, privilege, period, unloaded and loaded maxima, bus QoS, droop and thermal limits, mitigations, and the conditions left untested."
+  },
+  {
+   "term": "Supply, clock, and reset domains",
+   "def": "Privilege checks govern digital access while the shared rail powers the gates that perform them, so droop, clock faults, and shared resets are failure domains beneath privilege."
+  },
+  {
+   "term": "Offload timing screen",
+   "def": "An off-board result counts only if its tail network time plus remote processing fits the transaction window and the full dispatch-to-admission ceiling, so wireless tails disqualify offload for anything that renews the lease."
+  },
+  {
+   "term": "Mixed-criticality scheduling",
+   "def": "Execution budgets depend on the assurance level, so when a high-criticality task exhausts its lower budget the scheduler withdraws service from low-criticality work to keep the enforcer's tick."
+  },
+  {
+   "term": "Static-partitioning hypervisor",
+   "def": "A static-partitioning hypervisor binds cores, memory, and peripherals to isolated partitions at boot and colors caches, the standard pattern for a real-time enclave on a shared die."
+  },
+  {
+   "term": "WCET analysis families",
+   "def": "WCET comes from static analysis, measurement plus margin, hybrid methods, or probabilistic tail models, and local worst cases do not compose to a global one on modern microarchitectures."
+  },
+  {
+   "term": "Coupling-timescale ladder",
+   "def": "Couplings act on different timescales (nanosecond droop, microsecond queueing, millisecond ticks, second-scale throttling, hour-scale chassis heat), which tells a rail-correlated fault from a temperature-correlated one."
+  }
+ ]
 }

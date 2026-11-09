@@ -246,5 +246,62 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Independence requirement",
+   "def": "Under any workload the proposer can generate, the permission path must meet its response bound and keep its authority to refuse, and separate processors are one realization of that requirement, a hypothesis that loaded tests must still confirm."
+  },
+  {
+   "term": "Rate tiers from time constants",
+   "def": "Each tier takes its rate from a different physical constant (winding L/R and the PWM carrier for the current loop, base travel per tick for the permission tick, weight-sweep cost for the chunk policy, prefill cost for the intent model), not from convenience."
+  },
+  {
+   "term": "Delay spends phase margin",
+   "def": "Sample-and-hold, compute, and bus transport each subtract omega_c*tau of phase at crossover, so fast loops must close inside the drive and the permission tick can supervise them but never sit in them."
+  },
+  {
+   "term": "Freshest-proposal mailbox",
+   "def": "Proposals cross rate boundaries as state messages, not events, so a single-slot seqlock or wait-free multi-slot mailbox gives the faster reader one bounded, nonblocking attempt per tick that returns a complete snapshot or keeps the previous one."
+  },
+  {
+   "term": "Chunk lease",
+   "def": "An admitted chunk may drive the actuators only for a lease counted on the permission path's own clock, derived from the plant: longer than the renewal period plus jitter and short enough to fit under the pre-brake ceiling of the stopping budget."
+  },
+  {
+   "term": "Authority-expiry timers",
+   "def": "Authority over an admitted chunk ends at the earliest of four independent events (evidence freshness deadline, lease expiry, host heartbeat timeout, protective reflex), and a heartbeat proves only that the host is alive, never that its motion is valid."
+  },
+  {
+   "term": "Response bound not percentile",
+   "def": "The tick's response time R = C + B + I <= D needs an analytical bound on each term, because a measured maximum or p99 can refute a declared WCET but never establish it."
+  },
+  {
+   "term": "Sole-writer actuation authority",
+   "def": "The permission path must be the sole writer of every electrical path that can energize a winding, because one unmediated write puts proposer and drives in one failure domain, and the stop itself must be specified in hardware."
+  },
+  {
+   "term": "Fieldbus occupancy vs response",
+   "def": "Whether every axis exchanges command and feedback within the bus cycle is a necessary check computed from frame geometry, but occupancy alone is not a response bound."
+  },
+  {
+   "term": "Command interface check burden",
+   "def": "The level at which a proposal enters the drive's position-velocity-current cascade decides what the permission path must verify, from geometry for a position target to integrated motion for a velocity target."
+  },
+  {
+   "term": "Handoff record and event timing",
+   "def": "Every interface limit is located at one of five handoffs and one of five limits (latency, bandwidth, heat, determinism, fault isolation) and recorded as a handoff record against the capture-to-brake event timing."
+  },
+  {
+   "term": "Worst-case execution time",
+   "def": "A declared WCET is an analytical upper bound on a task's run time on a given processor, distinct from the unknown true worst case and from any measured maximum."
+  },
+  {
+   "term": "Safety microcontroller",
+   "def": "A safety microcontroller claims lockstep cores, ECC, memory protection, clock and supply monitors, self-test, and an external windowed watchdog, far more than physical separation on a board."
+  },
+  {
+   "term": "Setpoint interpolation across rates",
+   "def": "The permission path interpolates admitted waypoints into a setpoint for every bus cycle and falls back on its own when waypoints stop arriving."
+  }
+ ]
 }

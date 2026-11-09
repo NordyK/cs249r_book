@@ -238,5 +238,54 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Measurement validity",
+   "def": "Every speed, size, or energy number holds only for the conditions the measurement fixed (warm or cold, batch size, curated or deployed inputs, burst or sustained), so a benchmark is a proxy and the first question is what it does not measure."
+  },
+  {
+   "term": "Benchmark specification",
+   "def": "A claim becomes testable only when the benchmark fixes the input and output boundary, a quality floor, the model and runtime, the metrics, an open-loop synchronized harness, and recorded run rules, and a number reported without them cannot be reproduced or refuted."
+  },
+  {
+   "term": "Benchmark granularity",
+   "def": "Micro-benchmarks isolate kernels, macro-benchmarks expose composition across a model, and end-to-end benchmarks time the full request path, and a component speedup is diluted by every stage it does not touch."
+  },
+  {
+   "term": "Latency distribution and the SLO",
+   "def": "Mean latency hides the tail, so serving benchmarks report percentiles under a stated offered load and judge them against an SLO (a target for a named indicator, distinct from a contractual SLA), and generative workloads report time to first token and time per output token together."
+  },
+  {
+   "term": "Differences beyond noise",
+   "def": "Run-to-run variance and finite test sets give every measurement an uncertainty, so a comparison needs repeated, order-randomized runs with a stated interval and a prespecified minimum effect, accuracy comparisons need paired tests, and nonsignificance never establishes equivalence."
+  },
+  {
+   "term": "Quality beyond accuracy",
+   "def": "Compression and deployment can leave top-1 accuracy nearly unchanged while degrading calibration and accuracy on rare slices, so a model is accepted against absolute thresholds set in advance (aggregate accuracy, calibration error, deployment-critical slices)."
+  },
+  {
+   "term": "Verification gap",
+   "def": "A finite evaluation certifies behavior only on the population it sampled and only within the uncertainty its sample size allows, because a test set covers an effectively zero fraction of the input space, so evaluation is statistical evidence and never proof."
+  },
+  {
+   "term": "Time to quality target",
+   "def": "A training benchmark scores wall-clock time until validation quality first reaches a fixed target, and scaling efficiency across accelerators reveals a loss without attributing it."
+  },
+  {
+   "term": "Energy measurement boundary",
+   "def": "Energy is integrated power over a matched window inside a stated boundary (chip, node, or facility through PUE), so efficiency belongs to one operating point and a duty-cycled device's idle floor can set battery life."
+  },
+  {
+   "term": "Standardized benchmark suites",
+   "def": "Comparable evidence needs a shared reference workload, quality target, and run rules, as in MLPerf's closed and open divisions and its arrival scenarios, which is why one accelerator reports very different Offline and Server throughput."
+  },
+  {
+   "term": "Data benchmarks",
+   "def": "A data benchmark fixes a deployment slice, a leakage-resistant holdout, coverage minimums, label-quality audits, and drift thresholds before aggregate scores mean anything, and saturated static benchmarks stop discriminating."
+  },
+  {
+   "term": "Throughput-latency measurement",
+   "def": "Throughput and latency are measured together because batching raises throughput while adding latency, so a throughput number without its latency percentile and offered load says nothing about a serving deadline."
+  }
+ ]
 }

@@ -228,5 +228,42 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Inductive bias buys data and cost",
+   "def": "Each architecture is defined by a structural assumption fixed before training (locality and weight sharing, ordered recurrence, content-based routing), and a bias that matches the data cuts parameters, samples, and operations while weak priors pay off only at large data and compute."
+  },
+  {
+   "term": "Every family lowers onto GEMM",
+   "def": "Convolution reaches matrix multiply through im2col or implicit GEMM, attention and LSTM gates fuse their projections into wide GEMMs, and pointwise convolutions and recommender MLPs are GEMMs, so GEMM dominates nearly every workload's operation count and the exceptions are the memory-bound remainder."
+  },
+  {
+   "term": "Architectures as cost signatures",
+   "def": "Counting weights, multiply-accumulates, and resident bytes per building block predicts which iron-law term dominates: dense layers stream each weight once per batch, convolutions reuse each filter at every position, recurrence adds a serial floor, attention adds quadratic score work, and embedding lookups are copies."
+  },
+  {
+   "term": "Quadratic attention",
+   "def": "Dense self-attention computes sequence-length-squared score interactions, so doubling context quadruples that work, while materializing the score matrix is optional storage that tiled kernels remove, and attention arithmetic dominates a block only past a context of about six times the hidden size."
+  },
+  {
+   "term": "Autoregressive decode and the KV cache",
+   "def": "Prefill runs the whole prompt as weight-reusing GEMMs and is usually compute-bound, while decode emits one token per step at about 1 FLOP/byte, re-reading every weight plus a KV cache that grows linearly per token per request, so small-batch decode is bandwidth-bound."
+  },
+  {
+   "term": "Embedding capacity wall",
+   "def": "Embedding lookups map high-cardinality IDs to learned rows read at data-dependent addresses, so a recommender is capacity-first: table size decides where tables live (shrink, move, or partition) and which bandwidth the data term pays before arithmetic matters."
+  },
+  {
+   "term": "Architecture selection by workload profile",
+   "def": "The same accelerator is compute-, bandwidth-, or capacity-bound by architecture alone, so selection maps data symmetries to an operator family, filters candidates against storage, activation peak, intensity, latency, and power budgets, then validates on the target device."
+  },
+  {
+   "term": "Skip connections and normalization",
+   "def": "Residual connections keep gradients alive through deep stacks and normalization steadies forward scale, but the skip input stays live through the branch, residual adds and normalization are bandwidth-bound and want fusion, and BatchNorm adds batch dependence and training-serving skew."
+  },
+  {
+   "term": "Efficient architecture families",
+   "def": "Factoring a convolution into depthwise and pointwise stages cuts parameters and multiply-accumulates by about 8-9x for 3x3 filters, but the factored layers have low arithmetic intensity, so far fewer FLOPs need not mean proportionally faster execution."
+  }
+ ]
 }

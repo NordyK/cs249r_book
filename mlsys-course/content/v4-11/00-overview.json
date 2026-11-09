@@ -242,5 +242,58 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Trajectory record",
+   "def": "The planner hands over an immutable record naming frame, evidence epoch, seam state, parent intent-lease digest, and four MCU-clock deadlines in two tiers (high-rate chunk lease, hardware commitment cutoff) together with its latched stop."
+  },
+  {
+   "term": "Replacement latency and handoff tail",
+   "def": "Replacement latency runs from capture to MCU admission (about 115 ms against a 50 ms renewal and a 60 ms lease), so renewal is sustainable only by overlapping requests and every record must carry its own handoff tail."
+  },
+  {
+   "term": "Manipulator Jacobian",
+   "def": "Clearance and tool limits live in tool space but drives enforce joint limits, so tool-space quantities pass through the configuration-dependent Jacobian, whose weak direction near a singularity demands unbounded joint rates unless damped least squares trades accuracy for bounded rates."
+  },
+  {
+   "term": "Kinodynamic feasibility",
+   "def": "A collision-free path is executable only if every joint's position, velocity, acceleration, jerk, torque, and current stay within limits along the continuous interpolant, its seams, and its stop, which time parameterization must check."
+  },
+  {
+   "term": "C2 seam",
+   "def": "Splicing chunks that match only position or velocity leaves an acceleration step that reflected inertia turns into a torque step, so seams must be C2 and the replacement is planned from the projected seam state."
+  },
+  {
+   "term": "Jerk-limited stopping suffix",
+   "def": "A stop that keeps acceleration continuous must ramp deceleration up and down, so constant-deceleration braking is unexecutable and understates distance, and every admitted trajectory carries a jerk-limited S-curve stop."
+  },
+  {
+   "term": "Inevitable collision states",
+   "def": "A moving mass enters a state from which every admissible control collides long before contact, so every record names a commitment instant at which its latched stop must begin, and admission closes earlier by the decision-to-onset delay."
+  },
+  {
+   "term": "Generators are proposers",
+   "def": "Sampling planners, trajectory optimization and MPC, and learned chunks differ in the work they do, not in what they must prove, and a solver's deadline, not its convergence, decides admission."
+  },
+  {
+   "term": "Future-state conditioning",
+   "def": "Because the arm keeps moving during inference, a replacement is planned from the state projected to the seam and admitted against the measured state."
+  },
+  {
+   "term": "Model predictive control",
+   "def": "Receding-horizon MPC handles constraints explicitly and gains recursive feasibility only through a terminal invariant set, and its solve time against the period decides whether its output can be admitted."
+  },
+  {
+   "term": "Time parameterization",
+   "def": "Phase-plane time parameterization finds the fastest timing of a fixed path under velocity, acceleration, and torque bounds, and online generators compute jerk-limited profiles from arbitrary states."
+  },
+  {
+   "term": "Nonholonomic base planning",
+   "def": "A differential-drive base reaches the same configurations as a holonomic one but through a restricted velocity space, so it plans over controls."
+  },
+  {
+   "term": "Configuration space",
+   "def": "Planning searches the configuration space and its collision-free subset, and collision queries dominate a sampling planner's run time."
+  }
+ ]
 }

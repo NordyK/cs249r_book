@@ -254,6 +254,19 @@ def synth_questions(cid, n, title, body, concepts, cmds):
     return qs, c
 
 
+def section_terms(concepts, ids, seen):
+    """Glossary terms for one lesson: the book's learner-graph concepts whose section is in this lesson."""
+    lg = ((concepts or {}).get("concept_map") or {}).get("learner_graph") or {}
+    out = []
+    for c in lg.get("concepts") or []:
+        label, summary, sec = c.get("label"), c.get("summary"), c.get("section")
+        if not (label and summary and sec in ids) or label.lower() in seen:
+            continue
+        seen.add(label.lower())
+        out.append({"term": label, "def": summary})
+    return out[:8]
+
+
 def section_lesson(cid, vol_label, ch_title, n, title, body, quiz, cmds, concepts=None):
     les_id = "%s-%02d" % (cid, n)
     qs = (quiz or {}).get("questions") or []
@@ -405,12 +418,13 @@ def generate(course, cid, title, order, force=False):
     for t, sid, b in body_secs:
         if lessons_src and ((sid not in quizzes and len(b.split()) < 700) or t.lower().startswith("summary")):
             pt, psid, pb, extra = lessons_src[-1]
-            lessons_src[-1] = (pt, psid, pb, extra + [(t, b)])
+            lessons_src[-1] = (pt, psid, pb, extra + [(t, b, sid)])
         else:
             lessons_src.append((t, sid, b, []))
     if os.path.isdir(out):
         for f in glob.glob(os.path.join(out, "*.json")):
-            os.remove(f)
+            if "b-lab-" not in os.path.basename(f):  # hand-written labs (labs.py) survive a regeneration
+                os.remove(f)
     os.makedirs(out, exist_ok=True)
     concepts_map = (concepts or {}).get("concept_map") or {}
     chapter = {"title": title, "order": order,
@@ -419,16 +433,28 @@ def generate(course, cid, title, order, force=False):
                "layer": "imported"}
     write(os.path.join(out, "chapter.json"), chapter)
     ov, warm = overview_lesson(cid, vol_label, ch_title, concepts, purpose, [l[0] for l in lessons_src], cmds)
+    seen_terms = set()
+    claims = concepts_map.get("claims") or {}
+    ov_terms = [{"term": c, "def": claims[c]} for c in (concepts_map.get("primary_concepts") or []) + (concepts_map.get("secondary_concepts") or []) if claims.get(c)]
+    if ov_terms:
+        ov["terms"] = ov_terms
+        seen_terms |= {t["term"].lower() for t in ov_terms}
     write(os.path.join(out, "00-overview.json"), ov)
     pool = list(warm)
     n = 0
     for t, sid, b, extra in lessons_src:
         n += 1
-        les_id, les = section_lesson(cid, vol_label, ch_title, n, t, b + "".join("\n### %s\n" % et for et, _ in extra), quizzes.get(sid), cmds, concepts)
+        les_id, les = section_lesson(cid, vol_label, ch_title, n, t, b + "".join("\n### %s\n" % et for et, *_ in extra), quizzes.get(sid), cmds, concepts)
         pool += les.pop("_conv")
         les.pop("_short")
         if extra:
-            les["source"]["sections"] += [et for et, _ in extra]
+            les["source"]["sections"] += [et for et, *_ in extra]
+        ids = {sid.lstrip("#")} | {x for _, eb, es in extra for x in [es.lstrip("#")]}
+        for text in [b] + [eb for _, eb, _ in extra]:
+            ids |= set(re.findall(r"\{#(sec-[^\s}]+)", text))
+        terms = section_terms(concepts, ids, seen_terms)
+        if terms:
+            les["terms"] = terms
         write(os.path.join(out, "%02d-%s.json" % (n, slug(t))), les)
     tl = test_lesson(cid, ch_title, pool, cmds)
     if tl:

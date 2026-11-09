@@ -3,7 +3,7 @@
 (function () {
 "use strict";
 const C = window.COURSE;
-if (!C) { document.body.innerHTML = "<p style='padding:2rem;font-family:sans-serif'>Missing course/data.js — run scripts/build_course.py first.</p>"; return; }
+if (!C) { document.body.innerHTML = "<p style='padding:2rem'>Missing course/data.js: run python3 mlsys-course-tools/build.py mlsys-course first.</p>"; return; }
 
 /* ───────────── i18n ─────────────
    UI strings live in the skill's assets/i18n/<ui_lang>/strings.json; build_course.py bundles the course's
@@ -300,8 +300,9 @@ function mathParse(src) {
       return { mml: "<mi>" + esc(mapped) + "</mi>" };
     }
     if (name === "mathrm") return { mml: '<mi mathvariant="normal">' + esc(raw) + "</mi>" };
-    const sty = name === "mathbf" || name === "boldsymbol" ? "font-weight:bold" : name === "mathit" ? "font-style:italic" : name === "mathsf" ? "font-family:sans-serif" : name === "mathtt" ? "font-family:monospace" : "";
-    return { mml: '<mi style="' + sty + '">' + esc(raw) + "</mi>" };
+    const sty = name === "mathbf" || name === "boldsymbol" ? "font-weight:bold" : name === "mathit" ? "font-style:italic" : "";
+    const variant = name === "mathsf" ? ' mathvariant="sans-serif"' : name === "mathtt" ? ' mathvariant="monospace"' : "";
+    return { mml: "<mi" + variant + (sty ? ' style="' + sty + '"' : "") + ">" + esc(raw) + "</mi>" };
   }
 
   function cmdAtom(name) {
@@ -644,8 +645,9 @@ function loadChapter(id) {
 }
 window.__courseChapter = (id, lessons) => { LES[id] = lessons; };
 function celebrate() {
-  if (reduceMotion() || !document.body.animate) return;
+  if (!document.body.animate) return;
   const seam = h("div", { class: "seam-flash", "aria-hidden": "true" }); document.body.append(seam);
+  if (reduceMotion()) { seam.animate([{ opacity: 0 }, { opacity: 1, offset: .3 }, { opacity: 0 }], { duration: 700 }).onfinish = () => seam.remove(); return; }
   seam.animate([{ transform: "scaleX(0)", opacity: 1 }, { transform: "scaleX(1)", opacity: 1, offset: .6 }, { transform: "scaleX(1)", opacity: 0 }], { duration: 1100, easing: "cubic-bezier(.16,1,.3,1)" }).onfinish = () => seam.remove();
 }
 
@@ -669,6 +671,24 @@ function termNotes(b, les) {
   });
   return out;
 }
+const CALC_HINTS = [
+  ["iron-law", /iron law/], ["roofline", /roofline|arithmetic intensity|ridge point/], ["amdahl", /amdahl/],
+  ["memory", /optimizer state|memory footprint|activation memory/], ["quantize", /quantiz/], ["batching", /dynamic batching|batch size/],
+  ["allreduce", /all-?reduce/], ["kvcache", /kv[ -]cache|key-value cache/], ["energy", /energy per (byte|operation|access)|picojoule|\bpj\b/],
+  ["degradation", /silent degradation|data drift|distribution shift/]];
+function calcNotes(b, les) {
+  if (["text", "callout", "from_book", "reveal", "derivation"].indexOf(b.type) < 0 || !window.WIDGETS) return [];
+  const own = les._widgets || (les._widgets = new Set((les.blocks || []).filter(x => x.type === "widget").map(x => x.widget)));
+  const text = (String(b.md || "") + " " + String(b.prompt || "") + " " + String(b.title || "")).toLowerCase();
+  const out = [];
+  CALC_HINTS.forEach(([k, re]) => {
+    if (out.length || own.has(k) || calcSeen.has(k) || !re.test(text) || !window.WIDGETS[k]) return;
+    calcSeen.add(k);
+    out.push(note("Try the numbers", h("div", null, h("a", { href: "#/playground/" + k }, icon("calc"), " " + window.WIDGETS[k].title + " calculator"))));
+  });
+  return out;
+}
+const calcSeen = new Set();
 function formulaNotes(b) {
   if (b.type !== "text" && b.type !== "callout") return [];
   const out = [], seen = new Set();
@@ -678,11 +698,11 @@ function formulaNotes(b) {
 
 /* ───────────── blocks ───────────── */
 const CALLOUT_LABEL = { tip: "Tip", note: "Note", warning: "Watch out", analogy: "Analogy", key: "Remember", example: "Example" };
-function blockTitle(text, ic, extra) { return h("h3", { class: "block-title" }, ic ? icon(ic) : null, h("span", null, text), extra || null); }
+function blockTitle(text, ic, extra) { return h("h2", { class: "block-title" }, ic ? icon(ic) : null, h("span", null, text), extra || null); }
 
 function renderBlock(b, les) {
   switch (b.type) {
-    case "text": return h("div", { class: "block text" }, b.title ? h("h3", null, b.title) : null, h("div", { html: md(b.md) }));
+    case "text": return h("div", { class: "block text" }, b.title ? h("h2", { class: "block-title" }, b.title) : null, h("div", { html: md(b.md) }));
     case "callout": { const kind = CALLOUT_LABEL[b.kind] ? b.kind : "note";
       return h("aside", { class: "block callout is-" + kind }, h("div", { class: "c-title" }, b.title || CALLOUT_LABEL[kind]), h("div", { html: md(b.md) })); }
     case "code": return h("div", { class: "block" }, b.title ? h("h4", null, b.title) : null, codeBlock(b),
@@ -699,7 +719,7 @@ function renderBlock(b, les) {
     case "flashcards": return flashBlock(b);
     case "playground": return playgroundBlock(b, les);
     case "widget": return widgetBlock(b, les);
-    case "summary": return h("div", { class: "block summary" }, h("h3", { class: "block-title" }, b.title || "What to take away"), h("ul", null, b.points.map(p => h("li", { html: inline(p) }))));
+    case "summary": return h("div", { class: "block summary" }, h("h2", { class: "block-title" }, b.title || "What to take away"), h("ul", null, b.points.map(p => h("li", { html: inline(p) }))));
     default: return h("div", { class: "block" }, "[" + b.type + "]");
   }
 }
@@ -709,7 +729,7 @@ function sideFor(b, les, live) {
   if (b.type === "from_book") out.push(note("From the book", h("div", null, b.source || "MLSysBook")));
   if (b.type === "code" && (b.caption || b.file)) out.push(note(b.file ? "File" : "Listing", h("div", { html: inline(b.caption || b.file) })));
   if (b.note) out.push(note("Note", h("div", { html: md(b.note) })));
-  out.push(...formulaNotes(b), ...termNotes(b, les));
+  out.push(...formulaNotes(b), ...calcNotes(b, les), ...termNotes(b, les));
   if (live) out.push(live);
   return out;
 }
@@ -869,7 +889,7 @@ function makeQuestion(q0, qi, quizId) {
   const api = { el: root, impl, actions, answered: impl.answered };
   api.show = (ok, reveal) => {
     impl.mark(ok); if (reveal && !ok) impl.reveal();
-    fb.replaceChildren(h("div", { class: "fb " + (ok ? "good" : "bad") }, h("strong", null, ok ? "Correct." : reveal ? "Not this time. The answer is shown above." : "Not quite. Try again or use a hint."), (ok || reveal) && q.explanation ? h("div", { html: md(q.explanation) }) : null));
+    fb.replaceChildren(h("div", { class: "fb " + (ok ? "good" : "bad") }, h("strong", null, ok ? "Correct." : reveal ? "Not this time. The answer is shown above." : "Not quite. Try again."), (ok || reveal) && q.explanation ? h("div", { html: md(q.explanation) }) : !ok && q.hint ? h("div", { html: md("Hint: " + q.hint) }) : null));
   };
   api.clear = () => { fb.replaceChildren(); impl.reset(); impl.lock(false); };
   add(root, hintBox, actions, fb);
@@ -933,13 +953,19 @@ function codeEditor(initial, onRun, opts) {
   const paintGutter = () => { const n = ta.value.split("\n").length; if (gutter.childElementCount !== n) gutter.replaceChildren(...Array.from({ length: n }, (_, i) => h("span", null, String(i + 1)))); };
   ta.addEventListener("input", () => { paintGutter(); if (opts && opts.onChange) opts.onChange(ta.value); });
   ta.addEventListener("scroll", () => { gutter.scrollTop = ta.scrollTop; });
+  let tabFree = false;
+  ta.addEventListener("blur", () => { tabFree = false; });
   ta.addEventListener("keydown", e => {
+    if (e.key === "Escape") { tabFree = true; return; }
+    if (e.key === "Tab" && tabFree) return;
+    tabFree = false;
     if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); const s = ta.selectionStart, en = ta.selectionEnd; ta.setRangeText("    ", s, en, "end"); ta.dispatchEvent(new Event("input")); }
     else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (onRun) onRun(); }
     else if (e.key === "Enter") { const s = ta.selectionStart; const line = ta.value.slice(ta.value.lastIndexOf("\n", s - 1) + 1, s); let ind = (/^\s*/.exec(line) || [""])[0]; if (/:\s*$/.test(line)) ind += "    "; e.preventDefault(); ta.setRangeText("\n" + ind, s, ta.selectionEnd, "end"); ta.dispatchEvent(new Event("input")); }
   });
   paintGutter();
   const lines = Math.min(Math.max((initial || "").split("\n").length + 1, (opts && opts.minLines) || 8), (opts && opts.maxLines) || 26);
+  ta.setAttribute("aria-describedby", "ed-help"); if (!document.getElementById("ed-help")) document.body.append(h("p", { id: "ed-help", hidden: true }, "Tab indents. Press Escape, then Tab, to leave the editor. Ctrl+Enter runs."));
   const el = h("div", { class: "editor", style: "--ed-lines:" + lines }, gutter, ta);
   return { el, get value() { return ta.value; }, set value(v) { ta.value = v; paintGutter(); }, focus: () => ta.focus() };
 }
@@ -1143,9 +1169,12 @@ const content = () => $("#content");
 let currentRoute = { kind: "home" };
 const LAYER = {
   deep: ["Deep", "Hand-written lessons with walkthroughs, calculators and playgrounds"],
-  lab: ["Lab", "Book lessons plus a hand-written hands-on lab: a worked example, a calculator task, a Python playground and a numeric quiz"],
+  lab: ["Lab", "A hand-written hands-on lab: a worked example, a calculator task, a Python playground and a numeric quiz"],
+  "has-lab": ["Has a lab", "Lessons built from the book, plus one or more hand-written hands-on labs"],
   imported: ["Imported", "Lessons built from the book's own text, quiz bank and concept map"],
 };
+const lessonLayer = (id, les, ch) => les && les.kind === "test" ? null : id.indexOf("-lab-") > 0 ? "lab" : ch.layer === "deep" ? "deep" : "imported";
+const chapterTag = ch => tagEl(ch.layer === "lab" ? "has-lab" : ch.layer);
 const tagEl = layer => { const L = LAYER[layer] || LAYER.imported; return h("span", { class: "depth is-" + (LAYER[layer] ? layer : "imported"), title: L[1] }, L[0]); };
 function bar(frac, state) { return h("div", { class: "hbar" + (state ? " is-" + state : "") }, h("div", { class: "hbar-fill", style: "width:" + Math.round(100 * Math.min(1, frac)) + "%" })); }
 function chapterRecord(ch) {
@@ -1162,7 +1191,7 @@ function renderHome() {
   const doneN = ORDER.filter(lessonDone).length;
   const tests = C.chapters.map(testOf).filter(Boolean), testsPassed = tests.filter(id => P.quizzes[id] && P.quizzes[id].passed).length;
   const exAll = [].concat(...C.chapters.map(exOf)), exPassed = exAll.filter(id => P.exercises[id] && P.exercises[id].status === "passed").length;
-  const lastLog = (P.log || [])[P.log.length - 1];
+  const lastLog = (P.log || []).slice().reverse().find(e => e.kind !== "visit") || (P.log || [])[P.log.length - 1];
   const resume = nid ? h("div", { class: "resume" },
     h("p", null, P.last ? "Pick up where you left off: " : "Start at the beginning: ", h("strong", null, STUB[nid].title), ", in ", h("a", { href: "#/ch/" + C.chapters[CH_OF[nid]].id }, chLabel(C.chapters[CH_OF[nid]]).name), "."),
     h("a", { class: "btn primary", href: "#/lesson/" + nid }, P.last ? "Continue" : "Start the course", icon("arrow"))) : h("p", { class: "resume" }, h("strong", null, "Every lesson is complete."));
@@ -1181,7 +1210,7 @@ function renderHome() {
     chs.forEach(ch => {
       const lab = chLabel(ch), isNext = nid && C.chapters[CH_OF[nid]] === ch;
       frag.push(row(h("a", { class: "chrow-link" + (isNext ? " is-current" : ""), href: "#/ch/" + ch.id },
-        h("span", { class: "ch-tag" }, lab.tag.replace("TinyTorch", "TT")), h("span", { class: "ch-name" }, lab.name), tagEl(ch.layer), ch.summary ? h("span", { class: "ch-sum", html: inline(ch.summary.replace(/^Vol [IV]+:\s*/, "")) }) : null),
+        h("span", { class: "ch-tag" }, lab.tag.replace("TinyTorch", "TT")), h("span", { class: "ch-name" }, lab.name), chapterTag(ch), ch.summary ? h("span", { class: "ch-sum", html: inline(ch.summary.replace(/^Vol [IV]+:\s*/, "")) }) : null),
         chapterRecord(ch), "chrow"));
     });
   });
@@ -1192,8 +1221,8 @@ async function renderChapter(id) {
   if (!ch) return renderMissing();
   const lab = chLabel(ch), firstOpen = ch.stubs.find(s => !lessonDone(s.id)) || ch.stubs[0];
   const frag = [row([h("div", { class: "crumb" }, h("a", { href: "#/home" }, "Contents"), " / ", lab.tag), h("h1", { class: "headline" }, lab.name), ch.summary ? h("p", { class: "lead", html: inline(ch.summary) }) : null,
-    ch.goals && ch.goals.length ? h("div", { class: "goals" }, h("h3", null, "Key ideas"), h("ul", null, ch.goals.map(g => h("li", { html: inline(g) })))) : null,
-    h("div", { class: "row" }, h("a", { class: "btn primary", href: "#/lesson/" + firstOpen.id }, chDone(ch) ? "Continue the chapter" : "Start the chapter", icon("arrow")), tagEl(ch.layer))],
+    ch.goals && ch.goals.length ? h("div", { class: "goals" }, h("h2", null, "Key ideas"), h("ul", null, ch.goals.map(g => h("li", { html: inline(g) })))) : null,
+    h("div", { class: "row" }, h("a", { class: "btn primary", href: "#/lesson/" + firstOpen.id }, chDone(ch) ? "Continue the chapter" : "Start the chapter", icon("arrow")), chapterTag(ch))],
     chapterRecord(ch), "masthead")];
   ch.stubs.forEach((s, i) => {
     const pr = [];
@@ -1215,6 +1244,11 @@ function recordItems(les) {
       h("span", null, b._live.firstChild.textContent + ": " + b._live.lastChild.textContent)));
   });
 }
+function lessonPosLabel(ch, id) {
+  const body = ch.stubs.filter(s => s.kind !== "test" && !/-00-overview$/.test(s.id));
+  const i = body.findIndex(s => s.id === id);
+  return i < 0 ? "Chapter overview" : "Lesson " + (i + 1) + " of " + body.length;
+}
 async function renderLesson(id) {
   const el = content(); const stub = STUB[id];
   if (!stub) return renderMissing();
@@ -1224,8 +1258,8 @@ async function renderLesson(id) {
   try { lessons = await loadChapter(ch.id); } catch (e) { fill(el, h("div", { class: "page" }, h("h1", null, "This chapter could not be loaded"), h("p", null, e.message + ". Rebuild the course with mlsys-course-tools/build.py, then reload."))); return; }
   if (currentRoute.arg !== id) return;
   const les = lessons[id]; const lab = chLabel(ch); const pos = ORDER.indexOf(id);
-  P.last = id; const lp = (P.lessons[id] = P.lessons[id] || {}); if (!lp.visited) { lp.visited = new Date().toISOString(); logEvent("visit", id, "Opened " + les.title + " (" + lab.name + ")"); } save();
-  termsSeen.clear();
+  P.last = id; const lp = (P.lessons[id] = P.lessons[id] || {}); if (!lp.visited) { lp.visited = new Date().toISOString(); logEvent("visit", id, "Visited " + les.title + " (" + lab.name + ")"); } save();
+  termsSeen.clear(); calcSeen.clear();
   const isTest = les.kind === "test";
   const record = h("ol", { class: "record" });
   const finish = h("div", { class: "finish" });
@@ -1242,20 +1276,24 @@ async function renderLesson(id) {
     const open = items.filter(li => !li.classList.contains("is-done")).length;
     recNote.className = "mnote record-note" + (items.length && !open ? " is-done" : "");
     recLabel.textContent = items.length ? (open ? open + " of " + items.length + " still open" : "All practice done") : "Reading lesson";
+    if (items.length && !open && !isTest && !lessonDone(id)) {
+      P.lessons[id] = Object.assign(P.lessons[id] || {}, { completed: true, completedAt: new Date().toISOString(), auto: true });
+      logEvent("lesson", id, "Completed " + les.title + " (" + lab.name + "): all practice done"); celebrate(); save(true); drawFinish();
+    }
   };
   const recLabel = h("div", { class: "mlabel" }), recNote = h("div", { class: "mnote record-note" }, recLabel, record);
   const rows = [row([h("div", { class: "crumb" }, h("a", { href: "#/home" }, "Contents"), " / ", h("a", { href: "#/ch/" + ch.id }, lab.tag + " · " + lab.name)),
     h("h1", { class: "headline" }, les.title), les.summary ? h("p", { class: "lead", html: inline(les.summary) }) : null,
-    h("div", { class: "meta" }, h("span", null, (les.minutes || 10) + " min"), h("span", null, isTest ? "Chapter test" : "Lesson " + (ch.stubs.findIndex(s => s.id === id)) + " of " + (ch.stubs.length - 1)), tagEl(ch.layer), lessonDone(id) ? h("span", { class: "is-done" }, icon("check"), "Complete") : null)],
+    h("div", { class: "meta" }, h("span", null, (les.minutes || 10) + " min"), h("span", null, isTest ? "Chapter test" : lessonPosLabel(ch, id)), (lessonLayer(id, les, ch) ? tagEl(lessonLayer(id, les, ch)) : null), lessonDone(id) ? h("span", { class: "is-done" }, icon("check"), "Complete") : null)],
     [recNote], "masthead")];
   (les.blocks || []).forEach(b => {
     const main = renderBlock(b, les);
     rows.push(row(main, sideFor(b, les, b._live), "b-" + b.type));
   });
-  if (les.terms && les.terms.length) rows.push(row(h("dl", { class: "block terms" }, h("h3", { class: "block-title" }, "Terms from this lesson"), les.terms.map(x => [h("dt", null, x.term), h("dd", { html: inline(x.def) })])), []));
+  if (les.terms && les.terms.length) rows.push(row(h("div", { class: "block terms" }, h("h2", { class: "block-title" }, "Terms from this lesson"), h("dl", null, les.terms.map(x => [h("dt", null, x.term), h("dd", { html: inline(x.def) })]))), []));
   rows.push(row(finish, []));
   const prev = pos > 0 ? ORDER[pos - 1] : null, nxt = pos < ORDER.length - 1 ? ORDER[pos + 1] : null;
-  rows.push(row(h("nav", { class: "pager", "aria-label": "Lesson navigation" }, prev ? h("a", { href: "#/lesson/" + prev }, h("small", null, "Previous"), STUB[prev].title) : h("span"), nxt ? h("a", { class: "nx", href: "#/lesson/" + nxt }, h("small", null, "Next"), STUB[nxt].title) : null), []));
+  rows.push(row(h("nav", { class: "pager", "aria-label": "Lesson navigation" }, prev ? h("a", { href: "#/lesson/" + prev }, h("small", null, "Previous"), STUB[prev].title) : h("span"), nxt ? h("a", { class: "nx", href: "#/lesson/" + nxt }, h("small", null, "Next"), STUB[nxt].title) : null), [note("Keys", h("div", null, h("kbd", null, "["), " and ", h("kbd", null, "]"), " move between lessons."))]));
   fill(el, h("article", { class: "page lesson" }, rows));
   drawFinish(); window.__drawRecord();
   if (location.hash.indexOf("#b-") > 0) { /* deep link to a block is not used by the router */ }
@@ -1272,17 +1310,17 @@ function renderLog() {
     const f = e.target.files[0]; if (!f) return; f.text().then(txt => { const j = JSON.parse(txt); if (!j || typeof j !== "object" || !j.lessons) throw new Error(); ask("Replace your current progress with this file?", () => { P = Object.assign(BLANK(), j); save(true); route(); }); }).catch(() => ask("That file is not a progress export from this course.", () => {}));
   } });
   const imp = h("button", { class: "btn ghost sm", type: "button", onclick: () => file.click() }, "Import progress");
-  const rows = [row([h("h1", { class: "headline" }, "Logbook"), h("p", { class: "lead" }, "Everything you have finished, newest first, so you never lose track between sessions. It is saved with your progress; export it to move it to another computer."), h("div", { class: "row" }, exp, imp, file)],
+  const rows = [row([h("h1", { class: "headline" }, "Logbook"), h("p", { class: "lead" }, "Your work, newest first: lessons completed, quizzes and tests scored, calculator tasks and exercises solved, and the lessons you visited. It is saved with your progress; export it to move it to another computer."), h("div", { class: "row" }, exp, imp, file)],
     [note("Lessons", h("div", { class: "mnum" }, fmtInt(doneN) + " / " + fmtInt(ORDER.length))), note("Days with activity", h("div", { class: "mnum" }, String(days.length))), note("Entries", h("div", { class: "mnum" }, fmtInt(log.length)))], "masthead")];
   if (!log.length) rows.push(row(h("div", { class: "empty" }, h("p", null, "Nothing logged yet. Every lesson you complete, quiz you finish, test you take and exercise you pass is written here with its date."), h("a", { class: "btn primary", href: "#/lesson/" + nextLessonId() }, "Open your next lesson", icon("arrow"))), []));
   days.forEach(d => rows.push(row([h("h2", { class: "day" }, new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })),
-    h("ul", { class: "loglist" }, byDay[d].map(e => h("li", { class: "k-" + e.kind }, h("time", null, e.at.slice(11, 16)), h("span", null, e.ref && STUB[e.ref] ? h("a", { href: "#/lesson/" + e.ref }, e.text) : e.text))))], [note(null, h("div", null, byDay[d].length + " entr" + (byDay[d].length > 1 ? "ies" : "y")))])));
+    h("ul", { class: "loglist" }, byDay[d].map(e => h("li", { class: "k-" + e.kind }, h("time", null, new Date(e.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })), h("span", null, e.ref && STUB[e.ref] ? h("a", { href: "#/lesson/" + e.ref }, e.text) : e.text))))], [note(null, h("div", null, byDay[d].length + " entr" + (byDay[d].length > 1 ? "ies" : "y")))])));
   fill(el, h("div", { class: "page log" }, rows));
 }
 function renderPlayground() {
   const el = content(); const KEY = "course-scratch";
   let saved = null; try { saved = localStorage.getItem(KEY); } catch (e) { /* ignore */ }
-  const start = "# Scratchpad: anything you type here is kept in this browser.\n# Ctrl+Enter runs it. With ./start.sh it runs with the python3 (and NumPy) on your computer.\nimport math\n\nparams = 7e9          # a 7B-parameter model\nbytes_per_param = 2   # fp16\nprint(f\"weights: {params * bytes_per_param / 1e9:.1f} GB\")\n";
+  const start = "# Scratchpad: anything you type here is kept in this browser.\n# Ctrl+Enter runs it, with the python3 on your computer.\nimport math\n\nparams = 7e9          # a 7B-parameter model\nbytes_per_param = 2   # fp16\nprint(f\"weights: {params * bytes_per_param / 1e9:.1f} GB\")\n";
   const out = h("pre", { class: "term", hidden: true }), status = h("div", { class: "run-status", "aria-live": "polite" });
   const ed = codeEditor(saved || start, () => run(), { label: "Python scratchpad", minLines: 14, maxLines: 30, onChange: v => { try { localStorage.setItem(KEY, v); } catch (e) { /* ignore */ } } });
   async function run() { status.className = "run-status"; status.textContent = "Running…"; try { const r = await runPython(ed.value); out.hidden = false; out.textContent = r.output.trim() || "(no output)"; status.className = "run-status " + (r.ok ? "good" : "bad"); status.textContent = r.ok ? "Ran without errors (" + r.where + ")" : "Error: see the last line of the output."; } catch (e) { status.className = "run-status bad"; status.textContent = e.message; } }
@@ -1299,23 +1337,31 @@ function renderGlossary() {
   const items = (C.glossary || []).slice().sort((a, b) => a.term.localeCompare(b.term, "en"));
   const draw = q => {
     const f = items.filter(g => !q || (g.term + " " + g.def).toLowerCase().indexOf(q.toLowerCase()) >= 0);
-    list.replaceChildren(...(f.length ? f.map(g => h("div", { class: "gloss-item" }, h("dt", null, g.term), h("dd", null, h("span", { html: inline(g.def) }), g.lesson && STUB[g.lesson] ? h("a", { href: "#/lesson/" + g.lesson }, " " + STUB[g.lesson].title) : null))) : [h("p", { class: "empty" }, items.length ? "No term matches “" + q + "”." : "Terms appear here as deep lessons define them.")]));
+    const shown = f.slice(0, 300);
+    count.textContent = f.length === items.length ? fmtInt(items.length) + " term" + (items.length === 1 ? "" : "s") : fmtInt(f.length) + " of " + fmtInt(items.length) + " terms" + (f.length > 300 ? ", first 300 shown" : "");
+    list.replaceChildren(...(f.length ? shown.map(g => h("div", { class: "gloss-item" }, h("dt", null, g.term), h("dd", null, h("span", { html: inline(g.def) }), g.lesson && STUB[g.lesson] ? h("a", { class: "gloss-src", href: "#/lesson/" + g.lesson }, STUB[g.lesson].title) : null))) : [h("p", { class: "empty" }, items.length ? "No term matches “" + q + "”." : "Terms appear here as deep lessons define them.")]));
   };
+  const count = h("div", { class: "mnum" });
   const inp = h("input", { class: "search", type: "search", placeholder: "Search terms", "aria-label": "Search terms", oninput: e => draw(e.target.value) });
-  fill(el, h("div", { class: "page" }, row([h("h1", { class: "headline" }, "Glossary"), inp, list], [note(null, h("div", null, items.length + " terms"))], "masthead"))); draw("");
+  fill(el, h("div", { class: "page" }, row([h("h1", { class: "headline" }, "Glossary"), inp, list], [note("Terms", count)], "masthead"))); draw("");
 }
 function renderMissing() { fill(content(), h("div", { class: "page" }, row([h("h1", { class: "headline" }, "Nothing here"), h("p", null, "That address does not match a lesson or chapter."), h("a", { class: "btn", href: "#/home" }, "Back to the contents")], []))); }
 
 /* ───────────── chrome ───────────── */
+function railNav() {
+  const cur = currentRoute.kind === "lesson" || currentRoute.kind === "ch" ? "home" : currentRoute.kind;
+  return h("nav", { class: "rail-nav", "aria-label": "Course sections" }, [["home", "Contents"], ["playground", "Playground"], ["log", "Logbook"], ["glossary", "Glossary"]]
+    .map(([k, l]) => h("a", { href: "#/" + k, class: k === cur ? "is-current" : null }, l)));
+}
 function renderRail() {
   const rail = $("#rail"); const r = currentRoute;
   let chId = r.kind === "ch" ? r.arg : r.kind === "lesson" && STUB[r.arg] ? C.chapters[CH_OF[r.arg]].id : null;
   if (!chId) {
-    fill(rail, h("div", { class: "rail-head" }, "Volumes"), h("ul", null, (C.parts || []).map(p => h("li", null, h("a", { href: "#/home", onclick: e => { e.preventDefault(); location.hash = "#/home"; setTimeout(() => { const t = document.getElementById("part-" + p.id); if (t) t.scrollIntoView(); }, 30); } }, p.label, h("small", null, p.title))))));
+    fill(rail, railNav(), h("div", { class: "rail-head" }, "Volumes"), h("ul", null, (C.parts || []).map(p => h("li", null, h("a", { href: "#/home", onclick: e => { e.preventDefault(); location.hash = "#/home"; setTimeout(() => { const t = document.getElementById("part-" + p.id); if (t) t.scrollIntoView(); }, 30); } }, p.label, h("small", null, p.title))))));
     return;
   }
   const ch = CH_BY_ID[chId], lab = chLabel(ch);
-  fill(rail, h("a", { class: "rail-back", href: "#/home" }, icon("back"), "All chapters"), h("a", { class: "rail-head" + (r.kind === "ch" ? " is-current" : ""), href: "#/ch/" + ch.id }, h("small", null, lab.tag), lab.name),
+  fill(rail, railNav(), h("a", { class: "rail-back", href: "#/home" }, icon("back"), "All chapters"), h("a", { class: "rail-head" + (r.kind === "ch" ? " is-current" : ""), href: "#/ch/" + ch.id }, h("small", null, lab.tag), lab.name),
     h("ol", { class: "rail-lessons" }, ch.stubs.map(s => h("li", { class: (lessonDone(s.id) ? "is-done" : lessonStarted(s.id) ? "is-open" : "") + (r.arg === s.id ? " is-current" : "") },
       h("a", { href: "#/lesson/" + s.id, "aria-current": r.arg === s.id ? "page" : null }, h("span", { class: "rmark" }, lessonDone(s.id) ? icon("check") : null), h("span", null, s.title))))));
 }
@@ -1331,10 +1377,10 @@ function route() {
   if (kind === "lesson") renderLesson(arg);
   else if (kind === "ch") renderChapter(arg);
   else if (kind === "log") renderLog();
-  else if (kind === "playground") renderPlayground();
+  else if (kind === "playground") { renderPlayground(); if (arg) setTimeout(() => { const t = document.getElementById("w-" + arg); if (t) t.scrollIntoView({ block: "start" }); }, 0); }
   else if (kind === "glossary") renderGlossary();
   else { currentRoute = { kind: "home" }; renderHome(); }
-  refreshChrome(); window.scrollTo(0, 0);
+  refreshChrome(); if (!(kind === "playground" && arg)) window.scrollTo(0, 0);
   const m = content(); if (m) m.focus({ preventScroll: true });
 }
 function initChrome() {
@@ -1346,7 +1392,14 @@ function initChrome() {
   $("#themeBtn").onclick = () => { const n = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; setTheme(n); try { localStorage.setItem("course-theme", n); } catch (e) { /* ignore */ } };
   $("#menuBtn").replaceChildren(icon("menu"));
   $("#menuBtn").onclick = () => document.body.classList.toggle("nav-open"); $("#scrim").onclick = () => document.body.classList.remove("nav-open");
-  document.addEventListener("keydown", e => { if (e.key === "Escape") document.body.classList.remove("nav-open"); });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") document.body.classList.remove("nav-open");
+    const t = e.target, typing = t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+    if (typing || e.ctrlKey || e.metaKey || e.altKey || currentRoute.kind !== "lesson") return;
+    const pos = ORDER.indexOf(currentRoute.arg);
+    if (e.key === "]" && pos >= 0 && pos < ORDER.length - 1) location.hash = "#/lesson/" + ORDER[pos + 1];
+    if (e.key === "[" && pos > 0) location.hash = "#/lesson/" + ORDER[pos - 1];
+  });
 }
 (async function boot() {
   initChrome(); await loadProgress(); setSaveState();

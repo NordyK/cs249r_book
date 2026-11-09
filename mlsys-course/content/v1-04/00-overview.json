@@ -252,5 +252,62 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Data as code practice",
+   "def": "Because the pipeline that produces a dataset is the system's build and every retraining a rebuild, datasets need the disciplines code has: immutable lineage, executable validation suites, versioned releases, and debugging by controlled comparison of versions."
+  },
+  {
+   "term": "Data cascades",
+   "def": "A data defect entered early passes schemas and tests, is converted by each later stage into new derived state, and surfaces only at evaluation or deployment, so remediation cost scales with the downstream artifacts that consumed it and prevention belongs at the source."
+  },
+  {
+   "term": "Labels are the specification",
+   "def": "Ground truth is the system's specification, so a labeling error becomes part of the definition of correct; labeling usually dominates data cost, granularity sets per-label cost, and label quality is bounded through chance-corrected agreement, gold checks, and monitoring of agreement over time."
+  },
+  {
+   "term": "Training-serving consistency",
+   "def": "Shared feature code is not enough: fitted state (normalization constants, vocabularies, gain handling) must be fitted once on the training split, persisted with the model, and replayed identically at serving, because a skewed feature is still a valid vector and raises no error; a violation is training-serving skew, an internal divergence of logic or state that differs from drift in the environment."
+  },
+  {
+   "term": "Data leakage",
+   "def": "Train, validation, and test sets are trust boundaries, and leakage occurs when information crosses them through duplicates, split groups, future-derived features, or preprocessing fitted before the split, so splits are group-keyed, transforms are fit on train only, and features use point-in-time retrieval."
+  },
+  {
+   "term": "The feeding problem",
+   "def": "Training throughput is the minimum of the compute-limited rate and the data supply rate, and storage bandwidth, host decode, and bytes per sample each impose a slowest-stage bound, so the input path is sized for the rate the accelerator consumes."
+  },
+  {
+   "term": "Drift statistics",
+   "def": "Drift decomposes into covariate, label, and concept shift (the last detectable only with labels), and PSI, KL divergence, and the two-sample K-S statistic flag divergence as a prompt for investigation and outcome evidence, not proof of degradation."
+  },
+  {
+   "term": "Data budget from targets",
+   "def": "A product target becomes a data requirement by arithmetic: a false-wake budget fixes a per-window false-positive rate, a budget at a per-label cost buys a computed label count, and the rule of three sets the representative hours needed to support a zero-event claim."
+  },
+  {
+   "term": "Validation at the ingestion boundary",
+   "def": "The ingestion boundary admits only well-formed, plausible data through synchronous schema and contract checks plus asynchronous statistical checks, and dead-letter queues, backoff, circuit breakers, and validated fallbacks make the pipeline degrade gracefully rather than silently."
+  },
+  {
+   "term": "Dataset releases and lineage",
+   "def": "A dataset release is an immutable, versioned record of sources, split assignment, label and rubric version, and feature configuration, and data lineage links each dataset, feature, and model to what produced it, so a regression is traced by snapshot comparison instead of guesswork."
+  },
+  {
+   "term": "Storage tiers and access patterns",
+   "def": "No medium is both cheap and fast, and training's sequential scans and serving's point lookups pull in opposite directions, so ML systems match warehouses, lakes, object stores, and caches to each lifecycle phase's access pattern."
+  },
+  {
+   "term": "Data debt",
+   "def": "Data debt is the accumulated cost of implicit coupling and missing documentation across documentation, schema, quality, and freshness, measured against thresholds and paid down deliberately rather than carried unconsciously."
+  },
+  {
+   "term": "Ingestion and transformation patterns",
+   "def": "Batch versus streaming is priced by how fast data loses value, and ETL versus ELT by where the transformation boundary sits relative to storage, with loader-side transforms extending ELT into the training loop."
+  },
+  {
+   "term": "Feature stores",
+   "def": "A feature store registers each feature definition once and serves it from an offline store for training and an online store for serving, with point-in-time (as-of) retrieval so training sees only feature values available at each observation's timestamp; shared definitions reduce skew only when fitted state, timestamps, and freshness are also synchronized."
+  }
+ ]
 }

@@ -236,5 +236,46 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "ML goodput",
+   "def": "Useful fleet output is capacity times scheduling, runtime, and program goodput, each counted on one accounting boundary so every lost hour is charged to exactly one factor."
+  },
+  {
+   "term": "Reproducible measurement contract",
+   "def": "A goodput or optimization claim is valid only against a fixed contract that names the factor and window measured along with the workload and quality gate, system state, timing boundary, load-generation mode, and repeated trials with tails, so cold-start and warmed trials are reported apart."
+  },
+  {
+   "term": "Fleet profiling by hierarchy and sampling",
+   "def": "Trace volume grows with device count, so a fleet localizes the lost factor from the cheapest records first (scheduler records, then job timelines, then step traces) and captures short targeted traces or statistical samples only where the suspected factor lives."
+  },
+  {
+   "term": "Scheduling goodput",
+   "def": "Capacity counts only while held by a complete allocation, so partial gangs, fragmentation, and unmet demand are scheduling losses whose levers belong to orchestration."
+  },
+  {
+   "term": "Runtime goodput",
+   "def": "Allocated time counts only while it produces steps a checkpoint retains at the job's fault-free rate, so startup, input stalls, checkpoint pauses, restarts, and rework add up to the runtime loss."
+  },
+  {
+   "term": "Program goodput",
+   "def": "Program goodput measures retained step time against a named hardware ideal, reported as MFU against peak arithmetic (counting only the operations the model requires) or as MBU against the bandwidth floor for bandwidth-bound decode."
+  },
+  {
+   "term": "Trading between goodput factors",
+   "def": "A lever that raises one factor and lowers another is judged by the product, and the efficiency frontier places operating points by goodput, cost, and time to result."
+  },
+  {
+   "term": "Composed re-profiled optimization",
+   "def": "A local fix reaches the fleet only through the Fleet Law term it shortens, and speedups do not add, so the order of fixes is set by the measured limit and the step is re-profiled after each one."
+  },
+  {
+   "term": "Tensor-parallel collectives under contention",
+   "def": "In a tensor-parallel replica the per-layer activation AllReduces are launch- and protocol-bound at small batch, so a faster link barely helps, and communication streams contend with compute for the same SMs and memory."
+  },
+  {
+   "term": "Graph compilation amortization",
+   "def": "A compiled artifact, including the collectives compiler-derived partitioning (GSPMD) inserts, pays back across every job and replica that reuses it, while per-replica builds and recompiles are a runtime-goodput loss."
+  }
+ ]
 }

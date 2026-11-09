@@ -244,5 +244,54 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Infrastructure walls cascade",
+   "def": "Memory, communication, power, and reliability walls bind at successive physical scales (accelerator, node, rack, pod), each level's limit becomes the next level's input, and new technologies relocate a wall rather than remove it."
+  },
+  {
+   "term": "Capacity and bandwidth are separate tests",
+   "def": "Memory capacity decides whether model state fits and memory bandwidth decides how fast low-reuse phases run, so batch-1 decode is floored at weight bytes over HBM bandwidth and bandwidth per dollar becomes a procurement metric; the roofline and its ridge point (peak arithmetic over bandwidth) are the hardware screen that tells which ceiling a phase meets before any purchase."
+  },
+  {
+   "term": "Plan on sustained throughput",
+   "def": "Peak TFLOP/s is a precision-specific ceiling that assumes every unit stays fed, so a run planned from peak needs 1/eta times the GPU-hours at measured utilization eta, compared only under matched FLOP conventions, precision, and scale."
+  },
+  {
+   "term": "Bandwidth hierarchy dictates placement",
+   "def": "Per-accelerator bandwidth falls roughly an order of magnitude at each physical boundary (HBM, NVLink, InfiniBand port, storage), so tensor parallelism stays in the fast domain, pipeline stages cross nodes, and data parallelism spans the cluster."
+  },
+  {
+   "term": "Node aggregates private memories",
+   "def": "A node multiplies HBM capacity and compute but each device's memory stays private, so a 175B model's roughly 2.8 TB of Adam training state must be partitioned across nodes; tensor parallelism inside the node and pipeline stages across nodes bring it to about 44 GB per GPU without sharding, and optimizer sharding, activation checkpointing, and tiering are the next steps when activations do not fit."
+  },
+  {
+   "term": "Rack power wall",
+   "def": "Accelerator TDP tripled across three generations while power density stopped shrinking, so watts per rack, delivery losses, cooling class, facility lead time, and synchronized current transients, not FLOP/s, bound installable compute."
+  },
+  {
+   "term": "Workload-matched hardware selection",
+   "def": "The binding per-device constraint differs by workload (compute for large-batch training, bandwidth for decode, capacity for embeddings, bisection for MoE routing), so hardware is chosen by diagnosing that constraint and then comparing sustained useful work per dollar."
+  },
+  {
+   "term": "Specialization as a bet on workload stability",
+   "def": "Moving from CPU to GPU to TPU to ASIC raises the arithmetic share of the die and throughput per watt, but a fixed dataflow is a multi-year bet that a shift in dominant operators can strand against a 15-year facility."
+  },
+  {
+   "term": "Physical failure domains",
+   "def": "A failure domain is the set of resources one fault takes out together, and the physical hierarchy nests them (a GPU breaks its tensor-parallel group and node, a shared power shelf, ToR switch, or cooling loop takes a rack, row power and coolant distribution take racks, a building's feed, plant, and fire compartment take halls), so facility redundancy is traded against checkpoint and recovery capacity."
+  },
+  {
+   "term": "Pod sizing from the training budget",
+   "def": "A pod is sized by turning 6ND FLOPs over GPU count times peak times local efficiency into a compute-only baseline that scaling efficiency, checkpointing, failures, and maintenance then stretch multiplicatively to wall-clock days."
+  },
+  {
+   "term": "Arithmetic per watt at fixed precision",
+   "def": "Peak arithmetic per watt compared at one precision (dense FP16 over TDP) rose about 5x from V100 to B200 and about 1.2x per year across vendors, slower than raw throughput because device power also rose, and it bounds rather than measures what a refresh delivers."
+  },
+  {
+   "term": "Cooling class and heat removal",
+   "def": "In steady operation cooling must remove heat at the rate the rack draws power (Q = mass flow x specific heat x temperature rise), so air's low heat capacity bounds air-cooled rack density while cold-plate and immersion liquid loops carry the same heat with thousands of times less flow, at a cost in serviceability, leak containment, and loss-of-flow risk."
+  }
+ ]
 }

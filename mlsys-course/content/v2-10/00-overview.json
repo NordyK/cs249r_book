@@ -260,5 +260,70 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Serving cost dominance",
+   "def": "Lifetime cost is training once plus cost per query times traffic times deployment time, so at high volume serving overtakes training within days to weeks and the lever is cost per completed request at a fixed mix, quality, and SLO."
+  },
+  {
+   "term": "SLO goodput and the serving tax",
+   "def": "Serving capacity is the rate of completed requests that meet stated TTFT and per-token targets for a fixed mix, and end-to-end latency adds network, serialization, coordination, and queueing to model time, so a 70 ms model in a 100 ms budget leaves 30 ms for everything else."
+  },
+  {
+   "term": "Batch formation trades waiting for reuse",
+   "def": "With batch service time t_0 + B t_req throughput saturates toward 1/t_req past a knee near t_0/t_req, and request latency is queueing plus formation plus execution, so a batching window caps formation but not queueing, while Little's law (in-flight work = arrival rate x mean latency) sizes the concurrency and replica count a target rate and latency imply."
+  },
+  {
+   "term": "Iteration-level batching",
+   "def": "Fixed batch membership strands slots when output lengths differ, and admitting requests at iteration boundaries recovers that capacity only when requests are waiting, KV memory is free, and per-iteration scheduling is cheap relative to a decode step."
+  },
+  {
+   "term": "Prefill-decode interference and chunked prefill",
+   "def": "Prefill sits far above the ridge while decode intensity grows roughly linearly with batch, so batching buys a large cost-per-token cut until KV capacity stops it, and a monolithic prefill colocated with active streams lands in every decoder's per-token latency, which chunked prefill caps per iteration by moving rather than removing the cost into the long prompt's time to first token; separate prefill and decode pools remove the interference instead but pay alpha + KV bytes / beta per handoff, so disaggregation earns that transfer cost only through measured goodput."
+  },
+  {
+   "term": "KV cache as admission budget",
+   "def": "KV bytes per token = 2 x layers x KV heads x head dimension x bytes, so maximum batch is free HBM over context times bytes per token, weight fit does not establish serving capacity, and each lever changes a different factor; resident LoRA adapters draw on the same HBM pool, so adapter locality is an admission decision, and preempting a running request means choosing to retain, swap, recompute, or reject its KV state against the waiting request's deadline."
+  },
+  {
+   "term": "Serving parallelism chosen by the SLO",
+   "def": "Weight bytes set the minimum shard count, but latency follows the per-request Fleet Law, so tensor parallelism divides layer compute while paying collectives per token whose fixed latency dominates decode and keeps it inside one fast domain."
+  },
+  {
+   "term": "State-aware request routing",
+   "def": "Two random probes cut the maximum load from log n / log log n to log log n in the static model, but serving needs a work signal (active tokens, remaining decode, KV pressure) and atomic admit-or-reject because probes go stale and requests differ fiftyfold in remaining work; across regions the balancer first filters by data-placement policy, artifact version, readiness, and capacity and only then chooses by measured latency or cost."
+  },
+  {
+   "term": "Paged KV allocation and prefix sharing",
+   "def": "Contiguous maximum-length reservation strands most reserved KV memory, and paged allocation through per-sequence block tables bounds waste to the last block and lets compatible prefixes share physical blocks copy-on-write."
+  },
+  {
+   "term": "Serving precision decision",
+   "def": "The roofline regime picks the format, weight-only low-bit formats for bandwidth-bound decode and weight-activation W8A8 or FP8 for compute-bound prefill, with block-wise scaling containing weight outliers and PTQ tried before QAT, so a precision change is deployed only for the resource that binds and only with quality measured beside throughput, and the runtime must keep the packed format resident, select supported kernels, and plan KV around real allocations."
+  },
+  {
+   "term": "Speculative decoding",
+   "def": "A draft model proposes K tokens that the target verifies in one pass while preserving its distribution, so the gain depends on acceptance rate, draft cost, and spare compute, and it vanishes as batching consumes decode's compute headroom."
+  },
+  {
+   "term": "Per-request compute budget",
+   "def": "Serial reasoning tokens multiply latency by the ratio of reasoning tokens to answer tokens and extend KV residency, so test-time compute is a recurring serving cost per request whose budget must be stated in both time and capacity and justified by measured quality gain."
+  },
+  {
+   "term": "Overload containment",
+   "def": "A slowing replica becomes a fleet failure when timeouts and retries consume neighbors' headroom, so circuit breakers withdraw it, backpressure pushes overload upstream to admission control, and deadlines travel with cancellation."
+  },
+  {
+   "term": "Token-denominated tenant isolation",
+   "def": "Pooling tenants raises utilization only with enforced isolation, so quotas bound request rate, concurrency, input and output tokens, KV pages, and accelerator time, checked and reserved atomically."
+  },
+  {
+   "term": "Phase-aware autoscaling and cold start",
+   "def": "Average utilization is the wrong control signal, so scaling acts on outstanding work against phase-specific service rates with asymmetric hysteresis, and a large-model cold start takes minutes that a ready reserve must cover."
+  },
+  {
+   "term": "Tail latency under fan-out",
+   "def": "A request that waits for N independent leaves is slow with probability 1 - (1 - q)^N, so 100 leaves at their own p99 leave about 63 percent of requests slow and holding the request at p99 needs each leaf near p99.99, which makes fan-out width a tail cost that fewer shards, queue-aware routing, deadlines with partial results, and hedging each attack."
+  }
+ ]
 }

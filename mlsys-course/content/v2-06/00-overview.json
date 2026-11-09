@@ -248,5 +248,58 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Data-parallel update equivalence",
+   "def": "Replicated data parallelism reproduces the single-device global-batch update only when sampling, valid-item denominators, optimizer state, and update order match, and its price is one gradient AllReduce per step that throughput hides only while local compute covers it."
+  },
+  {
+   "term": "Synchronization models and stragglers",
+   "def": "Bulk-synchronous training gives single-device semantics but waits for the slowest required contribution every step, so at thousands of GPUs the tail worker sets step time, and SSP and ASP trade that waiting for staleness with a convergence cost."
+  },
+  {
+   "term": "Sharded data parallelism",
+   "def": "ZeRO and FSDP shard optimizer state, then gradients, then parameters, cutting per-device state from 16 bytes per parameter toward 16/N, while full parameter sharding raises traffic about 1.5x and puts parameter gathers on every layer's critical path."
+  },
+  {
+   "term": "Scaling efficiency and the scaling wall",
+   "def": "Substituting the Fleet Law into eta = T_1/(N T_N) shows the shrinking compute term eventually losing to a ring bandwidth term that stays near 2*Psi/beta, which is the scaling wall of pure data parallelism, reached sooner under strong scaling (fixed global batch) than under weak scaling (fixed local batch)."
+  },
+  {
+   "term": "Critical batch size",
+   "def": "Beyond the gradient-noise critical batch extra samples per step buy diminishing loss reduction, so the useful data-parallel width is about B_crit over the local batch, and learning-rate rules only extend the validated range."
+  },
+  {
+   "term": "Pipeline parallelism bubble",
+   "def": "Staging layers across devices moves only boundary activations point to point, but fill and drain idle each stage for (p-1)/(m+p-1) of the step, and 1F1B bounds retained activations so the many microbatches that shrink the bubble are affordable."
+  },
+  {
+   "term": "Tensor parallelism in the fast domain",
+   "def": "Megatron tensor parallelism pays two activation AllReduces per transformer block on the critical path of every layer, so its degree is bounded by the fast intra-node domain."
+  },
+  {
+   "term": "Parallelism plan as joint placement",
+   "def": "N = N_DP x N_PP x N_TP is not three independent knobs: a feasible plan satisfies divisibility, training-state and activation memory, the critical-batch limit, and each axis's traffic on a tier that can carry it, and activation recomputation buys memory feasibility at about one extra forward pass per step (full) or a few percent (selective) that HFU counts but MFU does not."
+  },
+  {
+   "term": "Sparse embedding sharding",
+   "def": "Recommendation models are dominated by multi-TB embedding tables touched sparsely, so they shard tables row-wise, column-wise, or in a hot/cold hybrid and exchange only indexed rows through sparse pull/push or AllToAll, binding on aggregate memory, lookup rate, and hot rows rather than on a dense gradient AllReduce."
+  },
+  {
+   "term": "Sequence and context parallelism",
+   "def": "Long contexts make activations the binding memory term, so sequence parallelism shards norm and dropout activations at no extra ideal volume and context parallelism circulates key-value tiles in a ring that overlaps only above a minimum chunk length."
+  },
+  {
+   "term": "Expert parallelism",
+   "def": "Mixture-of-experts layers place experts on different devices so parameters grow without proportional per-token compute, at the cost of a dispatch and a combine AllToAll per layer and hot-expert imbalance managed by a capacity factor."
+  },
+  {
+   "term": "Alignment training co-location",
+   "def": "PPO-style alignment training holds trainable and forward-only models with asymmetric state plus a rollout KV cache, so the fleet alternates inference-shaped and training-shaped phases and chooses co-location or dedicated pools by phase utilization and transfer cost."
+  },
+  {
+   "term": "FP8 training precision contract",
+   "def": "FP8 GEMMs use E4M3 for scaled weights and activations and E5M2 for scaled gradients under dynamic scaling with higher-precision master state, and they shrink a collective's payload only when the wire dtype itself is FP8."
+  }
+ ]
 }

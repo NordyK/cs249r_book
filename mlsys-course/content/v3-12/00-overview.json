@@ -222,5 +222,42 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Compensation",
+   "def": "An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past."
+  },
+  {
+   "term": "Trajectory saga",
+   "def": "A trajectory saga durably registers each effectful step's cleanup template before dispatch, not after the step returns, so a crash never leaves an effect without its compensator."
+  },
+  {
+   "term": "Cleanup graph",
+   "def": "Recovery order is a DAG of admitted cleanup operations rather than a reverse stack, and an unresolved node blocks only its transitive dependents."
+  },
+  {
+   "term": "Recovery decision order",
+   "def": "Transport retry, fresh proposal, feedback repair, compensation, and hold or escalate are chosen by evidence class first, then admission, then expected cost."
+  },
+  {
+   "term": "Repair break-even",
+   "def": "One bounded repair attempt beats immediate unwind-and-rebuild iff its measured success rate exceeds p* = C_repair / C_fallback, evaluated separately in time and dollars."
+  },
+  {
+   "term": "Commitment regions",
+   "def": "Reversibility is relative to a subsystem and a grant, so a plan is organized into compensable preparation, a single pivot, and owned follow-up duties, with every check that can precede the pivot hoisted ahead of it."
+  },
+  {
+   "term": "Semantic watchdog",
+   "def": "A looping trajectory is hyperactive, not dead, so a watchdog compares a declared task projection, verifier results, and repeated action-outcome pairs over a bounded window, and its window sets detection latency."
+  },
+  {
+   "term": "Incident containment",
+   "def": "On suspicion, fail-safe defaults hold the trajectory at every dispatch boundary without the agent's cooperation while preregistered cleanup runs under a separate narrow grant until residual obligations settle."
+  },
+  {
+   "term": "Dependency containment",
+   "def": "Scoped circuit breakers, a single retry owner, and bulkheads bound three different quantities when many trajectories share one dependency."
+  }
+ ]
 }

@@ -236,5 +236,46 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Collective contracts",
+   "def": "A collective is a contract on what each rank holds afterward, not a schedule or a barrier: AllReduce = ReduceScatter + AllGather, AllToAll is a distributed transpose, and the right primitive is the narrowest one whose output the next computation consumes. Gradient synchronization, the AllReduce of the full gradient that every synchronous data-parallel step repeats, is defined here as the central case."
+  },
+  {
+   "term": "Collective cost by rounds and chunks",
+   "def": "A collective pays the point-to-point alpha + n/beta price once per schedule round on a chunk, so a multi-MB bucket split across a thousand ranks travels in latency-bound steps, and fusion amortizes startup while compression helps only above the crossover."
+  },
+  {
+   "term": "Ring AllReduce and the bandwidth bound",
+   "def": "Any point-to-point AllReduce must send at least 2(N-1)M/N bytes from some rank, and Ring AllReduce meets that bound with a ReduceScatter phase and an AllGather phase while paying a startup term that grows linearly with N."
+  },
+  {
+   "term": "Ring-tree crossover",
+   "def": "Tree, halving-doubling, and double-binary-tree schedules cut startup rounds to about 2 log2 N at different byte costs, so the algorithm is chosen by a crossover message size that grows with N, alpha, and beta."
+  },
+  {
+   "term": "Hierarchical collectives",
+   "def": "A flat ring runs at its slowest cross-node edge, so a hierarchical AllReduce reduces inside the node, exchanges a 1/G shard per GPU across nodes, and gathers inside the node, which pays off only when each GPU has an independent port."
+  },
+  {
+   "term": "AllToAll active bound",
+   "def": "An AllToAll finishes at the largest of per-message startup, source injection, destination reception, and cut-crossing bytes over usable bisection, so MoE routing skew makes the hottest receiver bound the whole layer."
+  },
+  {
+   "term": "Gradient compression with error feedback",
+   "def": "Quantization and sparsification shrink only the byte term, biased compressors need an error-feedback residual to preserve cumulative gradient information, and compression pays only in time to target quality, not in bytes saved."
+  },
+  {
+   "term": "Exposed communication under overlap",
+   "def": "Gradient hooks launch each bucket's AllReduce as soon as it is ready so transfers hide under remaining backward work, but the last bucket is always exposed and a per-layer reduction slower than per-layer backward builds a backlog. LogP sets the limit by separating network latency, which independent work can hide, from processor overhead, which stays on the critical path."
+  },
+  {
+   "term": "Collective calibration and backend selection",
+   "def": "A collective model is valid only against a benchmark of the same operation, datatype, rank count, size, algorithm, topology, and placement, so effective alpha and beta are refit when any of them changes, and the backend is chosen by measured fit."
+  },
+  {
+   "term": "Data-movement energy per boundary",
+   "def": "Communication energy is bytes times the energy per bit of every boundary a byte crosses, so data that leaves the package or the node costs orders of magnitude more joules than an on-chip operand."
+  }
+ ]
 }

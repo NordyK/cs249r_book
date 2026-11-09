@@ -240,5 +240,50 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Silicon contract",
+   "def": "Each tier's hardware offers a peak compute rate, a memory bandwidth, and a fixed overhead that enter the iron law's three terms, while memory capacity and energy act as feasibility preconditions that can rule a tier out before any term is evaluated."
+  },
+  {
+   "term": "Workload archetypes and lighthouses",
+   "def": "Classifying a workload by what limits it first gives four archetypes, compute-bound (ResNet-50 training), bandwidth-bound (batch-one LLM decode), capacity-bound (DLRM embeddings), and power-bound (keyword spotting), and the class is a regime, not a model property, since batch, precision, or hardware can move a model across it."
+  },
+  {
+   "term": "Physical walls set deployment tiers",
+   "def": "The light barrier puts a round-trip floor under any remote path, the power wall (dynamic power roughly cubic in frequency) caps sustained mobile power at a few watts, and the memory wall makes data movement a growing share of time, so cloud, edge, mobile, and TinyML are constraint regimes spanning about nine orders of magnitude in power and memory."
+  },
+  {
+   "term": "Device energy budgets",
+   "def": "On untethered devices energy per inference is first-order with two distinct limits, a battery budget fixable by duty cycling or a lighter model and a thermal ceiling on sustained power that throttles regardless of charge, and transmitting raw data can cost more energy than inferring locally."
+  },
+  {
+   "term": "Data locality invariant",
+   "def": "A remote path is rejected when even its lower bound (transfer time plus propagation plus remote compute) exceeds the deadline, because transmission and propagation cannot be bought down with more remote compute, and only surviving paths are compared on measured time."
+  },
+  {
+   "term": "Screen then cost",
+   "def": "Choosing where to run applies successive filters, first whether ML beats a simpler baseline (the complexity tax), then privacy, latency, resource, and cost checks, comparing cost only among survivors on matched lifecycle budgets, and an empty set forces redesign or partitioning."
+  },
+  {
+   "term": "Hybrid partitioning",
+   "def": "When no single tier satisfies a whole pipeline, stages go where their limiting term is cheapest through train-serve splits, hierarchical filtering and confidence cascades, and progressive deployment, at the price of keeping features, versions, and preprocessing synchronized across tiers."
+  },
+  {
+   "term": "Memory wall",
+   "def": "Compute has grown faster than memory bandwidth (about 1.6x versus 1.2x per year), so data movement takes an ever larger share of time and energy at every tier."
+  },
+  {
+   "term": "Bottleneck principle",
+   "def": "In a pipelined system throughput is set by the slowest stage and overlapped stages cost the maximum of their times, so effort on any stage but the slowest one buys nothing."
+  },
+  {
+   "term": "Data gravity",
+   "def": "Shipping data over a network grows with data volume while shipping the computation does not, so large datasets pull computation to where the data lives."
+  },
+  {
+   "term": "Total cost of ownership",
+   "def": "Comparing deployment paradigms needs the total cost of ownership, the upfront capital plus recurring operating expense (power, cooling, egress, storage, labor) over the system's lifetime, because hourly accelerator rates hide most of the bill and low utilization makes fixed pools expensive."
+  }
+ ]
 }

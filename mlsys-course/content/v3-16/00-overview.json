@@ -234,5 +234,50 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Three homes for behavior",
+   "def": "Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime."
+  },
+  {
+   "term": "Delivered-prefix serialization",
+   "def": "A training example reconstructs each selected response's input exactly as the model received it, truncations and redactions included, under a recorded tokenizer and template configuration."
+  },
+  {
+   "term": "Loss masking",
+   "def": "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+  },
+  {
+   "term": "Loss normalization",
+   "def": "Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed."
+  },
+  {
+   "term": "Exposure bias",
+   "def": "A disagreement rate measured on reference prefixes bounds excess task cost only by min(H, H^2 eps), while the same rate on learner states with bounded recovery cost gives a linear bound, so where imitation error is measured sets the horizon penalty."
+  },
+  {
+   "term": "Preference training",
+   "def": "When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context."
+  },
+  {
+   "term": "Trajectory distillation",
+   "def": "A costly teacher configuration generates trajectories that pass the same admission as any demonstration, so distillation from sampled tokens is imitation rather than soft-target matching."
+  },
+  {
+   "term": "Adapter state and modularity",
+   "def": "LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation."
+  },
+  {
+   "term": "Schema augmentation",
+   "def": "A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas."
+  },
+  {
+   "term": "Packed-example isolation",
+   "def": "Packing is only a memory layout, so block-diagonal attention, per-example label shifts, and position handling must leave each packed example's logits equal to its unpacked logits, a property tested rather than assumed."
+  },
+  {
+   "term": "Closed-loop release criterion",
+   "def": "Loss values are comparable only under identical split, serialization, mask, and normalization, and promotion requires closed-loop task acceptance under the serving configuration, not lower loss."
+  }
+ ]
 }

@@ -236,5 +236,46 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "ML traffic inversion",
+   "def": "Synchronous training releases a few large, correlated flows whose completion gates a job-wide barrier, so a fabric is judged by collective completion time and its tail, static ECMP hashing makes persistent hot spots, and oversubscription becomes a workload decision. The chapter defines bulk synchronous parallel (BSP) execution, the barrier model that distributed training later trades against SSP and ASP, and tail latency (p99) at its first use, the completion-time measure later chapters reuse."
+  },
+  {
+   "term": "RDMA reliable-delivery contract",
+   "def": "Kernel-bypass RDMA with GPUDirect cuts per-message startup to microseconds, and InfiniBand and RoCE differ in where they place losslessness, so the requirement is reliable completion with a bounded recovery tail, a deployment contract rather than a property of RDMA."
+  },
+  {
+   "term": "Alpha-beta model",
+   "def": "Point-to-point message time T(n) = alpha + n/beta splits at the crossover n* = alpha*beta, so small control and pipeline messages are startup-bound and barely gain from faster links while multi-MB gradient shards are bandwidth-bound."
+  },
+  {
+   "term": "Bisection bandwidth and topology economics",
+   "def": "Traffic that crosses a cut is bounded by bisection bandwidth, so k:1 oversubscription multiplies the cut-crossing time by k, and fat-tree, torus, and dragonfly trade cut capacity against switches and cabling as a price-per-bisection-byte decision."
+  },
+  {
+   "term": "Traffic-matched topology",
+   "def": "Wiring should follow the parallelism plan: rail-optimized fabrics isolate same-rank data-parallel groups, a torus suits dimension-ordered rings but congests under MoE AllToAll, and no single link-rate benchmark predicts training performance, while optical circuit switching lets a pod rewire its topology per job and around failures at millisecond reconfiguration cost."
+  },
+  {
+   "term": "Lossless fabric hazards",
+   "def": "PFC prevents drops by pausing senders, which turns one slow drainer into congestion spreading and can freeze a lossless class through a buffer-dependency cycle, so operators move toward PFC-free, selective-retransmit transports."
+  },
+  {
+   "term": "Fabric behavior under load",
+   "def": "Under synchronized load end-to-end congestion control is a latency requirement, adaptive routing repairs ECMP collisions without adding capacity, and incast is spread in time, space, and priority rather than eliminated."
+  },
+  {
+   "term": "Silent fabric waste",
+   "def": "Fabric faults usually show up as silent waste rather than errors (a link trained at half rate stays up), so detection compares delivered throughput against a baseline and diagnoses top-down through utilization, collective logs, RDMA tests, congestion counters, and physical errors."
+  },
+  {
+   "term": "Link physics sets cluster geometry",
+   "def": "PAM4 signaling forces FEC that adds per-hop latency, and copper reach shrinks as lane rate rises, so the cost and power of optics push accelerators into dense racks with copper inside and optics only where distance demands it."
+  },
+  {
+   "term": "Fabric sharing and isolation",
+   "def": "SR-IOV, virtual lanes, traffic classes, and network slices let tenants and checkpoint bursts share a fabric with the synchronization path, but they only reduce interference, and a configured slice is a hard ceiling a job cannot burst past."
+  }
+ ]
 }

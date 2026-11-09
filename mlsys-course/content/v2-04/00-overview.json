@@ -240,5 +240,50 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "I/O wall",
+   "def": "Full-corpus training inverts database assumptions (large sequential shard reads, working sets larger than any cache, synchronized burst writes), so storage is provisioned for streaming bandwidth and burst absorption, and faster compute against a fixed input path plateaus at the delivery rate."
+  },
+  {
+   "term": "Scoped storage hierarchy",
+   "def": "The six storage tiers trade bandwidth for capacity and cost but quote bandwidth at different scopes, so a tier ratio is not a feed requirement, and as a cache E[T] = h*T_hot + (1-h)*T_miss means a 95 percent hit rate with a 100x slower miss path delivers about one-sixth of the all-hot rate."
+  },
+  {
+   "term": "Input delivery budget",
+   "def": "Required input bandwidth is the number of distinct consumers times target compute fraction times batch bytes over compute time, every stage of the chain must sustain it because delivered rate is the minimum over stages, and prefetch absorbs variance but never a sustained deficit; a direct DMA path from storage into accelerator memory (GPUDirect Storage, for example) removes the host-copy stage only when that copy is the limiting stage."
+  },
+  {
+   "term": "Metadata-bound shard packaging",
+   "def": "A parallel file system separates a metadata path of a few hundred thousand operations per second from a striped data path, so millions of small files collapse delivery to the metadata rate, and packaging samples into large shards amortizes opens across thousands of samples."
+  },
+  {
+   "term": "Checkpoint write path",
+   "def": "A resumable mixed-precision Adam checkpoint is about 14 bytes per parameter, so a coordinated save must write each unique byte once, and tiered staging confines the exposed pause to the local write while the shared-tier copy drains in the background."
+  },
+  {
+   "term": "Total cost of data delivery",
+   "def": "Storage cost is capacity plus transfer, request, retrieval, and idle-accelerator cost, and because egress scales with bytes read, tiering is a placement policy chosen from access pattern, read count, and latency need rather than dollars per GB-month."
+  },
+  {
+   "term": "Versioned artifacts and commit boundaries",
+   "def": "A fleet data pipeline is a DAG of immutable, content-identified artifacts that lets a run replay the exact batch behind a loss spike, and correctness under worker failure is decided at the output commit boundary by replayable inputs and idempotent writes; generated training data, which the data wall makes necessary, extends the contract with a provenance chain whose retained capacity and verification traffic are budgeted separately, and that lineage is what lets an investigation of model collapse trace the samples involved."
+  },
+  {
+   "term": "Data stall ratio",
+   "def": "The data stall ratio measures exposed input wait per step, and it diagnoses the input path only when it is separated from communication and barrier time."
+  },
+  {
+   "term": "Checkpoint storm",
+   "def": "When every writer saves at once, synchronized checkpoint bursts saturate the shared storage tier, so save time grows with writer count unless flushes are staggered, rate-limited, or staged locally."
+  },
+  {
+   "term": "Hedged reads against storage tail latency",
+   "def": "Sharded reads fan out across many servers so the slowest server sets the step's input latency, and a hedged read to another replica shortens that tail only when its trigger sits in the measured tail, its duplicate load fits spare capacity, and the replicas sit in different failure domains."
+  },
+  {
+   "term": "Serving-time storage",
+   "def": "Serving reads bulk weights once per replica, turns a model rollout into a fan-out read burst against shared tiers, and makes retrieval a chain of dependent random reads, so serving storage is sized by load time and per-hop latency rather than epoch throughput."
+  }
+ ]
 }

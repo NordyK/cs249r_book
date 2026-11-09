@@ -238,5 +238,54 @@
    ]
   }
  ],
- "terms": []
+ "terms": [
+  {
+   "term": "Failure-domain durability",
+   "def": "An acknowledgment is durable only against the faults its storage tier survives, so each write's durability is declared against a failure domain rather than assumed."
+  },
+  {
+   "term": "Trajectory log",
+   "def": "Recovery state comes from an append-only, typed trajectory log, and the live trajectory record is a deterministic fold over that log."
+  },
+  {
+   "term": "Durable intent before dispatch",
+   "def": "An admitted operation's identity, arguments, grant reference, and reservation must be durable under the declared failure domain before the request leaves, so no effect can exist without its intent on record."
+  },
+  {
+   "term": "Completeness rule",
+   "def": "Where a crash falls in the ordering decides whether an operation is not dispatched, in doubt, or established, and an absent intent proves non-dispatch only in a complete authoritative log prefix."
+  },
+  {
+   "term": "Checkpoint binding",
+   "def": "A checkpoint binds the record snapshot, workspace snapshot, artifacts, and reducer versions to one committed log position, captured as a consistent cut and published only after the state it references is durable."
+  },
+  {
+   "term": "Resume protocol",
+   "def": "Resume is an authorized continuation in ordered stages (prove the prefix, acquire ownership with a fencing epoch, restore by fold, reconcile in-doubt operations) rather than a restart."
+  },
+  {
+   "term": "Record and replay",
+   "def": "A sampled model reply cannot be regenerated, so reproduction substitutes recorded inputs at nondeterministic boundaries, and one recording serves time-travel inspection, harness regression, and counterfactual branching."
+  },
+  {
+   "term": "Checkpoint stride",
+   "def": "Young's interval prices checkpoints when a crash loses work to re-execute, and once each turn is logged the stride lengthens by the square root of the cost ratio because a crash costs reconstruction, not resampling."
+  },
+  {
+   "term": "First-divergence localization",
+   "def": "Debugging two executions steps boundary by boundary from a verified checkpoint to the first mismatch under a declared equivalence, because every later difference may be a consequence."
+  },
+  {
+   "term": "Recovery retention",
+   "def": "Current recovery, historical replay, and diagnostics need different artifacts on independent schedules, so retention is derived from the declared recovery and replay promise, not storage convenience."
+  },
+  {
+   "term": "Fencing tokens",
+   "def": "A monotonically increasing owner epoch checked at the resource rejects writes from a stalled holder that outlives its lease, because lease expiry alone is not exclusion."
+  },
+  {
+   "term": "In-doubt action",
+   "def": "An admitted operation whose effect cannot be proven present or absent is in doubt and must be reconciled before any re-dispatch, the recovery-side view of an uncertain outcome."
+  }
+ ]
 }
