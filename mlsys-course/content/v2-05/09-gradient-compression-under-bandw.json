@@ -15,7 +15,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **Gradient Compression Under Bandwidth Scarcity** in *Collective Communication* (Vol II). By the end you should be able to:\n\n- Calculate the realized compression ratio of Top-k gradient sparsification by accounting for coordinate index encoding overhead\n- Explain the conditional cumulative-update conservation established by the error-feedback recurrence\n- Analyze the two-phase architecture of 1-bit Adam that separates variance stabilization from error-compensated momentum compression\n- Evaluate why gradient compression fails to improve wall-clock time in compute-bound or low-latency communication regimes\n- Explain the two phases and residual dependencies of 1-bit Adam without imposing an unnecessary transport order"
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate the realized compression ratio of Top-k gradient sparsification by accounting for coordinate index encoding overhead\n- Explain the conditional cumulative-update conservation established by the error-feedback recurrence\n- Analyze the two-phase architecture of 1-bit Adam that separates variance stabilization from error-compensated momentum compression\n- Evaluate why gradient compression fails to improve wall-clock time in compute-bound or low-latency communication regimes\n- Explain the two phases and residual dependencies of 1-bit Adam without imposing an unnecessary transport order"
   },
   {
    "type": "from_book",
@@ -25,8 +25,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- Precision reduction via quantization\n- Gradient sparsification methods\n- Error feedback and residual accumulation\n- 1-bit Adam compression-aware optimization\n- Bandwidth versus convergence trade-offs in compression\n\nPay attention to: Quantization: FP16, INT8, 1-bit SGD, and Block Quantization; Sparsification: Top-k compression, Random-k, and sparse index encoding overhead; The convergence problem: systematic bias of lossy gradient compression; Error feedback mechanism: local residual accumulation e_{t+1} = g_t + e_t - v_t and telescoping sums."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Precision reduction via quantization\n- Gradient sparsification methods\n- Error feedback and residual accumulation\n- 1-bit Adam compression-aware optimization\n- Bandwidth versus convergence trade-offs in compression\n\nPay attention to: Quantization: FP16, INT8, 1-bit SGD, and Block Quantization; Sparsification: Top-k compression, Random-k, and sparse index encoding overhead; The convergence problem: systematic bias of lossy gradient compression; Error feedback mechanism: local residual accumulation e_{t+1} = g_t + e_t - v_t and telescoping sums."
   },
   {
    "type": "reveal",
@@ -81,10 +81,7 @@
   {
    "type": "summary",
    "points": [
-    "You can now calculate the realized compression ratio of Top-k gradient sparsification by accounting for coordinate index encoding overhead.",
-    "You can now explain the conditional cumulative-update conservation established by the error-feedback recurrence.",
-    "You can now analyze the two-phase architecture of 1-bit Adam that separates variance stabilization from error-compensated momentum compression.",
-    "You can now evaluate why gradient compression fails to improve wall-clock time in compute-bound or low-latency communication regimes."
+    "**Gradient compression**: Encoding gradient updates with fewer transmitted bits, with convergence and encoding costs to evaluate."
    ]
   }
  ],

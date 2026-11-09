@@ -272,22 +272,23 @@ def section_lesson(cid, vol_label, ch_title, n, title, body, quiz, cmds, concept
     qs = (quiz or {}).get("questions") or []
     goals = learning_goals(qs)
     blocks = []
-    intro = "This lesson follows **%s** in *%s* (%s)." % (title, ch_title, vol_label)
     if goals:
-        intro += " By the end you should be able to:\n\n" + "\n".join("- " + g for g in goals)
+        intro = "By the end of this lesson you should be able to:\n\n" + "\n".join("- " + g for g in goals)
+    else:
+        intro = "This lesson covers the book's section on **%s**. Read the excerpt, then test yourself below." % title
     blocks.append({"type": "text", "md": safe_md(intro, cmds)})
     ex = excerpt(body)
     if ex:
         blocks.append({"type": "from_book", "source": "%s, %s, \u00a7 %s" % (vol_label, ch_title, title), "md": safe_md(ex, cmds)})
     subs = h3s(body)
     focus = ((quiz or {}).get("rationale") or {}).get("focus_areas") or []
-    if subs or focus:
+    if len(subs) >= 2 or focus:
         md = ""
-        if subs:
-            md += "The section is organised as:\n\n" + "\n".join("- " + s for s in subs[:8])
+        if len(subs) >= 2:
+            md += "In the book this section runs through:\n\n" + "\n".join("- " + s for s in subs[:8])
         if focus:
             md += ("\n\n" if md else "") + "Pay attention to: " + "; ".join(focus[:4]) + "."
-        blocks.append({"type": "callout", "kind": "note", "title": "Map of the section", "md": safe_md(md, cmds)})
+        blocks.append({"type": "callout", "kind": "note", "title": "What the section covers", "md": safe_md(md, cmds)})
     conv = [c for c in (convert(q, cmds) for q in qs if q.get("question_type") != "SHORT") if c]
     shorts = [q for q in qs if q.get("question_type") == "SHORT"]
     if not qs:
@@ -455,6 +456,8 @@ def generate(course, cid, title, order, force=False):
         terms = section_terms(concepts, ids, seen_terms)
         if terms:
             les["terms"] = terms
+            # the takeaways name the ideas themselves instead of repeating the objectives
+            les["blocks"][-1]["points"] = [safe_md("**%s**: %s" % (t["term"], t["def"]), cmds) for t in terms[:4]]
         write(os.path.join(out, "%02d-%s.json" % (n, slug(t))), les)
     tl = test_lesson(cid, ch_title, pool, cmds)
     if tl:

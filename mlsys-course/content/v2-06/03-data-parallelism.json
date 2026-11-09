@@ -13,7 +13,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **Data Parallelism** in *Distributed Training* (Vol II). By the end you should be able to:\n\n- Calculate per-GPU static memory reduction under ZeRO-3 parameter, gradient, and optimizer state sharding\n- Compare gradient accumulation on high-speed intra-node fabrics against naive scale-out across bandwidth-constrained networks\n- Classify the memory sharding stages of ZeRO and FSDP by depth of partitioned state\n- Evaluate the communication throughput overhead of FSDP when device memory is not the binding constraint\n- Compare centralized and decentralized synchronization topologies in terms of bandwidth bottlenecks for dense gradient traffic"
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate per-GPU static memory reduction under ZeRO-3 parameter, gradient, and optimizer state sharding\n- Compare gradient accumulation on high-speed intra-node fabrics against naive scale-out across bandwidth-constrained networks\n- Classify the memory sharding stages of ZeRO and FSDP by depth of partitioned state\n- Evaluate the communication throughput overhead of FSDP when device memory is not the binding constraint\n- Compare centralized and decentralized synchronization topologies in terms of bandwidth bottlenecks for dense gradient traffic"
   },
   {
    "type": "from_book",
@@ -23,8 +23,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- Data parallelism implementation\n- Data parallelism trade-offs\n- Memory-efficient data parallelism with ZeRO and FSDP\n\nPay attention to: SGD equivalence: replicated model, partitioned minibatch, aggregated gradient; ZeRO-1/2/3 and FSDP memory sharding economics (16 bytes/param vs 0.25 bytes/param); gradient accumulation vs scale-out across commodity networks; throughput trade-offs of FSDP collectives vs DDP."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Data parallelism implementation\n- Data parallelism trade-offs\n- Memory-efficient data parallelism with ZeRO and FSDP\n\nPay attention to: SGD equivalence: replicated model, partitioned minibatch, aggregated gradient; ZeRO-1/2/3 and FSDP memory sharding economics (16 bytes/param vs 0.25 bytes/param); gradient accumulation vs scale-out across commodity networks; throughput trade-offs of FSDP collectives vs DDP."
   },
   {
    "type": "reveal",
@@ -89,10 +89,8 @@
   {
    "type": "summary",
    "points": [
-    "You can now calculate per-GPU static memory reduction under ZeRO-3 parameter, gradient, and optimizer state sharding.",
-    "You can now compare gradient accumulation on high-speed intra-node fabrics against naive scale-out across bandwidth-constrained networks.",
-    "You can now classify the memory sharding stages of ZeRO and FSDP by depth of partitioned state.",
-    "You can now evaluate the communication throughput overhead of FSDP when device memory is not the binding constraint."
+    "**Data parallelism**: Replicating a model across workers that process distinct portions of a batch and combine their updates.",
+    "**Training-state sharding**: Partitioning optimizer state, gradients, or parameters among data-parallel workers instead of keeping every state replicated."
    ]
   }
  ],

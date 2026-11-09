@@ -57,6 +57,22 @@ and imports it as JSON.
 | 2 | shape | 2026-11-09 | surface brief and direction contract; user picked the margin-apparatus structure |
 | 3 | craft (new-work, code-led) | 2026-11-09 | new player built: rail, reading column, live margin, calculators, playground, logbook |
 | 4 | detect | 2026-11-09 | 7 findings on the first pass, all fixed (off-ramp sizes, a hover contrast clash on the skip link, an undocumented colour, a 1px radius, inline font families); the light theme's paper is DESIGN.md's own light-paper token, kept on purpose |
+| 5 | audit | 2026-11-09 | 16/20; report in `.impeccable/reports/audit-2026-11-09.md` (stepper dots as tiny touch targets, h1 to h3 jumps, global reduced-motion kill, small phone targets, faint editor line numbers) |
+| 6 | critique | 2026-11-09 | 26/40, dual agent; snapshot in `.impeccable/critique/`. P0: phone users could not reach Playground, Logbook, Glossary. P1: progress ignored practice; lesson badges wrong; imported lessons left the margin empty. P2: logbook said "finished" but listed visits |
+| 7 | polish | 2026-11-09 | all critique and audit issues fixed: drawer nav, auto-complete when practice is done, per-lesson badges, calculator links and book terms in the margin (glossary 1 to 973 terms), outcomes in the logbook, `[` `]` lesson keys, Escape frees Tab in the editor, h2 block headings, 24 px dot targets |
+| 8 | layout | 2026-11-09 | practice notes stay sticky beside long quizzes, exercises and playgrounds |
+| 9 | typeset | 2026-11-09 | `text-wrap: pretty` on prose, record numeral tracking, chart ticks 12 px, exercise sub-headings at h3 |
+| 10 | colorize | 2026-11-09 | share bars (gold, patina, faint, deep gold with legend) in the iron law, memory and energy calculators |
+| 11 | animate | 2026-11-09 | one authored moment: a margin note settles from gold to patina when its practice is done; reduced motion keeps fades |
+| 12 | clarify | 2026-11-09 | lesson intros lead with objectives, "What the section covers" only when it has two or more parts, takeaways name the ideas instead of repeating objectives, wrong answers show the hint |
+| 13 | adapt | 2026-11-09 | 44 px drawer tiles, larger breadcrumb, copy and slider targets on phones; glossary overflow fixed |
+| 14 | harden | 2026-11-09 | helper-down messages for playground and tests, save state shows "Saving", save failures surface as a banner on phones |
+| 15 | onboard | 2026-11-09 | first visit replaces zero stats with How it works (Read, Try, Prove) and a 25-minute lab as the fastest first win |
+| 16 | optimize | 2026-11-09 | `content-visibility` on the 91 home rows; glossary renders at most 300 matches |
+| 17 | delight | 2026-11-09 | day streak on the home record and in the Logbook |
+| 18 | distill | 2026-11-09 | header save state shortened (path moved to its tooltip); single-bullet section maps and template intros removed |
+| 19 | bolder (quieter assessed, not needed) | 2026-11-09 | home masthead carries the course's scope as display numerals |
+| 20 | document | 2026-11-09 | DESIGN.md merged (not overwritten): new "Course Player" component section |
 
 ## Milestones
 
@@ -65,10 +81,10 @@ and imports it as JSON.
 - 2026-11-09: new player (reading column + margin), ten calculators, Python playground, in-page exercise
   editor, per-chapter data files (data.js went from 11.6 MB to 0.4 MB plus one file per chapter).
 - 2026-11-09: nine hands-on labs.
+- 2026-11-09: impeccable sequence complete (commands 4 to 20 above).
 
 ## Next
 
-1. Finish the impeccable sequence: critique, audit, polish, layout, typeset, colorize, animate, clarify,
-   adapt, harden, onboard, optimize, delight, distill, quieter or bolder, document.
+1. Re-run critique to measure the change from 26/40.
 2. More labs, then deep chapters, starting with Vol I ch1 to ch5.
 3. TinyTorch chapter quizzes; practice for v3-20.

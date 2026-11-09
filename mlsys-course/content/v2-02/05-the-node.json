@@ -15,7 +15,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **The Node** in *Compute Infrastructure* (Vol II). By the end you should be able to:\n\n- Analyze why frequent tensor-parallel exchanges favor the fast interconnect domain and what must be measured before spanning slower links\n- Rank the data-movement tiers across the node-and-cluster hierarchy to explain the bandwidth cliffs governing distributed parallelism placement\n- Justify memory-tier placement for training state by matching access frequency to interconnect bandwidth and calculating the freed HBM capacity\n- Compare intra-node topologies by mapping their connectivity structure to the communication patterns of AllToAll-heavy workloads\n- Identify GPUDirect Storage (GDS) as the architectural mechanism for bypassing host CPU memory during high-throughput data loading"
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze why frequent tensor-parallel exchanges favor the fast interconnect domain and what must be measured before spanning slower links\n- Rank the data-movement tiers across the node-and-cluster hierarchy to explain the bandwidth cliffs governing distributed parallelism placement\n- Justify memory-tier placement for training state by matching access frequency to interconnect bandwidth and calculating the freed HBM capacity\n- Compare intra-node topologies by mapping their connectivity structure to the communication patterns of AllToAll-heavy workloads\n- Identify GPUDirect Storage (GDS) as the architectural mechanism for bypassing host CPU memory during high-throughput data loading"
   },
   {
    "type": "from_book",
@@ -25,8 +25,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- Bandwidth hierarchy\n- Dense node designs\n- Node memory partitioning\n- Data loading and I/O pipeline\n- Node health and reliability\n\nPay attention to: The node as the minimum aggregation unit to hold frontier training state; Bandwidth cliffs between HBM, intra-node NVLink, and inter-node InfiniBand; Asymmetric training state memory partitioning across HBM, host DRAM, and NVMe; AllToAll traffic across NVSwitch crossbar vs. ring topologies."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Bandwidth hierarchy\n- Dense node designs\n- Node memory partitioning\n- Data loading and I/O pipeline\n- Node health and reliability\n\nPay attention to: The node as the minimum aggregation unit to hold frontier training state; Bandwidth cliffs between HBM, intra-node NVLink, and inter-node InfiniBand; Asymmetric training state memory partitioning across HBM, host DRAM, and NVMe; AllToAll traffic across NVSwitch crossbar vs. ring topologies."
   },
   {
    "type": "reveal",
@@ -85,10 +85,7 @@
   {
    "type": "summary",
    "points": [
-    "You can now analyze why frequent tensor-parallel exchanges favor the fast interconnect domain and what must be measured before spanning slower links.",
-    "You can now rank the data-movement tiers across the node-and-cluster hierarchy to explain the bandwidth cliffs governing distributed parallelism placement.",
-    "You can now justify memory-tier placement for training state by matching access frequency to interconnect bandwidth and calculating the freed HBM capacity.",
-    "You can now compare intra-node topologies by mapping their connectivity structure to the communication patterns of AllToAll-heavy workloads."
+    "**Bandwidth hierarchy**: The unequal data-transfer rates within an accelerator, within a node, and between nodes."
    ]
   }
  ],

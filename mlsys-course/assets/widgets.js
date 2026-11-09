@@ -38,10 +38,19 @@ function build(lib, params, controls, compute) {
     controls.forEach(c => { if (c._val) c._val.textContent = (c.show ? c.show(state[c.key]) : fmt(state[c.key])) + (c.unit ? " " + c.unit : ""); });
     const res = compute(state);
     outEl.replaceChildren(...res.rows.map(r => h("div", { class: "w-row" + (r.strong ? " is-strong" : "") }, h("span", { class: "w-k" }, r.k), h("span", { class: "w-v" }, r.v))),
-      res.verdict ? h("p", { class: "w-verdict" }, res.verdict) : null, res.chart || null);
+      res.share ? shareBar(h, res.share) : null, res.verdict ? h("p", { class: "w-verdict" }, res.verdict) : null, res.chart || null);
   }
   paint();
   return h("div", { class: "w-body" }, ctrls, outEl);
+}
+
+/* where the total goes: one bar, one colour per term, with a legend that repeats the numbers */
+function shareBar(h, parts) {
+  const tot = parts.reduce((a, p) => a + Math.max(0, p.v), 0) || 1;
+  return h("div", { class: "w-share" },
+    h("div", { class: "w-share-bar", role: "img", "aria-label": parts.map(p => p.k + " " + Math.round(100 * p.v / tot) + "%").join(", ") },
+      parts.map((p, i) => h("span", { class: "seg s" + (i + 1), style: "flex-grow:" + Math.max(0, p.v) / tot }))),
+    h("ul", { class: "w-legend" }, parts.map((p, i) => h("li", null, h("span", { class: "sw s" + (i + 1) }), p.k + " " + Math.round(100 * p.v / tot) + "%"))));
 }
 
 /* a small log-log line chart drawn in SVG; points [{x,y,label}] */
@@ -77,7 +86,7 @@ const WIDGETS = {
         const tm = s.dvol / (s.bw * 1e9), tc = s.ops / (s.peak * 1e12 * s.eta);
         const total = (s.pipelined ? Math.max(tm, tc) : tm + tc) + s.lat;
         const bound = s.lat > Math.max(tm, tc) ? "overhead-bound: fixed latency dominates, so batching or fusing work helps most" : tm > tc ? "memory-bound: faster arithmetic would not help; move fewer bytes or get more bandwidth" : "compute-bound: more FLOP/s or higher utilisation helps; extra bandwidth would not";
-        return { rows: [{ k: "Data movement D/BW", v: time(tm) }, { k: "Compute O/(R·η)", v: time(tc) }, { k: "Overhead", v: time(s.lat) }, { k: "Total time T", v: time(total), strong: true }], verdict: "This workload is " + bound + "." };
+        return { rows: [{ k: "Data movement D/BW", v: time(tm) }, { k: "Compute O/(R·η)", v: time(tc) }, { k: "Overhead", v: time(s.lat) }, { k: "Total time T", v: time(total), strong: true }], share: [{ k: "Movement", v: tm }, { k: "Compute", v: tc }, { k: "Overhead", v: s.lat }], verdict: "This workload is " + bound + "." };
       });
     },
   },
@@ -114,7 +123,7 @@ const WIDGETS = {
       ], s => {
         const w = s.params * s.bw, g = s.mode ? s.params * s.bw : 0, o = s.mode ? s.params * s.opt : 0, a = s.mode ? s.act * 1e9 : s.act * 1e9 * 0.05;
         const tot = w + g + o + a, n = Math.ceil(tot / (s.gpu * 1e9));
-        return { rows: [{ k: "Weights", v: bytes(w) }, { k: "Gradients", v: bytes(g) }, { k: "Optimizer state", v: bytes(o) }, { k: s.mode ? "Activations" : "Activations / KV (≈5%)", v: bytes(a) }, { k: "Total", v: bytes(tot), strong: true }, { k: "Accelerators needed (memory only)", v: String(n) }],
+        return { rows: [{ k: "Weights", v: bytes(w) }, { k: "Gradients", v: bytes(g) }, { k: "Optimizer state", v: bytes(o) }, { k: s.mode ? "Activations" : "Activations / KV (≈5%)", v: bytes(a) }, { k: "Total", v: bytes(tot), strong: true }, { k: "Accelerators needed (memory only)", v: String(n) }], share: [{ k: "Weights", v: w }, { k: "Gradients", v: g }, { k: "Optimizer", v: o }, { k: "Activations", v: a }].filter(x => x.v > 0),
           verdict: n > 1 ? "It does not fit on one " + s.gpu + " GB device: you need sharding, offloading or lower precision." : "Fits on one " + s.gpu + " GB device, with " + bytes(s.gpu * 1e9 - tot) + " to spare." };
       });
     },
@@ -217,7 +226,7 @@ const WIDGETS = {
       ], s => {
         const em = s.dvol * s.emove * 1e-12, ec = s.ops * s.eop * 1e-12;
         const j = x => x < 1 ? fmt(x * 1e3) + " mJ" : x < 3600 ? fmt(x) + " J" : fmt(x / 3.6e6) + " kWh";
-        return { rows: [{ k: "Data movement", v: j(em) }, { k: "Compute", v: j(ec) }, { k: "Total", v: j(em + ec), strong: true }, { k: "Share spent moving data", v: Math.round(100 * em / (em + ec)) + "%" }], verdict: em > ec ? "Movement dominates: reuse data on chip before buying more efficient arithmetic." : "Compute dominates: lower precision or fewer operations save the most." };
+        return { rows: [{ k: "Data movement", v: j(em) }, { k: "Compute", v: j(ec) }, { k: "Total", v: j(em + ec), strong: true }, { k: "Share spent moving data", v: Math.round(100 * em / (em + ec)) + "%" }], share: [{ k: "Movement", v: em }, { k: "Compute", v: ec }], verdict: em > ec ? "Movement dominates: reuse data on chip before buying more efficient arithmetic." : "Compute dominates: lower precision or fewer operations save the most." };
       });
     },
   },

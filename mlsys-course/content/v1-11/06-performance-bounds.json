@@ -14,7 +14,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **Performance Bounds** in *Hardware Acceleration* (Vol I). By the end you should be able to:\n\n- Calculate the hardware ridge point from peak compute throughput and memory bandwidth\n- Apply the roofline equation to compute a modeled upper bound and identify whether the bandwidth or compute ceiling is lower\n- Analyze why rising compute-to-bandwidth ratios push newer hardware ridge points upward and increase the need for reuse-aware kernel design\n- Evaluate why increasing peak compute alone does not raise the simple roofline bound for a memory-bound kernel\n- Explain the significance of the ridge point in roofline performance modeling"
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate the hardware ridge point from peak compute throughput and memory bandwidth\n- Apply the roofline equation to compute a modeled upper bound and identify whether the bandwidth or compute ceiling is lower\n- Analyze why rising compute-to-bandwidth ratios push newer hardware ridge points upward and increase the need for reuse-aware kernel design\n- Evaluate why increasing peak compute alone does not raise the simple roofline bound for a memory-bound kernel\n- Explain the significance of the ridge point in roofline performance modeling"
   },
   {
    "type": "from_book",
@@ -24,8 +24,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- The roofline model\n- Hardware ridge points\n- Memory bandwidth bounds\n- Optimization by intensity regime\n\nPay attention to: Roofline equation: Attainable Performance = min(R_peak, I * BW); Arithmetic intensity calculation and hardware ridge points; Memory-bound vs compute-bound regime diagnosis; Regime-specific optimization strategies (kernel fusion, tiling, ILP, quantization)."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The roofline model\n- Hardware ridge points\n- Memory bandwidth bounds\n- Optimization by intensity regime\n\nPay attention to: Roofline equation: Attainable Performance = min(R_peak, I * BW); Arithmetic intensity calculation and hardware ridge points; Memory-bound vs compute-bound regime diagnosis; Regime-specific optimization strategies (kernel fusion, tiling, ILP, quantization)."
   },
   {
    "type": "reveal",
@@ -97,10 +97,10 @@
   {
    "type": "summary",
    "points": [
-    "You can now calculate the hardware ridge point from peak compute throughput and memory bandwidth.",
-    "You can now apply the roofline equation to compute a modeled upper bound and identify whether the bandwidth or compute ceiling is lower.",
-    "You can now analyze why rising compute-to-bandwidth ratios push newer hardware ridge points upward and increase the need for reuse-aware kernel design.",
-    "You can now evaluate why increasing peak compute alone does not raise the simple roofline bound for a memory-bound kernel."
+    "**Operand transfer time**: Supplying operands takes time. For a fixed memory level, the transfer lower bound is bytes moved divided by bandwidth.",
+    "**Arithmetic time**: The arithmetic lower bound is the required operations divided by the available compute rate. Faster operand delivery cannot remove this bound.",
+    "**Memory bandwidth**: Bandwidth limits the rate at which an accelerator receives operands from a given memory level. The relevant level depends on data placement and reuse.",
+    "**Arithmetic intensity**: Operations per byte moved identifies the compute-versus-bandwidth regime. A suitable batch can reuse weights and raise this ratio."
    ]
   }
  ],

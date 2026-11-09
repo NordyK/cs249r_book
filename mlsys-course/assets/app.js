@@ -608,7 +608,8 @@ function save(now) {
 function setSaveState(s) {
   const el = $("#saveState"); if (!el) return;
   el.dataset.state = s || (serverMode ? "ok" : "local");
-  el.textContent = s === "err" ? "Not saved: the course helper stopped" : serverMode ? "Saved to progress/progress.json" : "Saved in this browser";
+  el.textContent = s === "err" ? "Not saved to file: is ./start.sh still running? Kept in this browser." : s === "pending" ? "Saving…" : serverMode ? "Saved to file" : "Saved in this browser";
+  el.title = serverMode ? "Progress is written to progress/progress.json next to the course" : "Start the course with ./start.sh to also save progress to a file";
 }
 /* the logbook: one line per thing the learner finished, so a later session knows what happened */
 function logEvent(kind, ref, text) {
@@ -865,7 +866,9 @@ function qOrder(q, uid) {
 function liveNote(b, label) { b._live = note(label, h("div"), "open"); return b._live; }
 function setLive(b, state, text) {
   if (!b._live) return;
-  b._live.className = "mnote is-" + state;
+  const was = b._live.className;
+  b._live.className = "mnote is-" + state + (state === "done" && was.indexOf("is-done") < 0 && b._painted ? " just-done" : "");
+  b._painted = true;
   b._live.lastChild.replaceChildren(...[state === "done" ? icon("check") : null, document.createTextNode(text)].filter(Boolean));
   if (window.__drawRecord) window.__drawRecord();
 }
@@ -984,8 +987,9 @@ function loadPyodide_() {
 }
 async function runPython(code) {
   if (serverMode) {
-    const r = await fetch("api/run-python", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
-    const j = await r.json(); if (!r.ok) throw new Error(j.error || "The course helper refused to run the code.");
+    let r, j;
+    try { r = await fetch("api/run-python", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) }); j = await r.json(); }
+    catch (e) { throw new Error("The course helper is not answering. Check that ./start.sh is still running, then press Run again. Your code is kept."); } if (!r.ok) throw new Error(j.error || "The course helper refused to run the code.");
     return { ok: j.ok, output: j.output || "", timedOut: j.timed_out, where: "python3 on this computer" };
   }
   let py;
@@ -1076,7 +1080,7 @@ function exerciseBlock(b, les) {
   const mark = s => { const was = st.status; st.status = s; if (s === "passed" && was !== "passed") { celebrate(); logEvent("exercise", b.id, "Exercise passed: " + b.title); } paint(); save(); };
   const root = h("section", { class: "block exercise", id: "b-" + b.id }, blockTitle(b.title, "hammer", b.difficulty ? h("span", { class: "tag" }, b.difficulty) : null));
   root.append(h("div", { class: "text", html: md(b.goal) }));
-  if (b.behavior) root.append(h("h4", null, "What it must do"), h("div", { class: "text", html: md(b.behavior) }));
+  if (b.behavior) root.append(h("h3", null, "What it must do"), h("div", { class: "text", html: md(b.behavior) }));
   if (b.examples && b.examples.length) root.append(h("div", { class: "tablewrap" }, h("table", null, h("thead", null, h("tr", null, h("th", null, "Input"), h("th", null, "Expected"))), h("tbody", null, b.examples.map(e => h("tr", null, h("td", null, h("code", null, e.input == null ? "" : String(e.input))), h("td", null, h("code", null, e.output == null ? "" : String(e.output)))))))));
   const out = h("pre", { class: "term", hidden: true }), runStatus = h("div", { class: "run-status", "aria-live": "polite" }), board = h("ul", { class: "testboard" });
   const actions = h("div", { class: "row" });
@@ -1084,7 +1088,7 @@ function exerciseBlock(b, les) {
     const f = b.files || {}, starter = (f.starter || [])[0];
     const DKEY = "course-draft:" + b.id; let draft = null; try { draft = localStorage.getItem(DKEY); } catch (e) { /* ignore */ }
     const where = "exercises/" + b.dir + "/";
-    root.append(h("h4", null, "Your file: ", h("code", null, where + (starter ? starter.path : ""))));
+    root.append(h("h3", null, "Your file: ", h("code", null, where + (starter ? starter.path : ""))));
     let ed = null;
     if (starter) {
       ed = codeEditor(draft || starter.content, () => runTests(), { label: starter.path, maxLines: 30, onChange: v => { try { localStorage.setItem(DKEY, v); } catch (e) { /* ignore */ } } });
@@ -1109,7 +1113,7 @@ function exerciseBlock(b, les) {
         runStatus.textContent = j.timed_out ? "Stopped: the tests ran longer than the time limit." : j.ok ? "All " + parsed.length + " tests pass." : (parsed.length ? st.lastPassed + " of " + parsed.length + " tests pass. The first failure is at the top of the output." : "The tests did not run: read the output.");
         out.hidden = false; out.textContent = j.output || "";
         mark(j.ok ? "passed" : "failed");
-      } catch (e) { runStatus.className = "run-status bad"; runStatus.textContent = "The course helper did not answer: " + (e.message || ""); }
+      } catch (e) { runStatus.className = "run-status bad"; runStatus.textContent = e instanceof TypeError ? "The course helper is not answering. Check that ./start.sh is still running, then run the tests again. Your code is kept in this browser." : "The tests could not run: " + (e.message || "unknown error") + "."; }
       runBtn.disabled = false;
     }
     const runBtn = h("button", { class: "btn primary", type: "button", onclick: runTests }, icon("play"), "Save and run tests");
@@ -1120,7 +1124,7 @@ function exerciseBlock(b, les) {
     root.append(h("details", { class: "fold" }, h("summary", null, "Run it from a terminal instead"), h("div", { class: "cmdline" }, h("code", null, cmd), copy)));
     if (f.tests && f.tests.length) root.append(h("details", { class: "fold" }, h("summary", null, "Read the tests"), f.tests.map(x => codeBlock({ code: x.content, file: x.path, lang: langOf(x.path) }))));
   } else {
-    if (b.checklist && b.checklist.length) root.append(h("h4", null, "Check your work"), h("ul", { class: "checklist" }, b.checklist.map((c, i) => h("li", null, h("label", null,
+    if (b.checklist && b.checklist.length) root.append(h("h3", null, "Check your work"), h("ul", { class: "checklist" }, b.checklist.map((c, i) => h("li", null, h("label", null,
       h("input", Object.assign({ type: "checkbox", onchange: e => { const k = st.checked.indexOf(i); if (e.target.checked && k < 0) st.checked.push(i); if (!e.target.checked && k >= 0) st.checked.splice(k, 1); save(); } }, st.checked.indexOf(i) >= 0 ? { checked: true } : {})), h("span", { html: inline(c) }))))));
     const doneBtn = h("button", { class: "btn", type: "button", onclick: () => { mark(st.status === "passed" ? "todo" : "passed"); doneBtn.lastChild.textContent = st.status === "passed" ? "Mark as not done" : "Mark as done"; } }, icon("check"), h("span", null, st.status === "passed" ? "Mark as not done" : "Mark as done"));
     actions.append(doneBtn);
@@ -1137,7 +1141,7 @@ function exerciseBlock(b, les) {
     const sb = h("button", { class: "btn ghost sm", type: "button" }, icon("eye"), h("span", null, "Solution"));
     sb.onclick = () => {
       if (solBox.childNodes.length) { solBox.replaceChildren(); sb.lastChild.textContent = "Solution"; return; }
-      ask("Show the reference solution? Working through a failing test teaches more.", () => { fill(solBox, h("h4", null, "Reference solution"), sol.map(x => codeBlock({ code: x.content, file: x.path, lang: x.lang || langOf(x.path) })), b.solution_explain ? h("div", { class: "text", html: md(b.solution_explain) }) : null); sb.lastChild.textContent = "Hide solution"; });
+      ask("Show the reference solution? Working through a failing test teaches more.", () => { fill(solBox, h("h3", null, "Reference solution"), sol.map(x => codeBlock({ code: x.content, file: x.path, lang: x.lang || langOf(x.path) })), b.solution_explain ? h("div", { class: "text", html: md(b.solution_explain) }) : null); sb.lastChild.textContent = "Hide solution"; });
     };
     actions.append(sb);
   }
@@ -1186,6 +1190,13 @@ function chapterRecord(ch) {
     ex.length ? note("Build", h("div", null, exPassed + " of " + ex.length + " exercise" + (ex.length > 1 ? "s" : "") + " passing"), exPassed === ex.length ? "done" : null) : null,
   ];
 }
+function dayStreak() {
+  const days = new Set((P.log || []).filter(e => e.kind !== "visit").map(e => new Date(e.at).toDateString()));
+  let n = 0; const d = new Date();
+  if (!days.has(d.toDateString())) d.setDate(d.getDate() - 1);
+  while (days.has(d.toDateString())) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
 function renderHome() {
   const el = content(); const nid = nextLessonId(); const pct = overallPct();
   const doneN = ORDER.filter(lessonDone).length;
@@ -1195,14 +1206,25 @@ function renderHome() {
   const resume = nid ? h("div", { class: "resume" },
     h("p", null, P.last ? "Pick up where you left off: " : "Start at the beginning: ", h("strong", null, STUB[nid].title), ", in ", h("a", { href: "#/ch/" + C.chapters[CH_OF[nid]].id }, chLabel(C.chapters[CH_OF[nid]]).name), "."),
     h("a", { class: "btn primary", href: "#/lesson/" + nid }, P.last ? "Continue" : "Start the course", icon("arrow"))) : h("p", { class: "resume" }, h("strong", null, "Every lesson is complete."));
-  const frag = [row([h("h1", { class: "display" }, "Machine Learning Systems"),
-    h("p", { class: "lead" }, "One course through all four volumes of the MLSysBook and the TinyTorch build-it-yourself framework: read a lesson, run the numbers in a calculator or a Python playground, then prove it with a quiz, a unit test or a chapter test."),
-    resume], [
-    note("Your record", h("div", null, h("div", { class: "mnum big" }, pct + "%"), bar(pct / 100, pct === 100 ? "done" : "open"), h("div", { class: "note-small" }, fmtInt(doneN) + " of " + fmtInt(ORDER.length) + " lessons"))),
+  const fresh = !P.last && !(P.log || []).length;
+  const labs = ORDER.filter(x => x.indexOf("-lab-") > 0);
+  const scope = h("dl", { class: "scope" }, [["4", "volumes"], [String(C.chapters.filter(c => c.id[0] === "v").length), "book chapters"], [String(C.chapters.filter(c => c.id[0] === "t").length), "TinyTorch builds"], [fmtInt(ORDER.length), "lessons"], [String(labs.length), "hands-on labs"]]
+    .map(([n, l]) => h("div", null, h("dt", null, n), h("dd", null, l))));
+  const streak = dayStreak();
+  const side = fresh ? [
+    note("How it works", h("ol", { class: "how" }, h("li", null, h("strong", null, "Read"), " a short lesson built from the book, with its key terms in the margin."),
+      h("li", null, h("strong", null, "Try"), " the numbers in a calculator or in Python."), h("li", null, h("strong", null, "Prove"), " it: quizzes, unit tests on your own TinyTorch code, a test per chapter."))),
+    note("Progress", h("div", null, "Saves itself as you work. Each lesson's margin shows what is still open; the Logbook keeps every result.")),
+    labs.length ? note("Short on time?", h("div", null, h("a", { href: "#/lesson/" + labs[0] }, STUB[labs[0]].title), " takes about 25 minutes and shows the whole loop.")) : null,
+  ] : [
+    note("Your record", h("div", null, h("div", { class: "mnum big" }, pct + "%"), bar(pct / 100, pct === 100 ? "done" : "open"), h("div", { class: "note-small" }, fmtInt(doneN) + " of " + fmtInt(ORDER.length) + " lessons" + (streak > 1 ? " · " + streak + " days in a row" : "")))),
     note("Chapter tests", h("div", null, testsPassed + " of " + tests.length + " passed")),
     note("TinyTorch builds", h("div", null, exPassed + " of " + exAll.length + " passing")),
-    lastLog ? note("Last session", h("div", null, h("a", { href: "#/log" }, new Date(lastLog.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + ": " + lastLog.text))) : note("Progress", h("div", null, serverMode ? "Saved to progress/progress.json as you go." : "Saved in this browser. Start with ./start.sh to keep it in a file.")),
-  ], "masthead")];
+    lastLog ? note("Last session", h("div", null, h("a", { href: "#/log" }, new Date(lastLog.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + ": " + lastLog.text))) : null,
+  ];
+  const frag = [row([h("h1", { class: "display" }, "Machine Learning Systems"),
+    h("p", { class: "lead" }, "One course through all four volumes of the MLSysBook and the TinyTorch build-it-yourself framework: read a lesson, run the numbers in a calculator or a Python playground, then prove it with a quiz, a unit test or a chapter test."),
+    scope, resume], side, "masthead")];
   (C.parts || []).forEach(p => {
     const chs = C.chapters.filter(c => c.part === p.id); if (!chs.length) return;
     const pd = chs.reduce((a, c) => a + chDone(c), 0), pn = chs.reduce((a, c) => a + c.stubs.length, 0);
@@ -1311,7 +1333,7 @@ function renderLog() {
   } });
   const imp = h("button", { class: "btn ghost sm", type: "button", onclick: () => file.click() }, "Import progress");
   const rows = [row([h("h1", { class: "headline" }, "Logbook"), h("p", { class: "lead" }, "Your work, newest first: lessons completed, quizzes and tests scored, calculator tasks and exercises solved, and the lessons you visited. It is saved with your progress; export it to move it to another computer."), h("div", { class: "row" }, exp, imp, file)],
-    [note("Lessons", h("div", { class: "mnum" }, fmtInt(doneN) + " / " + fmtInt(ORDER.length))), note("Days with activity", h("div", { class: "mnum" }, String(days.length))), note("Entries", h("div", { class: "mnum" }, fmtInt(log.length)))], "masthead")];
+    [note("Lessons", h("div", { class: "mnum" }, fmtInt(doneN) + " / " + fmtInt(ORDER.length))), dayStreak() > 1 ? note("Streak", h("div", { class: "mnum" }, dayStreak() + " days in a row"), "done") : null, note("Days with activity", h("div", { class: "mnum" }, String(days.length))), note("Entries", h("div", { class: "mnum" }, fmtInt(log.length)))], "masthead")];
   if (!log.length) rows.push(row(h("div", { class: "empty" }, h("p", null, "Nothing logged yet. Every lesson you complete, quiz you finish, test you take and exercise you pass is written here with its date."), h("a", { class: "btn primary", href: "#/lesson/" + nextLessonId() }, "Open your next lesson", icon("arrow"))), []));
   days.forEach(d => rows.push(row([h("h2", { class: "day" }, new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })),
     h("ul", { class: "loglist" }, byDay[d].map(e => h("li", { class: "k-" + e.kind }, h("time", null, new Date(e.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })), h("span", null, e.ref && STUB[e.ref] ? h("a", { href: "#/lesson/" + e.ref }, e.text) : e.text))))], [note(null, h("div", null, byDay[d].length + " entr" + (byDay[d].length > 1 ? "ies" : "y")))])));

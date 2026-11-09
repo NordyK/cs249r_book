@@ -507,6 +507,20 @@ The global bottom bar and the contextual bar (configure / cycling / accept) shar
 
 **The Picker Is Brand Rule.** Live mode UI is Impeccable product chrome, not host-page chrome. It always ships the lacquer-deep fill, the carved-tile mark, and gold on the mark + active control. Brand reads through the mark and the gold accent rather than a gold border ringing the bar; the container itself stays a quiet neutral-edged tool.
 
+### Course Player (MLSys course)
+
+This course applies Neo Kinpaku to a Read-mode surface. Source of truth: `assets/style.css` and `assets/app.js` in this folder. Everything above still holds; these are the course's own components.
+
+- **Shell:** sticky running head on Lacquer Deep with a 1px hairline; a 264px chapter rail; a reading column capped at 68ch beside a 288px margin (48px gap). Under 1100px the margin drops below each block; under 900px the rail becomes a drawer whose top carries the four section links (Contents, Playground, Logbook, Glossary) as 44px tiles.
+- **Live margin note (the signature):** 1px left rule, mono uppercase label, muted text. Open practice: gold-hairline rule and gold label. Done: patina rule and patina text, entered once through a 0.9s settle from gold to patina with a rule that grows down the note. Missed: vermilion rule. Notes for quizzes, exercises, playgrounds and calculators stay sticky beside long blocks on wide screens. The lesson record at the top of the margin counts what is still open.
+- **Scope figures (home):** a row of Alumni Sans 100 numerals in the accent colour over mono uppercase labels. One per course, on the home masthead only.
+- **Practice blocks:** Lacquer Raised surface, 1px hairline, 4px radius, 22px by 24px padding; chapter tests take the gold hairline. Code editors and terminals stay dark in both themes.
+- **Calculators:** sliders with a 2px gold-hairline track and a rotated gold square thumb; outputs as hairline rows with mono values, the decisive one in the accent colour. A share bar splits a total into terms: gold (first term), patina (second), faint (third), deep gold (fourth), always with a legend that repeats the percentages.
+- **Depth badges:** mono uppercase on a hairline: Imported (faint), Lab, Has a lab and Deep (gold hairline, accent text). A lesson carries its own layer; a chapter test carries none.
+- **Answers:** correct uses a patina border and a patina-soft wash; wrong uses vermilion. Vermilion is never decoration.
+- **Light theme:** Paper surfaces from the light-* tokens. Small accent text (current nav, labels, links) uses patina-deep, per the Gold-By-Size-On-Paper rule; gold stays on fills, marks and display numerals only.
+- **Motion:** routine state 150 to 300ms on the shared deceleration curve; the completion seam is a 2px gold-to-patina line under the running head. Reduced motion keeps fades and drops movement, flips and slides.
+
 ## 7. Do and Do Not
 
 ### Do

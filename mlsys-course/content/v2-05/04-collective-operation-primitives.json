@@ -12,7 +12,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **Collective Operation Primitives** in *Collective Communication* (Vol II). By the end you should be able to:\n\n- Contrast the communication frequency, message granularity, and latency sensitivity of FSDP with standard Data Parallelism\n- Analyze FSDP communication exposure using parameter dependencies, gradient readiness, prefetch memory, and available overlap windows\n- Identify the fundamental two-phase decomposition of AllReduce into ReduceScatter and AllGather"
+   "md": "By the end of this lesson you should be able to:\n\n- Contrast the communication frequency, message granularity, and latency sensitivity of FSDP with standard Data Parallelism\n- Analyze FSDP communication exposure using parameter dependencies, gradient readiness, prefetch memory, and available overlap windows\n- Identify the fundamental two-phase decomposition of AllReduce into ReduceScatter and AllGather"
   },
   {
    "type": "from_book",
@@ -22,8 +22,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- The six core primitives\n- FSDP communication patterns\n\nPay attention to: Decomposition of AllReduce into ReduceScatter followed by AllGather; FSDP communication patterns: parameter sharding, AllGather in forward, ReduceScatter in backward, startup sensitivity; Dependency exposure of FSDP gathers and reductions."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The six core primitives\n- FSDP communication patterns\n\nPay attention to: Decomposition of AllReduce into ReduceScatter followed by AllGather; FSDP communication patterns: parameter sharding, AllGather in forward, ReduceScatter in backward, startup sensitivity; Dependency exposure of FSDP gathers and reductions."
   },
   {
    "type": "reveal",
@@ -64,9 +64,9 @@
   {
    "type": "summary",
    "points": [
-    "You can now contrast the communication frequency, message granularity, and latency sensitivity of FSDP with standard Data Parallelism.",
-    "You can now analyze FSDP communication exposure using parameter dependencies, gradient readiness, prefetch memory, and available overlap windows.",
-    "You can now identify the fundamental two-phase decomposition of AllReduce into ReduceScatter and AllGather."
+    "**AllReduce**: A collective that reduces contributions from every participant and returns the result to every participant.",
+    "**AllGather**: A collective that assembles the contributions of all ranks into a complete tensor at every rank.",
+    "**ReduceScatter**: A collective that reduces corresponding input contributions and distributes different reduced shards among ranks."
    ]
   }
  ],

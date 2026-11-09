@@ -12,7 +12,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **Checkpoint Storage** in *Data Storage* (Vol II). By the end you should be able to:\n\n- Explain how tiered checkpoint staging minimizes the exposed training pause time by decoupling local NVMe writes from asynchronous durable replication\n- Evaluate the difference between write-completion acknowledgments and end-to-end restore validation in checkpoint reliability\n- Analyze how ZeRO-3 state sharding reduces cluster checkpoint write volume and eliminates multi-hour checkpoint storm stalls\n- Design a tiered checkpoint retention policy that balances rapid crash recovery against long-term storage capacity costs\n- Analyze the multi-stage execution workflow of tiered asynchronous checkpointing"
+   "md": "By the end of this lesson you should be able to:\n\n- Explain how tiered checkpoint staging minimizes the exposed training pause time by decoupling local NVMe writes from asynchronous durable replication\n- Evaluate the difference between write-completion acknowledgments and end-to-end restore validation in checkpoint reliability\n- Analyze how ZeRO-3 state sharding reduces cluster checkpoint write volume and eliminates multi-hour checkpoint storm stalls\n- Design a tiered checkpoint retention policy that balances rapid crash recovery against long-term storage capacity costs\n- Analyze the multi-stage execution workflow of tiered asynchronous checkpointing"
   },
   {
    "type": "from_book",
@@ -22,8 +22,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- Synchronous and asynchronous checkpoint writes\n- Checkpoint retention and restore\n\nPay attention to: checkpoint volume calculations (175B resumable Adam state = 2.45 TB); tiered checkpoint staging mechanics (local NVMe write vs async PFS copy); ZeRO-3 sharded checkpointing vs naive full-replica checkpoint storms; checkpoint retention policies and restore verification imperatives."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Synchronous and asynchronous checkpoint writes\n- Checkpoint retention and restore\n\nPay attention to: checkpoint volume calculations (175B resumable Adam state = 2.45 TB); tiered checkpoint staging mechanics (local NVMe write vs async PFS copy); ZeRO-3 sharded checkpointing vs naive full-replica checkpoint storms; checkpoint retention policies and restore verification imperatives."
   },
   {
    "type": "reveal",
@@ -86,10 +86,7 @@
   {
    "type": "summary",
    "points": [
-    "You can now explain how tiered checkpoint staging minimizes the exposed training pause time by decoupling local NVMe writes from asynchronous durable replication.",
-    "You can now evaluate the difference between write-completion acknowledgments and end-to-end restore validation in checkpoint reliability.",
-    "You can now analyze how ZeRO-3 state sharding reduces cluster checkpoint write volume and eliminates multi-hour checkpoint storm stalls.",
-    "You can now design a tiered checkpoint retention policy that balances rapid crash recovery against long-term storage capacity costs."
+    "**Durable checkpoint**: A completed recoverable state version persisted beyond the failure domain it is meant to survive."
    ]
   }
  ],

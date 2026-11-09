@@ -16,7 +16,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **Model Parallelism** in *Distributed Training* (Vol II). By the end you should be able to:\n\n- Analyze the column-then-row linear layer pairing in Megatron-LM tensor parallelism\n- Calculate pipeline bubble overhead and explain the role of microbatch count in pipeline utilization\n- Order the four phases of token routing and execution in expert parallelism\n- Explain the function of the capacity factor and token dropping in distributed MoE routing\n- Compare dense model tensor parallelism against sparse embedding sharding communication patterns"
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the column-then-row linear layer pairing in Megatron-LM tensor parallelism\n- Calculate pipeline bubble overhead and explain the role of microbatch count in pipeline utilization\n- Order the four phases of token routing and execution in expert parallelism\n- Explain the function of the capacity factor and token dropping in distributed MoE routing\n- Compare dense model tensor parallelism against sparse embedding sharding communication patterns"
   },
   {
    "type": "from_book",
@@ -26,8 +26,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- Layer-wise partitioning\n- Pipeline parallelism\n- Tensor parallelism\n- Sequence and context parallelism\n- Expert parallelism (mixture of experts)\n- Sparse embedding sharding\n\nPay attention to: Megatron column-then-row linear layer factoring saving AllReduce collectives; pipeline bubble mechanics: GPipe vs 1F1B activation residency and bubble formula; expert parallelism (MoE): gating, AllToAll dispatch/combine, capacity factor; sequence parallelism: Ring Attention circulating K/V blocks."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Layer-wise partitioning\n- Pipeline parallelism\n- Tensor parallelism\n- Sequence and context parallelism\n- Expert parallelism (mixture of experts)\n- Sparse embedding sharding\n\nPay attention to: Megatron column-then-row linear layer factoring saving AllReduce collectives; pipeline bubble mechanics: GPipe vs 1F1B activation residency and bubble formula; expert parallelism (MoE): gating, AllToAll dispatch/combine, capacity factor; sequence parallelism: Ring Attention circulating K/V blocks."
   },
   {
    "type": "reveal",
@@ -94,10 +94,8 @@
   {
    "type": "summary",
    "points": [
-    "You can now analyze the column-then-row linear layer pairing in Megatron-LM tensor parallelism.",
-    "You can now calculate pipeline bubble overhead and explain the role of microbatch count in pipeline utilization.",
-    "You can now order the four phases of token routing and execution in expert parallelism.",
-    "You can now explain the function of the capacity factor and token dropping in distributed MoE routing."
+    "**Tensor parallelism**: Partitioning an individual layer's tensor computation across cooperating accelerators.",
+    "**Pipeline parallelism**: Partitioning model stages across devices and scheduling microbatches through those stages."
    ]
   }
  ],

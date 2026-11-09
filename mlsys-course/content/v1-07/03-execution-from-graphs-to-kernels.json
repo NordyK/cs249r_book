@@ -18,7 +18,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **Execution: From Graphs to Kernels** in *ML Frameworks* (Vol I). By the end you should be able to:\n\n- Analyze why operator fusion mitigates memory-wall bottlenecks for low arithmetic intensity layers\n- Compare trace-based capture with modern graph capture for data-dependent control flow\n- Explain how the dispatch overhead law causes GPU underutilization on small eager-mode operations\n- Evaluate the operational behavior and performance impact of graph breaks in graph-capture JIT compilers\n- Order the stages of a graph-capture compilation pipeline from eager program capture to cached hardware execution"
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze why operator fusion mitigates memory-wall bottlenecks for low arithmetic intensity layers\n- Compare trace-based capture with modern graph capture for data-dependent control flow\n- Explain how the dispatch overhead law causes GPU underutilization on small eager-mode operations\n- Evaluate the operational behavior and performance impact of graph breaks in graph-capture JIT compilers\n- Order the stages of a graph-capture compilation pipeline from eager program capture to cached hardware execution"
   },
   {
    "type": "from_book",
@@ -28,8 +28,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- Computational graphs\n- The memory wall and kernel fusion\n- Eager execution with dynamic graphs\n- Dispatch overhead in eager execution\n- Static computation graphs\n- Graph capture and JIT compilation\n- Compilation and dispatch costs\n- Static runtimes for microcontrollers\n\nPay attention to: The memory wall and arithmetic intensity as the core motivation for operator fusion; Execution strategies: Eager (define-by-run) vs Static graphs (define-and-run) vs Graph-capture JIT; The dispatch overhead law and its dispatch overhead ratio (about 15 MicroUnitPrefixs of Python dispatch plus kernel launch per eager operation); Tracing versus bytecode inspection (TorchDynamo), graph breaks, and the torch.compile pipeline (FX, AOTAutograd, TorchInductor)."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Computational graphs\n- The memory wall and kernel fusion\n- Eager execution with dynamic graphs\n- Dispatch overhead in eager execution\n- Static computation graphs\n- Graph capture and JIT compilation\n- Compilation and dispatch costs\n- Static runtimes for microcontrollers\n\nPay attention to: The memory wall and arithmetic intensity as the core motivation for operator fusion; Execution strategies: Eager (define-by-run) vs Static graphs (define-and-run) vs Graph-capture JIT; The dispatch overhead law and its dispatch overhead ratio (about 15 MicroUnitPrefixs of Python dispatch plus kernel launch per eager operation); Tracing versus bytecode inspection (TorchDynamo), graph breaks, and the torch.compile pipeline (FX, AOTAutograd, TorchInductor)."
   },
   {
    "type": "reveal",
@@ -101,10 +101,7 @@
   {
    "type": "summary",
    "points": [
-    "You can now analyze why operator fusion mitigates memory-wall bottlenecks for low arithmetic intensity layers.",
-    "You can now compare trace-based capture with modern graph capture for data-dependent control flow.",
-    "You can now explain how the dispatch overhead law causes GPU underutilization on small eager-mode operations.",
-    "You can now evaluate the operational behavior and performance impact of graph breaks in graph-capture JIT compilers."
+    "**Dispatch overhead**: Host-side work paid to submit operations; many short kernels can make it dominate device execution."
    ]
   }
  ],

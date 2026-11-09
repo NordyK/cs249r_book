@@ -15,7 +15,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **Pipeline Architecture** in *Model Training* (Vol I). By the end you should be able to:\n\n- Identify the three major subsystems of a training pipeline architecture and explain the systems rationale for this decomposition\n- Apply the pipeline bottleneck model to identify the slowest comparable stage as the limit on end-to-end throughput\n- Analyze why preprocessing latency can dominate input delivery even when the PCIe transfer itself is short\n- Evaluate why changing batch size can alter optimization behavior even when hardware throughput improves\n- Identify the systems mechanism (pinned memory) used for asynchronous host-to-device transfers"
+   "md": "By the end of this lesson you should be able to:\n\n- Identify the three major subsystems of a training pipeline architecture and explain the systems rationale for this decomposition\n- Apply the pipeline bottleneck model to identify the slowest comparable stage as the limit on end-to-end throughput\n- Analyze why preprocessing latency can dominate input delivery even when the PCIe transfer itself is short\n- Evaluate why changing batch size can alter optimization behavior even when hardware throughput improves\n- Identify the systems mechanism (pinned memory) used for asynchronous host-to-device transfers"
   },
   {
    "type": "from_book",
@@ -25,8 +25,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- Pipeline stages and accelerator bubbles\n- Data pipeline\n- Forward and backward pass\n- Parameter updates\n- Training state and checkpoints\n\nPay attention to: subsystem decomposition of training pipelines; pipeline bottleneck model and end-to-end throughput limits; CPU-side preprocessing and GIL bottlenecks; batch size scaling and learning rate interactions."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Pipeline stages and accelerator bubbles\n- Data pipeline\n- Forward and backward pass\n- Parameter updates\n- Training state and checkpoints\n\nPay attention to: subsystem decomposition of training pipelines; pipeline bottleneck model and end-to-end throughput limits; CPU-side preprocessing and GIL bottlenecks; batch size scaling and learning rate interactions."
   },
   {
    "type": "reveal",
@@ -89,10 +89,7 @@
   {
    "type": "summary",
    "points": [
-    "You can now identify the three major subsystems of a training pipeline architecture and explain the systems rationale for this decomposition.",
-    "You can now apply the pipeline bottleneck model to identify the slowest comparable stage as the limit on end-to-end throughput.",
-    "You can now analyze why preprocessing latency can dominate input delivery even when the PCIe transfer itself is short.",
-    "You can now evaluate why changing batch size can alter optimization behavior even when hardware throughput improves."
+    "**Training batch size**: The number of training examples contributing to a parameter update; it affects execution efficiency and the updates required to reach target quality."
    ]
   }
  ],

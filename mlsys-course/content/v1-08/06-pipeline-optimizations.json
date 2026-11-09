@@ -16,7 +16,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **Pipeline Optimizations** in *Model Training* (Vol I). By the end you should be able to:\n\n- Calculate the steady-state throughput interval of an overlapped training pipeline from its stage times\n- Explain how IO-aware tiling and backward recomputation reduce attention memory traffic without changing attention mathematics\n- Justify FP32 master weights and selected FP32 reductions in the conventional FP16 mixed-precision training recipe\n- Analyze the memory behavior of gradient accumulation across multiple micro-batches\n- Identify loss scaling as the technique used to reduce FP16 gradient underflow risk"
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate the steady-state throughput interval of an overlapped training pipeline from its stage times\n- Explain how IO-aware tiling and backward recomputation reduce attention memory traffic without changing attention mathematics\n- Justify FP32 master weights and selected FP32 reductions in the conventional FP16 mixed-precision training recipe\n- Analyze the memory behavior of gradient accumulation across multiple micro-batches\n- Identify loss scaling as the technique used to reduce FP16 gradient underflow risk"
   },
   {
    "type": "from_book",
@@ -26,8 +26,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- Systematic optimization framework\n- Data prefetching and overlapping\n- Mixed-precision training\n- FlashAttention: IO-aware attention optimization\n- Gradient accumulation and checkpointing\n- GPT-2 optimization walkthrough\n\nPay attention to: asynchronous prefetching and CUDA stream double buffering; FlashAttention IO-aware tiling, online softmax, and backward recomputation; mixed precision numerical stability, FP32 master weights, and selective FP32 reductions; gradient accumulation memory scaling mechanics."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Systematic optimization framework\n- Data prefetching and overlapping\n- Mixed-precision training\n- FlashAttention: IO-aware attention optimization\n- Gradient accumulation and checkpointing\n- GPT-2 optimization walkthrough\n\nPay attention to: asynchronous prefetching and CUDA stream double buffering; FlashAttention IO-aware tiling, online softmax, and backward recomputation; mixed precision numerical stability, FP32 master weights, and selective FP32 reductions; gradient accumulation memory scaling mechanics."
   },
   {
    "type": "reveal",
@@ -91,10 +91,7 @@
   {
    "type": "summary",
    "points": [
-    "You can now calculate the steady-state throughput interval of an overlapped training pipeline from its stage times.",
-    "You can now explain how IO-aware tiling and backward recomputation reduce attention memory traffic without changing attention mathematics.",
-    "You can now justify FP32 master weights and selected FP32 reductions in the conventional FP16 mixed-precision training recipe.",
-    "You can now analyze the memory behavior of gradient accumulation across multiple micro-batches."
+    "**Activation checkpointing**: Retaining selected forward tensors and recomputing discarded intermediates during backward to reduce activation memory."
    ]
   }
  ],

@@ -14,7 +14,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **Attention: Dynamic Processing** in *Network Architectures* (Vol I). By the end you should be able to:\n\n- Explain why scaling attention scores by $\\sqrt{d_{\\text{head}}}$ helps control score magnitude and softmax saturation in scaled dot-product attention\n- Calculate the memory footprint of materialized attention score matrices and analyze quadratic context scaling\n- Compare exact tiled attention with naive attention by separating dense arithmetic cost from score-storage and memory-traffic cost\n- Explain the three core projection components (Q, K, V) of the attention mechanism and describe their roles in content-based routing\n- Calculate the exact multiply-accumulate operation count required for pairwise query-key score computation in an attention head"
+   "md": "By the end of this lesson you should be able to:\n\n- Explain why scaling attention scores by $\\sqrt{d_{\\text{head}}}$ helps control score magnitude and softmax saturation in scaled dot-product attention\n- Calculate the memory footprint of materialized attention score matrices and analyze quadratic context scaling\n- Compare exact tiled attention with naive attention by separating dense arithmetic cost from score-storage and memory-traffic cost\n- Explain the three core projection components (Q, K, V) of the attention mechanism and describe their roles in content-based routing\n- Calculate the exact multiply-accumulate operation count required for pairwise query-key score computation in an attention head"
   },
   {
    "type": "from_book",
@@ -24,8 +24,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- Pattern processing needs\n- Algorithmic structure\n- Computational mapping\n- System implications\n\nPay attention to: Content-dependent dynamic routing ($\\text{Attention}(\\mathbf{Q},\\mathbf{K},\\mathbf{V}) = \\text{softmax}(\\mathbf{Q}\\mathbf{K}^T/\\sqrt{d_k})\\mathbf{V}$); $\\mathcal{O}(1)$ path length between any two tokens vs $\\mathcal{O}(S^2)$ score computation; Naive score materialization ($S \\times S$ scores per head, quadratic memory wall) vs FlashAttention IO tiling; Attention scaling factor $\\sqrt{d_k}$ and numerical stability / variance control."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Pattern processing needs\n- Algorithmic structure\n- Computational mapping\n- System implications\n\nPay attention to: Content-dependent dynamic routing ($\\text{Attention}(\\mathbf{Q},\\mathbf{K},\\mathbf{V}) = \\text{softmax}(\\mathbf{Q}\\mathbf{K}^T/\\sqrt{d_k})\\mathbf{V}$); $\\mathcal{O}(1)$ path length between any two tokens vs $\\mathcal{O}(S^2)$ score computation; Naive score materialization ($S \\times S$ scores per head, quadratic memory wall) vs FlashAttention IO tiling; Attention scaling factor $\\sqrt{d_k}$ and numerical stability / variance control."
   },
   {
    "type": "reveal",

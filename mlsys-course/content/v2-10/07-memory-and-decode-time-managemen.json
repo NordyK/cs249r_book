@@ -18,7 +18,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **Memory and Decode-Time Management** in *Serving at Scale* (Vol II). By the end you should be able to:\n\n- Analyze the virtual memory mapping mechanism of PagedAttention and its impact on KV cache fragmentation and serving throughput\n- Evaluate the memory and throughput trade-offs of speculative decoding as an admission and scheduling policy under service-level agreements\n- Analyze how speculative decoding achieves latency speedups while preserving exact target model output distributions\n- Calculate KV cache memory savings achieved through prefix caching in shared-context multi-tenant workloads\n- Evaluate speculative decoding as a serving policy whose memory cost persists until the draft state is released"
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the virtual memory mapping mechanism of PagedAttention and its impact on KV cache fragmentation and serving throughput\n- Evaluate the memory and throughput trade-offs of speculative decoding as an admission and scheduling policy under service-level agreements\n- Analyze how speculative decoding achieves latency speedups while preserving exact target model output distributions\n- Calculate KV cache memory savings achieved through prefix caching in shared-context multi-tenant workloads\n- Evaluate speculative decoding as a serving policy whose memory cost persists until the draft state is released"
   },
   {
    "type": "from_book",
@@ -28,8 +28,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- The KV cache wall and memory capacity\n- The fragmentation problem\n- PagedAttention\n- Prefix caching\n- KV cache compression and attention layout\n- Speculative decoding\n- Preemption and the victim policy\n- KV-cache budgeting and eviction\n\nPay attention to: The KV cache wall formula and sizing calculations; PagedAttention block tables and fragmentation elimination; Prefix caching and copy-on-write sharing; KV cache quantization (INT8/INT4/FP8), GQA head reduction, and the precision dividend."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The KV cache wall and memory capacity\n- The fragmentation problem\n- PagedAttention\n- Prefix caching\n- KV cache compression and attention layout\n- Speculative decoding\n- Preemption and the victim policy\n- KV-cache budgeting and eviction\n\nPay attention to: The KV cache wall formula and sizing calculations; PagedAttention block tables and fragmentation elimination; Prefix caching and copy-on-write sharing; KV cache quantization (INT8/INT4/FP8), GQA head reduction, and the precision dividend."
   },
   {
    "type": "reveal",
@@ -105,10 +105,8 @@
   {
    "type": "summary",
    "points": [
-    "You can now analyze the virtual memory mapping mechanism of PagedAttention and its impact on KV cache fragmentation and serving throughput.",
-    "You can now evaluate the memory and throughput trade-offs of speculative decoding as an admission and scheduling policy under service-level agreements.",
-    "You can now analyze how speculative decoding achieves latency speedups while preserving exact target model output distributions.",
-    "You can now calculate KV cache memory savings achieved through prefix caching in shared-context multi-tenant workloads."
+    "**KV cache**: Stored attention keys and values whose per-sequence growth constrains concurrent autoregressive requests.",
+    "**Resident sequence count**: The number of active sequences whose attention state resides in a serving replica; feasible count depends on their total cached tokens and available memory."
    ]
   }
  ],

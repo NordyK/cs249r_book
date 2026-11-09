@@ -16,7 +16,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **LLM Serving** in *Model Serving* (Vol I). By the end you should be able to:\n\n- Compare the typical computational bottlenecks and hardware behavior of LLM prefill versus decode in serving\n- Sequence the high-level workflow of speculative decoding from draft generation through verification and context update\n- Evaluate how draft-model cost and acceptance rate determine whether speculative decoding improves LLM serving performance\n- Apply prefix caching to reduce repeated prefill work for shared prompt prefixes in conversational serving\n- Compare request-level dynamic batching with iteration-level continuous batching for autoregressive LLM serving and explain why variable output lengths make fixed batch membership inefficient"
+   "md": "By the end of this lesson you should be able to:\n\n- Compare the typical computational bottlenecks and hardware behavior of LLM prefill versus decode in serving\n- Sequence the high-level workflow of speculative decoding from draft generation through verification and context update\n- Evaluate how draft-model cost and acceptance rate determine whether speculative decoding improves LLM serving performance\n- Apply prefix caching to reduce repeated prefill work for shared prompt prefixes in conversational serving\n- Compare request-level dynamic batching with iteration-level continuous batching for autoregressive LLM serving and explain why variable output lengths make fixed batch membership inefficient"
   },
   {
    "type": "from_book",
@@ -26,8 +26,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- Performance metrics: TTFT and TPOT\n- The decode floor\n- Decoding strategies\n- Continuous batching\n- Memory and KV cache\n- Session affinity constraints\n\nPay attention to: LLM latency metrics: Time to First Token (TTFT) vs. Time Per Output Token (TPOT); Prefill (compute-bound) vs. Decode (memory-bandwidth-bound) execution phases; KV cache memory sizing formula: \\$2 × L × H_kv × D_head × P × S × B; Speculative decoding mechanics, draft verification, and distribution preservation."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Performance metrics: TTFT and TPOT\n- The decode floor\n- Decoding strategies\n- Continuous batching\n- Memory and KV cache\n- Session affinity constraints\n\nPay attention to: LLM latency metrics: Time to First Token (TTFT) vs. Time Per Output Token (TPOT); Prefill (compute-bound) vs. Decode (memory-bandwidth-bound) execution phases; KV cache memory sizing formula: \\$2 × L × H_kv × D_head × P × S × B; Speculative decoding mechanics, draft verification, and distribution preservation."
   },
   {
    "type": "reveal",
@@ -95,10 +95,10 @@
   {
    "type": "summary",
    "points": [
-    "You can now compare the typical computational bottlenecks and hardware behavior of LLM prefill versus decode in serving.",
-    "You can now sequence the high-level workflow of speculative decoding from draft generation through verification and context update.",
-    "You can now evaluate how draft-model cost and acceptance rate determine whether speculative decoding improves LLM serving performance.",
-    "You can now apply prefix caching to reduce repeated prefill work for shared prompt prefixes in conversational serving."
+    "**Weight bytes moved**: At small decode batches, repeatedly reading model weights can dominate execution. Sharing a weight stream across requests amortizes that traffic.",
+    "**Resident conversations**: Memory remaining after model weights must hold the attention state of every resident conversation.",
+    "**KV cache per conversation**: Attention keys and values retained for one conversation grow with its token count and model geometry.",
+    "**Context length**: Longer histories retain more token state. At fixed cache format and model geometry, the per-conversation KV footprint grows linearly."
    ]
   }
  ],

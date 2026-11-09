@@ -153,11 +153,16 @@ a.skip:hover, a.skip:focus { color: var(--dark-ink); }
 .mnote.is-done { border-left-color: var(--patina); color: var(--done); }
 .mnote.is-done .mlabel { color: var(--done); }
 .mnote.is-miss { border-left-color: var(--vermilion); }
+/* the margin's one authored moment: a note that settles from gold into patina when its practice is done */
+.mnote.just-done { animation: settle .9s var(--ease); }
+.mnote.just-done::before { content: ""; position: absolute; left: -1px; top: 0; width: 3px; height: 100%; background: var(--patina); transform-origin: top; animation: settle-rule .6s var(--ease); }
+@keyframes settle { 0% { border-left-color: var(--kinpaku); color: var(--champagne); } 100% { border-left-color: var(--patina); } }
+@keyframes settle-rule { from { transform: scaleY(0); background: var(--kinpaku); } }
 .mnote > div:last-child { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
 .mnote .ic { width: 15px; height: 15px; align-self: center; }
 .mnote strong { color: var(--champagne); }
 .mnum { font: 500 .9375rem/1.4 var(--f-mono); color: var(--champagne); width: 100%; }
-.mnum.big { font: 300 2.5rem/1 var(--f-display); letter-spacing: 0; margin: 4px 0 8px; }
+.mnum.big { font: 300 2.75rem/1 var(--f-display); letter-spacing: .03em; margin: 4px 0 8px; }
 .mformula { overflow-x: auto; color: var(--champagne); font-size: .9375rem; width: 100%; }
 .hbar { height: 2px; background: var(--rule); margin: 6px 0; width: 100%; position: relative; }
 .hbar-fill { position: absolute; inset: 0 auto 0 0; background: var(--faint); }
@@ -208,6 +213,12 @@ a.skip:hover, a.skip:focus { color: var(--dark-ink); }
 .chrow-link .depth { align-self: start; margin-top: 2px; }
 .ch-sum { grid-column: 2 / 4; font-size: .875rem; color: var(--muted); line-height: 1.5; }
 
+.scope { display: flex; flex-wrap: wrap; gap: 8px 36px; margin: 4px 0 28px; padding: 0; }
+.scope div { display: flex; flex-direction: column-reverse; }
+.scope dt { font: 100 clamp(2.6rem, 4.4vw, 3.6rem)/1 var(--f-display); color: var(--accent-text); letter-spacing: .01em; }
+.scope dd { margin: 0 0 4px; font: 500 .6875rem/1.4 var(--f-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
+.how { margin: 4px 0 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.chrow { content-visibility: auto; contain-intrinsic-size: auto 96px; }
 /* chapter page */
 .goals h2 { font: 500 .6875rem/1.6 var(--f-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin: 8px 0 4px; }
 .goals ul { margin: 0 0 8px; padding-left: 1.2em; }
@@ -227,7 +238,7 @@ a.skip:hover, a.skip:focus { color: var(--dark-ink); }
 .text p:last-child { margin-bottom: 0; }
 .text h3, .block h3, .block h4 { margin: 0 0 .5em; }
 .text h3 { font-size: 1.125rem; font-weight: 500; }
-h4 { font-size: 1rem; font-weight: 600; margin: 1.2em 0 .4em; }
+h4, .exercise > h3 { font-size: 1rem; font-weight: 600; margin: 1.2em 0 .4em; }
 .text ul, .text ol { padding-left: 1.3em; margin: 0 0 1em; }
 .text li { margin: .25em 0; }
 blockquote { margin: 0; }
@@ -382,6 +393,13 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .w-k { color: var(--muted); }
 .w-v { font: 500 .875rem var(--f-mono); color: var(--champagne); text-align: right; }
 .w-row.is-strong .w-v { color: var(--accent-text); font-size: 1rem; }
+.w-share { margin-top: 14px; }
+.w-share-bar { display: flex; height: 10px; gap: 2px; background: var(--rule); }
+.w-share-bar .seg { min-width: 0; transition: flex-grow .3s var(--ease); }
+.s1 { background: var(--kinpaku); } .s2 { background: var(--patina); } .s3 { background: var(--faint); } .s4 { background: var(--kinpaku-deep); }
+.w-legend { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font: .75rem var(--f-mono); color: var(--muted); }
+.w-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.w-legend .sw { width: 10px; height: 10px; display: inline-block; }
 .w-verdict { font-size: .875rem; margin: 12px 0 0; color: var(--text); }
 .w-chart { width: 100%; height: auto; margin-top: 12px; }
 .w-chart .grid { stroke: var(--rule); stroke-width: 1; }
@@ -437,7 +455,7 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .gloss-item { padding: 12px 0; border-bottom: 1px solid var(--rule); }
 .gloss-item dt { font-weight: 600; color: var(--champagne); }
 .gloss-item dd { margin: 2px 0 0; color: var(--muted); }
-.gloss-src { white-space: nowrap; }
+.gloss-src { overflow-wrap: anywhere; }
 .gloss-src::before { content: "·"; display: inline-block; margin: 0 .5em; color: var(--faint); }
 .empty { padding: 28px 0; color: var(--muted); }
 .empty p { max-width: 52ch; }
@@ -453,6 +471,12 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .dlg-act { display: flex; justify-content: flex-end; gap: 10px; }
 .seam-flash { position: fixed; left: 0; right: 0; top: var(--head-h); height: 2px; z-index: 40; background: linear-gradient(90deg, var(--kinpaku-deep), var(--kinpaku), var(--patina)); transform-origin: left; pointer-events: none; }
 
+/* long practice blocks: their live note travels with the reader */
+@media (min-width: 1101px) {
+  .mrow.b-quiz > .side, .mrow.b-exercise > .side, .mrow.b-playground > .side, .mrow.b-widget > .side { position: sticky; top: calc(var(--head-h) + 20px); }
+  .masthead > .side { position: static; }
+}
+
 /* ───── responsive ───── */
 @media (max-width: 1240px) {
   :root { --margin-w: 240px; --gap: 32px; }
@@ -467,6 +491,7 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
   .masthead .side { gap: 14px 24px; }
   .chrow .side, .lrow .side { padding: 0 0 14px 12px; }
   .save-state { display: none; }
+  .save-state[data-state="err"] { display: block; position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 60; padding: 12px 16px; background: var(--raised); border: 1px solid var(--vermilion); border-radius: 4px; color: var(--bad); font-size: .875rem; white-space: normal; }
 }
 @media (max-width: 900px) {
   .shell { grid-template-columns: minmax(0, 1fr); }
@@ -508,6 +533,7 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
   .btn, .btn.primary:hover { transform: none !important; }
   .rail { transition: none; }
   .sk { animation: none; }
+  .mnote.just-done::before { animation: fade-only .3s linear; }
   html:focus-within { scroll-behavior: auto; }
 }
 @keyframes fade-only { from { opacity: 0; } }

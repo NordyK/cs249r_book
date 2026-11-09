@@ -13,7 +13,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **The Data Pipeline Equation** in *Data Storage* (Vol II). By the end you should be able to:\n\n- Apply the pipeline throughput equation to predict aggregate storage bandwidth requirements as cluster compute scales\n- Calculate the exposed data stall time when I/O fetch duration exceeds accelerator computation time under pipelining\n- Calculate minimum prefetch buffer depth from P99 I/O latency and iteration compute duration\n- Evaluate why average bandwidth metrics fail to rule out storage bottlenecks without fine-grained tail-latency and stall-ratio profiling\n- Analyze how locality-aware scheduling optimizes node recovery times and mitigates shared storage contention at fleet scale"
+   "md": "By the end of this lesson you should be able to:\n\n- Apply the pipeline throughput equation to predict aggregate storage bandwidth requirements as cluster compute scales\n- Calculate the exposed data stall time when I/O fetch duration exceeds accelerator computation time under pipelining\n- Calculate minimum prefetch buffer depth from P99 I/O latency and iteration compute duration\n- Evaluate why average bandwidth metrics fail to rule out storage bottlenecks without fine-grained tail-latency and stall-ratio profiling\n- Analyze how locality-aware scheduling optimizes node recovery times and mitigates shared storage contention at fleet scale"
   },
   {
    "type": "from_book",
@@ -23,8 +23,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- Pipelining and prefetching\n- Multi-worker data loading\n- Data locality and placement\n\nPay attention to: the pipeline throughput equation (linear scaling with GPU count); data stall ratio diagnostic metric and latency hiding limits; prefetch buffer sizing to P99 tail latency ($Q_{\\text{prefetch}} = \\lceil T_{\\text{I/O,p99}} / T_{\\text{compute}} \\rceil$); multi-worker CPU allocation heuristics ($W \\approx 4 \\times G$)."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Pipelining and prefetching\n- Multi-worker data loading\n- Data locality and placement\n\nPay attention to: the pipeline throughput equation (linear scaling with GPU count); data stall ratio diagnostic metric and latency hiding limits; prefetch buffer sizing to P99 tail latency ($Q_{\\text{prefetch}} = \\lceil T_{\\text{I/O,p99}} / T_{\\text{compute}} \\rceil$); multi-worker CPU allocation heuristics ($W \\approx 4 \\times G$)."
   },
   {
    "type": "reveal",
@@ -84,10 +84,8 @@
   {
    "type": "summary",
    "points": [
-    "You can now apply the pipeline throughput equation to predict aggregate storage bandwidth requirements as cluster compute scales.",
-    "You can now calculate the exposed data stall time when I/O fetch duration exceeds accelerator computation time under pipelining.",
-    "You can now calculate minimum prefetch buffer depth from P99 I/O latency and iteration compute duration.",
-    "You can now evaluate why average bandwidth metrics fail to rule out storage bottlenecks without fine-grained tail-latency and stall-ratio profiling."
+    "**Input pipeline**: The staged path that reads, transforms, and delivers batches to accelerators.",
+    "**Prefetching**: Preparing future input batches while the current batch computes, subject to buffer and service-rate limits."
    ]
   }
  ],

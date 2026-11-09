@@ -14,7 +14,7 @@
  "blocks": [
   {
    "type": "text",
-   "md": "This lesson follows **Communication-Computation Overlap** in *Collective Communication* (Vol II). By the end you should be able to:\n\n- Calculate effective overlapped step time using the LogP model by separating overlappable wire latency from nonoverlappable processor overhead\n- Evaluate how computation-latency overlap renders further wire latency reductions ineffective when processor overhead dominates\n- Analyze the trade-off between startup latency amortization and communication launch delay in DDP bucket fusion\n- Calculate exposed communication residuals in pipelined training when collective transfer time exceeds layer backward computation\n- Identify the output-layer and input-layer boundary conditions that prevent complete communication hiding in backward pass overlap"
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate effective overlapped step time using the LogP model by separating overlappable wire latency from nonoverlappable processor overhead\n- Evaluate how computation-latency overlap renders further wire latency reductions ineffective when processor overhead dominates\n- Analyze the trade-off between startup latency amortization and communication launch delay in DDP bucket fusion\n- Calculate exposed communication residuals in pipelined training when collective transfer time exceeds layer backward computation\n- Identify the output-layer and input-layer boundary conditions that prevent complete communication hiding in backward pass overlap"
   },
   {
    "type": "from_book",
@@ -24,8 +24,8 @@
   {
    "type": "callout",
    "kind": "note",
-   "title": "Map of the section",
-   "md": "The section is organised as:\n\n- The LogP model of what overlap can hide\n- Layer-by-layer overlap\n- Bucket fusion\n- Overlap limits and exposed communication\n\nPay attention to: The LogP model: overlappable network latency L versus nonoverlappable processor overhead o; Layer-by-layer gradient overlap using PyTorch DDP gradient hooks; Bucket fusion trade-offs: amortizing launch overhead alpha vs delay in initial communication; Parameter registration order and observed backward readiness for bucket assignment."
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The LogP model of what overlap can hide\n- Layer-by-layer overlap\n- Bucket fusion\n- Overlap limits and exposed communication\n\nPay attention to: The LogP model: overlappable network latency L versus nonoverlappable processor overhead o; Layer-by-layer gradient overlap using PyTorch DDP gradient hooks; Bucket fusion trade-offs: amortizing launch overhead alpha vs delay in initial communication; Parameter registration order and observed backward readiness for bucket assignment."
   },
   {
    "type": "reveal",
@@ -85,10 +85,7 @@
   {
    "type": "summary",
    "points": [
-    "You can now calculate effective overlapped step time using the LogP model by separating overlappable wire latency from nonoverlappable processor overhead.",
-    "You can now evaluate how computation-latency overlap renders further wire latency reductions ineffective when processor overhead dominates.",
-    "You can now analyze the trade-off between startup latency amortization and communication launch delay in DDP bucket fusion.",
-    "You can now calculate exposed communication residuals in pipelined training when collective transfer time exceeds layer backward computation."
+    "**Communication overlap**: Executing eligible communication concurrently with independent compute to hide part of its elapsed cost."
    ]
   }
  ],
