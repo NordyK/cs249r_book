@@ -19,3 +19,11 @@ and run the tests until they all pass. You may read the tests — they describe 
 ## Updating the course with new chapters
 
 Unzip the new package over the old folder (overwrite files). The `progress/` folder is not in the package, so your progress stays.
+
+## On your phone or tablet too
+
+Start the course on your PC with `./start-lan.sh` (Windows: `start-lan.bat`). It prints a private link such as
+`http://192.168.1.20:8765/?k=...`. Open that link once on your phone (same Wi-Fi) and bookmark the page it
+lands on. The phone and the PC then share one progress file, and code and TinyTorch tests run on the PC.
+Only devices that opened the link can see the course. Delete `progress/lan-key.txt` to revoke them all.
+If the phone cannot connect, allow Python through the PC's firewall for private networks.

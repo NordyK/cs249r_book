@@ -82,6 +82,7 @@ and imports it as JSON.
   editor, per-chapter data files (data.js went from 11.6 MB to 0.4 MB plus one file per chapter).
 - 2026-11-09: nine hands-on labs.
 - 2026-11-09: impeccable sequence complete (commands 4 to 20 above).
+- 2026-11-09: phone access: `start-lan.sh` / `serve.py --lan` serves the course on the home Wi-Fi behind a private key link (cookie); phone and PC share one progress file.
 
 ## Next
 

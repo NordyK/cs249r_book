@@ -15,13 +15,18 @@ This MLSys edition is maintained in mlsys-course-tools/; do not refresh it with 
 The command that gets run comes from exercises/<dir>/exercise.json (written when the course was
 built), never from the browser request. Only the folder name is taken from the request.
 
-Usage:  python3 serve.py [--port 8765] [--no-browser]
+Usage:  python3 serve.py [--port 8765] [--no-browser] [--lan]
+
+--lan also serves the course to your phone or tablet on the same Wi-Fi. It prints a private link with
+a key; only browsers that opened that link (and this computer) can see the course or run code.
 """
 import argparse
 import http.server
 import json
 import os
 import re
+import secrets
+import socket
 import shutil
 import socketserver
 import subprocess
@@ -35,6 +40,8 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 PROGRESS_DIR = os.path.join(ROOT, "progress")
 PROGRESS = os.path.join(PROGRESS_DIR, "progress.json")
 EXERCISES = os.path.join(ROOT, "exercises")
+KEY_FILE = os.path.join(PROGRESS_DIR, "lan-key.txt")
+LAN = {"on": False, "key": ""}
 MAX_BODY = 5 * 1024 * 1024
 OUTPUT_LIMIT = 20000
 BLOCKED_PREFIXES = ("/.build", "/progress", "/exercises/")  # raw files are not served; the page gets what it needs via data.js
@@ -53,9 +60,34 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
 
     # ---- helpers -------------------------------------------------------------------------
+    def _local_client(self):
+        return self.client_address[0] in ("127.0.0.1", "::1", "::ffff:127.0.0.1")
+
     def _host_ok(self):
         host = (self.headers.get("Host") or "").rsplit(":", 1)[0].strip("[]")
-        return host in ("127.0.0.1", "localhost", "::1")
+        if host in ("127.0.0.1", "localhost", "::1"):
+            return True
+        # LAN mode: other devices must carry the key (cookie set by the ?k= link)
+        if not LAN["on"]:
+            return False
+        if self._local_client():
+            return True
+        cookies = dict(c.strip().split("=", 1) for c in (self.headers.get("Cookie") or "").split(";") if "=" in c)
+        return secrets.compare_digest(cookies.get("course_key", ""), LAN["key"])
+
+    def _key_from_link(self):
+        """GET /?k=KEY: remember the key in a cookie and drop it from the address bar."""
+        if not LAN["on"] or "?" not in self.path:
+            return False
+        q = dict(x.split("=", 1) for x in self.path.split("?", 1)[1].split("&") if "=" in x)
+        if not secrets.compare_digest(q.get("k", ""), LAN["key"]):
+            return False
+        self.send_response(303)
+        self.send_header("Set-Cookie", "course_key=%s; Path=/; Max-Age=31536000; SameSite=Strict; HttpOnly" % LAN["key"])
+        self.send_header("Location", "/")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+        return True
 
     def _json(self, code, obj):
         data = json.dumps(obj, ensure_ascii=False).encode("utf-8")
@@ -79,7 +111,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     # ---- routes --------------------------------------------------------------------------
     def do_GET(self):
+        if self._key_from_link():
+            return None
         if not self._host_ok():
+            if LAN["on"]:
+                return self._json(403, {"error": "Open the course with the link that serve.py --lan printed (it carries the key)."})
             return self._json(403, {"error": "bad host"})
         path = self.path.split("?", 1)[0]
         if path == "/api/ping":
@@ -164,8 +200,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         origin = self.headers.get("Origin")
         if not origin:
             return True
-        host = re.sub(r"^https?://", "", origin).rsplit(":", 1)[0].strip("[]")
-        return host in ("127.0.0.1", "localhost", "::1")
+        o = re.sub(r"^https?://", "", origin).strip("/")
+        if o.rsplit(":", 1)[0].strip("[]") in ("127.0.0.1", "localhost", "::1"):
+            return True
+        return LAN["on"] and o == (self.headers.get("Host") or "")
 
     def _save_exercise(self, body):
         if not self._origin_ok():
@@ -225,22 +263,53 @@ class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
     allow_reuse_address = True
 
 
+def lan_ip():
+    """This computer's address on the local network (no packet is sent)."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("10.255.255.255", 1))
+        return s.getsockname()[0]
+    except OSError:
+        return socket.gethostbyname(socket.gethostname())
+    finally:
+        s.close()
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--lan", action="store_true", help="also serve to phones and tablets on the same Wi-Fi (with a private key)")
     args = ap.parse_args()
+    if args.lan:
+        LAN["on"] = True
+        os.makedirs(PROGRESS_DIR, exist_ok=True)
+        try:
+            LAN["key"] = open(KEY_FILE, encoding="utf-8").read().strip()
+        except OSError:
+            LAN["key"] = ""
+        if len(LAN["key"]) < 16:
+            LAN["key"] = secrets.token_urlsafe(18)
+            with open(KEY_FILE, "w", encoding="utf-8") as f:
+                f.write(LAN["key"])
     server = None
     for port in range(args.port, args.port + 30):
         try:
-            server = Server(("127.0.0.1", port), Handler)
+            server = Server(("0.0.0.0" if args.lan else "127.0.0.1", port), Handler)
             break
         except OSError:
             continue
     if server is None:
         sys.exit("Nie znaleziono wolnego portu / no free port found.")
     url = "http://127.0.0.1:%d/" % server.server_address[1]
-    print("Kurs działa / Course is running:  %s\nCtrl+C aby zakończyć / to stop." % url)
+    print("Course is running on this computer:  %s" % url)
+    if args.lan:
+        ip = lan_ip()
+        print("\nOn your phone or tablet (same Wi-Fi), open:\n\n    http://%s:%d/?k=%s\n" % (ip, server.server_address[1], LAN["key"]))
+        print("Keep that link private: it lets a device read the course and run code here.")
+        print("The link stays the same next time. Delete progress/lan-key.txt to make a new one.")
+        print("If the phone cannot connect, allow Python through this computer's firewall on private networks.")
+    print("Ctrl+C to stop.")
     if not args.no_browser:
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     try:
