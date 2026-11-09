@@ -100,7 +100,9 @@ def main():
         os.remove(f)
     for ch in data["chapters"]:
         cm = json.load(open(os.path.join(course, "content", ch["id"], "chapter.json"), encoding="utf-8"))
-        ch["layer"] = "deep" if os.path.exists(os.path.join(course, "content", ch["id"], ".deep")) else cm.get("layer", "imported")
+        cdir = os.path.join(course, "content", ch["id"])
+        ch["layer"] = ("deep" if os.path.exists(os.path.join(cdir, ".deep"))
+                       else "lab" if glob.glob(os.path.join(cdir, "*b-lab-*.json")) else cm.get("layer", "imported"))
         ch["part"] = ch["id"].split("-")[0]
         ch["stubs"] = [stub(lessons[i]) for i in ch["lessons"]]
         body = {i: lessons[i] for i in ch["lessons"]}

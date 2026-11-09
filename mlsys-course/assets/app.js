@@ -1086,7 +1086,7 @@ function exerciseBlock(b, les) {
       } catch (e) { runStatus.className = "run-status bad"; runStatus.textContent = "The course helper did not answer: " + (e.message || ""); }
       runBtn.disabled = false;
     }
-    const runBtn = h("button", { class: "btn", type: "button", onclick: runTests }, icon("play"), "Save and run tests");
+    const runBtn = h("button", { class: "btn primary", type: "button", onclick: runTests }, icon("play"), "Save and run tests");
     actions.append(runBtn);
     if (ed) actions.append(h("button", { class: "btn ghost sm", type: "button", onclick: () => ask("Replace your code with the starting file?", () => { ed.value = starter.content; try { localStorage.removeItem(DKEY); } catch (e) { /* ignore */ } }) }, icon("reset"), "Start over"));
     const cmd = "cd " + where + " && " + (b.command_display || "");
@@ -1141,7 +1141,12 @@ function flashBlock(b) {
 /* ───────────── pages ───────────── */
 const content = () => $("#content");
 let currentRoute = { kind: "home" };
-const tagEl = layer => h("span", { class: "depth is-" + layer, title: layer === "deep" ? "Hand-written lessons with walkthroughs, calculators and playgrounds" : "Lessons built from the book's own quiz bank and concept map; deep lessons are on the way" }, layer === "deep" ? "Deep" : "Imported");
+const LAYER = {
+  deep: ["Deep", "Hand-written lessons with walkthroughs, calculators and playgrounds"],
+  lab: ["Lab", "Book lessons plus a hand-written hands-on lab: a worked example, a calculator task, a Python playground and a numeric quiz"],
+  imported: ["Imported", "Lessons built from the book's own text, quiz bank and concept map"],
+};
+const tagEl = layer => { const L = LAYER[layer] || LAYER.imported; return h("span", { class: "depth is-" + (LAYER[layer] ? layer : "imported"), title: L[1] }, L[0]); };
 function bar(frac, state) { return h("div", { class: "hbar" + (state ? " is-" + state : "") }, h("div", { class: "hbar-fill", style: "width:" + Math.round(100 * Math.min(1, frac)) + "%" })); }
 function chapterRecord(ch) {
   const done = chDone(ch), n = ch.stubs.length, tq = testOf(ch), ts = tq && P.quizzes[tq], ex = exOf(ch);

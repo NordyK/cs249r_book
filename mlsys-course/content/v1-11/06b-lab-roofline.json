@@ -1,0 +1,132 @@
+{
+ "title": "Lab: roofline and Amdahl",
+ "summary": "Locate kernels on the roofline from their arithmetic intensity and bound end-to-end speedups with Amdahl's law.",
+ "minutes": 25,
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Two quick tools from this chapter decide most hardware questions. The **roofline** says how fast one kernel can go: $P = \\min(R_{peak}, BW \\times I)$, where $I$ is FLOPs per byte moved. **Amdahl's law** says how much a whole program gains when only part of it is accelerated."
+  },
+  {
+   "type": "derivation",
+   "title": "Where is the ridge of an accelerator with 989 TFLOP/s and 3.35 TB/s?",
+   "rel": "=",
+   "steps": [
+    {
+     "lhs": "I_{ridge}",
+     "rhs": "\\frac{R_{peak}}{BW}",
+     "why": "The intensity at which both limits meet."
+    },
+    {
+     "lhs": "I_{ridge}",
+     "rhs": "\\frac{989\\times10^{12}}{3.35\\times10^{12}} \\approx 295\\ \\text{FLOP/byte}",
+     "why": "Kernels below about 295 FLOP per byte cannot use the full peak."
+    },
+    {
+     "lhs": "P_{matvec}",
+     "rhs": "3.35\\ \\text{TB/s} \\times 1\\ \\text{FLOP/B} = 3.35\\ \\text{TFLOP/s}",
+     "why": "A fp16 matrix-vector product does 2 FLOPs per 2-byte weight: intensity 1. It reaches 0.3% of peak."
+    }
+   ]
+  },
+  {
+   "type": "widget",
+   "id": "v1-11-lab-roof-widget",
+   "widget": "roofline",
+   "title": "Try it: slide the kernel along the roofline",
+   "params": {
+    "peak": 989,
+    "bw": 3.35,
+    "ai": 1
+   },
+   "challenge": {
+    "md": "What attainable performance (TFLOP/s) does a kernel with intensity **100 FLOP/byte** reach on this accelerator?",
+    "answer": 335,
+    "tolerance": 1,
+    "unit": "TFLOP/s",
+    "hint": "100 is below the ridge, so bandwidth × intensity.",
+    "explanation": "3.35 TB/s × 100 = 335 TFLOP/s, about a third of peak. Batching more tokens per weight read is how decoding climbs toward the ridge."
+   }
+  },
+  {
+   "type": "widget",
+   "id": "v1-11-lab-amdahl-widget",
+   "widget": "amdahl",
+   "title": "Try it: Amdahl's ceiling",
+   "params": {
+    "p": 0.9,
+    "s": 10
+   },
+   "challenge": {
+    "md": "90% of a pipeline's time is matrix math, and a new accelerator makes that part 10x faster. What is the overall speedup?",
+    "answer": 5.26,
+    "tolerance": 0.02,
+    "unit": "×",
+    "hint": "1 / ((1 - p) + p / s).",
+    "explanation": "1 / (0.1 + 0.09) = 5.26x. Even with an infinitely fast accelerator the remaining 10% caps it at 10x."
+   }
+  },
+  {
+   "type": "playground",
+   "id": "v1-11-lab-roof-play",
+   "title": "Arithmetic intensity of a matrix multiply",
+   "md": "A matrix multiply $C_{M\\times N} = A_{M\\times K} B_{K\\times N}$ does $2MNK$ FLOPs and, at best, moves each matrix once. Complete `intensity`, then use it with `attainable` to compare a square GEMM with a batch-1 decode step.",
+   "code": "def intensity(M, N, K, bytes_per=2):\n    flops = 2 * M * N * K\n    moved = None  # TODO: bytes for A, B and C, each moved once\n    return flops / moved if moved else None\n\n\ndef attainable(i, peak=989e12, bw=3.35e12):\n    return min(peak, bw * i)\n\n\nfor shape in [(4096, 4096, 4096), (1, 4096, 4096)]:\n    i = intensity(*shape)\n    print(shape, i)\n",
+   "check": "assert abs(intensity(4096, 4096, 4096) - 4096 / 3) < 1e-6, 'square GEMM: 1365.3 FLOP/byte'\nassert abs(intensity(1, 4096, 4096) - 0.9995) < 1e-3, 'batch-1 decode is about 1 FLOP/byte'\nassert attainable(intensity(4096, 4096, 4096)) == 989e12",
+   "hint": "`moved = bytes_per * (M * K + K * N + M * N)`.",
+   "solution": "def intensity(M, N, K, bytes_per=2):\n    flops = 2 * M * N * K\n    moved = bytes_per * (M * K + K * N + M * N)\n    return flops / moved\n\n\ndef attainable(i, peak=989e12, bw=3.35e12):\n    return min(peak, bw * i)\n\n\nfor shape in [(4096, 4096, 4096), (1, 4096, 4096)]:\n    i = intensity(*shape)\n    print(shape, round(i, 1), 'FLOP/B ->', round(attainable(i) / 1e12, 1), 'TFLOP/s')\n"
+  },
+  {
+   "type": "quiz",
+   "id": "v1-11-lab-roof-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "numeric",
+     "q": "An accelerator has 400 TFLOP/s peak and 2 TB/s bandwidth. Where is its ridge point?",
+     "answer": 200,
+     "tolerance": 0.5,
+     "unit": "FLOP/byte",
+     "hint": "Peak over bandwidth.",
+     "explanation": "400 / 2 = 200 FLOP per byte."
+    },
+    {
+     "type": "numeric",
+     "q": "If 95% of runtime is accelerated infinitely, what is the maximum overall speedup?",
+     "answer": 20,
+     "tolerance": 0.01,
+     "unit": "×",
+     "hint": "1 / (1 - p).",
+     "explanation": "1 / 0.05 = 20x. The untouched 5% is the ceiling."
+    },
+    {
+     "type": "single",
+     "q": "A kernel sits far left of the ridge. Which change helps it most?",
+     "options": [
+      "A chip with twice the peak FLOP/s",
+      "Fusing it with its neighbours so data is reused on chip",
+      "Raising the clock of the arithmetic units",
+      "Nothing helps a memory-bound kernel"
+     ],
+     "answer": 1,
+     "hint": "Left of the ridge, the slanted roof (bandwidth) is the limit.",
+     "explanation": "Memory-bound kernels gain from moving fewer bytes per FLOP: fusion, larger batches and on-chip reuse raise intensity. Extra peak FLOP/s goes unused."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Ridge point = peak / bandwidth; below it a kernel is memory-bound.",
+    "Square GEMMs have high intensity; batch-1 decoding has about 1 FLOP/byte.",
+    "Amdahl: overall speedup ≤ 1 / (1 - p), however fast the accelerated part gets."
+   ]
+  }
+ ],
+ "source": {
+  "chapter": "v1-11",
+  "sections": [
+   "hands-on lab"
+  ]
+ }
+}

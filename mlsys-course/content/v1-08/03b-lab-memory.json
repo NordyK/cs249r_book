@@ -1,0 +1,117 @@
+{
+ "title": "Lab: will this model fit for training?",
+ "summary": "Count bytes per parameter for weights, gradients and Adam state, and size the accelerators a training run needs.",
+ "minutes": 25,
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Inference needs the weights. Training needs the weights, a gradient for every weight, the optimizer's state, and the activations saved for the backward pass. With mixed precision and Adam, the per-parameter bill is usually:\n\n- 2 bytes for the bf16 weight,\n- 2 bytes for its bf16 gradient,\n- 12 bytes of optimizer state: a 4-byte fp32 master copy plus two 4-byte moments.\n\nThat is **16 bytes per parameter** before a single activation is stored."
+  },
+  {
+   "type": "stepper",
+   "title": "A 7-billion-parameter model, step by step",
+   "steps": [
+    {
+     "title": "Weights",
+     "md": "7 × 10⁹ parameters × 2 bytes = **14 GB**. This alone fits on one 80 GB accelerator, which is why inference looks easy."
+    },
+    {
+     "title": "Gradients",
+     "md": "Another 2 bytes per parameter: **14 GB**. Running total 28 GB."
+    },
+    {
+     "title": "Adam state",
+     "md": "12 bytes per parameter: **84 GB**. Running total 112 GB, already more than one 80 GB device."
+    },
+    {
+     "title": "Activations",
+     "md": "Saved forward results for the backward pass. They grow with batch size and sequence length, often tens of GB. Activation checkpointing trades recomputation for this memory."
+    }
+   ]
+  },
+  {
+   "type": "widget",
+   "id": "v1-08-lab-mem-widget",
+   "widget": "memory",
+   "title": "Try it: size the run",
+   "params": {
+    "params": 7000000000.0,
+    "bw": 2,
+    "opt": 12,
+    "act": 0,
+    "gpu": 80,
+    "mode": 1
+   },
+   "challenge": {
+    "md": "With activations at 0, what is the total training memory for the 7B model in GB?",
+    "answer": 112,
+    "tolerance": 0.5,
+    "unit": "GB",
+    "hint": "16 bytes per parameter.",
+    "explanation": "7 × 10⁹ × 16 B = 112 GB, so even before activations the state must be split across at least two 80 GB devices (for example with ZeRO or FSDP sharding)."
+   }
+  },
+  {
+   "type": "playground",
+   "id": "v1-08-lab-mem-play",
+   "title": "Memory and training time in code",
+   "md": "Complete both functions. `train_memory_gb` returns weights + gradients + optimizer state in GB (10⁹ bytes). `train_days` uses $O = 6ND$ and a cluster of `gpus` accelerators at `peak` FLOP/s and utilisation `eta`.",
+   "code": "def train_memory_gb(params, bytes_w=2, bytes_g=2, bytes_opt=12):\n    # TODO\n    return None\n\n\ndef train_days(params, tokens, gpus, peak, eta):\n    ops = 6 * params * tokens\n    seconds = None  # TODO\n    return seconds / 86400 if seconds else None\n\n\nprint(train_memory_gb(7e9))\nprint(train_days(7e9, 1e12, 1000, 312e12, 0.4))\n",
+   "check": "assert abs(train_memory_gb(7e9) - 112) < 1e-6, '7B with Adam should need 112 GB'\nassert abs(train_memory_gb(7e9, bytes_opt=0) - 28) < 1e-6\nassert abs(train_days(7e9, 1e12, 1000, 312e12, 0.4) - 3.8949) < 1e-3, 'expected about 3.89 days'",
+   "hint": "`params * (bytes_w + bytes_g + bytes_opt) / 1e9`; `seconds = ops / (gpus * peak * eta)`.",
+   "solution": "def train_memory_gb(params, bytes_w=2, bytes_g=2, bytes_opt=12):\n    return params * (bytes_w + bytes_g + bytes_opt) / 1e9\n\n\ndef train_days(params, tokens, gpus, peak, eta):\n    ops = 6 * params * tokens\n    seconds = ops / (gpus * peak * eta)\n    return seconds / 86400\n\n\nprint(train_memory_gb(7e9))\nprint(round(train_days(7e9, 1e12, 1000, 312e12, 0.4), 2), 'days')\n"
+  },
+  {
+   "type": "quiz",
+   "id": "v1-08-lab-mem-quiz",
+   "title": "Check your numbers",
+   "questions": [
+    {
+     "type": "numeric",
+     "q": "A 13-billion-parameter model trains with bf16 weights and gradients and Adam (16 bytes per parameter). How many GB of state, before activations?",
+     "answer": 208,
+     "tolerance": 0.5,
+     "unit": "GB",
+     "hint": "13 × 10⁹ × 16 bytes.",
+     "explanation": "13 × 16 = 208, so 208 GB: at least three 80 GB devices once activations are added."
+    },
+    {
+     "type": "numeric",
+     "q": "Training 7 × 10⁹ parameters on 10¹² tokens on 1,000 accelerators at 312 TFLOP/s peak and 40% utilisation: how many days?",
+     "answer": 3.89,
+     "tolerance": 0.05,
+     "unit": "days",
+     "hint": "6ND FLOPs, divided by 1000 × 312 × 10¹² × 0.4 FLOP/s, divided by 86,400.",
+     "explanation": "6 × 7 × 10⁹ × 10¹² = 4.2 × 10²²; the cluster delivers 1.248 × 10¹⁷ FLOP/s; 336,538 s ≈ 3.89 days."
+    },
+    {
+     "type": "single",
+     "q": "Which part of training memory can activation checkpointing reduce?",
+     "options": [
+      "Weights",
+      "Gradients",
+      "Optimizer state",
+      "Saved activations"
+     ],
+     "answer": 3,
+     "hint": "Checkpointing recomputes something during the backward pass.",
+     "explanation": "It stores only some forward results and recomputes the rest during backward, trading compute for activation memory. Weights, gradients and optimizer state need sharding or lower precision instead."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Mixed-precision Adam costs about 16 bytes per parameter before activations.",
+    "Training time ≈ 6ND / (accelerators × peak × utilisation).",
+    "When state exceeds one device, shard it (ZeRO, FSDP) or lower its precision."
+   ]
+  }
+ ],
+ "source": {
+  "chapter": "v1-08",
+  "sections": [
+   "hands-on lab"
+  ]
+ }
+}
