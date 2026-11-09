@@ -1,0 +1,220 @@
+{
+ "title": "💡 Introduction: What is Fair Benchmarking?",
+ "summary": "TinyTorch benchmarking: 💡 Introduction: What is Fair Benchmarking?",
+ "source": {
+  "chapter": "tt-19",
+  "sections": [
+   "💡 Introduction: What is Fair Benchmarking?"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: What is Fair Benchmarking?\n\nBenchmarking in ML systems is not merely recording wall-clock time. It is an empirical science requiring controlled experimental conditions to enable fair, reproducible comparisons that guide production deployment decisions.\n\n### Confounding Factors: What This Harness Controls\n\nEvery noise source below is real. Only two of them are controlled by the code in\nthis module, and the table says which. Read the last column as the list of things\na number from this harness does **not** account for."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Noise Source",
+    "Physical Hardware Mechanism",
+    "What this harness does",
+    "What a production harness adds"
+   ],
+   "rows": [
+    [
+     "**Cold Starts**",
+     "Dynamic library loading & page faults",
+     "Discards warmup iterations before recording (implemented)",
+     "Pre-faults and locks pages so the first timed run is already resident"
+    ],
+    [
+     "**OS Interrupts**",
+     "Background scheduler preemption & context switches",
+     "Samples many trials and reports median and percentiles (implemented)",
+     "Pins threads to cores (`sched_setaffinity`) and raises scheduling priority"
+    ],
+    [
+     "**Thermal Throttling**",
+     "DVFS frequency scaling when silicon overheats",
+     "Nothing; a throttled trial simply shows up in the tail of the distribution",
+     "Cooldown pauses between trials and randomized trial interleaving"
+    ],
+    [
+     "**Cache Pollution**",
+     "Shared L2/L3 cache evictions by other processes",
+     "Nothing; array layout cannot stop another process evicting your lines",
+     "An isolated core with a partitioned cache, or a quiesced machine"
+    ],
+    [
+     "**Memory Pressure**",
+     "Python garbage collection pauses",
+     "Nothing; a collection during a timed run lands in the tail",
+     "`gc.disable()` around the inner timing loop, then a forced collection between trials"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Looking Ahead\n\nThe benchmarking tools you build here will be used in Module 20's capstone project, where you'll apply optimization techniques competitively. For now, focus on building reliable, fair measurement infrastructure.\n\n---\n\n## 📐 Foundations: Statistics for Performance Engineering\n\nInference latency on modern superscalar processors is an inherently non-deterministic, right-skewed stochastic process.\n\n\n  \n\n\n\n  \n\n\n### Central Limit Theorem & Confidence Intervals\n\nWhile individual latency measurements exhibit heavy-tailed distributions due to system hiccups, the sample mean \\$\\bar{X}\\$ over \\$n\\$ independent trials converges toward a normal distribution:\n\n\\$\\$\\bar{X} = \\frac{1}{n} \\sum_{i=1}^n X_i, \\quad s = \\sqrt{\\frac{1}{n-1} \\sum_{i=1}^n (X_i - \\bar{X})^2}\\$\\$\n\nThe standard error of the mean (\\$\\text{SE}\\$) and the two-sided \\$95\\%\\$ Student-\\$t\\$ confidence interval are given by:\n\n\\$\\$\\text{SE} = \\frac{s}{\\sqrt{n}}, \\quad \\text{CI}_{95\\%} = \\left[ \\bar{X} - t_{0.025, \\, n-1} \\frac{s}{\\sqrt{n}}, \\quad \\bar{X} + t_{0.025, \\, n-1} \\frac{s}{\\sqrt{n}} \\right]\\$\\$\n\nThe critical value is Student's \\$t\\$, not the normal \\$z_{0.975} = 1.96\\$, because \\$s\\$\nis an estimate from the same \\$n\\$ samples rather than a known population value. The\ndistinction is not cosmetic at benchmarking sample sizes. At the module default of\n\\$n = 10\\$, \\$t_{0.975, 9} = 2.262\\$ against \\$z = 1.96\\$, so quoting \\$1.96\\$ reports an\ninterval \\$13\\%\\$ narrower than the data supports. The two agree to within \\$2\\%\\$ only\npast \\$n \\approx 60\\$, which is well beyond what most benchmark loops run.\n\n### Latency, Throughput, and the Batching Precondition\n\nThe reciprocal identity \\$\\text{throughput} = 1 / \\text{latency}\\$ holds **only when\neach timed call processes exactly one example**. That single-stream regime is the one\nthis harness enforces, because `MLPerf._run_accuracy_test` rejects a prediction\ncarrying more than one example's scores.\n\nBatching breaks the identity in both directions at once. A batch of \\$B\\$ examples takes\nlonger per call, so latency rises, while per-example cost falls as fixed overhead\namortizes and the matmul reaches a better shape. Throughput becomes\n\\$B / T_{\\text{batch}}\\$, which can exceed \\$1 / T_{\\text{single}}\\$ by an order of\nmagnitude while every individual user waits longer. Reporting one of those numbers and\ncalling it the other is the most common way a benchmark misleads.\n\n### Multi-Objective Optimization & Pareto Dominance\n\nModel optimization is multi-objective: latency, accuracy, memory, and energy represent competing physical trade-offs.\n\n**Mathematical Definition of Pareto Dominance**:\nLet \\$\\mathcal{M}\\$ be the set of evaluation metrics. A model variant \\$\\theta_A\\$ strictly Pareto-dominates variant \\$\\theta_B\\$ (\\$\\theta_A \\succ \\theta_B\\$) if and only if:\n\n\\$\\$\\forall m \\in \\mathcal{M}, \\quad \\text{score}_m(\\theta_A) \\ge \\text{score}_m(\\theta_B) \\quad \\land \\quad \\exists m \\in \\mathcal{M}, \\quad \\text{score}_m(\\theta_A) > \\text{score}_m(\\theta_B)\\$\\$\n\nThe definition is written for scores where more is better. Latency, memory, and\nenergy are the opposite, so an implementation either negates them or carries one\ndirection flag per objective. `pareto_frontier()` below takes the flags, because\nnegating measured milliseconds makes the debugging output unreadable."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Optimization Dimension",
+    "Preferred Direction",
+    "Systems Constraint",
+    "Typical Hardware Boundary"
+   ],
+   "rows": [
+    [
+     "**Latency (\\$ms\\$)**",
+     "Minimize (\\$\\downarrow\\$)",
+     "SLA / Real-time interactivity (\\$<100 \\text{ ms}\\$)",
+     "ALU compute & DRAM bandwidth"
+    ],
+    [
+     "**Accuracy (\\$\\%\\$)**",
+     "Maximize (\\$\\uparrow\\$)",
+     "Task fidelity & quality threshold",
+     "Model representational capacity"
+    ],
+    [
+     "**Memory (\\$MB\\$)**",
+     "Minimize (\\$\\downarrow\\$)",
+     "Embedded / GPU VRAM capacity limit",
+     "SRAM / DRAM capacity"
+    ],
+    [
+     "**Energy (\\$Joules\\$)**",
+     "Minimize (\\$\\downarrow\\$)",
+     "Mobile battery life & thermal TDP envelope",
+     "Power delivery & dynamic voltage"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "---\n\n## 🏗️ Implementation: Building Professional Benchmarking Infrastructure\n\n### Architectural Components"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Infrastructure Component",
+    "Role & Scope",
+    "Core Inputs",
+    "Produced Output Abstraction"
+   ],
+   "rows": [
+    [
+     "`precise_timer`",
+     "High-precision monotonic interval timing",
+     "Code block context manager",
+     "`timer.elapsed` (seconds)"
+    ],
+    [
+     "`Profiler` (Module 14)",
+     "Hardware timer and memory probe",
+     "Model + input tensor",
+     "Raw latency and memory readings"
+    ],
+    [
+     "`Benchmark`",
+     "Multi-model evaluation across single metrics",
+     "Models, datasets, warmup/trial counts",
+     "`Dict[str, BenchmarkResult]`"
+    ],
+    [
+     "`BenchmarkResult`",
+     "Statistical analysis container",
+     "Raw measurements list",
+     "Mean, std, median, \\$P_{90}\\$, \\$P_{99}\\$, CI"
+    ],
+    [
+     "`BenchmarkSuite`",
+     "Multi-dimensional evaluation engine",
+     "Models, datasets, metric configurations",
+     "Comparative trade-off tables, plus the non-dominated set from `pareto_frontier`"
+    ],
+    [
+     "`pareto_frontier`",
+     "Non-dominated filtering over measured points",
+     "Per-model metric vectors, one direction flag per objective",
+     "Names of the variants no other variant dominates"
+    ],
+    [
+     "`MLPerf`",
+     "Standardized edge compliance harness",
+     "Reference tasks, deterministic seeds",
+     "Pass/Fail compliance report"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Statistical Metrics Tracked by BenchmarkResult"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Statistical Metric",
+    "Mathematical Estimator",
+    "Systems Interpretation",
+    "Robustness Against Outliers"
+   ],
+   "rows": [
+    [
+     "**Mean (\\$\\mu\\$)**",
+     "\\$\\frac{1}{n} \\sum X_i\\$",
+     "Average cost per timed call; it inverts to throughput only at one example per call",
+     "Sensitive to tail stalls"
+    ],
+    [
+     "**Median (\\$P_{50}\\$)**",
+     "50th percentile rank",
+     "Typical steady-state latency",
+     "Highly robust"
+    ],
+    [
+     "**Tail Latency (\\$P_{95}, P_{99}\\$)**",
+     "95th / 99th percentile rank",
+     "Worst-case SLA compliance bound",
+     "Captures OS scheduling spikes"
+    ],
+    [
+     "**Std Deviation (\\$s\\$)**",
+     "\\$\\sqrt{\\frac{1}{n-1} \\sum (X_i - \\bar{X})^2}\\$",
+     "Measurement dispersion",
+     "Sensitive to extreme outliers"
+    ],
+    [
+     "**Coeff. of Variation (CV)**",
+     "\\$\\frac{s}{\\bar{X}} \\times 100\\%\\$",
+     "Relative measurement noise",
+     "Normalized noise index"
+    ],
+    [
+     "**\\$95\\%\\$ Confidence Interval**",
+     "\\$\\bar{X} \\pm t_{n-1} \\cdot \\text{SE}\\$",
+     "True population mean bound",
+     "Requisite for statistical claims"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 79 lines of code (starting with `@dataclass`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: BenchmarkResult\n\nThis test validates our BenchmarkResult class correctly computes statistical properties from measurements.\n\n**What we're testing**: Statistical calculations (mean, std, confidence intervals)\n**Why it matters**: Reliable statistics are the foundation of fair benchmarking\n**Expected**: Correct statistics and proper handling of edge cases"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 💡 Introduction: What is Fair Benchmarking?."
+   ]
+  }
+ ]
+}

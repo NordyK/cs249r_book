@@ -1,0 +1,375 @@
+{
+ "title": "🏗️ Timing: High-Precision Interval Measurement",
+ "summary": "TinyTorch benchmarking: 🏗️ Timing: High-Precision Interval Measurement",
+ "source": {
+  "chapter": "tt-19",
+  "sections": [
+   "🏗️ Timing: High-Precision Interval Measurement"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Timing: High-Precision Interval Measurement\n\nAccurate timing is the foundation of performance benchmarking. System clocks have different precision and behavior, so we need a robust timing mechanism.\n\n### Timing Challenges in Practice\n\nWhen timing a function call in high-level languages like Python, several layers of operating system and hardware indirection intervene between the software invocation and the physical timer:\n\n\\$\\$\\Delta t_{\\text{measured}} = \\Delta t_{\\text{true}} + \\delta_{\\text{call}} + \\delta_{\\text{OS}} + \\delta_{\\text{quantization}}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Latency Component",
+    "Typical Magnitude",
+    "Root Cause / System Source",
+    "Mitigation Strategy"
+   ],
+   "rows": [
+    [
+     "**Kernel / Forward Pass** (\\$\\Delta t_{\\text{true}}\\$)",
+     "\\$\\mu\\text{s}\\$ to \\$\\text{ms}\\$",
+     "Actual computational operations (FLOPs, memory loads)",
+     "Target metric under benchmark"
+    ],
+    [
+     "**Syscall Overhead** (\\$\\delta_{\\text{call}}\\$)",
+     "\\$10\\text{--}50\\text{ ns}\\$ (one `perf_counter()` call measured at \\$\\approx 35\\text{ ns}\\$ here)",
+     "User-to-kernel context switch for clock sampling",
+     "Use monotonic userspace vDSO clock"
+    ],
+    [
+     "**OS Scheduling** (\\$\\delta_{\\text{OS}}\\$)",
+     "\\$\\mu\\text{s}\\$ to \\$\\text{ms}\\$",
+     "Thread preemption, core migration, page faults",
+     "Discard warmup runs, sample distributions"
+    ],
+    [
+     "**Timer Quantization** (\\$\\delta_{\\text{quantization}}\\$)",
+     "\\$1\\text{ ns}\\$ to \\$1\\text{ }\\mu\\text{s}\\$",
+     "Hardware counter frequency resolution limits",
+     "Use nanosecond-resolution monotonic counter"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "For microsecond-precision timing, each of these can introduce significant error.\n\n### Why `perf_counter()` Matters\n\nPython's `time.perf_counter()` is specifically designed for interval measurement:\n- **Monotonic**: Never goes backwards (unaffected by NTP time sync or system clock adjustments)\n- **High resolution**: Nanosecond resolution backed by hardware counters (`RDTSC` on x86, `CNTVCT_EL0` on ARM)\n- **Low overhead**: Optimized system call via virtual Dynamic Shared Object (vDSO) avoiding kernel trapping\n\n### Timing Best Practices: The Context Manager Pattern"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Context Phase",
+    "Program Action",
+    "System State / Effect"
+   ],
+   "rows": [
+    [
+     "`__enter__`",
+     "`t_start = time.perf_counter()`",
+     "Sample monotonic nanosecond counter prior to workload"
+    ],
+    [
+     "Yield Block",
+     "Execute operation (forward pass)",
+     "Target compute runs; CPU registers and cache active"
+    ],
+    [
+     "`__exit__` (`finally`)",
+     "`t_end = time.perf_counter()`",
+     "Guaranteed sample even if an unexpected exception occurs"
+    ],
+    [
+     "Post-Context",
+     "`elapsed = t_end - t_start`",
+     "Monotonic interval \\$\\Delta t \\ge 0\\$ recorded reliably"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "This pattern ensures timing starts and stops correctly with deterministic resource handling even if exceptions occur."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@contextmanager\ndef precise_timer():\n    \"\"\"\n    High-precision timing context manager for benchmarking.\n\n    TODO: Implement a context manager that provides accurate timing measurements\n\n    APPROACH:\n    1. Use time.perf_counter() for high precision\n    2. Yield a small Timer object and fill in .elapsed when the block exits\n    3. Use try/finally so .elapsed is set even if the block raises\n\n    Yields:\n        Timer object with .elapsed attribute (set after context exits)\n\n    EXAMPLE:\n    >>> with precise_timer() as timer:\n    ...     time.sleep(0.1)  # Some operation\n    >>> print(f\"Elapsed: {timer.elapsed:.4f}s\")\n    Elapsed: 0.1001s\n\n    HINTS:\n    - perf_counter() is monotonic and high-resolution\n    - Record the start before yield and compute elapsed after it\n    - try/finally, not try/except: errors propagate but the time is still recorded\n    \"\"\"\n    class Timer:\n        def __init__(self):\n            self.elapsed = 0.0\n            self.start_time = None\n\n    timer = Timer()\n    timer.start_time = time.perf_counter()\n\n    try:\n        yield timer\n    finally:\n        timer.elapsed = time.perf_counter() - timer.start_time"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Precise Timer\n\nThis test validates our timing context manager provides accurate measurements.\n\n**What we're testing**: High-precision timing with perf_counter\n**Why it matters**: Accurate timing is essential for reliable benchmarks\n**Expected**: Measurements close to actual sleep durations"
+  },
+  {
+   "type": "text",
+   "md": "### Benchmark Class: Core Measurement Engine\n\nThe `Benchmark` class implements the core measurement logic for different metrics. It handles the orchestration of multiple models, datasets, and measurement protocols.\n\n### Benchmark Architecture Execution Flow"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Stage",
+    "Input Artifacts",
+    "Processing Step",
+    "Output Artifacts"
+   ],
+   "rows": [
+    [
+     "**1. Ingestion**",
+     "Models \\$[M_1, M_2, \\dots]\\$, Datasets \\$[D_1, D_2, \\dots]\\$",
+     "Register candidate architectures and evaluation datasets",
+     "Model registry with validated callable interfaces"
+    ],
+    [
+     "**2. Warmup**",
+     "Synthetic or unmeasured batches",
+     "Execute \\$W\\$ iterations to warm CPU caches and fault in pages",
+     "Discarded startup latencies, stabilized hardware clocks"
+    ],
+    [
+     "**3. Measurement**",
+     "Fixed-seed inputs",
+     "Sample \\$N\\$ independent forward passes with `perf_counter`",
+     "Raw latency samples \\$[t_1, t_2, \\dots, t_N]\\$"
+    ],
+    [
+     "**4. Profiling**",
+     "Model instance",
+     "Trace memory allocations and peak buffer usage",
+     "Traced peak memory (MB) and FLOP counts"
+    ],
+    [
+     "**5. Synthesis**",
+     "Raw timing and memory metrics",
+     "Compute \\$\\mu, s, \\text{SE}\\$, and confidence intervals \\$[CI_{\\text{low}}, CI_{\\text{high}}]\\$",
+     "`BenchmarkResult` container with system metadata"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Why Warmup Runs Matter\n\nModern operating systems and processors have multiple layers of runtime adaptation:\n- **CPU frequency scaling**: Dynamic Voltage and Frequency Scaling (DVFS) ramps execution cores to performance governors\n- **Cache warming**: Instruction and weight caches (\\$L_1/L_2/L_3\\$) achieve steady-state hit rates\n- **Memory frame allocation**: OS page faults occur during initial virtual memory touches\n- **Branch predictor and TLB training**: The first pass through a loop mispredicts and misses; later passes do not\n\nTinyTorch runs on NumPy, which has **no JIT compiler**, so none of the warmup\nbenefit here comes from code specialization. On a JIT-backed stack (PyTorch's\n`torch.compile`, JAX, Numba) the first call additionally pays for tracing and\ncompilation, which is often orders of magnitude larger than everything above and\nis the reason warmup counts are so much higher there.\n\n### Multiple Benchmark Dimensions\n\nDifferent metrics require distinct measurement strategies:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dimension",
+    "Primary Focus",
+    "Key Governing Factors",
+    "Measurement Technique"
+   ],
+   "rows": [
+    [
+     "**Latency**",
+     "Milliseconds per forward pass (\\$\\text{ms}\\$)",
+     "Batch size, compute depth, memory bandwidth",
+     "High-precision timing via `perf_counter`"
+    ],
+    [
+     "**Accuracy**",
+     "Fraction of correct inferences (\\$[0, 1]\\$)",
+     "Quantization noise, pruning sparsity, model capacity",
+     "Ground-truth evaluation over validation set"
+    ],
+    [
+     "**Memory**",
+     "Allocator footprint during execution (\\$\\text{MB}\\$)",
+     "Parameter storage, activation tensors, workspace",
+     "Traced allocator peak vs OS process RSS"
+    ],
+    [
+     "**Energy**",
+     "Joules per inference pass (\\$\\text{mJ}\\$)",
+     "FLOP complexity, SRAM transfers, DRAM accesses",
+     "Empirical analytical modeling or hardware PMUs"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Benchmark.__init__: Setting Up the Measurement Engine\n\nThe `Benchmark` constructor configures the measurement infrastructure: models to test,\ndatasets for evaluation, and system metadata for reproducibility. It reuses the\n`Profiler` from Module 14 for individual model measurements."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Configuration Field",
+    "Source / Inspection Method",
+    "Architectural Role"
+   ],
+   "rows": [
+    [
+     "`models`",
+     "Candidate architectures (\\$M_i\\$)",
+     "Models under comparative evaluation"
+    ],
+    [
+     "`datasets`",
+     "Labeled or synthetic batches",
+     "Validation data slices for evaluation"
+    ],
+    [
+     "`profiler`",
+     "`Profiler()` (Module 14)",
+     "Memory tracing and execution instrumentation"
+    ],
+    [
+     "`system_info`",
+     "`platform.platform()`, `cpu_count()`",
+     "Hardware and runtime metadata for reproducibility"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class Benchmark:\n    \"\"\"\n    Professional benchmarking system for ML models and operations.\n\n    Provides latency, accuracy, and memory benchmarking with statistical\n    rigor. Reuses Profiler from Module 14 for individual measurements\n    and adds multi-model comparison with confidence intervals.\n\n    EXAMPLE:\n    >>> benchmark = Benchmark(models=[model1, model2], datasets=[test_data])\n    >>> results = benchmark.run_accuracy_benchmark()\n    \"\"\"\n\n    def __init__(self, models: List[Any], datasets: List[Any],\n                 warmup_runs: int = DEFAULT_WARMUP_RUNS, measurement_runs: int = DEFAULT_MEASUREMENT_RUNS):\n        \"\"\"\n        Initialize benchmark with models and datasets.\n\n        TODO: Set up the benchmark runner with models, datasets, and system metadata\n\n        APPROACH:\n        1. Store models and datasets for benchmarking\n        2. Configure warmup and measurement run counts\n        3. Initialize Profiler from Module 14 for measurements\n        4. Capture system information for reproducibility\n\n        HINTS:\n        - Use platform module for system info\n        - os.cpu_count() can return None, use fallback\n        \"\"\"\n        if warmup_runs < 0 or measurement_runs <= 0:\n            raise ValueError(\"warmup_runs must be nonnegative and measurement_runs positive\")\n        self.models = list(models)\n        # Keep display names when possible, but never let copied names overwrite results.\n        self.model_names = []\n        for i, model in enumerate(self.models):\n            stem = str(getattr(model, 'name', None) or f'model_{i}')\n            name = stem\n            suffix = 1\n            while name in self.model_names:\n                name = f'{stem}_{suffix}'\n                suffix += 1\n            self.model_names.append(name)\n        self.datasets = datasets\n        self.warmup_runs = warmup_runs\n        self.measurement_runs = measurement_runs\n        self.results = {}\n\n        # Use Profiler from Module 14 for measurements\n        self.profiler = Profiler()\n\n        # System information for metadata (using Python standard library)\n        self.system_info = {\n            'platform': platform.platform(),\n            'processor': platform.processor(),\n            'python_version': platform.python_version(),\n            'cpu_count': os.cpu_count() or 1,  # os.cpu_count() can return None\n        }\n        # Note: System total memory not available via standard library\n        # Process memory measurement uses tracemalloc (via Profiler)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Benchmark.__init__\n\n**What we're testing**: Benchmark initialization with models, datasets, and system metadata\n**Why it matters**: Proper setup ensures reproducible benchmarking conditions\n**Expected**: All attributes initialized, system info captured"
+  },
+  {
+   "type": "text",
+   "md": "### Benchmark.run_latency_benchmark: Measuring Inference Speed\n\nLatency benchmarking measures how long each model takes to process input. We use\nthe Profiler for warmup, then collect multiple individual measurements for\nstatistical analysis via `BenchmarkResult`.\n\n### Latency Measurement Pipeline"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Pipeline Stage",
+    "Implementation Action",
+    "Purpose & Guarantees"
+   ],
+   "rows": [
+    [
+     "**Input Synthesis**",
+     "`Tensor(rng.standard_normal(shape))`",
+     "Allocates representative evaluation tensor matching hardware target"
+    ],
+    [
+     "**Warmup Phase**",
+     "`profiler.measure_latency(warmup=W)`",
+     "Absorbs page faults, cache misses, and DVFS ramp (discarded)"
+    ],
+    [
+     "**Measurement Sampling**",
+     "`precise_timer()` loop (\\$N\\$ trials)",
+     "Gathers independent steady-state execution latencies \\$[t_1, t_2, \\dots, t_N]\\$ in ms"
+    ],
+    [
+     "**Statistical Wrapping**",
+     "`BenchmarkResult(\"latency\", samples)`",
+     "Computes mean, variance, percentiles (p50/p95/p99), and 95% confidence interval"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def benchmark_run_latency_benchmark(self, input_shape: Tuple[int, ...] = (1, 28, 28)) -> Dict[str, BenchmarkResult]:\n    \"\"\"\n    Benchmark model inference latency using Profiler.\n\n    TODO: Measure inference latency for each model with statistical rigor\n\n    APPROACH:\n    1. Create input tensor matching input_shape\n    2. Use Profiler for initial warmup measurement\n    3. Collect multiple individual latency measurements\n    4. Wrap results in BenchmarkResult for statistical analysis\n\n    HINTS:\n    - Use self.profiler.measure_latency() for warmup\n    - Collect self.measurement_runs individual measurements\n    - Include system_info in metadata\n    \"\"\"\n    results = {}\n\n    for i, model in enumerate(self.models):\n        model_name = self.model_names[i]\n\n        # Create input tensor for profiling\n        input_tensor = Tensor(rng.standard_normal(input_shape).astype(np.float32))\n\n        # Warm up through the Profiler (that one timing is discarded), then\n        # record every measured run on its own so BenchmarkResult sees the tail\n        self.profiler.measure_latency(model, input_tensor, warmup=self.warmup_runs, iterations=1)\n        latencies = []\n        for _ in range(self.measurement_runs):\n            latencies.append(self.profiler.measure_latency(model, input_tensor, warmup=0, iterations=1))\n\n        results[model_name] = BenchmarkResult(\n            f\"{model_name}_latency_ms\",\n            latencies,\n            metadata={'input_shape': input_shape, **self.system_info}\n        )\n\n    return results\n\nBenchmark.run_latency_benchmark = benchmark_run_latency_benchmark"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Benchmark.run_latency_benchmark\n\n**What we're testing**: Latency measurement across multiple models\n**Why it matters**: Accurate latency data guides deployment decisions\n**Expected**: BenchmarkResult for each model with positive latency values"
+  },
+  {
+   "type": "text",
+   "md": "### Simulated Accuracy: The Honest Stand-In\n\nSome models handed to a benchmark harness have no `evaluate` method and no\nlabeled data behind them. The tempting move is to make up a plausible score.\nDo not. A fabricated number propagates into every table, chart, and comparison\ndownstream, and nothing further along can tell it apart from a measurement.\n\nThe stand-in below is deliberately modest. It runs the model on a small,\nseeded **proxy task** -- inputs drawn from a fixed generator, labels defined by\na rule the inputs actually determine -- and reports how often the model's\noutput agrees. That is a real score of a fake task, which is a very different\nclaim from a fake score of a real task, and the caller marks it `simulated`.\n\nTwo properties make it defensible:\n\n- **Deterministic**: the same model and dataset always give the same number.\n- **Output-dependent**: it measures what the model *computes*. It never reads\n  the model's name or its position in the list."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _simulated_accuracy(model: Any, dataset: Any, num_samples: int = 32) -> float:\n    \"\"\"\n    Score a model on a seeded proxy task when no ground truth is available.\n\n    This is NOT a measurement of the model's accuracy on `dataset`. It is a\n    reproducible, output-dependent stand-in for demos and smoke tests. Callers\n    must mark any result built from it as simulated.\n\n    TODO: Score the model on a small seeded synthetic classification task.\n\n    APPROACH:\n    1. Derive a seed from the dataset so different datasets give different probes\n    2. Draw num_samples probe vectors; the label is 1 when the probe sums positive\n    3. Run the model on each probe and predict 1 when its output sums positive\n    4. Return the fraction of agreements; a model we cannot invoke gets 0.5\n\n    Args:\n        model: Any object with forward(), predict(), or __call__\n        dataset: Used only to vary the probe seed, never as ground truth\n        num_samples: Number of probe vectors (default: 32)\n\n    Returns:\n        float: Agreement rate in [0, 1]; 0.5 means chance\n\n    HINTS:\n    - A model that passes signal through scores near 1.0; one that destroys it\n      lands near 0.5, which is exactly the discrimination we want\n    - Never let the score depend on getattr(model, 'name') or the model's index\n    \"\"\"\n    # Vary the probe per dataset, deterministically and without hashing.\n    seed = 7 + sum(repr(dataset).encode()) % 1000\n    probe_rng = np.random.default_rng(seed)\n\n    probes = probe_rng.standard_normal((num_samples, 4)).astype(np.float32)\n    true_labels = (probes.sum(axis=1) > 0).astype(int)\n\n    predicted = []\n    for probe in probes:\n        try:\n            x = Tensor(probe.reshape(1, -1))\n            if hasattr(model, 'forward'):\n                out = model.forward(x)\n            elif hasattr(model, 'predict'):\n                out = model.predict(x)\n            elif callable(model):\n                out = model(x)\n            else:\n                raise TypeError(\"Model needs forward(), predict(), or __call__\")\n        except Exception as exc:\n            raise RuntimeError(\"Synthetic accuracy probe failed; no score was measured\") from exc\n\n        out_data = out.data if hasattr(out, 'data') else out\n        predicted.append(int(np.asarray(out_data, dtype=np.float64).sum() > 0))\n\n    return float(np.mean(np.asarray(predicted) == true_labels))"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _simulated_accuracy\n\n**What we're testing**: Determinism, output-dependence, and identity-independence\n**Why it matters**: A stand-in score is only defensible if it cannot be gamed by\nrenaming a model or reordering the list\n**Expected**: Same input gives the same score; a pass-through model beats a model\nthat destroys the signal; renaming changes nothing"
+  },
+  {
+   "type": "text",
+   "md": "### Benchmark.run_accuracy_benchmark: Measuring Prediction Quality\n\nAccuracy benchmarking evaluates model correctness across datasets. A model that\nexposes an `evaluate(dataset)` method is **measured**: whatever score it returns\nis what gets reported.\n\nThere is no honest way to measure accuracy without ground truth, so a model that\nhas no `evaluate` method cannot be scored. Rather than invent a plausible number,\nthe default raises an error. For classroom demonstrations only, explicitly pass\n`simulate=True` to score against a **seeded synthetic label set**; the benchmark\nmarks the result `simulated=True` so nobody mistakes it for a measurement. The\nscore still depends on what the model actually outputs -- never on its name or\nits position in the list.\n\n> A benchmark that reports a number nobody measured is worse than a benchmark\n> that reports nothing. If you take one habit from this module, take that one.\n\n\\$\\$\\text{Accuracy}(M) = \\frac{1}{|D_{\\text{val}}|} \\sum_{(x, y) \\in D_{\\text{val}}} \\mathbf{1}\\big(\\arg\\max f_\\theta(x) = y\\big)\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Evaluation Mode",
+    "Required Interface",
+    "Dataset Source",
+    "Scientific Rigor Guarantee"
+   ],
+   "rows": [
+    [
+     "**Empirical Evaluation**",
+     "`model.evaluate(dataset)`",
+     "Labeled validation partitions",
+     "Measures true task performance against verified ground truth"
+    ],
+    [
+     "**Classroom Probe** (`simulate=True`)",
+     "Model forward pass outputs",
+     "Seeded synthetic label probe",
+     "Tagged with `simulated=True` metadata to prevent reporting unmeasured numbers"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def benchmark_run_accuracy_benchmark(self, simulate: bool = False) -> Dict[str, BenchmarkResult]:\n    \"\"\"\n    Benchmark model accuracy across datasets.\n\n    TODO: Evaluate each model on each dataset and collect accuracy scores\n\n    APPROACH:\n    1. Iterate over all models and datasets\n    2. If the model has evaluate(), use its score -- that is a real measurement\n    3. Otherwise raise unless simulate=True was explicitly requested; then use\n       the seeded classroom probe and flag its result as simulated\n    4. Reject non-finite/out-of-range accuracy and wrap the scores in BenchmarkResult\n\n    HINTS:\n    - Use hasattr(model, 'evaluate') for duck-typing\n    - The simulated path must depend on the model's OUTPUT, never on its name or\n      its index -- a score keyed to identity is a fabricated benchmark\n    - Record simulated=True in metadata so a reader can tell the two apart\n    \"\"\"\n    results = {}\n\n    for i, model in enumerate(self.models):\n        model_name = self.model_names[i]\n        accuracies = []\n        simulated = False\n\n        for dataset in self.datasets:\n            if hasattr(model, 'evaluate'):\n                # Real measurement: the model tells us how it did on this dataset\n                accuracy = float(model.evaluate(dataset))\n            else:\n                if not simulate:\n                    raise ValueError(\"Accuracy requires model.evaluate(dataset); use simulate=True only for a classroom probe\")\n                # No ground truth available. Score the model's actual outputs\n                # against a seeded reference label set so the number is at least\n                # reproducible and output-dependent -- but flag it as simulated.\n                simulated = True\n                accuracy = _simulated_accuracy(model, dataset)\n\n            if not np.isfinite(accuracy) or not 0 <= accuracy <= 1:\n                raise ValueError(\"Accuracy must be finite and in [0, 1]\")\n            accuracies.append(accuracy)\n\n        if simulated:\n            print(f\"   ⚠️  {model_name}: no evaluate() method -- accuracy is SIMULATED, not measured\")\n\n        results[model_name] = BenchmarkResult(\n            f\"{model_name}_accuracy\",\n            accuracies,\n            metadata={\n                'num_datasets': len(self.datasets),\n                'simulated': simulated,\n                **self.system_info,\n            }\n        )\n\n    return results\n\nBenchmark.run_accuracy_benchmark = benchmark_run_accuracy_benchmark"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Benchmark.run_accuracy_benchmark\n\n**What we're testing**: Accuracy evaluation across models and datasets\n**Why it matters**: Accuracy is the primary quality metric for ML models\n**Expected**: Accuracy values in [0, 1] range for each model"
+  },
+  {
+   "type": "text",
+   "md": "### Benchmark.run_memory_benchmark: Measuring Resource Consumption\n\nMemory benchmarking tracks how much RAM each model consumes during inference.\nWe retain the Profiler's traced allocation peak even when it is small. This is\ndistinguished from total process RSS or the static size of all model parameters:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Memory Dimension",
+    "Measurement Target",
+    "Scope & Definition",
+    "Systems Significance"
+   ],
+   "rows": [
+    [
+     "**Traced Allocator Peak**",
+     "`memory_stats['peak_memory_mb']`",
+     "High-water mark of live forward tensor buffers",
+     "Determines minimal physical DRAM/SRAM working footprint"
+    ],
+    [
+     "**Static Weights**",
+     "\\$\\sum_l \\lvert W_l \\rvert \\times \\text{sizeof}(\\text{dtype})\\$",
+     "Persistent model parameters in storage",
+     "Dictates flash storage requirements and transfer latency"
+    ],
+    [
+     "**Transient Activations**",
+     "Layer intermediate shapes \\$\\mathcal{O}(B \\times S \\times D)\\$",
+     "Execution buffers during layer evaluation",
+     "Opportunities for memory pooling and inplace reuse"
+    ],
+    [
+     "**Process RSS**",
+     "Resident Set Size reported by OS",
+     "Entire Python runtime, shared libraries, and heap",
+     "High-level system footprint influenced by OS page allocation"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def benchmark_run_memory_benchmark(self, input_shape: Tuple[int, ...] = (1, 28, 28)) -> Dict[str, BenchmarkResult]:\n    \"\"\"\n    Benchmark model memory usage using Profiler.\n\n    TODO: Measure memory consumption for each model across multiple runs\n\n    APPROACH:\n    1. Use self.profiler.measure_memory() for each model\n    2. Keep the measured peak, including values below 1 MB\n    3. Collect self.measurement_runs samples\n    4. Wrap results in BenchmarkResult\n\n    HINTS:\n    - memory_stats['peak_memory_mb'] is the primary metric\n    - Parameter storage is a different metric; do not substitute it for allocator peaks\n    \"\"\"\n    results = {}\n\n    for i, model in enumerate(self.models):\n        model_name = self.model_names[i]\n        memory_usages = []\n\n        for run in range(self.measurement_runs):\n            # Use Profiler to measure memory\n            memory_stats = self.profiler.measure_memory(model, input_shape)\n            # Use peak_memory_mb as the primary metric\n            memory_used = memory_stats['peak_memory_mb']\n\n            # Preserve the allocator peak, even for a small model.\n            memory_usages.append(max(0, memory_used))\n\n        results[model_name] = BenchmarkResult(\n            f\"{model_name}_memory_mb\",\n            memory_usages,\n            metadata={'input_shape': input_shape, **self.system_info}\n        )\n\n    return results\n\nBenchmark.run_memory_benchmark = benchmark_run_memory_benchmark"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Benchmark.run_memory_benchmark\n\n**What we're testing**: Memory usage measurement across multiple models\n**Why it matters**: Memory constraints determine deployment feasibility on edge devices\n**Expected**: Non-negative memory values for each model"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Benchmark (Full Class Integration)\n\nThis test validates our Benchmark class measures latency, accuracy, and memory correctly.\n\n**What we're testing**: Multi-model benchmarking with different metrics\n**Why it matters**: Reliable comparisons guide optimization decisions\n**Expected**: Consistent results across multiple benchmark types"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Timing: High-Precision Interval Measurement."
+   ]
+  }
+ ]
+}

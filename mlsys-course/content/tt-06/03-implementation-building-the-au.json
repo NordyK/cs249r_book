@@ -1,0 +1,340 @@
+{
+ "title": "🏗️ Implementation: Building the Autograd Engine",
+ "summary": "TinyTorch autograd: 🏗️ Implementation: Building the Autograd Engine",
+ "source": {
+  "chapter": "tt-06",
+  "sections": [
+   "🏗️ Implementation: Building the Autograd Engine"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Building the Autograd Engine\n\nLet's implement the autograd system step by step. We'll enhance the existing Tensor class and create supporting infrastructure.\n\n### The Function Architecture\n\nEvery differentiable operation requires a dual execution contract:\n1. **Forward pass**: Compute the output tensor and stash required inputs/outputs on the node\n2. **Backward pass**: Receive the upstream gradient and compute vector-Jacobian products for inputs"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Component",
+    "Scope",
+    "Role",
+    "Implementation"
+   ],
+   "rows": [
+    [
+     "**`Function` (Base)**",
+     "Framework Core",
+     "Saves input context & anchors computation graph node",
+     "`tinytorch.core.tensor`"
+    ],
+    [
+     "**`Add`, `Mul`, `MatMul`**",
+     "Arithmetic Ops",
+     "Pairwise forward tensor arithmetic & dual VJP",
+     "Implemented below"
+    ],
+    [
+     "**`Sum`, `Mean`**",
+     "Reductions",
+     "Axis projection forward & broadcast VJP",
+     "Implemented below"
+    ],
+    [
+     "**`Reshape`, `Permute`**",
+     "Stride & View Ops",
+     "Zero-copy forward shape changes & inverse VJP",
+     "Implemented below"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Each operation inherits from `Function` and implements specific vector-Jacobian product rules."
+  },
+  {
+   "type": "text",
+   "md": "### Function Base Class: The Foundation of Autograd\n\nThe `Function` class is the foundation that makes autograd possible. Every differentiable operation inherits from this class.\n\n**Why Functions Matter:**\n- **Context Storage**: Remember inputs and intermediate activations needed for the backward pass\n- **Gradient VJPs**: Implement reverse-mode automatic differentiation via `backward()`\n- **Graph Topology**: Connect producing nodes to form directed acyclic computation graphs\n- **Chain Rule Dispatch**: Enable reverse gradient propagation across arbitrarily deep networks\n\n\\$\\$\\begin{aligned}\n\\text{Forward Pass:} \\quad & \\mathbf{y} = f(\\mathbf{x}_1, \\dots, \\mathbf{x}_k) \\quad \\implies \\quad \\text{cache } \\{\\mathbf{x}_1, \\dots, \\mathbf{x}_k\\} \\text{ on node} \\\\\n\\text{Backward Pass:} \\quad & \\frac{\\partial \\mathcal{L}}{\\partial \\mathbf{x}_i} = \\frac{\\partial \\mathcal{L}}{\\partial \\mathbf{y}} \\cdot \\frac{\\partial \\mathbf{y}}{\\partial \\mathbf{x}_i} \\quad \\implies \\quad \\text{return tuple } (\\nabla_{\\mathbf{x}_1} \\mathcal{L}, \\dots, \\nabla_{\\mathbf{x}_k} \\mathcal{L})\n\\end{aligned}\\$\\$\n\nThe `Function` class itself was built in Module 01 (`tinytorch.core.tensor`), where every operation received its `forward()`. This module fills in the `backward()` of those same classes. The `method_of` helper below attaches each one to its class, so the exported file reads as a list of completions with the class named on the line above each."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def method_of(cls):\n    \"\"\"\n    Attach the decorated function to `cls` under the function's own name.\n\n    Module 01 defined every operation with a forward() and left backward()\n    raising NotImplementedError. This module writes those backward() halves:\n\n    ```python\n    @method_of(Add)\n    def backward(self, grad_output):\n        ...\n    ```\n\n    is the same as writing backward() inside `class Add` in Module 01, without\n    editing that module. The attachment happens when this module is imported,\n    which is a teaching convenience: PyTorch defines both halves in one place.\n    The same helper gives Function.apply() its recording lines and Tensor its\n    backward() method further down.\n    \"\"\"\n    def attach(fn):\n        raw = fn.__func__ if isinstance(fn, (classmethod, staticmethod)) else fn\n        raw.__qualname__ = f\"{cls.__name__}.{raw.__name__}\"   # so tracebacks read Add.backward\n        setattr(cls, raw.__name__, fn)\n        return fn\n    return attach"
+  },
+  {
+   "type": "text",
+   "md": "### Operation Functions: Implementing Gradient Rules\n\nNow we will implement specific operations that compute vector-Jacobian products (VJPs) correctly. Each primitive operation applies local derivative rules to push gradients backward through the graph:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Primitive Operation",
+    "Forward Mapping",
+    "Stashed Tensors",
+    "Upstream Gradient",
+    "Input Gradient VJP Rule"
+   ],
+   "rows": [
+    [
+     "**Addition (`Add`)**",
+     "\\$z = a + b\\$",
+     "None",
+     "\\$\\bar{z} \\in \\mathbb{R}^{M \\times N}\\$",
+     "\\$\\bar{a} = \\bar{z}, \\quad \\bar{b} = \\bar{z}\\$"
+    ],
+    [
+     "**Multiplication (`Mul`)**",
+     "\\$z = a \\odot b\\$",
+     "\\$a, b\\$",
+     "\\$\\bar{z} \\in \\mathbb{R}^{M \\times N}\\$",
+     "\\$\\bar{a} = \\bar{z} \\odot b, \\quad \\bar{b} = \\bar{z} \\odot a\\$"
+    ],
+    [
+     "**Matrix Multiply (`MatMul`)**",
+     "\\$Z = A B\\$",
+     "\\$A, B\\$",
+     "\\$\\bar{Z} \\in \\mathbb{R}^{M \\times P}\\$",
+     "\\$\\bar{A} = \\bar{Z} B^T, \\quad \\bar{B} = A^T \\bar{Z}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Each operation preserves the tensors needed to compute its local Jacobian during the backward pass."
+  },
+  {
+   "type": "text",
+   "md": "### Understanding Broadcasting in Gradients\n\nBefore implementing gradient operations, we need to address a fundamental architectural challenge:\n**Broadcasting in Forward Pass vs. Gradient Reduction in Backward Pass**\n\n#### The Broadcasting Duality\n\nWhen NumPy broadcasts tensors of different shapes during forward operations, a small tensor is virtually replicated along new or singleton dimensions without copying memory. In reverse-mode autograd, the chain rule dictates that the gradient w.r.t. that broadcasted tensor must be **summed** across every replicated dimension:\n\n- **Forward Pass**: \\$x \\in \\mathbb{R}^{32 \\times 128}\\$ and bias \\$b \\in \\mathbb{R}^{128}\\$ evaluate to \\$y_{ij} = x_{ij} + b_j\\$. NumPy applies virtual stride-0 expansion with zero memory duplication.\n- **Backward Pass**: Upstream gradient \\$\\bar{y} \\in \\mathbb{R}^{32 \\times 128}\\$ branches to \\$\\bar{x} = \\bar{y}\\$, while bias gradient reduces via \\$\\bar{b}_j = \\sum_{i=0}^{31} \\bar{y}_{ij}\\$ to restore the original shape \\$(128,)\\$.\n\n#### Why Gradient Reduction is Necessary: Multivariable Chain Rule"
+  },
+  {
+   "type": "text",
+   "md": "When bias \\$b\\$ broadcasts to multiple samples, each entry \\$b_j\\$ contributes to every sample's prediction \\$y_{ij}\\$. By the multivariable chain rule, the total derivative of the scalar loss \\$\\mathcal{L}\\$ with respect to \\$b_j\\$ is the sum of contributions across all samples:\n\n\\$\\$\\frac{\\partial \\mathcal{L}}{\\partial b_j} = \\sum_{i=0}^{B-1} \\frac{\\partial \\mathcal{L}}{\\partial y_{ij}} \\frac{\\partial y_{ij}}{\\partial b_j} = \\sum_{i=0}^{B-1} \\frac{\\partial \\mathcal{L}}{\\partial y_{ij}} \\cdot 1 = \\sum_{i=0}^{B-1} \\bar{y}_{ij}\\$\\$\n\n\\$\\$\\begin{bmatrix} y_{0,0} & y_{0,1} \\\\ y_{1,0} & y_{1,1} \\end{bmatrix} = \\begin{bmatrix} x_{0,0} & x_{0,1} \\\\ x_{1,0} & x_{1,1} \\end{bmatrix} + \\begin{bmatrix} b_0 & b_1 \\end{bmatrix} \\quad \\implies \\quad \\nabla_b \\mathcal{L} = \\begin{bmatrix} \\bar{y}_{0,0} + \\bar{y}_{1,0} & \\bar{y}_{0,1} + \\bar{y}_{1,1} \\end{bmatrix}\\$\\$\n\n#### Generalized Shape Reduction Algorithm"
+  },
+  {
+   "type": "text",
+   "md": "Any arbitrary broadcasting pattern decomposes into two structural operations:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dimension Pattern",
+    "Trigger Condition",
+    "Backward Shape Reduction Action"
+   ],
+   "rows": [
+    [
+     "**Leading Axes**",
+     "`grad.ndim > len(orig_shape)`",
+     "Sum axis 0 until rank matches: `grad.sum(axis=0)`"
+    ],
+    [
+     "**Singleton Axes**",
+     "`orig_shape[i] == 1 and grad.shape[i] > 1`",
+     "Sum singleton dimension with kept rank: `grad.sum(axis=i, keepdims=True)`"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "This guarantees that every backward pass restores exact gradient shapes matching their input tensors, regardless of broadcasting depth."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _reduce_broadcast_grad(grad, original_shape):\n    \"\"\"\n    Reduce gradient to match original tensor shape after broadcasting.\n\n    TODO: Implement gradient shape reduction for broadcast operations.\n\n    APPROACH:\n    1. Remove leading dimensions: while grad has more dims than original, sum axis=0\n    2. Collapse singleton dimensions: where original had size 1, sum with keepdims=True\n\n    EXAMPLE:\n    >>> # Bias case: (32, 128) → (128,)\n    >>> grad = np.ones((32, 128))\n    >>> reduced = _reduce_broadcast_grad(grad, (128,))\n    >>> reduced.shape  # (128,)\n\n    >>> # Singleton case: (32, 10, 5) → (10, 1)\n    >>> grad = np.ones((32, 10, 5))\n    >>> reduced = _reduce_broadcast_grad(grad, (10, 1))\n    >>> reduced.shape  # (10, 1)\n\n    HINT: Two separate loops, one for leading dims and one for singleton dims.\n    \"\"\"\n    # Step 1: Remove leading dimensions that weren't in original tensor\n    # Example: grad (32, 128) with original (128,) → sum over axis 0\n    while grad.ndim > len(original_shape):\n        grad = grad.sum(axis=0)\n    \n    # Step 2: Collapse dimensions where original had size 1\n    # Example: grad (10, 5) with original (10, 1) → sum over axis 1 with keepdims\n    for i in range(len(original_shape)):\n        if i < grad.ndim and original_shape[i] == 1 and grad.shape[i] > 1:\n            grad = grad.sum(axis=i, keepdims=True)\n    \n    return grad"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Broadcast Gradient Reduction\n\nThis test validates our gradient reduction helper handles all broadcasting scenarios.\n\n**What we're testing**: Correct shape reduction for gradients after broadcasting\n**Why it matters**: Wrong gradient shapes cause crashes or silent bugs in training\n**Expected**: Reduced gradients match original tensor shapes for all broadcasting patterns"
+  },
+  {
+   "type": "text",
+   "md": "### Add.backward: Gradient Rules for Addition\n\nAddition is the simplest gradient operation: gradients flow unchanged to both inputs.\n\n**Mathematical Principle:**\n```\nIf z = a + b, then:\n∂z/∂a = 1  (gradient of z w.r.t. a)\n∂z/∂b = 1  (gradient of z w.r.t. b)\n\nBy chain rule:\n∂Loss/∂a = ∂Loss/∂z × ∂z/∂a = grad_output × 1 = grad_output\n∂Loss/∂b = ∂Loss/∂z × ∂z/∂b = grad_output × 1 = grad_output\n```\n\n**Broadcasting Challenge:**\nWhen tensors have different shapes, NumPy broadcasts automatically in forward pass,\nbut we must \"unbroadcast\" gradients in backward pass to match original shapes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 75 lines of code (starting with `@method_of(Add)`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Mul.backward: Gradient Rules for Element-wise Multiplication\n\nElement-wise multiplication follows the product rule of calculus.\n\n**Mathematical Principle:**\n```\nIf z = a * b (element-wise), then:\n∂z/∂a = b  (gradient w.r.t. a equals the other input)\n∂z/∂b = a  (gradient w.r.t. b equals the other input)\n\nBy chain rule:\n∂Loss/∂a = grad_output * b\n∂Loss/∂b = grad_output * a\n```\n\n**Visual Example:**\n```\nForward:  a=[2,3] * b=[4,5] = z=[8,15]\nBackward: grad_z=[1,1]\n          grad_a = grad_z * b = [1,1] * [4,5] = [4,5]\n          grad_b = grad_z * a = [1,1] * [2,3] = [2,3]\n```"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 67 lines of code (starting with `@method_of(Mul)`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Sub.backward: Gradient Rules for Subtraction\n\nSubtraction is mathematically simple but important for operations like normalization.\n\n**Mathematical Principle:**\n```\nIf z = a - b, then:\n∂z/∂a = 1\n∂z/∂b = -1\n```\n\n**Key Insight:** Gradient flows forward to the first operand, but **negated** to the second.\nThis is crucial for operations like centering data (`x - mean`)."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(Sub)\ndef backward(self, grad_output):\n    \"\"\"\n    Gradient computation for tensor subtraction.\n\n    **Mathematical Rule:** If z = a - b, then ∂z/∂a = 1 and ∂z/∂b = -1\n\n    Compute gradients for subtraction.\n\n    Returns:\n        Tuple of (grad_a, grad_b) where grad_b is negated\n\n    TODO: Implement gradient computation for subtraction operation.\n\n    APPROACH:\n    1. Extract input tensors from self.inputs\n    2. Initialize grad_a and grad_b to None\n    3. For first input (a): if requires_grad:\n       - Set grad_a = grad_output\n       - Use _reduce_broadcast_grad() to handle shape mismatch\n    4. For second input (b): if requires_grad:\n       - Set grad_b = -grad_output (note the negative!)\n       - Use _reduce_broadcast_grad() to handle shape mismatch\n    5. Return tuple (grad_a, grad_b)\n\n    EXAMPLE:\n    >>> a = Tensor([5, 7], requires_grad=True)\n    >>> b = Tensor([2, 3], requires_grad=True)\n    >>> z = a - b  # z = [3, 4]\n    >>> # During backward: grad_output = [1, 1]\n    >>> # grad_a = [1, 1], grad_b = -[1, 1] = [-1, -1]\n\n    HINTS:\n    - ∂(a-b)/∂a = 1 (gradient flows unchanged to first operand)\n    - ∂(a-b)/∂b = -1 (gradient is negated for second operand)\n    - Use _reduce_broadcast_grad() to handle broadcasting correctly\n    - The negative sign is crucial for correct gradient flow\n    \"\"\"\n    a, b = self.inputs\n    grad_a = grad_b = None\n\n    if isinstance(a, Tensor) and a.requires_grad:\n        grad_a = grad_output  # ∂(a-b)/∂a = 1\n        # Handle broadcasting: reduce gradient to match original shape\n        grad_a = _reduce_broadcast_grad(grad_a, a.data.shape)\n\n    if isinstance(b, Tensor) and b.requires_grad:\n        grad_b = -grad_output  # ∂(a-b)/∂b = -1 (note the negative!)\n        # Handle broadcasting: reduce gradient to match original shape\n        grad_b = _reduce_broadcast_grad(grad_b, b.data.shape)\n\n    return grad_a, grad_b"
+  },
+  {
+   "type": "text",
+   "md": "### Div.backward: Gradient Rules for Division\n\nDivision requires the quotient rule from calculus.\n\n**Mathematical Principle:**\n```\nIf z = a / b, then:\n∂z/∂a = 1/b\n∂z/∂b = -a/b²\n```\n\n**Quotient Rule:** For z = f/g, dz = (g·df - f·dg)/g²"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(Div)\ndef backward(self, grad_output):\n    \"\"\"\n    Gradient computation for tensor division.\n\n    **Mathematical Rule:** If z = a / b, then:\n    - ∂z/∂a = 1/b\n    - ∂z/∂b = -a/b²\n\n    Compute gradients for division using quotient rule.\n\n    Returns:\n        Tuple of (grad_a, grad_b)\n\n    TODO: Implement gradient computation for division operation.\n\n    APPROACH:\n    1. Extract input tensors from self.inputs\n    2. Initialize grad_a and grad_b to None\n    3. For first input (a): if requires_grad:\n       - Compute grad_a = grad_output / b\n       - Use _reduce_broadcast_grad() to handle shape mismatch\n    4. For second input (b): if requires_grad:\n       - Compute grad_b = -grad_output * a / (b²)\n       - Use _reduce_broadcast_grad() to handle shape mismatch\n    5. Return tuple (grad_a, grad_b)\n\n    EXAMPLE:\n    >>> a = Tensor([8.0, 12.0], requires_grad=True)\n    >>> b = Tensor([2.0, 3.0], requires_grad=True)\n    >>> z = a / b  # z = [4.0, 4.0]\n    >>> # During backward: grad_output = [1, 1]\n    >>> # grad_a = [1, 1] / [2, 3] = [0.5, 0.333...]\n    >>> # grad_b = -[1, 1] * [8, 12] / ([2, 3]²) = [-2, -1.333...]\n\n    HINTS:\n    - Quotient rule: ∂(a/b)/∂a = 1/b, ∂(a/b)/∂b = -a/b²\n    - Use _reduce_broadcast_grad() to handle broadcasting correctly\n    - b is always a Tensor here (Tensor.__truediv__ wrapped any scalar), so b.data is safe\n    - b² means b.data ** 2\n    \"\"\"\n    a, b = self.inputs\n    grad_a = grad_b = None\n\n    if isinstance(a, Tensor) and a.requires_grad:\n        # ∂(a/b)/∂a = 1/b\n        grad_a = grad_output / b.data\n        # Handle broadcasting: reduce gradient to match original shape\n        grad_a = _reduce_broadcast_grad(grad_a, a.data.shape)\n\n    if isinstance(b, Tensor) and b.requires_grad:\n        # ∂(a/b)/∂b = -a/b²\n        grad_b = -grad_output * a.data / (b.data ** 2)\n        # Handle broadcasting: reduce gradient to match original shape\n        grad_b = _reduce_broadcast_grad(grad_b, b.data.shape)\n\n    return grad_a, grad_b"
+  },
+  {
+   "type": "text",
+   "md": "### MatMul.backward: Gradient Rules for Matrix Multiplication\n\nMatrix multiplication has more complex gradient rules based on matrix calculus.\n\n**Mathematical Principle:**\n```\nIf Z = A @ B (matrix multiplication), then:\n∂Z/∂A = grad_Z @ B.T\n∂Z/∂B = A.T @ grad_Z\n```\n\n**Why These Rules Work:**\n```\nFor element Z[i,j] = Σ_k A[i,k] * B[k,j]\n∂Z[i,j]/∂A[i,k] = B[k,j]  ← This gives us grad_Z @ B.T\n∂Z[i,j]/∂B[k,j] = A[i,k]  ← This gives us A.T @ grad_Z\n```\n\n**Dimension Analysis:**\n```\nForward:  A(m×k) @ B(k×n) = Z(m×n)\nBackward: grad_Z(m×n) @ B.T(n×k) = grad_A(m×k) ✓\n          A.T(k×m) @ grad_Z(m×n) = grad_B(k×n) ✓\n```"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 84 lines of code (starting with `@method_of(MatMul)`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Arithmetic Backward Passes\n\nFour arithmetic rules and the matrix multiply, checked before you go on to the\nshape operations. Each is small enough to differentiate by hand, so this test\nstates the expected gradient rather than probing for one.\n\n**What we're testing**: Add, Sub, Mul, Div and MatMul backward, against\nhand-computed gradients rather than shapes\n**Why it matters**: A gradient with the right shape and the wrong value trains a\nmodel that quietly learns the wrong thing. Shape checks pass for a transposed\nmatmul gradient and for a subtraction that forgets its sign\n**Expected**: Add passes the gradient through, Sub negates the second operand,\nMul swaps the operands, Div carries the squared denominator, and MatMul matches\nG@B^T and A^T@G"
+  },
+  {
+   "type": "text",
+   "md": "### Permute: Gradient Rules for Transpose and General Reordering\n\nPermute is transpose for more than two axes. The gradient is the same idea, with\none extra step: you have to invert the permutation rather than just reapply it.\n\n**Mathematical Principle:**\n```\nIf Z = A.permute(axes), then grad_A = grad_Z.permute(argsort(axes))\n```\n\n**Why argsort and not axes:**\n```\naxes = (2, 0, 1)  means  Z's axis 0 came from A's axis 2\n                          Z's axis 1 came from A's axis 0\n                          Z's axis 2 came from A's axis 1\nTo send gradients home you need the inverse map: (1, 2, 0) = argsort(axes)\n```\n\nReapplying `axes` works for a 2D transpose only because swapping twice is the\nidentity. It is wrong in general, which is what makes this one worth writing out."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(Permute)\ndef backward(self, grad_output):\n    \"\"\"\n    Gradient computation for arbitrary axis permutation (general transpose).\n\n    **Mathematical Rule:** If Y = X.permute(axes), then:\n    - ∂Y/∂X = grad_Y.permute(inverse_axes)\n\n    **Example:** If axes = (0, 2, 1, 3), the inverse is (0, 2, 1, 3) (self-inverse).\n    More generally, if axes = (2, 0, 1), the inverse is (1, 2, 0).\n\n    **Key Insight:** To reverse a permutation, we need to know where each axis went.\n    If axis i went to position axes[i], then in the inverse, position axes[i] should go to i.\n\n    **Applications:** Rearranging tensor dimensions for different computation patterns (e.g., swapping batch and feature dimensions).\n\n    Compute gradient for permutation.\n\n    The gradient is permuted back using the inverse permutation.\n\n    **Mathematical Foundation:**\n    - ∂(X.permute(axes))/∂X = grad_output.permute(inverse_axes)\n\n    TODO: Implement gradient computation for permutation operation.\n\n    APPROACH:\n    1. Extract input tensor x from self.inputs\n    2. Initialize grad_x to None\n    3. If x requires gradients:\n       - Normalize negative axes, then permute grad_output using their inverse\n       - Use np.transpose(grad_output, np.argsort(normalized_axes))\n    4. Return tuple (grad_x,)\n\n    EXAMPLE:\n    >>> X = Tensor([[[1, 2], [3, 4]]], requires_grad=True)  # (1, 2, 2)\n    >>> Y = X.permute((0, 2, 1))  # Swap last two dims → (1, 2, 2)\n    >>> # During backward: inverse axes computed with np.argsort(self.axes)\n    >>> # grad_X = np.transpose(grad_output, inverse_axes)\n\n    HINTS:\n    - Normalize axes with axis % x.data.ndim before finding their inverse\n    - Apply np.transpose(grad_output, inverse_axes)\n    - Return as single-element tuple: (grad_x,)\n    \"\"\"\n    x, = self.inputs\n    grad_x = None\n\n    if isinstance(x, Tensor) and x.requires_grad:\n        # Permute gradient back to original axis order.\n        # If axes[i] = j, then inverse_axes[j] = i.\n        normalized_axes = tuple(axis % x.data.ndim for axis in self.axes)\n        inverse_axes = tuple(np.argsort(normalized_axes))\n        grad_x = np.transpose(grad_output, inverse_axes)\n\n    return (grad_x,)"
+  },
+  {
+   "type": "text",
+   "md": "### Slice.backward: Gradient Rules for Indexing\n\nSlicing selects a subset of coordinates and leaves the rest untouched. The chain rule mirrors this partition: positions selected by the slice receive the upstream gradient \\$\\bar{Z}\\$, while unselected positions contributed nothing to the output and receive zero.\n\n\\$\\$\\begin{aligned}\n\\text{Forward Slice:} \\quad & Z = A[\\text{key}] \\\\\n\\text{Backward VJP:} \\quad & \\bar{A} = \\mathbf{0}_{\\text{shape}(A)}, \\quad \\bar{A}[\\text{key}] \\mathrel{+}= \\bar{Z}\n\\end{aligned}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Element Position",
+    "Forward Role",
+    "Backward Derivative \\$\\frac{\\partial Z}{\\partial A_i}\\$",
+    "Gradient Received \\$\\bar{A}_i\\$"
+   ],
+   "rows": [
+    [
+     "**Indexed (\\$i \\in \\text{key}\\$)**",
+     "Copied into output slice \\$Z\\$",
+     "\\$1\\$",
+     "\\$\\bar{Z}_{\\text{subscript}}\\$ (accumulated via `np.add.at`)"
+    ],
+    [
+     "**Unindexed (\\$i \\notin \\text{key}\\$)**",
+     "Dropped from output",
+     "\\$0\\$",
+     "\\$0\\$ (remains unperturbed in zeros scaffold)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "This is the first backward implementation that constructs a tensor matching the shape of its **input** rather than reshaping its output. Module 11 will reuse this scatter-add pattern for embedding lookup, at vocabulary scale."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 75 lines of code (starting with `@method_of(Slice)`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Reshape.backward: Gradient Rules for Changing Shape\n\nReshape reinterprets the same contiguous array buffer under a new stride and dimension tuple. Because elements are neither duplicated, scaled, nor discarded, the vector-Jacobian product is simply a reshape of the upstream gradient back to the input's original geometry.\n\n\\$\\$\\begin{aligned}\n\\text{Forward View:} \\quad & Z = \\text{reshape}(A, \\text{shape}_{\\text{new}}) \\\\\n\\text{Backward View:} \\quad & \\bar{A} = \\text{reshape}(\\bar{Z}, \\text{shape}(A))\n\\end{aligned}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Direction",
+    "Tensor",
+    "Shape Transformation",
+    "Memory Layout"
+   ],
+   "rows": [
+    [
+     "**Forward**",
+     "\\$A \\to Z\\$",
+     "\\$(d_0, d_1, \\dots) \\to (s_0, s_1, \\dots)\\$",
+     "Stride reinterpretation of identical flat buffer"
+    ],
+    [
+     "**Backward**",
+     "\\$\\bar{Z} \\to \\bar{A}\\$",
+     "\\$(s_0, s_1, \\dots) \\to (d_0, d_1, \\dots)\\$",
+     "Restores stashed input shape from `self.inputs[0].shape`"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Every operation in this structural group stashes what the forward pass consumed: `Reshape` saves input shape, `Slice` saves index keys, and `Permute` saves original axis order."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(Reshape)\ndef backward(self, grad_output):\n    \"\"\"\n    Gradient computation for reshape operation.\n\n    **Mathematical Rule:** If Y = X.reshape(new_shape), then:\n    - ∂Y/∂X = grad_Y.reshape(X.shape)\n\n    **Key Insight:** Reshape just rearranges the same elements.\n    The gradient is simply reshaped back to the original shape!\n\n    **Applications:** Flattening tensors for linear layers, reshaping\n    between convolutional and dense layers.\n\n    Compute gradient for reshape.\n\n    Args:\n        grad_output: Gradient flowing backward from output\n\n    Returns:\n        Tuple with single gradient for input tensor\n\n    **Mathematical Foundation:**\n    - ∂(X.reshape(...))/∂X = grad_output.reshape(X.shape)\n    - Just reshape the gradient back!\n\n    TODO: Implement gradient computation for reshape operation.\n\n    APPROACH:\n    1. Extract input tensor x from self.inputs\n    2. Initialize grad_x to None\n    3. If x requires gradients:\n       - Reshape grad_output back to original shape\n       - Use grad_output.reshape(the input's shape (self.inputs[0].shape))\n    4. Return tuple (grad_x,)\n\n    EXAMPLE:\n    >>> X = Tensor([[1, 2], [3, 4]], requires_grad=True)  # (2, 2)\n    >>> Y = X.reshape(4)  # [1, 2, 3, 4]\n    >>> # During backward: grad_output = [1, 1, 1, 1]\n    >>> # grad_X = grad_output.reshape((2, 2)) = [[1, 1], [1, 1]]\n\n    HINTS:\n    - Reshape just rearranges elements, doesn't change values\n    - Simply reshape gradient back to original shape\n    - Use .reshape() method on grad_output numpy array\n    - Return as single-element tuple: (grad_x,)\n    \"\"\"\n    x, = self.inputs\n    grad_x = None\n\n    if isinstance(x, Tensor) and x.requires_grad:\n        # Reshape gradient back to original shape\n        grad_x = grad_output.reshape(x.shape)\n\n    return (grad_x,)"
+  },
+  {
+   "type": "text",
+   "md": "### Sum.backward: Gradient Rules for Reduction Operations\n\nSum operations reduce tensor rank and element count by aggregating across one or all axes. Because addition has a unit local derivative (\\$\\frac{\\partial}{\\partial a_i} \\sum_k a_k = 1\\$), the upstream gradient is broadcast back to every contributing input coordinate.\n\n\\$\\$\\begin{aligned}\n\\text{Full Sum Reduction:} \\quad & z = \\sum_{i} a_i \\implies \\frac{\\partial z}{\\partial a_i} = 1 \\implies \\bar{a} = \\bar{z} \\cdot \\mathbf{1}_{\\text{shape}(a)} \\\\\n\\text{Axis Reduction:} \\quad & z_j = \\sum_{i} A_{ij} \\implies \\frac{\\partial z_j}{\\partial A_{ij}} = 1 \\implies \\bar{A} = \\text{broadcast}(\\bar{z}, \\text{shape}(A))\n\\end{aligned}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Sum Variation",
+    "Forward Operation",
+    "Upstream Gradient \\$\\bar{z}\\$",
+    "Backward VJP \\$\\bar{a}\\$"
+   ],
+   "rows": [
+    [
+     "**Full Scalar Sum**",
+     "\\$z = \\sum a \\in \\mathbb{R}\\$",
+     "Scalar \\$\\bar{z} \\in \\mathbb{R}\\$",
+     "`np.ones_like(a) * grad_output`"
+    ],
+    [
+     "**Axis-Specific Sum**",
+     "\\$Z = \\sum_{k} A \\in \\mathbb{R}^{\\dots}\\$",
+     "Tensor \\$\\bar{Z}\\$",
+     "Broadcast \\$\\bar{Z}\\$ along reduced axes to `A.shape`"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(Sum)\ndef backward(self, grad_output):\n    \"\"\"\n    Gradient computation for tensor sum.\n\n    **Mathematical Rule:** If z = sum(a), then ∂z/∂a[i] = 1 for all i\n\n    **Key Insight:** Sum distributes the gradient equally to all input elements.\n    The gradient is broadcast from the reduced output back to input shape.\n\n    **Applications:** Used in loss functions, mean operations, and\n    anywhere tensor reduction occurs.\n\n    Compute gradients for sum operation.\n\n    Args:\n        grad_output: Gradient flowing backward from output\n\n    Returns:\n        Tuple containing gradient for the input tensor\n\n    **Mathematical Foundation:**\n    - ∂sum(a)/∂a[i] = 1 → grad_a = ones_like(a) * grad_output\n\n    TODO: Implement gradient computation for sum reduction operation.\n\n    APPROACH:\n    1. Extract input tensor from self.inputs\n    2. If tensor requires gradients:\n       - Create ones array: np.ones_like(tensor.data)\n       - Multiply by grad_output: ones * grad_output\n       - Return as tuple: (grad_tensor,)\n    3. Else return (None,)\n\n    EXAMPLE:\n    >>> X = Tensor([1, 2, 3], requires_grad=True)\n    >>> Y = X.sum()  # Y = 6 (scalar)\n    >>> # During backward: grad_output = 1 (scalar)\n    >>> # grad_X = [1, 1, 1] * 1 = [1, 1, 1]\n\n    HINTS:\n    - Sum distributes gradient equally to all elements\n    - Use np.ones_like(tensor.data) to create gradient template\n    - Multiply ones by grad_output (broadcasting handles scalar/tensor)\n    - Return as single-element tuple: (grad_result,)\n    \"\"\"\n    tensor, = self.inputs\n\n    if isinstance(tensor, Tensor) and tensor.requires_grad:\n        # For axis-reduced sums, expand grad_output back along the summed\n        # axis before broadcasting, so each row/column gets its own gradient.\n        if self.axis is not None and not self.keepdims:\n            grad_output = np.expand_dims(grad_output, axis=self.axis)\n        return np.ones_like(tensor.data) * grad_output,\n    return None,"
+  },
+  {
+   "type": "text",
+   "md": "### Mean, Max, Copy, MaskedFill.backward: The Remaining Module 01 Operations\n\nEvery operation Module 01 gave a forward needs a backward, or the first `loss.mean()` you write will stop here. These four are short:\n\n- **Mean** is a Sum divided by the number of elements averaged, so each element receives the output gradient over that count.\n- **Max** routes the gradient to the element that won and nothing to the rest. `apply()` saves the operation's output on the node as `self.output`, so the winners are wherever the input equals it. If several elements tie, the gradient is split evenly among them (PyTorch's `max()` picks one of them instead).\n- **Copy** changed nothing, so the gradient passes straight through.\n- **MaskedFill** overwrote the masked positions with a constant, so they receive no gradient; everything else passes through."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 96 lines of code (starting with `def _expand_reduced(grad_output, shape, axis, keepdims):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Shape and Reduction Backward Passes\n\nThis test validates the backward pass of every Function class you just wrote,\none family at a time: the arithmetic ops, the matrix multiply, the shape ops\nthat move gradients around, and the reductions that spread one gradient back\nover many inputs.\n\n**What we're testing**: Every backward in this section, against hand-computed\ngradients rather than shapes alone\n**Why it matters**: A backward with the right shape and the wrong values trains\na model that quietly learns the wrong thing. Shape checks pass for a transposed\nmatmul gradient, a slice that drops its scatter, and a max that rewards every\nelement instead of the winner\n**Expected**: Sub negates the second gradient, Div carries the squared\ndenominator, MatMul matches G@B^T and A^T@G, Permute inverts its axes, Slice\nscatters into the sliced positions and zeros elsewhere, MaskedFill gives masked\npositions nothing, and Sum, Mean and Max distribute as their definitions require"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Broadcasting in Gradients\nThis test validates that gradient reduction works correctly when operations\ninvolve broadcasting. This is crucial for real-world training where bias terms,\nnormalization parameters, and other operations broadcast over batches.\n\n**What we're testing**: Gradient shape correctness with broadcasting\n**Why it matters**: Without proper reduction, bias gradients would have wrong shapes\n**Expected**: Gradients match original tensor shapes after reduction"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Implementation: Building the Autograd Engine."
+   ]
+  }
+ ]
+}

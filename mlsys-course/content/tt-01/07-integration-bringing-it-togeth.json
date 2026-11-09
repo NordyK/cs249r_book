@@ -1,0 +1,40 @@
+{
+ "title": "🔧 Integration: Bringing It Together",
+ "summary": "TinyTorch tensor: 🔧 Integration: Bringing It Together",
+ "source": {
+  "chapter": "tt-01",
+  "sections": [
+   "🔧 Integration: Bringing It Together"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Bringing It Together\n\nLet's test how our Tensor operations work together in realistic scenarios. This integration demonstrates that our individual operations combine correctly for complex workflows.\n\n### Linear Transformation Simulation\n\nA common pattern in machine learning and scientific computing is the affine transformation:\n\n\\$\\$\\mathbf{Y} = \\mathbf{X}\\mathbf{W} + \\mathbf{b}\\$\\$\n\n\\$\\$\\underbrace{\\mathbf{X}}_{(N, D_{\\text{in}})} \\xrightarrow{\\text{Matrix Multiply with } \\mathbf{W} \\in \\mathbb{R}^{D_{\\text{in}} \\times D_{\\text{out}}}} \\underbrace{\\mathbf{X}\\mathbf{W}}_{(N, D_{\\text{out}})} \\xrightarrow{\\text{Broadcast Add with } \\mathbf{b} \\in \\mathbb{R}^{D_{\\text{out}}}} \\underbrace{\\mathbf{Y}}_{(N, D_{\\text{out}})}\\$\\$\n\n**Concrete Numerical Trace:**\nGiven input \\$\\mathbf{X} \\in \\mathbb{R}^{2 \\times 3}\\$, weight \\$\\mathbf{W} \\in \\mathbb{R}^{3 \\times 2}\\$, and bias \\$\\mathbf{b} \\in \\mathbb{R}^2\\$:"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\mathbf{X} = \\begin{bmatrix} 1 & 2 & 3 \\\\ 4 & 5 & 6 \\end{bmatrix}, \\quad \\mathbf{W} = \\begin{bmatrix} 0.1 & 0.2 \\\\ 0.3 & 0.4 \\\\ 0.5 & 0.6 \\end{bmatrix}, \\quad \\mathbf{b} = \\begin{bmatrix} 0.1 & 0.2 \\end{bmatrix}\\$\\$\n\n* **Step 1: Inner-Dimension Contraction (\\$\\mathbf{X}\\mathbf{W}\\$)**\n  \\$\\$\\mathbf{X}\\mathbf{W} = \\begin{bmatrix} 1(0.1)+2(0.3)+3(0.5) & 1(0.2)+2(0.4)+3(0.6) \\\\ 4(0.1)+5(0.3)+6(0.5) & 4(0.2)+5(0.4)+6(0.6) \\end{bmatrix} = \\begin{bmatrix} 2.2 & 2.8 \\\\ 4.9 & 6.4 \\end{bmatrix}\\$\\$\n\n* **Step 2: Offset Injection via Broadcasting (\\$+ \\mathbf{b}\\$)**\n  \\$\\$\\mathbf{Y} = \\begin{bmatrix} 2.2 & 2.8 \\\\ 4.9 & 6.4 \\end{bmatrix} + \\begin{bmatrix} 0.1 & 0.2 \\end{bmatrix} = \\begin{bmatrix} 2.3 & 3.0 \\\\ 5.0 & 6.6 \\end{bmatrix}\\$\\$\n\nThis affine transformation pattern is the foundational linear layer underlying MLPs, CNNs, and Transformer projections!\n\n### Why This Integration Matters"
+  },
+  {
+   "type": "text",
+   "md": "This simulation shows how our basic operations combine to create powerful computational building blocks:\n\n- **Matrix Multiplication**: Transforms input features into a new feature space\n- **Broadcasting Addition**: Applies offsets efficiently across batches of data\n- **Shape Handling**: Ensures data flows correctly through transformation stages\n- **Memory Management**: Creates new tensors without corrupting inputs\n\nYou'll see this affine transformation pattern used extensively as we build more complex systems in later modules."
+  },
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Memory Layout and Performance\n\nLet's understand ONE key systems concept: **memory layout and cache behavior**.\n\nThis single analysis reveals why certain operations are fast while others are slow, and why framework designers make specific architectural choices."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 64 lines of code (starting with `def analyze_memory_layout():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🔧 Integration: Bringing It Together."
+   ]
+  }
+ ]
+}

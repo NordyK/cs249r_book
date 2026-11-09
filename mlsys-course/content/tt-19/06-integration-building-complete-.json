@@ -1,0 +1,224 @@
+{
+ "title": "🔧 Integration: Building Complete Benchmark Workflows",
+ "summary": "TinyTorch benchmarking: 🔧 Integration: Building Complete Benchmark Workflows",
+ "source": {
+  "chapter": "tt-19",
+  "sections": [
+   "🔧 Integration: Building Complete Benchmark Workflows"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Building Complete Benchmark Workflows\n\nNow we'll integrate all our benchmarking components into complete workflows that demonstrate professional ML systems evaluation. This integration shows how to combine statistical rigor with practical insights.\n\nThe integration layer connects individual measurements into actionable engineering insights. This is where benchmarking becomes a decision-making tool rather than just data collection.\n\n### Workflow Architecture"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Stage",
+    "Input Entities",
+    "Transformations",
+    "Practical Deployment Questions"
+   ],
+   "rows": [
+    [
+     "**1. Model Variants**",
+     "Base, Quantized, Pruned, Distilled",
+     "Standardized test execution",
+     "\"What are the baseline performance envelopes?\""
+    ],
+    [
+     "**2. Optimization Profiling**",
+     "Multi-metric benchmarks",
+     "Compute \\$\\Delta\\text{Acc}\\$, Speedup, Memory savings",
+     "\"Which optimization yields the highest efficiency ratio?\""
+    ],
+    [
+     "**3. Use-Case Mapping**",
+     "Hardware & SLA constraints",
+     "Multi-objective optimization",
+     "\"Which model satisfies edge vs server deployment constraints?\""
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Optimization Comparison Engine\n\nBefore implementing the comparison function, let's understand what makes optimization comparison challenging and valuable.\n\n### Why Optimization Comparison is Complex\n\nWhen you optimize a model, you make trade-offs across multiple dimensions simultaneously:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Optimization Technique",
+    "Accuracy Impact (\\$\\Delta \\text{Acc}\\$)",
+    "Latency Speedup",
+    "Memory Reduction",
+    "Energy Savings",
+    "Primary Trade-Off"
+   ],
+   "rows": [
+    [
+     "**Quantization** (INT8 from FP32)",
+     "\\$-5\\%\\$",
+     "\\$2.1\\times\\$",
+     "\\$4.0\\times\\$",
+     "\\$1.8\\times\\$",
+     "Precision loss in low dynamic range"
+    ],
+    [
+     "**Structured Pruning**",
+     "\\$-2\\%\\$",
+     "\\$1.4\\times\\$",
+     "\\$3.2\\times\\$",
+     "\\$1.3\\times\\$",
+     "Sparse memory access vs density"
+    ],
+    [
+     "**Knowledge Distillation**",
+     "\\$-8\\%\\$",
+     "\\$1.9\\times\\$",
+     "\\$1.5\\times\\$",
+     "\\$1.7\\times\\$",
+     "Dark knowledge transfer fidelity"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The challenge: Which is \"best\"? It depends entirely on your deployment constraints.\n\n### Multi-Objective Decision Framework\n\nOur comparison engine implements a decision framework that:\n\n1. **Measures all dimensions**: Don't optimize in isolation\n2. **Calculates efficiency ratios**: Accuracy per MB, accuracy per ms\n3. **Identifies the Pareto frontier**: `pareto_frontier()` keeps a variant when no\n   other variant is at least as good on *every* metric and strictly better on one\n4. **Generates use-case recommendations**: Tailored to specific constraints, using\n   stated weights (see `_generate_recommendations`, the one weighted step here)\n\n### Formal Recommendation Objectives"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Deployment Regime",
+    "Optimization Formulation",
+    "Constraint Boundary",
+    "Target Domain"
+   ],
+   "rows": [
+    [
+     "**Latency-Critical**",
+     "\\$\\min_{\\theta} \\text{Latency}(\\theta)\\$",
+     "\\$\\text{Accuracy}(\\theta) \\ge \\text{Acc}_{\\text{target}}\\$",
+     "Autonomous driving, real-time audio"
+    ],
+    [
+     "**Memory-Constrained**",
+     "\\$\\min_{\\theta} \\text{PeakMemory}(\\theta)\\$",
+     "\\$\\text{Accuracy}(\\theta) \\ge \\text{Acc}_{\\text{target}}\\$",
+     "Microcontrollers, wearable IoT"
+    ],
+    [
+     "**Accuracy-Preservation**",
+     "\\$\\max_{\\theta} \\text{Accuracy}(\\theta)\\$",
+     "\\$\\text{Latency}(\\theta) \\le \\text{Lat}_{\\text{max}}\\$",
+     "Medical diagnostics, legal review"
+    ],
+    [
+     "**Balanced Deployment**",
+     "\\$\\max_{\\theta} \\big[\\alpha \\frac{\\text{Acc}}{\\text{Acc}_0} + \\beta \\frac{\\text{Lat}_0}{\\text{Lat}} + \\gamma \\frac{\\text{Mem}_0}{\\text{Mem}}\\big]\\$",
+     "Multi-objective budget",
+     "Edge mobile, client-side web"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "This principled approach ensures recommendations match real deployment needs."
+  },
+  {
+   "type": "text",
+   "md": "### _collect_base_metrics: Extracting Baseline Performance\n\nThis helper extracts the base model's mean performance across all metrics from\nthe benchmark results. It establishes the reference point for improvement calculations."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _collect_base_metrics(base_name: str, benchmark_results: Dict) -> Dict[str, float]:\n    \"\"\"\n    Extract base model metrics from benchmark results.\n\n    TODO: Find the base model's mean value for each metric type\n\n    APPROACH:\n    1. Iterate over each metric type (latency, accuracy, memory, energy)\n    2. Find the result keyed by base_name, or base_name plus a metric suffix\n    3. Store result.mean in a dict keyed by metric type\n\n    HINTS:\n    - Keys are model names, sometimes with a suffix such as base_latency_ms\n    \"\"\"\n    base_metrics = {}\n    for metric_type, results in benchmark_results.items():\n        if base_name in results:\n            base_metrics[metric_type] = results[base_name].mean\n            continue\n        for model_name, result in results.items():\n            if model_name.startswith(base_name + \"_\"):\n                base_metrics[metric_type] = result.mean\n                break\n    return base_metrics"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _collect_base_metrics\n\n**What we're testing**: Extraction of base model's mean metrics from benchmark results\n**Why it matters**: Accurate baselines are essential for meaningful improvement ratios\n**Expected**: Dict with metric types as keys and mean values as floats"
+  },
+  {
+   "type": "text",
+   "md": "### _calculate_improvements: Computing Speedup and Retention Ratios\n\nThis helper computes improvement ratios for each optimized model relative to\nthe baseline. For latency/memory/energy (lower is better), it calculates\nbase/optimized as the speedup factor. For accuracy, it calculates\noptimized/base as the retention ratio.\n\n```\nImprovement Calculation:\nLatency:  speedup = base_latency / opt_latency  (>1 means faster)\nMemory:   speedup = base_memory / opt_memory     (>1 means smaller)\nAccuracy: retention = opt_accuracy / base_accuracy (closer to 1 is better)\n```"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _calculate_improvements(base_metrics: Dict[str, float], opt_metrics: Dict[str, float]) -> Dict[str, float]:\n    \"\"\"\n    Calculate improvement ratios for an optimized model vs baseline.\n\n    TODO: Compute speedup ratios for latency/memory/energy and retention for accuracy\n\n    APPROACH:\n    1. For latency, memory, energy: improvement = base / optimized\n    2. For accuracy: retention = optimized / base\n    3. Handle division by zero with fallback to 1.0\n\n    HINTS:\n    - Check opt_metrics[metric] > 0 before dividing\n    - Use f'{metric_type}_speedup' as key names\n    \"\"\"\n    improvements = {}\n    for metric_type in ['latency', 'memory', 'energy']:\n        if metric_type in base_metrics and metric_type in opt_metrics:\n            # For these metrics, lower is better, so improvement = base/optimized\n            if opt_metrics[metric_type] > 0:\n                improvements[f'{metric_type}_speedup'] = base_metrics[metric_type] / opt_metrics[metric_type]\n            else:\n                improvements[f'{metric_type}_speedup'] = 1.0\n\n    if 'accuracy' in base_metrics and 'accuracy' in opt_metrics:\n        # Accuracy retention (higher is better)\n        if base_metrics['accuracy'] > 0:\n            improvements['accuracy_retention'] = opt_metrics['accuracy'] / base_metrics['accuracy']\n        else:\n            improvements['accuracy_retention'] = 1.0\n\n    return improvements"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _calculate_improvements\n\n**What we're testing**: Improvement ratio calculations for all metric types\n**Why it matters**: Correct ratios drive optimization recommendations\n**Expected**: Speedup > 1 when optimized is better, retention near 1.0"
+  },
+  {
+   "type": "text",
+   "md": "### _generate_recommendations: Deployment-Specific Guidance\n\nThis helper analyzes improvement ratios across all optimized models to generate\nrecommendations for four deployment scenarios: latency-critical, memory-constrained,\naccuracy-preservation, and balanced deployment.\n\nThree of the four are unambiguous, each picking the maximum of one ratio. The fourth,\nbalanced deployment, is the **only** weighted decision in this module, and the weights\nare worth stating because they are a choice and not a measurement:\n\n\\$\\$\\text{score} = \\frac{\\sum_{k \\in \\text{speedups}} \\min(r_k,\\, 5) \\;+\\; 5\\,\\rho_{\\text{acc}}}{\\lvert \\text{speedups} \\rvert + 1}\\$\\$\n\nAccuracy retention \\$\\rho_{\\text{acc}}\\$ carries a weight of \\$5\\$ against \\$1\\$ per\nspeedup, so a variant that gives up \\$10\\%\\$ of the baseline's accuracy must win roughly\n\\$0.5\\times\\$ of speedup somewhere to break even. Speedups are capped at \\$5\\times\\$ so one\noutlier ratio cannot outvote everything else. Change either number and the\nrecommendation changes, which is why the reason string carries both.\n\nCompare this with `pareto_frontier()`, which weighs nothing and therefore decides\nnothing. The frontier narrows the field; a weighted score picks from it. Keep the two\nsteps separate, so you always know which one moved the answer."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 84 lines of code (starting with `def _generate_recommendations(all_improvements: Dict[str, Dict[str, float]]) -> `). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _generate_recommendations\n\n**What we're testing**: Recommendation generation from improvement data\n**Why it matters**: Correct recommendations guide deployment decisions\n**Expected**: Four recommendation categories with appropriate model selections"
+  },
+  {
+   "type": "text",
+   "md": "### analyze_optimization_techniques: Composition Function\n\nThis is the main entry point that composes `_collect_base_metrics`,\n`_calculate_improvements`, and `_generate_recommendations` into a complete\noptimization comparison workflow:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Pipeline Step",
+    "Module Subroutine",
+    "Computed Metric / Transformation"
+   ],
+   "rows": [
+    [
+     "**1. Full Benchmark**",
+     "`BenchmarkSuite.run_full_benchmark()`",
+     "Runs latency, accuracy, memory, and energy across all models"
+    ],
+    [
+     "**2. Baseline Extraction**",
+     "`_collect_base_metrics()`",
+     "Isolates baseline vector \\$\\mathbf{v}_{\\text{base}} = [\\mu_{\\text{lat}}, \\mu_{\\text{acc}}, \\mu_{\\text{mem}}, \\mu_{\\text{eng}}]\\$"
+    ],
+    [
+     "**3. Relative Deltas**",
+     "`_calculate_improvements()`",
+     "Computes speedup ratios, accuracy changes, and memory reduction factors"
+    ],
+    [
+     "**4. Frontier**",
+     "`pareto_frontier()`",
+     "Drops variants another variant beats on every metric at once"
+    ],
+    [
+     "**5. Policy Recommendation**",
+     "`_generate_recommendations()`",
+     "Applies the one stated weighting to pick a balanced variant"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 132 lines of code (starting with `def analyze_optimization_techniques(base_model: Any, optimized_models: List[Any]`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: analyze_optimization_techniques (Full Integration)\n\nThis test validates the complete optimization comparison workflow generates\nuseful recommendations from benchmark data.\n\n**What we're testing**: Multi-model comparison with recommendation generation\n**Why it matters**: Guides engineers to choose the right optimization for their use case\n**Expected**: Valid comparisons and actionable recommendations"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🔧 Integration: Building Complete Benchmark Workflows."
+   ]
+  }
+ ]
+}

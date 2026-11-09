@@ -1,0 +1,93 @@
+{
+ "title": "Module 02: Activations - Intelligence Through Nonlinearity",
+ "summary": "TinyTorch activations: Module 02: Activations - Intelligence Through Nonlinearity",
+ "source": {
+  "chapter": "tt-02",
+  "sections": [
+   "Module 02: Activations - Intelligence Through Nonlinearity"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 02: Activations - Intelligence Through Nonlinearity\n\nWelcome to Module 02! Today you'll add the one ingredient a stack of linear layers cannot supply on its own: **nonlinearity**.\n\n## 🔗 Prerequisites & Progress\n**You've Built**: Tensor with data manipulation and basic operations\n**You'll Build**: Activation functions that add nonlinearity to transformations\n**You'll Enable**: Neural networks with the ability to learn complex patterns\n\n**Connection Pipeline**:\n\\$\\$\\mathbf{X} \\in \\text{Tensor (data)} \\xrightarrow{\\text{Parameterization}} \\mathbf{W}\\mathbf{X} + \\mathbf{b} \\in \\text{Layers} \\xrightarrow{\\text{Nonlinearity}} \\sigma(\\mathbf{W}\\mathbf{X} + \\mathbf{b}) \\in \\text{Activations}\\$\\$\n\n## 🎯 Learning Objectives\nBy the end of this module, you will:\n1. Implement 5 core activation functions (Sigmoid, ReLU, Tanh, GELU, Softmax)\n2. Understand how nonlinearity enables neural network intelligence\n3. Test activation behaviors and output ranges\n4. Connect activations to real neural network components\n\nLet's add intelligence to your tensors!\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/02_activations/activations.ipynb`\n**Building Side:** Code exports to tinytorch.core.activations"
+  },
+  {
+   "type": "text",
+   "md": "```python\n# Final package structure:\nfrom tinytorch.core.activations import Sigmoid, ReLU, Tanh, GELU, Softmax  # This module\nfrom tinytorch.core.tensor import Tensor  # Foundation (Module 01)\n```\n\n**Why this matters:**\n- **Learning:** Complete activation system in one focused module for deep understanding\n- **Production:** Proper organization like PyTorch's torch.nn.functional with all activation operations together\n- **Consistency:** All activation functions and behaviors in core.activations\n- **Integration:** Works seamlessly with Tensor for complete nonlinear transformations"
+  },
+  {
+   "type": "text",
+   "md": "## 📋 Module Dependencies\n\n**Prerequisites**: Module 01 (Tensor) must be completed\n\n**External Dependencies**:\n- `numpy` (for numerical operations)\n\n**TinyTorch Dependencies**:\n- **Module 01 (Tensor)**: Foundation for all activation computations and data flow\n  - Used for: `Tensor` for input/output data structures, shape operations, element-wise\n    operations; `Function` as the base class every activation operation subclasses\n  - Required: Yes - activations operate on Tensor objects and are written as Functions\n\n**Dependency Flow**:\n\\$\\$\\underbrace{\\text{Module 01: Tensor}}_{\\text{Tensor Foundation}} \\longrightarrow \\underbrace{\\text{Module 02: Activations}}_{\\text{Nonlinear Functions}} \\longrightarrow \\underbrace{\\text{Module 03: Layers}}_{\\text{Network Architecture}}\\$\\$"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import numpy as np\n\n# Import from TinyTorch package (previous modules must be completed and exported)\nfrom tinytorch.core.tensor import Tensor, Function"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "# Kept out of the exported cell above. This is a test-only constant, so shipping it\n# in tinytorch.core.activations' public surface would advertise it as part of the API.\nTOLERANCE = 1e-10  # Small tolerance for floating-point comparisons in tests"
+  },
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: What Makes Neural Networks Intelligent?\n\nConsider two architectural scenarios:\n\n**1. Without Activations (Linear Transformations Only):**\nAny cascade of purely linear layers collapses mathematically into a single matrix multiplication:\n\\$\\$\\mathbf{h}_1 = \\mathbf{W}_1 \\mathbf{x}, \\quad \\mathbf{h}_2 = \\mathbf{W}_2 \\mathbf{h}_1, \\quad \\hat{\\mathbf{y}} = \\mathbf{W}_3 \\mathbf{h}_2\\$\\$\n\\$\\$\\hat{\\mathbf{y}} = \\mathbf{W}_3 (\\mathbf{W}_2 (\\mathbf{W}_1 \\mathbf{x})) = (\\mathbf{W}_3 \\mathbf{W}_2 \\mathbf{W}_1) \\mathbf{x} = \\mathbf{W}_{\\text{eff}} \\mathbf{x}\\$\\$\nRegardless of whether you stack 3 layers or 300 layers, the resulting function can only construct linear hyperplanes."
+  },
+  {
+   "type": "text",
+   "md": "**2. With Activations (Nonlinear Transformations):**\nInterleaving nonlinear activation functions \\$\\sigma(\\cdot)\\$ prevents linear collapse:\n\\$\\$\\mathbf{h}_1 = \\sigma(\\mathbf{W}_1 \\mathbf{x}), \\quad \\mathbf{h}_2 = \\sigma(\\mathbf{W}_2 \\mathbf{h}_1), \\quad \\hat{\\mathbf{y}} = \\mathbf{W}_3 \\mathbf{h}_2\\$\\$\nEach activation function selectively warps and bends the coordinate space, allowing deep networks to approximate arbitrary continuous functions (Universal Approximation Theorem).\n\n## 📐 Foundations: Five Activation Functions\n\nEach activation function provides a distinct mathematical behavior tuned for specific systems and architectural roles:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Activation",
+    "Mathematical Formulation",
+    "Output Range",
+    "Systems & Architectural Role"
+   ],
+   "rows": [
+    [
+     "**Sigmoid**",
+     "\\$\\sigma(x) = \\frac{1}{1 + e^{-x}}\\$",
+     "\\$(0, 1)\\$",
+     "Binary classification outputs, gating mechanisms (LSTMs, GRUs)"
+    ],
+    [
+     "**ReLU**",
+     "\\$f(x) = \\max(0, x)\\$",
+     "\\$[0, \\infty)\\$",
+     "Standard hidden layer default; extreme hardware speed and activation sparsity"
+    ],
+    [
+     "**Tanh**",
+     "\\$\\tanh(x) = \\frac{e^x - e^{-x}}{e^x + e^{-x}}\\$",
+     "\\$(-1, 1)\\$",
+     "Zero-centered representations preventing gradient bias drift"
+    ],
+    [
+     "**GELU**",
+     "\\$x \\cdot \\Phi(x) \\approx x \\cdot \\sigma(1.702x)\\$",
+     "\\$[\\approx -0.164, \\infty)\\$ as implemented; \\$[\\approx -0.170, \\infty)\\$ for exact \\$x \\cdot \\Phi(x)\\$",
+     "Modern Transformer standard (GPT, BERT); smooth gradient flow"
+    ],
+    [
+     "**Softmax**",
+     "\\$\\frac{e^{z_i - \\max(\\mathbf{z})}}{\\sum_j e^{z_j - \\max(\\mathbf{z})}}\\$",
+     "\\$[0, 1], \\sum = 1\\$",
+     "Multi-class probability distributions, attention score normalization"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Let's implement each one with clear mathematical formulations and unit testing!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 02: Activations - Intelligence Through Nonlinearity."
+   ]
+  }
+ ]
+}

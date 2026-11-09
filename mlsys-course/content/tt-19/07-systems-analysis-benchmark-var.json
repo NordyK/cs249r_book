@@ -1,0 +1,45 @@
+{
+ "title": "📊 Systems Analysis: Benchmark Variance and Optimization Trade-offs",
+ "summary": "TinyTorch benchmarking: 📊 Systems Analysis: Benchmark Variance and Optimization Trad",
+ "source": {
+  "chapter": "tt-19",
+  "sections": [
+   "📊 Systems Analysis: Benchmark Variance and Optimization Trade-offs",
+   "🧪 Module Integration Test"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Benchmark Variance and Optimization Trade-offs\n\nLet's understand the key systems concept of measurement variance and optimization trade-offs."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_benchmark_variance():\n    \"\"\"📊 Analyze measurement variance and confidence intervals.\"\"\"\n    print(\"📊 Analyzing Benchmark Variance\")\n    print(\"=\" * 60)\n\n    # Simulate benchmarking with different sample sizes\n    sample_sizes = [5, 10, 20, 50, 100]\n    true_latency = 10.0  # True mean latency in ms\n    noise_std = 1.5  # Standard deviation of measurement noise\n\n    print(f\"⚠️  SYNTHETIC DATA: draws from a known Normal(mu={true_latency} ms, \"\n          f\"sigma={noise_std} ms), not timings of any model. Nothing was benchmarked.\")\n    print(\"   Holding the true distribution fixed is the only way to isolate the\")\n    print(\"   sample-size effect, and a real measurement cannot do it.\\n\")\n\n    print(\"Effect of Sample Size on Confidence Interval Width:\\n\")\n    print(f\"{'Samples':<10} {'Mean (ms)':<12} {'t_0.975':<10} {'CI Width (ms)':<15} {'Relative Width':<15}\")\n    print(\"-\" * 66)\n\n    for n_samples in sample_sizes:\n        # Draw from the known distribution\n        measurements = rng.normal(true_latency, noise_std, n_samples)\n        mean_latency = np.mean(measurements)\n        std_latency = np.std(measurements, ddof=1)\n\n        # 95% Student-t interval, the same critical value BenchmarkResult uses\n        t_score = t_critical_95(n_samples - 1)\n        margin_error = t_score * (std_latency / np.sqrt(n_samples))\n        ci_width = 2 * margin_error\n        relative_width = ci_width / mean_latency * 100\n\n        print(f\"{n_samples:<10} {mean_latency:<12.2f} {t_score:<10.3f} \"\n              f\"{ci_width:<15.2f} {relative_width:<15.1f}%\")\n\n    # The sample size needed for a target width follows from the ratio the table\n    # shows, so compute it rather than quoting a remembered rule of thumb. For a\n    # relative CI width w: w = 2 * t * (sigma/mu) / sqrt(n).\n    cv = noise_std / true_latency\n    needed = next(n for n in range(2, 1000)\n                  if 2 * t_critical_95(n - 1) * cv / np.sqrt(n) < 0.10)\n    at_twenty = 2 * t_critical_95(19) * cv / np.sqrt(20) * 100\n\n    print(\"\\n💡 Key Insights:\")\n    print(\"   • More samples reduce confidence interval width\")\n    print(\"   • CI width decreases with √n (diminishing returns)\")\n    print(f\"   • At sigma/mu = {cv:.2f} the EXPECTED width at n=20 is {at_twenty:.1f}%, and\")\n    print(f\"     n={needed} is the first size expected under 10%. A single draw lands\")\n    print(\"     either side of that, which is what the table's scatter shows\")\n    print(\"   • So 'use 20 samples' is not a rule, it is a number that depends on\")\n    print(\"     the noise you actually have. Measure the noise, then pick n\")\n    print(\"   • The critical value is Student's t, not 1.96: at n=10 the constant\")\n    print(\"     1.96 reports an interval 13% narrower than the samples support\")\n\nif __name__ == \"__main__\":\n    analyze_benchmark_variance()"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_optimization_tradeoffs():\n    \"\"\"📊 Analyze trade-offs between different optimization techniques.\"\"\"\n    print(\"\\n📊 Analyzing Optimization Trade-offs\")\n    print(\"=\" * 60)\n\n    import copy\n    from tinytorch.perf.quantization import QuantizedLinear\n    from tinytorch.perf.compression import magnitude_prune\n\n    # One dense layer, then the two optimizations you built in Modules 15 and 16\n    profiler = Profiler()\n    base = Linear(512, 256)\n    x = Tensor(rng.standard_normal((32, 512)).astype(np.float32))\n    reference = base.forward(x).data\n\n    quantized = QuantizedLinear(base)\n    pruned = magnitude_prune(copy.deepcopy(base), sparsity=0.7)\n\n    def stored_mb(model):\n        \"\"\"Modeled packed INT8 bytes; actual dense parameter bytes otherwise.\"\"\"\n        if isinstance(model, QuantizedLinear):\n            return model.memory_usage()['quantized_bytes'] / 1_000_000\n        return sum(p.data.nbytes for p in model.parameters()) / 1_000_000\n\n    print(\"\\nMeasured on one Linear(512, 256) layer:\\n\")\n    print(f\"{'Technique':<20} {'Latency (ms)':<14} {'Payload (MB)':<13} {'Output error'}\")\n    print(\"-\" * 60)\n\n    for name, model in [('Baseline', base), ('Quantization (INT8)', quantized), ('Pruning (70%)', pruned)]:\n        latency = profiler.measure_latency(model, x, warmup=3, iterations=10)\n        output = model.forward(x).data\n        rel_error = np.mean((output - reference) ** 2) / np.mean(reference ** 2)\n        print(f\"{name:<20} {latency:<14.3f} {stored_mb(model):<13.3f} {rel_error:.2e}\")\n\n    print(\"\\n💡 Key Insights:\")\n    print(\"   • Baseline/pruned payloads count actual dense parameter bytes; zeros still occupy storage\")\n    print(\"   • INT8 payload is a modeled packed representation, not current Tensor storage\")\n    print(\"   • Latency is measured here; NumPy neither uses INT8 kernels nor skips pruned zeros\")\n    print(\"   • Output error is the price; accuracy on a task is what you must measure next\")\n    print(\"   • No single optimization dominates: pick by the deployment constraint that binds\")\n\nif __name__ == \"__main__\":\n    analyze_optimization_tradeoffs()"
+  },
+  {
+   "type": "text",
+   "md": "### MLPerf Principles: Industry-Standard Benchmarking\n\nMLPerf (created by MLCommons) is the industry-standard ML benchmarking framework. Understanding these principles grounds your capstone competition in professional methodology.\n\n### Core Principles\n\n**Reproducibility:** Fixed hardware specs, software versions, random seeds, and multiple runs for statistical validity.\n\n**Standardization:** Fixed models and datasets enable fair comparison. MLPerf has two divisions:\n- **Closed:** Same models/datasets, optimize systems (hardware/software)\n- **Open:** Modify models/algorithms, show innovation\n\n**MLPerf Tiny:** Four reference benchmarks for microcontroller-class devices (keyword spotting, visual wake words, anomaly detection, image classification) that inspire the capstone. Each defines a **quality target** and then **measures** latency and energy. It sets no model-size, latency, or power limit a submission must clear, which is why the millisecond ceilings in this module are labeled as TinyTorch's own.\n\n### Key Takeaways\n\n1. Document everything for reproducibility\n2. Use same baseline for fair comparison\n3. Measure multiple metrics (accuracy, latency, memory, energy)\n4. Optimize for real deployment constraints\n\nThe capstone project follows MLPerf-style principles!"
+  },
+  {
+   "type": "text",
+   "md": "### Combination Strategies\n\nStrategic optimization combines multiple techniques for different performance goals. The order matters. Quantize-then-prune may preserve accuracy better, while prune-then-quantize may be faster.\n\n### Ablation Studies\n\nProfessional ML engineers use ablation studies to understand each optimization's contribution (illustrative numbers):\n\n```\nBaseline:           Accuracy: 89%, Latency: 45ms, Memory: 12MB\n+ Quantization:     Accuracy: 88%, Latency: 30ms, Memory: 3MB   (Δ: -1%, -33%, -75%)\n+ Pruning:          Accuracy: 87%, Latency: 22ms, Memory: 2MB   (Δ: -1%, -27%, -33%)\n+ Kernel Fusion:    Accuracy: 87%, Latency: 18ms, Memory: 2MB   (Δ: 0%, -18%, 0%)\n```\n\nYou'll apply these strategies with specific optimization targets in Module 20's capstone project."
+  },
+  {
+   "type": "text",
+   "md": "## 🧪 Module Integration Test\n\nFinal validation that our complete benchmarking system works correctly and integrates properly with all TinyTorch components.\n\nThis comprehensive test validates the entire benchmarking ecosystem and ensures it's ready for production use in the final capstone project."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 📊 Systems Analysis: Benchmark Variance and Optimization Trade-offs, 🧪 Module Integration Test."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,105 @@
+{
+ "title": "🏗️ Multi-Head Attention: Subspace Specialization via Coordinate Origami",
+ "summary": "TinyTorch attention: 🏗️ Multi-Head Attention: Subspace Specialization via Coordin",
+ "source": {
+  "chapter": "tt-12",
+  "sections": [
+   "🏗️ Multi-Head Attention: Subspace Specialization via Coordinate Origami"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Multi-Head Attention: Subspace Specialization via Coordinate Origami\n\nSingle-head attention computes a single convex combination of values for each token, forcing the model to average over distinct grammatical, positional, and semantic relationships. Multi-Head Attention solves this by projecting input representations into \\$H\\$ distinct, lower-dimensional subspaces (\\$d_k = d_{\\text{model}} / H\\$), allowing parallel heads to independently track syntax, long-range coreference, and semantic dependencies simultaneously.\n\n### Mathematical Definition of Multi-Head Attention\n\\$\\$\\text{MultiHead}(Q, K, V) = \\text{Concat}(\\text{head}_1, \\text{head}_2, \\dots, \\text{head}_H) W_O\\$\\$\n\\$\\$\\text{head}_h = \\text{Attention}\\left(Q W_h^Q, \\, K W_h^K, \\, V W_h^V\\right)\\$\\$\n\nwhere projection matrices \\$W_h^Q, W_h^K, W_h^V \\in \\mathbb{R}^{d_{\\text{model}} \\times d_k}\\$ and output projection \\$W_O \\in \\mathbb{R}^{d_{\\text{model}} \\times d_{\\text{model}}}\\$.\n\n---\n\n### The Coordinate Origami Datapath\n\nTo execute all \\$H\\$ heads in parallel on hardware accelerators without slow Python loops, TinyTorch uses **tensor coordinate origami** (reshaping and transposing axis strides):"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Stage",
+    "Tensor Operation",
+    "NumPy / TinyTorch Expression",
+    "Resulting Shape Contract"
+   ],
+   "rows": [
+    [
+     "**1. Input Projection**",
+     "Linear GEMM",
+     "`x.matmul(W_q)`",
+     "\\$(B, S, D)\\$"
+    ],
+    [
+     "**2. Subspace Reshape**",
+     "Decompose hidden dim \\$D \\to (H, d_k)\\$",
+     "`x.reshape(B, S, H, d_k)`",
+     "\\$(B, S, H, d_k)\\$"
+    ],
+    [
+     "**3. Head Transposition**",
+     "Swap seq and head axes",
+     "`x.transpose(1, 2)`",
+     "\\$(B, H, S, d_k)\\$"
+    ],
+    [
+     "**4. Batched Attention**",
+     "Parallel \\$QK^\\top\\$ & \\$AV\\$",
+     "`scaled_dot_product_attention(...)`",
+     "\\$(B, H, S, d_k)\\$"
+    ],
+    [
+     "**5. Untangling Swap**",
+     "Restore temporal sequence axis",
+     "`x.transpose(1, 2)`",
+     "\\$(B, S, H, d_k)\\$"
+    ],
+    [
+     "**6. Recombination**",
+     "Flatten heads back into hidden dim",
+     "`x.reshape(B, S, D)`",
+     "\\$(B, S, D)\\$"
+    ],
+    [
+     "**7. Output Projection**",
+     "Inter-head representation mixing",
+     "`x.matmul(W_o)`",
+     "\\$(B, S, D)\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Systems Efficiency Invariant\nNotice that \\$H\\$ heads each computing attention with head dimension \\$d_k = D / H\\$ require:\n\\$\\$\\text{FLOPs} = H \\times (4 \\cdot B \\cdot S^2 \\cdot d_k) = 4 \\cdot B \\cdot S^2 \\cdot (H \\cdot d_k) = \\mathbf{4 \\cdot B \\cdot S^2 \\cdot D}\\$\\$\nMulti-head attention provides \\$H\\$ specialized, independent attention patterns with **identical computational complexity and parameter count** as a single massive head, while enabling tensor cores to run batched Level-3 BLAS GEMMs over \\$(B \\cdot H)\\$ matrix slices simultaneously!"
+  },
+  {
+   "type": "text",
+   "md": "### Splitting Heads\n\nMulti-head attention processes the same data through multiple independent \"heads.\"\nTo do this efficiently, we reshape the projected tensor from 3D to 4D, separating\nthe embedding dimension into (num_heads, head_dim). Then we transpose so the head\ndimension comes before the sequence dimension, enabling parallel attention computation.\n\n```\nSplit heads: (batch, seq, embed_dim) -> (batch, heads, seq, head_dim)\n\nExample with embed_dim=64, num_heads=8, head_dim=8:\n  (2, 10, 64) -> reshape -> (2, 10, 8, 8) -> transpose -> (2, 8, 10, 8)\n                             batch seq heads dim          batch heads seq dim\n```"
+  },
+  {
+   "type": "text",
+   "md": "### Merging Heads\n\nAfter each head computes its own attention independently, we need to recombine\nthem back into a single embedding. This is the reverse of splitting: transpose\nthe head and sequence dimensions back, then reshape to merge (heads, head_dim)\ninto a single embed_dim.\n\n```\nMerge heads: (batch, heads, seq, head_dim) -> (batch, seq, embed_dim)\n\nExample with embed_dim=64, num_heads=8, head_dim=8:\n  (2, 8, 10, 8) -> transpose -> (2, 10, 8, 8) -> reshape -> (2, 10, 64)\n                                batch seq heads dim          batch seq embed_dim\n```"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 204 lines of code (starting with `class MultiHeadAttention:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Split Heads\n\n**What we're testing**: 3D to 4D reshape correctly separates embedding into heads\n**Why it matters**: Wrong reshaping silently produces garbage attention\n**Expected**: (batch, heads, seq, head_dim) shape with correct values"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Merge Heads\n\n**What we're testing**: 4D to 3D reshape correctly recombines heads into embedding\n**Why it matters**: Split then merge must be a round-trip identity operation\n**Expected**: (batch, seq, embed_dim) shape matching original input"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Multi-Head Attention (End-to-End)\n\n**What we're testing**: Configuration, parameter counting, shape preservation, and masking support\n**Why it matters**: Multi-head attention must correctly split dimensions across heads and recombine them\n**Expected**: Proper head dimension calculation, 8 parameters (4 layers x 2), preserved output shapes"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Multi-Head Attention: Subspace Specialization via Coordinate Origami."
+   ]
+  }
+ ]
+}

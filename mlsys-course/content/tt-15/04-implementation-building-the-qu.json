@@ -1,0 +1,114 @@
+{
+ "title": "🏗️ Implementation: Building the Quantization Engine",
+ "summary": "TinyTorch quantization: 🏗️ Implementation: Building the Quantization Engine",
+ "source": {
+  "chapter": "tt-15",
+  "sections": [
+   "🏗️ Implementation: Building the Quantization Engine"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Building the Quantization Engine\n\n### Our Implementation Strategy\n\nWe construct the quantization engine across four modular abstraction boundaries, matching the design of production inference toolchains (such as PyTorch's `torch.ao.quantization` and ONNX Runtime):"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Abstraction Tier",
+    "Target Primitives",
+    "Engineering Functionality",
+    "Precision Transformation"
+   ],
+   "rows": [
+    [
+     "**Tier 1: Parameters**",
+     "`scale`, `zero_point`",
+     "Bounded dynamic range extraction and grid resolution",
+     "Continuous \\$[x_{\\min}, x_{\\max}] \\to (s \\in \\mathbb{R}^+, z \\in \\mathbb{Z})\\$"
+    ],
+    [
+     "**Tier 2: Tensor Primitives**",
+     "`quantize_int8`, `dequantize_int8`",
+     "Discrete coordinate projection & reconstructed float recovery",
+     "\\$\\text{FP32 Tensor} \\longleftrightarrow \\text{INT8 Codes}\\$"
+    ],
+    [
+     "**Tier 3: Layer Abstraction**",
+     "`QuantizedLinear`",
+     "Weight quantization, metadata storage, and runtime dequantization",
+     "\\$\\text{Linear}(\\text{FP32}) \\to \\text{QuantizedLinear}(\\text{INT8})\\$"
+    ],
+    [
+     "**Tier 4: Graph Integration**",
+     "`quantize_model`",
+     "Recursive sequential graph walk, calibration, & layer substitution",
+     "Complete FP32 Pipeline \\$\\to\\$ Quantized Inference Graph"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Quantization Pipeline Primitives\n\n- `quantize_int8()`: Maps continuous FP32 tensors into signed 8-bit integer coordinates \\$[-128, 127]\\$.\n- `dequantize_int8()`: Reconstructs FP32 floating-point values from integer coordinates and quantization metadata.\n- `QuantizedLinear`: Drop-in replacement for `Linear`, storing weights in INT8 format with modeled \\$4\\times\\$ memory reduction.\n- `_collect_layer_inputs()` & `_quantize_single_layer()`: Runtime activation profiling and calibration primitives.\n- `quantize_model()`: Transforms entire neural architectures into memory-efficient quantized models."
+  },
+  {
+   "type": "text",
+   "md": "## 🏗️ INT8 Quantization: The Foundation\n\nThe foundational primitive `quantize_int8` discretizes continuous tensors into 8-bit signed integer codes while preserving zero alignment:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Execution Phase",
+    "Operational Logic",
+    "Formal Definition",
+    "Numerical Trace Example"
+   ],
+   "rows": [
+    [
+     "**1. Dynamic Range Bound**",
+     "Evaluate clamped tensor extrema including zero",
+     "\\$[x_{\\min}, x_{\\max}] = [\\min(X \\cup \\{0\\}), \\max(X \\cup \\{0\\})]\\$",
+     "\\$[-1.5, 2.8] \\implies x_{\\min}=-1.5, x_{\\max}=2.8\\$"
+    ],
+    [
+     "**2. Grid Scaling**",
+     "Compute continuous quantum width",
+     "\\$s = (x_{\\max} - x_{\\min}) / 255\\$",
+     "\\$s = (2.8 - (-1.5)) / 255 = 0.016863\\$"
+    ],
+    [
+     "**3. Zero Point Offset**",
+     "Align real \\$0.0\\$ to exact integer coordinate",
+     "\\$z = \\text{round}(-128 - x_{\\min} / s)\\$",
+     "\\$z = \\text{round}(-128 - (-1.5 / 0.016863)) = -39\\$"
+    ],
+    [
+     "**4. Projection & Clamp**",
+     "Project continuous values onto integer grid",
+     "\\$q = \\text{clamp}(\\text{round}(x / s + z), -128, 127)\\$",
+     "\\$x=2.8 \\implies \\text{round}(2.8/0.016863 - 39) = 127\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Key Systems Challenges Solved:**\n- **Exact Zero Preservation**: Ensures padding zeros and sparse activations map identically to \\$z\\$ without rounding distortion.\n- **Dynamic Scale Resolution**: Adapts the quantization lattice to the empirical range of each individual tensor.\n- **Asymmetric Offsetting**: Allocates all 256 discrete levels across the observed domain rather than wasting bins on unused regions."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 102 lines of code (starting with `def quantize_int8(tensor: Tensor) -> Tuple[Tensor, float, int]:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: INT8 Quantization\n\nThis test validates our INT8 quantization function works correctly with various data types and edge cases.\n\n**What we're testing**: Basic quantization and dequantization roundtrip\n**Why it matters**: Foundation for all memory reduction - if quantization fails, nothing works\n**Expected**: Quantized values in INT8 range with acceptable reconstruction error"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Implementation: Building the Quantization Engine."
+   ]
+  }
+ ]
+}

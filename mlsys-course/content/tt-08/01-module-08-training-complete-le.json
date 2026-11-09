@@ -1,0 +1,80 @@
+{
+ "title": "Module 08: Training - Complete Learning Loops",
+ "summary": "TinyTorch training: Module 08: Training - Complete Learning Loops",
+ "source": {
+  "chapter": "tt-08",
+  "sections": [
+   "Module 08: Training - Complete Learning Loops"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 08: Training - Complete Learning Loops\n\nWelcome to Module 08! You're about to build the complete training infrastructure that coordinates data loaders, forward computation, autograd graphs, and optimizers into an end-to-end learning engine.\n\n## 🔗 Prerequisites & Progress\n**You've Built**: Tensors, activations, layers, losses, DataLoader, autograd gradients, and optimizers (Modules 01–07)  \n**You'll Build**: The `Trainer` state machine, cosine learning rate schedules, global norm clipping, atomic checkpointing, and gradient accumulation  \n**You'll Enable**: Full-scale model training pipelines for every downstream milestone and architecture\n\n\n  \n\n\n\\$\\$\\underbrace{\\text{Modules 01–07}}_{\\text{Tensors, Autograd and Optimizers}} \\longrightarrow \\underbrace{\\mathbf{\\text{Training Harness}}}_{\\mathbf{\\text{Mod 08 (Active)}}} \\longrightarrow \\underbrace{\\text{Architectures and Scale}}_{\\text{Mods 09–20}}\\$\\$\n\n## 🎯 Learning Objectives\nBy the end of this module, you will:\n1. **The Training State Machine**: Implement a robust `Trainer` orchestrator managing mode transitions (`training_mode = True/False`).\n2. **Dynamic Learning Rate Schedules**: Construct cosine annealing schedules with smooth decay and boundary preservation.\n3. **Exploding Gradient Mitigation**: Implement global gradient norm clipping across heterogeneous parameter lists.\n4. **Resilient Persistence**: Build atomic checkpoint serialization and full-state resumption across models and optimizers.\n5. **Memory-Invariant Scaling**: Execute sample-weighted gradient accumulation across microbatch partitions.\n\n## 📦 Where This Code Lives in the Final Package\n\n\n  \n\n\n**Learning Side:** You work in `modules/08_training/training.ipynb`  \n**Building Side:** Code exports to `tinytorch.core.training`\n\n```python\n# How to use this module:\nfrom tinytorch.core.training import Trainer, CosineSchedule, clip_grad_norm\n```\n\n**Why this matters:**\n- **Framework Orchestration**: Matches PyTorch's idiomatic training workflows, encapsulating the forward \\$\\to\\$ backward \\$\\to\\$ step \\$\\to\\$ zero-grad contract. The `Trainer` zeroes once at the start of an epoch and then again immediately after each step, which is exactly what lets several batches accumulate into one update.\n- **Production Safety**: Atomic file writes prevent corrupted checkpoint files from crashing long-running cluster jobs.\n- **Hardware Optimization**: Decouples physical GPU batch memory limits from mathematical optimization batch sizes."
+  },
+  {
+   "type": "text",
+   "md": "## 📋 Module Dependencies\n\n**Prerequisites**: Modules 01, 02, 03, 04, 06, and 07 must be complete and passing tests.\nModule 05 is not imported: `Trainer` accepts any iterable of `(inputs, targets)`\nbatches, so a Module 05 `DataLoader` and a plain Python list both work.\n\n**External Dependencies**:\n- `numpy` (for array operations and numerical computing)\n- `pickle` and `os` (for checkpoints: `pickle.dump` writes a temporary file and `os.replace` swaps it in atomically)\n- `pathlib` (for checkpoint paths)\n- `inspect` (to check whether a model's `forward` accepts a `training` flag)\n- `typing` (for type hints)\n\n**TinyTorch Dependencies**:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Subsystem Component",
+    "Upstream Source",
+    "Role in Training Harness"
+   ],
+   "rows": [
+    [
+     "**`Tensor`**",
+     "Module 01 (`tinytorch.core.tensor`)",
+     "Memory buffers holding model weights, activations, and gradient accumulators"
+    ],
+    [
+     "**`ReLU`**",
+     "Module 02 (`tinytorch.core.activations`)",
+     "Nonlinearity in the small models the tests train"
+    ],
+    [
+     "**`Linear` / Layers**",
+     "Module 03 (`tinytorch.core.layers`)",
+     "Trainable layer modules defining `.forward()` and yielding `.parameters()`; `set_training_mode` flips the `training` flag on a model and every layer inside it"
+    ],
+    [
+     "**`MSELoss`, `CrossEntropyLoss`, `BinaryCrossEntropyLoss`**",
+     "Module 04 (`tinytorch.core.losses`)",
+     "Objective penalty scalar computation and backward seed generation"
+    ],
+    [
+     "**`DataLoader`**",
+     "Module 05 (`tinytorch.core.dataloader`), not imported",
+     "Mini-batch generator providing batch slicing, permutation, and iteration; `Trainer` only iterates over whatever batch source it is given"
+    ],
+    [
+     "**`autograd`, `no_grad`**",
+     "Module 06 (`tinytorch.core.autograd`)",
+     "Reverse-mode topological traversal propagating gradient vectors into `.grad`; `no_grad` switches graph recording off during evaluation"
+    ],
+    [
+     "**`SGD`**",
+     "Module 07 (`tinytorch.core.optimizers`)",
+     "Parameter update engine executing step mechanics and zeroing gradients; `Trainer` accepts any Module 07 optimizer, including `Adam` and `AdamW`"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Dependency Flow**:\n\\$\\$\\mathbf{x}, \\mathbf{y} \\xrightarrow{\\text{Mod 05}} \\text{Model}(\\mathbf{x}) \\xrightarrow{\\text{Mod 03}} \\mathcal{L}(\\hat{\\mathbf{y}}, \\mathbf{y}) \\xrightarrow{\\text{Mod 04}} \\nabla_{\\boldsymbol{\\theta}} \\mathcal{L} \\xrightarrow{\\text{Mod 06}} \\boldsymbol{\\theta}_{t+1} \\xrightarrow{\\text{Mod 07}} \\text{Trainer} \\text{ (Mod 08)}\\$\\$"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import numpy as np\nimport pickle\nfrom typing import Any, Dict, Iterable, List, Optional, Tuple\nfrom pathlib import Path\nimport os\nimport inspect\n\nrng = np.random.default_rng(7)\n\n# Import dependencies from other modules\nfrom tinytorch.core.tensor import Tensor\nfrom tinytorch.core.layers import Linear, set_training_mode\nfrom tinytorch.core.activations import ReLU\nfrom tinytorch.core.losses import MSELoss, CrossEntropyLoss, BinaryCrossEntropyLoss\nfrom tinytorch.core.optimizers import SGD\n\n# Enable autograd for gradient tracking (required for training)\nimport tinytorch.core.autograd  # completes every operation with its backward half\nfrom tinytorch.core.autograd import no_grad\n\n# Constants for learning rate scheduling defaults\nDEFAULT_MAX_LR = 0.1  # Default maximum learning rate for cosine schedule\nDEFAULT_MIN_LR = 0.01  # Default minimum learning rate for cosine schedule\nDEFAULT_TOTAL_EPOCHS = 100  # Default total epochs for learning rate schedule"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 08: Training - Complete Learning Loops."
+   ]
+  }
+ ]
+}

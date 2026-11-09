@@ -1,0 +1,30 @@
+{
+ "title": "🧪 Module Integration Test",
+ "summary": "TinyTorch layers: 🧪 Module Integration Test",
+ "source": {
+  "chapter": "tt-03",
+  "sections": [
+   "🧪 Module Integration Test"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🧪 Module Integration Test\n\nFinal validation that everything works together correctly."
+  },
+  {
+   "type": "text",
+   "md": "## 🤔 ML Systems Reflection Questions\n\nAnswer these to deepen your understanding of layer operations and their systems implications:\n\n### Question 1: Parameter Scaling and Memory\n**Question**: Consider three different network architectures for MNIST (28x28 = 784 input features, 10 output classes):\n- Architecture A: 784 -> 128 -> 10\n- Architecture B: 784 -> 256 -> 10\n- Architecture C: 784 -> 512 -> 10\n\n**Consider**:\n- Without calculating exactly, which architecture has approximately 2x the parameters of Architecture A?\n- What does this tell you about how hidden layer size affects model capacity?\n- If a Linear(784, 256) layer uses ~800KB of memory, how does this scale?\n\n**Real-world context**: Parameter memory is the floor, not the total. For the 784->256->128->10 network in this module the three layer outputs kept for backward come to 50.4 KB at batch 32, against 940.6 KB of parameters, roughly 0.05x, and even counting the 100.4 KB input batch the activations stay under a fifth of the weights. It would take a batch near 6,000 before the layer outputs alone matched the parameters. The ratio inverts in the architectures you will meet later. A transformer retains per-layer attention scores that grow with the square of the sequence length, and there activation memory really does dominate.\n\n---\n\n### Question 2: Dropout Training vs Inference\n**Question**: You have a Dropout layer with p=0.5 in your network. During training, we scale surviving values by 1/(1-p) = 2.0.\n\n**Consider**:\n- Why do we scale by 2.0 during training?\n- During inference, dropout returns the input unchanged. Why don't we scale by 0.5?\n- What mathematical property are we preserving with this scaling?\n\n**Think about**:\n- If training drops 50% of neurons and inference keeps all, outputs would differ by 2x\n- The scaling ensures expected values match between training and inference\n- This is called \"inverted dropout\" - scaling at train time instead of inference\n\n---\n\n### Question 3: Weight Initialization Trade-offs\n**Question**: We initialize weights with scale = sqrt(1/in_features) (LeCun-style). For Linear(1000, 10), how does this compare to Linear(10, 1000)?\n\n**Calculate**:\n- Linear(1000, 10): scale = sqrt(1/1000) = ___________\n- Linear(10, 1000): scale = sqrt(1/10) = ___________\n\n**Trade-offs to consider**:\n- Why do we want smaller initial weights for layers with more inputs?\n- What would happen if we initialized all weights to 0? To 1?\n- How does initialization affect signal propagation in deep networks?\n\n---\n\n### Question 4: Layer Ordering Effects\n**Question**: In a typical layer block, we compose: Linear -> Activation -> Dropout. What happens if you change the order to: Linear -> Dropout -> Activation?\n\n**Consider**:\n- With ReLU the two orderings give *identical* outputs for the same mask. Why? (ReLU is positively homogeneous, so relu(c*x) = c*relu(x) for any c >= 0, and an inverted-dropout mask holds only 0 and 1/(1-p), both non-negative)\n- With Sigmoid they differ, and not slightly. Where does the argument above break? (sigmoid(0) = 0.5, so an input that dropout zeroed still leaves 0.5 on the other side)\n- Given that, which ordering would you pick for a Sigmoid block, and what does your answer say about where dropout belongs in general?\n\n**Real-world implications**:\n- Whether the two orderings commute is a property of the specific activation, not a general law about layer order\n- An activation that passes through the origin with a non-negative slope commutes with the mask; anything with a non-zero output at zero does not, and then the ordering changes both the forward values and the training dynamics\n\n---\n\n### Question 5: Production Deployment Memory\n**Question**: You're deploying a 3-layer network (784->256->128->10) to a mobile device with 10MB free memory.\n\n**Calculate**:\n- Parameters memory: 784*256 + 256 + 256*128 + 128 + 128*10 + 10 = ___________\n- With batch_size=1, activation memory per layer = ___________\n- Total memory needed = ___________\n\n**Real-world implications**:\n- Can you increase batch size to 32? To 64?\n- What's the trade-off between batch size and latency on mobile?\n- Why do mobile inference engines optimize for batch_size=1?\n\n---\n\n### Bonus Question: Manual Composition Analysis\n\n**Question**: This module builds networks two ways: layer by layer in the integration test, and chained inside a `Sequential`. Both express the same computation. What does the hand-written version show you at each step that the one-line `Sequential` call hides?\n\n**Consider**:\n1. Data shape transformations at each step\n2. Which operations create new tensors vs modify in-place\n3. How parameters flow through the network\n4. What `Sequential.forward` has to decide for every layer it calls (look at the signature check it runs)"
+  },
+  {
+   "type": "text",
+   "md": "**Key insight**: Sequential is the convenience you reach for once the pipeline is understood. Composing by hand first is what lets you debug shape mismatches, memory issues, and gradient flow problems when the container is in the way."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🧪 Module Integration Test."
+   ]
+  }
+ ]
+}

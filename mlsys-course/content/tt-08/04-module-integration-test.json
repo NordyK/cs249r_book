@@ -1,0 +1,26 @@
+{
+ "title": "🧪 Module Integration Test",
+ "summary": "TinyTorch training: 🧪 Module Integration Test",
+ "source": {
+  "chapter": "tt-08",
+  "sections": [
+   "🧪 Module Integration Test"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🧪 Module Integration Test\n\nFinal validation that everything works together correctly."
+  },
+  {
+   "type": "text",
+   "md": "## 🤔 ML Systems Reflection Questions\n\nAnswer these to deepen your understanding of training systems and their implications:\n\n### Question 1: Memory Trade-offs\n**Question**: If you have a model with 1 million parameters and use Adam optimizer, what's the total training memory required?\n\n**Consider**:\n- Parameters: 1M parameters at 4 bytes each\n- Gradients: Same size as parameters\n- Adam state: 2 buffers (momentum and variance) per parameter\n- How does gradient accumulation help when you want batch_size=128 but only batch_size=32 fits?\n\n---\n\n### Question 2: Gradient Clipping\n**Question**: Why do we clip gradients by *global norm* rather than clipping each gradient independently?\n\n**Consider**:\n- What happens if each parameter's gradient is clipped to 1.0 separately?\n- How does global norm preserve the gradient direction?\n- What does it signal when gradients consistently exceed max_norm?\n\n---\n\n### Question 3: Learning Rate Scheduling\n**Question**: Why does cosine annealing start with high learning rate and end with low learning rate?\n\n**Consider**:\n- What phase of optimization benefits from large vs. small updates?\n- Compare: fixed lr=0.1 vs cosine schedule (0.1 to 0.01)\n- When might a fixed learning rate actually be better?\n\n---\n\n### Question 4: Checkpointing Strategy\n**Question**: You're training for 100 epochs with 1GB checkpoints. How often should you save?\n\n**Consider**:\n- Disk space: 100 checkpoints = 100GB\n- Recovery time: If training crashes at epoch 95, how much work is lost?\n- What information MUST be in a checkpoint to resume training exactly?\n\n---\n\n### Question 5: Mode Switches and Gradient Zeroing\n**Question**: Both of the Trainer's bookkeeping flags decide correctness rather than speed. What breaks when each one is wrong?\n\n**Consider**:\n- `set_training_mode` sets `training` on the model and on every layer stored inside it. Which layers read that flag, and what does each one do differently when it is `False`? (Think about dropout.)\n- Flipping `training_mode` does not disable the backward tape or freeze the weights. What does each of those?\n- What would happen if you forgot to zero gradients between training steps?\n- How does gradient accumulation intentionally exploit not zeroing?"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🧪 Module Integration Test."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,177 @@
+{
+ "title": "Module 18: Memoization - Computational Reuse for Inference",
+ "summary": "TinyTorch memoization: Module 18: Memoization - Computational Reuse for Inference",
+ "source": {
+  "chapter": "tt-18",
+  "sections": [
+   "Module 18: Memoization - Computational Reuse for Inference",
+   "💡 Introduction: Why Memoization Matters for Transformers"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 18: Memoization - Computational Reuse for Inference\n\nWelcome to Module 18! In this module, we transition from silicon execution primitives to algorithmic state caching: eliminating redundant matrix operations during autoregressive token generation via pre-allocated Key-Value (KV) cache buffers.\n\n## 🔗 Prerequisites & Progress\n\n**You've Built**: A complete transformer stack with multi-head attention (`12_attention`) and an autoregressive `GPT` (`13_transformers`), plus the measurement and optimization tier of profiling (`14_profiling`), quantization (`15_quantization`), compression (`16_compression`), and kernel acceleration (`17_acceleration`).\n**You'll Build**: A pre-allocated `KVCache` with pointer-advanced writes, a non-invasive `CachedAttention` stand-in, and a two-phase cached generation loop.\n**You'll Enable**: Token-by-token decoding whose per-step projection cost no longer grows with the conversation, which is the optimization that makes interactive language model serving affordable.\n\n### Architectural Roadmap"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Optimization Stage",
+    "Core Technique",
+    "Hardware & Algorithmic Focus",
+    "Primary Target"
+   ],
+   "rows": [
+    [
+     "**14. Profiling**",
+     "Microsecond Benchmarks & Tracing",
+     "Profiler timer loops, Roofline bounds",
+     "Identify compute vs memory bottlenecks"
+    ],
+    [
+     "**15. Quantization**",
+     "Symmetric/Asymmetric INT8",
+     "8-bit scale & zero-point arithmetic",
+     "4× weight footprint & memory bus bandwidth"
+    ],
+    [
+     "**16. Compression**",
+     "Magnitude Pruning & Distillation",
+     "Weight sparsity & student distillation",
+     "Redundant parameter elimination"
+    ],
+    [
+     "**17. Acceleration**",
+     "SIMD GEMM, Fusion, `im2col`",
+     "Memory traffic elimination & systolic arrays",
+     "Kernel overhead & hardware utilization"
+    ],
+    [
+     "**18. Memoization** *(Active)*",
+     "**Static KV Cache Buffers**",
+     "**\\$\\mathcal{O}(1)\\$ projections per decode step & zero recomputation**",
+     "**Autoregressive decoding latency**"
+    ],
+    [
+     "**19–20. Serving & Capstone**",
+     "End-to-End Pipeline Integration",
+     "End-to-end throughput & TTFT/ITL serving",
+     "Production inference deployment"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 🎯 Learning Objectives\nBy the end of this module, you will:\n1. Formulate memoization as a general systems optimization pattern that trades persistent DRAM memory capacity for \\$\\mathcal{O}(S)\\$ computational reuse.\n2. Mathematically derive the \\$\\mathcal{O}(S^2) \\to \\mathcal{O}(S)\\$ reduction in key and value projection operations during autoregressive generation.\n3. Construct a production-grade `KVCache` class featuring contiguous buffer pre-allocation, pointer advancement, and zero dynamic heap reallocation.\n4. Implement a non-invasive `CachedAttention` wrapper that preserves forward compatibility and clean model encapsulation.\n5. Budget the cache's memory footprint across model configurations and measure the wall-clock speedup it delivers as generation length grows.\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/18_memoization/memoization.ipynb`  \n**Building Side:** Code exports to `tinytorch.perf.memoization`\n\n\n  \n\n\n```python\n# How to use this module:\nfrom tinytorch.perf.memoization import KVCache, enable_kv_cache, disable_kv_cache\n```\n\n## 📋 Module Dependencies\n\n**Prerequisites**: Modules 01 (Tensor), 12 (Attention), 13 (Transformers), and 14 (Profiling) must be complete\n\n**External Dependencies**:\n- `numpy` (cache buffers and array operations)\n- `time` (latency measurements)\n- `contextlib.contextmanager` and `typing` (context managers and type hints)"
+  },
+  {
+   "type": "text",
+   "md": "**TinyTorch Dependencies**:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dependency Module",
+    "Exported Abstraction",
+    "Consumed Functional Role",
+    "Memory & Architectural Invariant"
+   ],
+   "rows": [
+    [
+     "**Module 01 (`01_tensor`)**",
+     "`Tensor`",
+     "Contiguous N-D array storage & slicing",
+     "Pre-allocated float32 buffers without autograd overhead"
+    ],
+    [
+     "**Module 12 (`12_attention`)**",
+     "`MultiHeadAttention`, `MASK_VALUE`",
+     "Attention projections, head transformations, masking sentinel",
+     "Splits `Q, K, V` into `(B, H, S, D)`, recombines output, and reuses one masking constant"
+    ],
+    [
+     "**Module 13 (`13_transformers`)**",
+     "`GPT`",
+     "Autoregressive language model backbone",
+     "Blocks are reached by duck typing through `model.blocks`, so `TransformerBlock` is never imported or subclassed"
+    ],
+    [
+     "**Module 14 (`14_profiling`)**",
+     "`Profiler`",
+     "High-resolution microsecond timer",
+     "Quantifies latency scaling with and without cache"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Dependency Flow**:\n```\nModule 01 (Tensor)                          ──┐\nModule 12 (MultiHeadAttention, MASK_VALUE)  ──┤\nModule 13 (GPT)                             ──┼──→ Module 18 (KVCache)\nModule 14 (Profiler)                        ──┘\n```"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import numpy as np\nrng = np.random.default_rng(7)\nimport time\nfrom typing import Any, Dict, Iterator, List, Optional, Tuple, Union\nfrom contextlib import contextmanager\n\n# Import TinyTorch components from previous modules\nfrom tinytorch.core.tensor import Tensor\nfrom tinytorch.core.attention import MASK_VALUE\n\n# Internal constants for memory calculations (not exported)\n_BYTES_PER_FLOAT32 = 4  # Standard float32 size in bytes\n_BYTES_PER_MB = 1_000_000  # Decimal megabyte: MB and GB are 10^6 and 10^9 bytes throughout TinyTorch"
+  },
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: Why Memoization Matters for Transformers\n\nBefore implementing KV caching, let us profile naive autoregressive generation to isolate the fundamental computational bottleneck of modern transformer inference.\n\n### Computational Paradigm Comparison"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Execution Attribute",
+    "Naive Decoding (No Cache)",
+    "Memoized Decoding (`KVCache`)",
+    "Systems Rationale"
+   ],
+   "rows": [
+    [
+     "**Key & Value Projections**",
+     "Recomputed for all \\$t\\$ past tokens",
+     "Computed **only** for single incoming token \\$t\\$",
+     "Previous token representations never change"
+    ],
+    [
+     "**Projection Complexity**",
+     "\\$\\sum_{t=1}^S t = \\frac{S(S+1)}{2} \\in \\mathcal{O}(S^2)\\$",
+     "\\$\\sum_{t=1}^S 1 = S \\in \\mathcal{O}(S)\\$",
+     "\\$(S+1)/2\\$ factor reduction in projection FLOPs"
+    ],
+    [
+     "**Memory Allocation**",
+     "Dynamic allocations per sequence step",
+     "Single static pre-allocation up front",
+     "Eliminates heap fragmentation & malloc stalls"
+    ],
+    [
+     "**Attention Query Shape**",
+     "Full sequence \\$(B, H, S, d_k)\\$",
+     "Single token vector \\$(B, H, 1, d_k)\\$",
+     "Query vector attends over cached key prefix"
+    ],
+    [
+     "**Causal Mask Overhead**",
+     "Requires lower-triangular causal mask",
+     "**Zero** causal mask needed during decode",
+     "Single query can strictly attend to past tokens"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Key Architectural Insight**: In autoregressive generation, keys \\$\\mathbf{K}\\$ and values \\$\\mathbf{V}\\$ for past tokens \\$1 \\dots t-1\\$ are strictly static and immutable. Naively re-projecting historical tokens wastes memory bandwidth and processor ALUs on dead computation."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 66 lines of code (starting with `def profile_naive_generation():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 18: Memoization - Computational Reuse for Inference, 💡 Introduction: Why Memoization Matters for Transformers."
+   ]
+  }
+ ]
+}

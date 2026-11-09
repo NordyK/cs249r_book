@@ -1,0 +1,55 @@
+{
+ "title": "📊 Systems Analysis: Compression Trade-offs",
+ "summary": "TinyTorch compression: 📊 Systems Analysis: Compression Trade-offs",
+ "source": {
+  "chapter": "tt-16",
+  "sections": [
+   "📊 Systems Analysis: Compression Trade-offs",
+   "🧪 Module Integration Test"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Compression Trade-offs\n\nUnderstanding the real-world effectiveness of different compression techniques through systematic measurement and comparison.\n\nThe fundamental challenge in model compression is balancing three competing objectives: model size, inference speed, and prediction accuracy."
+  },
+  {
+   "type": "text",
+   "md": "### Measuring Compression Impact with Profiler\n\nNow let's use the **Profiler** tool from Module 14 to measure the actual parameter reduction from pruning. This demonstrates the complete workflow: profile baseline (M14) → apply compression (M16) → measure impact (M14+M16).\n\nThis is the production workflow: measure → prune → validate → deploy."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 81 lines of code (starting with `# Import Profiler from Module 14 (already imported above)`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "#### Comparing Compression Techniques\n\nLet's analyze compression ratios across different techniques systematically."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_compression_techniques():\n    \"\"\"📊 Compare compression ratios across different techniques.\"\"\"\n    print(\"📊 Analyzing Compression Techniques\")\n    print(\"=\" * 60)\n\n    # Create baseline model (Linear already imported above)\n    model_configs = [\n        (\"Small MLP\", [Linear(128, 64), Linear(64, 32)]),\n        (\"Medium MLP\", [Linear(512, 256), Linear(256, 128)]),\n        (\"Large MLP\", [Linear(1024, 512), Linear(512, 256)])\n    ]\n\n    print(f\"\\n{'Model':<15} {'Technique':<20} {'Sparsity':<12} {'Compression':<12}\")\n    print(\"-\" * 60)\n\n    for model_name, layers in model_configs:\n        # Prune a deep copy so each technique starts from the same weights\n        mag_model = Sequential(*copy.deepcopy(layers))\n        magnitude_prune(mag_model, sparsity=0.8)\n        mag_sparsity = measure_sparsity(mag_model)\n        mag_ratio = 1.0 / (1.0 - mag_sparsity / 100) if mag_sparsity < 100 else float('inf')\n\n        print(f\"{model_name:<15} {'Magnitude (80%)':<20} {mag_sparsity:>10.1f}% {mag_ratio:>10.1f}x\")\n\n        struct_model = Sequential(*copy.deepcopy(layers))\n        structured_prune(struct_model, prune_ratio=0.5)\n        struct_sparsity = measure_sparsity(struct_model)\n        struct_ratio = 1.0 / (1.0 - struct_sparsity / 100) if struct_sparsity < 100 else float('inf')\n\n        print(f\"{'':<15} {'Structured (50%)':<20} {struct_sparsity:>10.1f}% {struct_ratio:>10.1f}x\")\n        print()\n\n    print(\"💡 Key Insights:\")\n    print(\"   • Magnitude pruning achieves higher sparsity (80%+)\")\n    print(\"   • Structured pruning creates hardware-friendly patterns\")\n    print(\"   • Every row above repeats: both techniques hit their target ratio by\")\n    print(\"     construction (prune_count = int(sparsity * size)), so neither number\")\n    print(\"     moves with model size. Scale changes what compression costs in accuracy,\")\n    print(\"     not what it achieves in sparsity\")\n    print(\"   • Compression ratio = 1 / (1 - sparsity), counting values only\")\n\nif __name__ == \"__main__\":\n    analyze_compression_techniques()"
+  },
+  {
+   "type": "text",
+   "md": "#### Knowledge Distillation Analysis\n\nNow let's analyze how knowledge distillation compares to other compression techniques for different compression ratios and accuracy preservation goals."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_distillation_effectiveness():\n    \"\"\"📊 Analyze knowledge distillation compression and accuracy trade-offs.\"\"\"\n    print(\"\\n📊 Analyzing Knowledge Distillation Effectiveness\")\n    print(\"=\" * 60)\n\n    # A big teacher and a small student, both untrained: measure the loss itself\n    teacher = Sequential(Linear(32, 128), ReLU(), Linear(128, 10))\n    student = Sequential(Linear(32, 16), ReLU(), Linear(16, 10))\n    teacher_params = sum(p.size for p in teacher.parameters())\n    student_params = sum(p.size for p in student.parameters())\n    print(f\"\\nTeacher: {teacher_params:,} params   Student: {student_params:,} params   \"\n          f\"({teacher_params / student_params:.1f}x smaller)\")\n\n    x = Tensor(rng.standard_normal((16, 32)))\n    labels = rng.integers(0, 10, size=16)\n    teacher_logits = teacher.forward(x)\n    student_logits = student.forward(x)\n\n    print(f\"\\n{'Temperature':<12} {'Soft (KL)':<12} {'Hard (CE)':<12} {'Combined'}\")\n    print(\"-\" * 50)\n\n    for temperature in [1.0, 2.0, 5.0, 10.0]:\n        kd = KnowledgeDistillation(teacher, student, temperature=temperature, alpha=0.7)\n        soft = kd._kl_divergence(kd._softmax(teacher_logits.data / temperature),\n                                 kd._softmax(student_logits.data / temperature))\n        hard = kd._cross_entropy(kd._softmax(student_logits.data), labels)\n        combined = kd.distillation_loss(student_logits, teacher_logits, labels)\n        print(f\"{temperature:<12.1f} {soft:<12.4f} {hard:<12.4f} {combined.data:.4f}\")\n\n    print(\"\\n💡 Knowledge Distillation Insights:\")\n    print(\"   • Higher temperature flattens both distributions, so the KL term shrinks;\")\n    print(\"     Hinton et al. scale it by T² to compensate (omitted here for clarity)\")\n    print(\"   • The soft term carries the teacher's ranking of wrong answers, not just the right one\")\n    print(\"   • More effective than naive pruning for large reductions\")\n    print(\"   • Requires retraining (unlike pruning/quantization)\")\n    print(\"\\n🚀 Best Use Case:\")\n    print(\"   Deploy small student models on edge devices\")\n    print(\"   Train expensive teacher once, distill many students\")\n\nif __name__ == \"__main__\":\n    analyze_distillation_effectiveness()"
+  },
+  {
+   "type": "text",
+   "md": "## 🧪 Module Integration Test\n\nFinal validation that everything works together correctly before module completion."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 📊 Systems Analysis: Compression Trade-offs, 🧪 Module Integration Test."
+   ]
+  }
+ ]
+}

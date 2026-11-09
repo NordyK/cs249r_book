@@ -1,0 +1,90 @@
+{
+ "title": "🧪 Module Integration Test",
+ "summary": "TinyTorch dataloader: 🧪 Module Integration Test",
+ "source": {
+  "chapter": "tt-05",
+  "sections": [
+   "🧪 Module Integration Test"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🧪 Module Integration Test\n\nFinal validation that everything works together correctly before module completion."
+  },
+  {
+   "type": "text",
+   "md": "## 🤔 ML Systems Reflection Questions\n\nAnswer these to deepen your understanding of data loading and its systems implications:\n\n### Question 1: The Batch Memory Budget\n**Question**: You're loading a large image dataset. Each image is a tensor of shape (3, 224, 224) stored as float32 (4 bytes per value). Your batch size is 256.\n\n- How much memory does one image require? _____\n- How much memory does one batch of 256 images require? _____\n- If your machine has 16GB of RAM and you need room for the model and other data, what's a reasonable maximum batch size? _____\n- If your disk reads at 500 MB/s, how long does it take to load one batch from disk (assuming raw uncompressed data)? _____\n\n**Work it out:**\n- One image: 3 x 224 x 224 x 4 bytes = _____ bytes (~_____ KB)\n- One batch: 256 x _____ KB = _____ MB\n- Disk load time: _____ MB / 500 MB/s = _____ seconds"
+  },
+  {
+   "type": "text",
+   "md": "**Systems insight**: Batch size directly determines your memory footprint and data loading time. Choosing the right batch size is fundamentally a memory budgeting problem -- how much of your available RAM can you dedicate to data?\n\n---\n\n### Question 2: To Shuffle or Not to Shuffle?\n**Question**: You're training on a medical dataset where samples are ordered by patient (first 1000 samples = Patient A, next 1000 = Patient B, etc.). Consider these scenarios:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Scenario",
+    "Epoch 1 Batch Composition",
+    "Epoch 2 Batch Composition",
+    "Empirical Risk"
+   ],
+   "rows": [
+    [
+     "**Scenario 1: `shuffle=True`**",
+     "\\$[\\text{Pt B}, \\text{Pt C}, \\text{Pt A}, \\dots]\\$",
+     "\\$[\\text{Pt D}, \\text{Pt A}, \\text{Pt C}, \\dots]\\$",
+     "Uniform patient distribution per gradient step"
+    ],
+    [
+     "**Scenario 2: `shuffle=False`**",
+     "\\$[\\text{Pt A}, \\text{Pt A}, \\text{Pt A}, \\dots]\\$",
+     "\\$[\\text{Pt A}, \\text{Pt A}, \\text{Pt A}, \\dots]\\$",
+     "High ordering bias; late batches can overwrite what early ones taught"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**What happens in Scenario 2?**\n- The model sees 30+ batches of only Patient A's data first\n- It might overfit to Patient A's specific characteristics\n- Early batches update weights strongly toward Patient A's patterns\n- This is ordering bias, and in the extreme the last patient's batches overwrite what the first patient's batches taught, a failure mode known as catastrophic forgetting\n\n**Your DataLoader's shuffle prevents this by mixing patients in every batch!**\n\n**Systems insight**: Shuffling isn't just about randomness. It's about ensuring the model sees representative samples in every batch, preventing order-dependent biases.\n\n---\n\n### Question 3: Data Loading Bottlenecks\n**Question**: Your program reports these timings per batch:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Component",
+    "Measured Latency",
+    "Fractional Time",
+    "Primary System Source"
+   ],
+   "rows": [
+    [
+     "**Data Loading**",
+     "\\$45\\text{ ms}\\$",
+     "\\$37.5\\%\\$",
+     "Disk I/O, image decoding, augmentation, collation"
+    ],
+    [
+     "**Model Computation**",
+     "\\$75\\text{ ms}\\$",
+     "\\$62.5\\%\\$",
+     "Matrix multiplication forward and backward pass"
+    ],
+    [
+     "**Total Step**",
+     "\\$120\\text{ ms}\\$",
+     "\\$100.0\\%\\$",
+     "End-to-end iteration latency"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Where's the bottleneck?** Apply the pipeline-regime table from the systems section above. Here \\$T_{\\text{compute}} = 75\\text{ ms} > T_{\\text{load}} = 45\\text{ ms}\\$, so this step is **compute-bound**, not data-starved. Data loading is not the bottleneck.\n\n**So how much is the data pipeline worth?** It owns 37.5% of every step, and that fraction is the ceiling on what any data-loading optimization can return. Overlap the load perfectly with compute and the step falls from 120 ms to 75 ms, a 1.6x speedup. No amount of prefetching beats that, because the 75 ms of compute never goes away.\n\n**What makes up that 37.5%?**\n- Disk I/O: Reading images from storage\n- Decompression: JPEG/PNG decoding\n- Augmentation: Random crops, flips, color jitter\n- Collation: Stacking individual samples into batches\n\n**How to fix it:**\n\n**Option 1: Prefetch next batch during computation**\n```python\n# While the current batch is being processed, load the next batch\nDataLoader(..., num_workers=4)  # PyTorch feature\n```\nResult: Data loading and compute overlap, so the step approaches 75 ms, the 1.6x ceiling\n\n**Option 2: Cache decoded images in memory**\n```python\n# Decode once, reuse across epochs\ncached_dataset = [decode_image(path) for path in paths]\n```\nResult: Eliminate repeated decode overhead\n\n**Option 3: Skip decoding entirely**\n- Pre-convert images to NumPy .npy files, which load straight into an array with no decode step\n\n**In your implementation:** You used TensorDataset with pre-loaded tensors, avoiding I/O entirely! This is why research code often loads MNIST/CIFAR-10 fully into memory.\n\n**Systems insight**: Data loading is often the hidden bottleneck. Profile first, optimize second.\n\n---\n\n### Question 4: Memory Explosion with Large Datasets\n**Question**: You're training on 100GB of high-resolution medical scans. Your DataLoader code:\n\n```python\n# ❌ This tries to load ALL data into memory!\nall_images = Tensor(np.load('100gb_scans.npy'))\ndataset = TensorDataset(all_images, labels)\nloader = DataLoader(dataset, batch_size=32)\n```\n\n**Problem:** This crashes immediately (OOM) because you're loading 100GB into RAM before training even starts!\n\n**Solution: Lazy Loading Dataset**\n```python\nclass LazyImageDataset(Dataset):\n    def __init__(self, image_paths, labels):\n        self.image_paths = image_paths  # Just store paths (tiny memory)\n        self.labels = labels\n\n    def __len__(self):\n        return len(self.image_paths)\n\n    def __getitem__(self, idx):\n        # Load image ONLY when requested (lazy)\n        image = load_image(self.image_paths[idx])\n        return Tensor(image), Tensor(self.labels[idx])\n\n# Memory usage: Only 32 images × batch_size at a time!\ndataset = LazyImageDataset(paths, labels)\nloader = DataLoader(dataset, batch_size=32)\n```\n\n**Memory comparison:**\n- TensorDataset: 100GB (all data loaded upfront)\n- LazyImageDataset: ~500MB (only current batch + buffer)\n\n**Your TensorDataset is perfect for small datasets (MNIST, CIFAR) but won't scale to ImageNet!**\n\n**Systems insight**: For large datasets, load data on-demand rather than upfront. Your DataLoader's `__getitem__` is called only when needed, enabling lazy loading patterns.\n\n---\n\n### Question 5: The Shuffle Memory Trap\n**Question**: You implement shuffling like this:\n\n```python\ndef __iter__(self):\n    # ❌ This loads ALL data into memory for shuffling!\n    all_samples = [self.dataset[i] for i in range(len(self.dataset))]\n    random.shuffle(all_samples)\n\n    for i in range(0, len(all_samples), self.batch_size):\n        yield self._collate_batch(all_samples[i:i + self.batch_size])\n```\n\n**For a 50GB dataset, this requires 50GB RAM just to shuffle!**\n\n**Your implementation is smarter:** it never shuffles the data at all. It\nshuffles a list of *integer indices*, then walks that list a batch at a time,\nfetching only the samples in the current batch from the dataset. The 50 GB\nnever has to be resident; only `batch_size` samples are, plus a list of\nintegers whose size is independent of how large each sample is.\n\n**Memory usage:**\n- Bad shuffle: 50GB (all samples in memory)\n- Your shuffle: approximately 1.8GB (50M Python list entries × ~36 bytes each)\n\n**Why this matters:** Indices are smaller than images, but not free: 100 million\nPython list entries require approximately 3.6GB on typical 64-bit CPython.\nA NumPy int64 index array would use 800MB; our implementation uses a Python list.\nThe list is allocated even when `shuffle=False`.\n\n**Systems insight**: Shuffle indices, not data. This is a classic systems pattern, operating on lightweight proxies (indices) rather than expensive objects (actual data).\n\n---\n\n### Bonus Question: Data Pipeline Design Patterns\n\nYour DataLoader implements three fundamental patterns:\n\n**1. Iterator Protocol** (memory efficiency)\n```python\nfor batch in loader:  # Loads one batch at a time, not all batches\n    train_step(batch)  # Previous batch memory is freed\n```\n\n**2. Lazy Evaluation** (on-demand computation)\n```python\ndataset[42]  # Computed only when requested, not upfront\n```\n\n**3. Separation of Concerns** (modularity)\n```python\nDataset:    HOW to access individual samples\nDataLoader: HOW to group samples into batches\nTraining:   WHAT to do with batches\n```\n\nThese patterns are why the same DataLoader API works whether the dataset holds a thousand samples or far more than fits in memory. Nothing in the interface depends on the dataset's size, because `Dataset` only ever promises one sample at a time."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🧪 Module Integration Test."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,118 @@
+{
+ "title": "🏗️ Implementation: Building Scaled Dot-Product Attention",
+ "summary": "TinyTorch attention: 🏗️ Implementation: Building Scaled Dot-Product Attention",
+ "source": {
+  "chapter": "tt-12",
+  "sections": [
+   "🏗️ Implementation: Building Scaled Dot-Product Attention"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Building Scaled Dot-Product Attention\n\nNow let's implement the core attention mechanism that powers all transformer models. We'll build it from three small vectorized helpers (scores, scaling, masking) and then compose them, so each step of the O(n²) computation stays visible.\n\n### Understanding the Algorithm Visually"
+  },
+  {
+   "type": "text",
+   "md": "```\nStep-by-Step Attention Computation:\n\n1. Score Computation (Q @ K^T):\n   For each query position i and key position j:\n   score[i,j] = Σ(Q[i,d] × K[j,d]) for d in embedding_dims\n\n   Query i    Key j      Dot Product\n   [0.1,0.8] · [0.2,0.7] = 0.1×0.2 + 0.8×0.7 = 0.58\n\n2. Scaling (÷ √d_k):\n   scaled_scores = scores / √d_k\n   (d_k is the length of each key vector; later in this module, when we\n    split attention into heads, it becomes embed_dim // num_heads)\n   (Prevents softmax saturation for large dimensions)\n\n3. Masking (optional):\n   For causal attention: scores[i,j] = -∞ if j > i\n   (masked_fill replaces blocked scores with -infinity while preserving gradients)\n\n   Causal Mask (lower triangular):\n   [  OK  -∞  -∞  -∞ ]\n   [  OK   OK  -∞  -∞ ]\n   [  OK   OK   OK  -∞ ]\n   [  OK   OK   OK   OK ]\n\n4. Softmax (normalize each row):\n   weights[i,j] = exp(scores[i,j]) / Σ(exp(scores[i,k])) for all k\n\n5. Apply to Values:\n   output[i] = Σ(weights[i,j] × V[j]) for all j\n```"
+  },
+  {
+   "type": "text",
+   "md": "### Computing Attention Scores\n\nThe first step in attention is measuring how similar each query is to each key.\nWe do this with matrix multiplication: each element scores[i][j] tells us\nhow much token i should attend to token j.\n\n```\nQ (batch, seq, d) @ K^T (batch, d, seq) -> scores (batch, seq, seq)\n\nscores[i][j] = \"how relevant is key j to query i?\"\n```"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _compute_attention_scores(Q: Tensor, K: Tensor) -> Tensor:\n    \"\"\"Compute raw attention scores via Q @ K^T.\n\n    TODO: Transpose K and multiply by Q to get similarity matrix\n\n    APPROACH:\n    1. Transpose K: swap last two dims so (batch, seq, d) -> (batch, d, seq)\n    2. Matrix multiply: Q @ K^T gives (batch, seq, seq) scores\n\n    EXAMPLE:\n    >>> Q = Tensor(rng.standard_normal((1, 3, 4)))  # 3 tokens, dim=4\n    >>> K = Tensor(rng.standard_normal((1, 3, 4)))\n    >>> scores = _compute_attention_scores(Q, K)\n    >>> print(scores.shape)  # (1, 3, 3) -- every token scored against every other\n\n    HINT: Use K.transpose(-2, -1) to swap the last two dimensions\n    \"\"\"\n    K_t = K.transpose(-2, -1)\n    return Q.matmul(K_t)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Attention Scores\n\n**What we're testing**: Q @ K^T produces correct similarity matrix shape and values\n**Why it matters**: Wrong score shapes cascade into every downstream step\n**Expected**: (batch, seq, seq) shape, all-ones input gives d_model as score"
+  },
+  {
+   "type": "text",
+   "md": "### Scaling Scores\n\nA dot product sums d_k independent products. For query/key entries with mean 0\nand variance 1, that sum has variance d_k -- so its typical magnitude grows with\nthe SQUARE ROOT of the dimension, not linearly. Going from d_k=1 to d_k=512\ninflates scores about sqrt(512) ~= 23x, which is enough to push softmax into\nextreme values where nearly all weight falls on a single token.\n\nThat square-root growth is exactly why we divide by sqrt(d_k) and not by d_k:\nthe scale factor has to match how the scores actually grow, which keeps them in\na stable range regardless of dimension."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _scale_scores(scores: Tensor, d_k: int) -> Tensor:\n    \"\"\"Scale attention scores by 1/sqrt(d_k).\n\n    d_k is the dimension the dot product was taken over. For single-head\n    attention that equals d_model; for multi-head attention it is the\n    per-head dimension (embed_dim // num_heads).\n\n    TODO: Divide scores by the square root of d_k\n\n    APPROACH:\n    1. Compute scale factor: 1.0 / math.sqrt(d_k)\n    2. Multiply scores by scale factor\n\n    EXAMPLE:\n    >>> scores = Tensor(np.array([[[4.0, 8.0]]]))\n    >>> scaled = _scale_scores(scores, d_k=4)\n    >>> print(scaled.data)  # [[[ 2.0, 4.0]]] -- divided by sqrt(4)=2\n\n    HINT: Use math.sqrt() for the square root\n    \"\"\"\n    scale_factor = 1.0 / math.sqrt(d_k)\n    return scores * scale_factor"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Score Scaling\n\n**What we're testing**: Scores are divided by sqrt(d_k) correctly\n**Why it matters**: Without scaling, softmax saturates for large dimensions\n**Expected**: Scores reduced by factor of sqrt(d_k)"
+  },
+  {
+   "type": "text",
+   "md": "### Applying the Causal Mask\n\nIn autoregressive language models (such as GPT and Llama), generation proceeds token by token. A token at position \\$i\\$ must only attend to past and current tokens (\\$j \\le i\\$), never future tokens (\\$j > i\\$). We enforce this temporal causality by replacing future attention logits with \\$-\\infty\\$ before applying the softmax operator:\n\n\n  \n\n\n#### Two Notations for One Operation\n\nRead the mask twice, because the paper and the code spell it differently and mixing them up is the single most common way to get a `ValueError` out of this module.\n\nThe additive form is the one used in \\$\\text{softmax}(QK^\\top/\\sqrt{d_k} + M)\\$ above, and it is what the literature means by \\$M\\$, a real-valued matrix added to the scores, carrying \\$0\\$ where the key is allowed and \\$-\\infty\\$ where it is blocked.\n\nTinyTorch never asks you to build that matrix. The mask you hand to `_apply_mask` and to `scaled_dot_product_attention` is a **boolean keep mask** with entries in \\$\\{0, 1\\}\\$, and `masked_fill` performs the \\$+M\\$ addition for you by writing \\$-\\infty\\$ into every position where \\$\\text{keep} = 0\\$. The two are the same operation, and \\$\\text{scores} + M\\$ is bit-identical to \\$\\texttt{masked\\_fill}(\\text{keep} = 0, -\\infty)\\$. Passing a matrix that already contains \\$-\\infty\\$ raises `ValueError: Attention mask must contain only 0 (blocked) or 1 (allowed)`, so build \\$\\text{keep}\\$ with `np.tril(np.ones(...))`, not with \\$-\\infty\\$."
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$S_{\\text{masked}}[i, j] = \\begin{cases} S[i, j] & \\text{if } \\text{keep}[i, j] = 1 \\\\ -\\infty & \\text{if } \\text{keep}[i, j] = 0 \\end{cases} \\qquad \\text{where } \\text{keep}[i, j] = \\begin{cases} 1 & \\text{if } j \\le i \\\\ 0 & \\text{if } j > i \\end{cases}\\$\\$\n\nWhen exponentiated during softmax normalization, \\$\\exp(-\\infty) = 0\\$, guaranteeing mathematically zero probability and severing backward gradient flow from future tokens:\n\n\\$\\$A[i, j] = \\frac{\\exp(S_{\\text{masked}}[i, j])}{\\sum_{k=1}^S \\exp(S_{\\text{masked}}[i, k])} = 0 \\quad \\text{for all } j > i\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Query Position \\$i\\$",
+    "Allowed Keys \\$j\\$",
+    "Keep Value \\$\\text{keep}[i, j]\\$",
+    "Equivalent Additive \\$M[i, j]\\$",
+    "Pre-Softmax Score \\$S_{\\text{masked}}[i, j]\\$",
+    "Post-Softmax Attention \\$A[i, j]\\$",
+    "Temporal Semantics"
+   ],
+   "rows": [
+    [
+     "Current / Historical (\\$j \\le i\\$)",
+     "Historical (\\$t_j \\le t_i\\$)",
+     "\\$1\\$",
+     "\\$0\\$",
+     "\\$S[i, j]\\$",
+     "\\$\\frac{\\exp(S[i, j])}{\\sum_k \\exp(S[i, k])}\\$",
+     "Causally valid context"
+    ],
+    [
+     "Future (\\$j > i\\$)",
+     "Lookahead (\\$t_j > t_i\\$)",
+     "\\$0\\$",
+     "\\$-\\infty\\$",
+     "\\$-\\infty\\$",
+     "\\$\\exp(-\\infty) / \\Sigma = 0.0\\$",
+     "Severed (no future leakage)"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _apply_mask(scores: Tensor, mask: Tensor) -> Tensor:\n    \"\"\"Apply a binary attention mask by replacing blocked scores with -infinity.\n\n    TODO: Replace scores with negative infinity where mask is 0\n\n    APPROACH:\n    1. Broadcast the binary mask to the scores and require an allowed key per query\n    2. Use scores.masked_fill to replace blocked positions with MASK_VALUE\n       (-infinity); unmasked scores and their gradients pass through unchanged\n\n    EXAMPLE:\n    >>> scores = Tensor(np.ones((1, 3, 3)))\n    >>> mask = Tensor(np.tril(np.ones((1, 3, 3))))  # lower triangle\n    >>> masked = _apply_mask(scores, mask)\n    >>> print(masked.data[0, 0, 1])  # -inf (future position masked)\n\n    HINT: mask=0 means \"block this position\", mask=1 means \"allow\"\n    \"\"\"\n    # Both guards below sweep the whole broadcast (B, H, S, S) array, so they cost\n    # O(B*H*S^2) on EVERY forward call. That is the price of catching a mis-built mask\n    # at the point of use. Production kernels validate the mask once where it is\n    # constructed and keep the attention inner loop free of checks.\n    if np.any((mask.data != 0) & (mask.data != 1)):\n        raise ValueError(\"Attention mask must contain only 0 (blocked) or 1 (allowed)\")\n    allowed = np.broadcast_to(mask.data, scores.shape)\n    if np.any(np.sum(allowed, axis=-1) == 0):\n        raise ValueError(\"Each query must have at least one allowed key\")\n    return scores.masked_fill(allowed == 0, MASK_VALUE)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Causal Masking\n\n**What we're testing**: Future positions get set to negative infinity\n**Why it matters**: Without masking, GPT could \"cheat\" by looking at future tokens\n**Expected**: Masked positions are -infinity, unmasked positions unchanged"
+  },
+  {
+   "type": "text",
+   "md": "### Bringing It Together: Scaled Dot-Product Attention\n\nNow that you've built each piece -- scoring, scaling, and masking -- let's compose\nthem into the complete attention mechanism. Notice how the composition reads like\na recipe: compute scores, scale them, optionally mask, softmax, apply to values.\n\n```\nPipeline: Q,K -> scores -> scale -> mask -> softmax -> weights @ V -> output\n```\n\nThe sketch below shows how attention works conceptually using explicit\nloops. While easier to read, this is NOT the implementation because:\n1. It is extremely slow (Python loops vs optimized C/BLAS)\n2. It breaks the autograd graph unless we manually implement the backward pass\n\nConceptually, this is what the vectorized helpers above are doing:\n\n```\nbatch_size, seq_len, d_k = Q.shape\nscores = np.zeros((batch_size, seq_len, seq_len))\n\nfor b in range(batch_size):\n    for i in range(seq_len):          # Each query\n        for j in range(seq_len):      # Attends to each key\n            dot_product = 0.0\n            for k in range(d_k):\n                dot_product += Q[b, i, k] * K[b, j, k]\n            scores[b, i, j] = dot_product / math.sqrt(d_k)\n```"
+  },
+  {
+   "type": "text",
+   "md": "Count the loops: i and j each run over seq_len, so the score computation\nalone is seq_len² dot products. That is the O(n²) you will measure later."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def scaled_dot_product_attention(Q: Tensor, K: Tensor, V: Tensor, mask: Optional[Tensor] = None) -> Tuple[Tensor, Tensor]:\n    \"\"\"Complete scaled dot-product attention.\n\n    TODO: Compose the helpers into the full attention operation\n\n    APPROACH:\n    1. Call _compute_attention_scores(Q, K) for raw similarity\n    2. Call _scale_scores(scores, Q.shape[-1]) for numerical stability\n    3. If mask provided, call _apply_mask(scores, mask); use binary entries\n       and at least one allowed key per query\n    4. Apply Softmax to get probability weights\n    5. Multiply weights @ V for attended values\n\n    SUB-PROBLEMS (you already implemented these):\n    - _compute_attention_scores: Q @ K^T similarity matrix\n    - _scale_scores: divide by sqrt(d_k) for stable softmax\n    - _apply_mask: block future positions with MASK_VALUE (-inf)\n\n    Args:\n        Q: Query tensor of shape (..., seq_len, d_k)\n        K: Key tensor of shape (..., seq_len, d_k)\n        V: Value tensor of shape (..., seq_len, d_k)\n        mask: Optional causal mask, 1=allow, 0=mask, shape (..., seq_len, seq_len)\n              or any shape that broadcasts against the scores\n\n        The leading \"...\" is any number of batch-like dimensions. Called\n        directly it is (batch_size,) and d_k = d_model; from\n        MultiHeadAttention it is (batch_size, num_heads) and d_k = head_dim.\n        The helpers only touch the last two axes, so the same code serves both.\n\n    Returns:\n        output: Attended values (..., seq_len, d_k)\n        attention_weights: Attention matrix (..., seq_len, seq_len)\n\n    EXAMPLE:\n    >>> Q = Tensor(rng.standard_normal((2, 4, 64)))\n    >>> K = Tensor(rng.standard_normal((2, 4, 64)))\n    >>> V = Tensor(rng.standard_normal((2, 4, 64)))\n    >>> output, weights = scaled_dot_product_attention(Q, K, V)\n    >>> print(output.shape)   # (2, 4, 64)\n    >>> print(weights.shape)  # (2, 4, 4)\n\n    HINT: Softmax is already imported -- use Softmax()(scores, dim=-1)\n    \"\"\"\n    scores = _compute_attention_scores(Q, K)\n    scores = _scale_scores(scores, Q.shape[-1])\n    if mask is not None:\n        scores = _apply_mask(scores, mask)\n    softmax = Softmax()\n    attention_weights = softmax(scores, dim=-1)\n    output = attention_weights.matmul(V)\n    return output, attention_weights"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Scaled Dot-Product Attention\n\nThis test validates our complete attention mechanism works correctly with proper shape handling and masking.\n\n**What we're testing**: End-to-end attention: shapes, probability normalization, causal masking\n**Why it matters**: This is the core operation powering all transformer models\n**Expected**: Correct shapes, weights summing to 1, future positions masked to zero"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Implementation: Building Scaled Dot-Product Attention."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,70 @@
+{
+ "title": "🏗️ SGD: Stochastic Gradient Descent",
+ "summary": "TinyTorch optimizers: 🏗️ SGD: Stochastic Gradient Descent",
+ "source": {
+  "chapter": "tt-07",
+  "sections": [
+   "🏗️ SGD: Stochastic Gradient Descent"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ SGD: Stochastic Gradient Descent\n\nSGD is the foundation of neural network optimization. It implements the principle of steepest descent: stepping in the direction opposite to the analytical gradient.\n\n### Why SGD Works: The Geometry of Steepest Descent\n\nThe gradient vector \\$\\nabla_{\\boldsymbol{\\theta}} \\mathcal{L}(\\boldsymbol{\\theta})\\$ defines the direction of greatest local rate of increase (steepest ascent). To minimize the scalar loss objective \\$\\mathcal{L}\\$, parameter updates move opposite to this vector:\n\n\\$\\$\\nabla_{\\boldsymbol{\\theta}} \\mathcal{L}(\\boldsymbol{\\theta}) = \\left[ \\frac{\\partial \\mathcal{L}}{\\partial \\theta_1}, \\dots, \\frac{\\partial \\mathcal{L}}{\\partial \\theta_D} \\right]^T \\implies \\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\alpha \\nabla_{\\boldsymbol{\\theta}} \\mathcal{L}(\\boldsymbol{\\theta}_t)\\$\\$\n\n### The Oscillation Problem in Ill-Conditioned Ravines\n\nIn deep architectures, loss surfaces rarely form isotropic spherical bowls. Instead, they form elongated, ill-conditioned ravines where the Hessian eigenvalues diverge (\\$\\kappa = \\lambda_{\\max}/\\lambda_{\\min} \\gg 1\\$):"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\mathbf{g}_t = \\mathbf{g}_t^{\\text{transverse}} + \\mathbf{g}_t^{\\text{floor}}, \\quad \\text{where } \\|\\mathbf{g}_t^{\\text{transverse}}\\| \\gg \\|\\mathbf{g}_t^{\\text{floor}}\\|\\$\\$\n\nBecause the transverse walls are steep, gradient descent steps overshoot and bounce back and forth across opposing valley walls (\\$\\mathbf{g}_{t+1}^{\\text{transverse}} \\approx -\\mathbf{g}_t^{\\text{transverse}}\\$). This wastes kinetic energy in high-frequency oscillations while making negligible forward progress along the gentle valley floor.\n\n### The Momentum Solution: Physical Inertia (Polyak Heavy-Ball)\n\nMomentum introduces physical inertia into the update dynamics. Instead of taking steps proportional to instantaneous gradients, SGD maintains a running velocity accumulator \\$\\mathbf{v}_t\\$:\n\n\\$\\$\\begin{aligned}\n\\mathbf{v}_t &= \\beta \\mathbf{v}_{t-1} + \\mathbf{g}_t \\\\\n\\boldsymbol{\\theta}_{t+1} &= \\boldsymbol{\\theta}_t - \\alpha \\mathbf{v}_t\n\\end{aligned}\\$\\$\n\nUnrolling the velocity recurrence reveals how momentum acts as a directional low-pass filter:\n\n\\$\\$\\mathbf{v}_t = \\sum_{\\tau=0}^t \\beta^{t-\\tau} \\mathbf{g}_\\tau\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "- **Transverse Components**: Alternating gradient signs cancel out across successive steps (\\$\\sum \\beta^{t-\\tau} \\mathbf{g}_\\tau^{\\text{transverse}} \\to \\mathbf{0}\\$).\n- **Floor Components**: Consistent gradients accumulate constructively, accelerating along the valley floor up to a terminal steady-state multiplier of \\$\\frac{1}{1 - \\beta} \\approx 10\\times\\$ (for \\$\\beta = 0.9\\$)."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Metric / Property",
+    "Vanilla SGD (\\$\\beta = 0\\$)",
+    "SGD with Momentum (\\$\\beta = 0.9\\$)"
+   ],
+   "rows": [
+    [
+     "**Effective Velocity**",
+     "\\$\\mathbf{v}_t = \\mathbf{g}_t\\$",
+     "\\$\\mathbf{v}_t = 0.9 \\mathbf{v}_{t-1} + \\mathbf{g}_t\\$"
+    ],
+    [
+     "**Steady-State Step Multiplier**",
+     "\\$1.0\\times\\$",
+     "\\$\\frac{1}{1 - \\beta} = 10.0\\times\\$"
+    ],
+    [
+     "**Ravine Trajectory**",
+     "Transverse zig-zag oscillation",
+     "Filtered low-pass forward acceleration"
+    ],
+    [
+     "**State Buffer Memory**",
+     "\\$0\\text{ bytes}\\$ (stateless)",
+     "\\$4\\text{ bytes/param}\\$ (one `momentum_buffers` entry)"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 167 lines of code (starting with `class SGD(Optimizer):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: SGD Optimizer\n\nThis test validates our SGD implementation works correctly.\n\n**What we're testing**: SGD updates with and without momentum\n**Why it matters**: Core optimization algorithm used in neural network training\n**Expected**: Correct parameter updates following SGD formulas"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ SGD: Stochastic Gradient Descent."
+   ]
+  }
+ ]
+}

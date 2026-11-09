@@ -1,0 +1,116 @@
+{
+ "title": "📐 Foundations: Mathematical Background",
+ "summary": "TinyTorch tensor: 📐 Foundations: Mathematical Background",
+ "source": {
+  "chapter": "tt-01",
+  "sections": [
+   "📐 Foundations: Mathematical Background"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: Mathematical Background\n\n### Core Operations We'll Implement\n\nOur Tensor class will support all fundamental operations that neural networks need:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Category",
+    "Operations",
+    "Syntax",
+    "Return Shape / Behavior"
+   ],
+   "rows": [
+    [
+     "**Element-wise**",
+     "Addition, Subtraction, Multiplication, Division",
+     "`a + b`, `a - b`, `a * b`, `a / b`",
+     "Broadcasts shapes; preserves rank"
+    ],
+    [
+     "**Linear Algebra**",
+     "Matrix Multiplication, Transpose",
+     "`a @ b`, `a.matmul(b)`, `a.transpose()`",
+     "Inner dimension contract: \\$(M, K) \\times (K, N) \\to (M, N)\\$"
+    ],
+    [
+     "**Shape & View**",
+     "Reshape, View, Slicing, Masked Fill",
+     "`a.reshape(...)`, `a.view(...)`, `a[i]`, `a.masked_fill(...)`",
+     "Modifies coordinate strides or view geometry"
+    ],
+    [
+     "**Reductions**",
+     "Sum, Mean, Maximum",
+     "`a.sum(axis=...)`, `a.mean(...)`, `a.max(...)`",
+     "Collapses specified axis \\$(N, D) \\xrightarrow{\\text{axis}=0} (D,)\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Broadcasting: Making Tensors Work Together\n\nBroadcasting automatically aligns tensors of different shapes for operations:\n\n\\$\\$\\begin{aligned}\n\\mathbf{\\text{Scalar } + \\text{ Vector:}} \\quad & 5 + \\begin{bmatrix} 1 & 2 & 3 \\end{bmatrix} \\xrightarrow{\\text{broadcast}} \\begin{bmatrix} 5 & 5 & 5 \\end{bmatrix} + \\begin{bmatrix} 1 & 2 & 3 \\end{bmatrix} = \\begin{bmatrix} 6 & 7 & 8 \\end{bmatrix} \\\\\n\\mathbf{\\text{Matrix } + \\text{ Row Vector:}} \\quad & \\begin{bmatrix} 1 & 2 \\\\ 3 & 4 \\end{bmatrix} + \\begin{bmatrix} 10 & 20 \\end{bmatrix} \\xrightarrow{\\text{broadcast}} \\begin{bmatrix} 1 & 2 \\\\ 3 & 4 \\end{bmatrix} + \\begin{bmatrix} 10 & 20 \\\\ 10 & 20 \\end{bmatrix} = \\begin{bmatrix} 11 & 22 \\\\ 13 & 24 \\end{bmatrix} \\\\\n\\mathbf{\\text{Matrix } + \\text{ Column Vector:}} \\quad & \\begin{bmatrix} 1 & 2 \\\\ 3 & 4 \\end{bmatrix} + \\begin{bmatrix} 10 \\\\ 20 \\end{bmatrix} \\xrightarrow{\\text{broadcast}} \\begin{bmatrix} 1 & 2 \\\\ 3 & 4 \\end{bmatrix} + \\begin{bmatrix} 10 & 10 \\\\ 20 & 20 \\end{bmatrix} = \\begin{bmatrix} 11 & 12 \\\\ 23 & 24 \\end{bmatrix}\n\\end{aligned}\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "**Memory Layout**: NumPy uses row-major (C-style) storage where elements are stored row by row in contiguous linear memory for cache efficiency:\n\n\\$\\$\\mathbf{A} = \\begin{bmatrix} 1 & 2 & 3 \\\\ 4 & 5 & 6 \\end{bmatrix} \\in \\mathbb{R}^{2 \\times 3} \\implies \\text{Linear Storage: } \\underbrace{\\begin{array}{|c|c|c|} \\hline 1 & 2 & 3 \\\\ \\hline \\end{array}}_{\\text{Row 0: offsets } 0, 4, 8 \\text{ B}} \\quad \\underbrace{\\begin{array}{|c|c|c|} \\hline 4 & 5 & 6 \\\\ \\hline \\end{array}}_{\\text{Row 1: offsets } 12, 16, 20 \\text{ B}}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Traversal Pattern",
+    "Memory Footprint",
+    "Hardware Cache Behavior"
+   ],
+   "rows": [
+    [
+     "**Sequential (Row-wise)**",
+     "`[1, 2, 3]` \\$\\to\\$ continuous 64-byte cache line",
+     "🟢 **Cache Hit**: Full line utilized"
+    ],
+    [
+     "**Strided (Column-wise)**",
+     "`[1, 4]` \\$\\to\\$ jumps memory stride per element",
+     "🔴 **Cache Miss**: Potential bandwidth thrashing"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The 2×3 example above is far too small to miss: all six float32 values fit in a single 64-byte cache line. The pattern matters once a row is longer than a cache line, which is the case for every matrix you will use for real work. Algorithms that access data sequentially run faster than those that stride through memory; the Systems Analysis section measures this on a 2000×2000 matrix."
+  },
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Building Tensor Foundation\n\nLet's build our Tensor class step by step, testing each component as we go.\n\n### Tensor Class Architecture\n\n\n  \n\n\nThis clean design focuses on what tensors fundamentally do: store numerical data and route every operation through one shared mechanism, `Function.apply`."
+  },
+  {
+   "type": "text",
+   "md": "### Operations as Objects\n\nEvery Tensor method below hands its work to an operation class instead of computing the result itself. `a + b` calls `Tensor.__add__`, which calls `Add.apply(a, b)`. `apply` unwraps the Tensors to NumPy arrays, runs the operation's `forward`, and wraps the result in a new Tensor.\n\nThis is how PyTorch is built (`torch.autograd.Function`), and the reason is Module 06, which will add automatic differentiation: `apply` is the one place that has to remember which operation produced which Tensor. Nothing in the Tensor class changes. In this module you write the `forward` half of every operation, in the cells that follow each section's explanation; `backward` raises until Module 06, where you write the other half of the same classes. The Tensor class refers to these operations by name, so run this cell before running any test below."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _as_tensor(x):\n    \"\"\"Wrap a scalar or array as a Tensor; pass a Tensor through unchanged.\"\"\"\n    return x if isinstance(x, Tensor) else Tensor(x)\n\n\nclass Function:\n    \"\"\"\n    Base class for every operation the framework can differentiate.\n\n    An operation has two halves. forward() computes the result from NumPy\n    arrays and is written in this module. backward() turns the gradient of the\n    output into gradients for the inputs and is written in Module 06. apply()\n    is the one method they share: it unwraps the input Tensors, runs forward(),\n    and wraps the result. Module 06 teaches apply() to also remember the\n    operation so that gradients can flow back through it.\n\n    **Example Usage:**\n    ```python\n    class Double(Function):\n        def forward(self, a):\n            return a * 2\n\n    y = Double.apply(x)   # x.data doubled, wrapped in a new Tensor\n    ```\n    \"\"\"\n\n    def __init__(self, *inputs, **params):\n        self.inputs = inputs                 # the Tensors this operation consumed\n        for name, value in params.items():   # axis, shape, key, ... for the operation\n            setattr(self, name, value)\n\n    def forward(self, *arrays):\n        \"\"\"Compute the result array from the input arrays. Each operation implements this.\"\"\"\n        raise NotImplementedError(f\"{type(self).__name__}.forward is not implemented\")\n\n    def backward(self, grad_output):\n        \"\"\"Return one gradient array per input. Module 06 implements this.\"\"\"\n        raise NotImplementedError(f\"Module 06 implements {type(self).__name__}.backward\")\n\n    @classmethod\n    def apply(cls, *inputs, **params):\n        \"\"\"Run the operation on Tensors and return a new Tensor.\"\"\"\n        node = cls(*inputs, **params)\n        arrays = [t.data for t in inputs]\n        return Tensor(node.forward(*arrays))"
+  },
+  {
+   "type": "text",
+   "md": "### Tensor Creation and Initialization\n\nBefore we implement operations, let's understand how tensors store data and manage their attributes. This initialization is the foundation that everything else builds upon.\n\n```\nTensor Initialization Process:\nInput Data → Validation → NumPy Array → Tensor Wrapper → Ready for Operations\n   [1,2,3] →    types   →  np.array   →    shape=(3,)  →     + - * / @ ...\n     ↓             ↓          ↓             ↓\n  List/Array    Type Check   Memory      Attributes Set\n               (optional)    Allocation\n\nMemory Allocation Example:\nInput: [[1, 2, 3], [4, 5, 6]]\n         ↓\nNumPy allocates: [1][2][3][4][5][6] in contiguous memory\n         ↓\nTensor wraps with: shape=(2,3), size=6, dtype=float32\n```\n\n**Key Design Principle**: Our Tensor is a wrapper around NumPy arrays that adds ML-specific functionality. We leverage NumPy's battle-tested memory management and computation kernels while adding the operation chaining needed for machine learning.\n\n**Why This Approach?**\n- **Performance**: NumPy's C implementations are highly optimized\n- **Compatibility**: Easy integration with scientific Python ecosystem\n- **Memory Discipline**: `Function.apply` wraps each result in a fresh Tensor with independent storage. Operations leave their inputs unchanged; direct writes through `.data` or `.numpy()` remain the caller's responsibility\n- **Familiar Surface**: The method names match PyTorch's, so what you learn here transfers, with two deliberate differences. Our reductions take `axis=` (NumPy's keyword) where PyTorch takes `dim=`, and our `max` returns values only where PyTorch's `max(dim=...)` also returns the argmax indices\n\nThe complete class stays together so its public interface is visible in one\nplace. Follow the path from `__init__` to an arithmetic method such as `__add__`,\nthen to `Function.apply`. The operation classes after the Tensor definition\nprovide the numerical work, and their adjacent tests check each operation.\n\nThree shape rules explain the methods in the class before we inspect them.\n`reshape` changes the grouping of elements without changing their count:\nsix values can become a `(2, 3)` matrix, but not a `(2, 4)` matrix. `transpose`\nswaps axes: a `(2, 3)` matrix becomes `(3, 2)`, with entry `(i, j)` moving to\n`(j, i)`. Matrix multiplication contracts the shared dimension:\n`(2, 3) @ (3, 4)` produces `(2, 4)`, whereas `(2, 3) @ (2, 4)` is invalid.\n`_validate_matmul_shapes` checks that contract before NumPy performs the work.\nThe later operation sections extend these examples to batched inputs and test\nthe rules individually. Utility methods such as `__repr__` help inspect results;\nthey can be read after the numerical path is clear."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 381 lines of code (starting with `class Tensor:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Tensor Creation\n\nThis test validates our Tensor constructor works correctly with various data types and properly initializes all attributes.\n\n**What we're testing**: Basic tensor creation and attribute setting\n**Why it matters**: Foundation for all other operations - if creation fails, nothing works\n**Expected**: Tensor wraps data correctly with proper attributes and consistent dtype"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 📐 Foundations: Mathematical Background."
+   ]
+  }
+ ]
+}

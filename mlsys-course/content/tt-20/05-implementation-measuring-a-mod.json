@@ -1,0 +1,133 @@
+{
+ "title": "🏗️ Implementation: Measuring a Model End to End",
+ "summary": "TinyTorch capstone: 🏗️ Implementation: Measuring a Model End to End",
+ "source": {
+  "chapter": "tt-20",
+  "sections": [
+   "🏗️ Implementation: Measuring a Model End to End"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Measuring a Model End to End\n\nThe BenchmarkReport class encapsulates all benchmark results and provides methods for comprehensive measurement and professional reporting.\n\n**Design Philosophy:**\n1. **Separation of concerns** - Measurement logic separate from model logic\n2. **Comprehensive metrics** - Capture model characteristics AND performance\n3. **System context** - Record environment for reproducibility\n4. **Statistical rigor** - Multiple runs for latency, report mean + std\n5. **JSON-serializable** - All data types compatible with JSON export"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 200 lines of code (starting with `class BenchmarkReport:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Why These Metrics?\n\nEach metric answers a specific production engineering and deployment question:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Production Inquiry",
+    "Monitored Metric",
+    "Physical Dimension",
+    "Systems Decision SLA"
+   ],
+   "rows": [
+    [
+     "**\"Will it fit on the target device?\"**",
+     "`model_size_mb`",
+     "Parameter storage & DRAM footprint",
+     "SRAM bounds in microcontroller or embedded cache"
+    ],
+    [
+     "**\"Is prediction quality preserved?\"**",
+     "`accuracy`",
+     "Top-1 accuracy score (\\$[0, 1]\\$)",
+     "Task accuracy threshold (\\$\\ge \\tau_{\\text{acc}}\\$)"
+    ],
+    [
+     "**\"Is interactive inference fast enough?\"**",
+     "`latency_ms_mean`",
+     "Forward pass duration (\\$\\text{ms}\\$)",
+     "Frame rate budget (\\$< 16\\text{ ms}\\$ or \\$< 100\\text{ ms}\\$)"
+    ],
+    [
+     "**\"Is execution latency predictable?\"**",
+     "`latency_ms_std`",
+     "Latency dispersion / jitter",
+     "Distinguishing a steady engine from a jittery one"
+    ],
+    [
+     "**\"What does the unlucky request see?\"**",
+     "`latency_ms_p95`, `latency_ms_p99`",
+     "Tail percentiles (\\$\\text{ms}\\$)",
+     "The SLA bound itself; the mean cannot express it"
+    ],
+    [
+     "**\"Can the service scale under load?\"**",
+     "`throughput`",
+     "Processed samples per second",
+     "Cloud server concurrency headroom"
+    ],
+    [
+     "**\"How compute-heavy is the graph?\"**",
+     "`parameter_count`",
+     "Total active scalar weights",
+     "Memory bus transfer volume"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Design Choice: Warmup, Then Many Timed Iterations\n\n`measure_latency` executes untimed warmup iterations first, then `num_runs` timed trials. The default is \\$N=100\\$; the demos and tests in this module pass 10 or 50 so a top-to-bottom run finishes in seconds. Report the \\$N\\$ you used, because the number of trials is part of the measurement:\n- **Warmup is untimed**, ensuring first-call costs (physical frame allocations, instruction cache warming, and JIT compilation) stay out of the numbers\n- **Many timed runs** average out OS scheduler interrupts and garbage collection cycles; at \\$N=10\\$ the tail percentiles are barely meaningful, which is a reason to raise \\$N\\$ before quoting one\n- **The median is reported alongside mean \\$\\pm\\$ std** because asymmetric tail outliers drag the mean; the submission compares medians for robust qualification\n- **The tail is reported too**, as `latency_ms_p95` and `latency_ms_p99`, taken from Module 19's `BenchmarkResult`. A report that stores only a center cannot state an SLA, and the tail is what the SLA is written against\n- **Standard deviation (\\$s\\$) is a distribution spread, not a confidence interval**: it quantifies runtime variance, while standard error (\\$\\text{SE} = \\frac{s}{\\sqrt{n}}\\$) bounds precision"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Benchmark Strategy",
+    "Sample Size",
+    "Reported Metrics",
+    "Systems Reliability & Risk"
+   ],
+   "rows": [
+    [
+     "**Single Run (Unreliable)**",
+     "\\$N=1\\$",
+     "Single scalar (e.g. \\$12.3\\text{ ms}\\$)",
+     "Unknown variance; highly vulnerable to cold starts or GC spikes"
+    ],
+    [
+     "**Sampled Distribution (Reliable)**",
+     "\\$N=100\\$",
+     "\\$\\mu \\pm s\\$ (e.g. \\$10.0\\text{ ms} \\pm 0.5\\text{ ms}\\$), \\$\\text{median} = 10.1\\text{ ms}\\$",
+     "Statistically grounded; captures true tail behavior and ensures reproducibility"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Design Choice: Python Native Types\n\nAll metrics are explicitly cast to native Python primitives (`int`, `float`) before report assembly:\n\n```python\n'parameter_count': int(param_count),  # NumPy int64 -> Python int\n'accuracy': float(accuracy),          # NumPy float64 -> Python float\n```\n\n**Why?** Standard JSON libraries cannot serialize NumPy scalar types directly:\n```python\n# Fails with TypeError: Object of type int64 is not JSON serializable\njson.dumps({\"value\": np.int64(42)})\n\n# Succeeds seamlessly across all JSON parsers\njson.dumps({\"value\": int(42)})\n```\n\nThis design decision ensures generated submissions are universally machine-readable across any programming language without proprietary serializer dependencies."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: BenchmarkReport\n\nThis test validates the BenchmarkReport class captures all required metrics.\n\n**What we're testing**: Report initialization, metric collection, and value ranges\n**Why it matters**: Benchmarks must be comprehensive and accurate for reproducibility\n**Expected**: All required metrics present with valid types and ranges"
+  },
+  {
+   "type": "text",
+   "md": "### OlympicEvent: Applying the Capstone's Rules\n\nModule 19 measures models under a shared protocol. This capstone decides whether\nthose measurements meet a classroom event's requirements. Keep that decision\nseparate from schema validation: a valid report can describe a model that does\nnot qualify. These thresholds are classroom rules, not official MLPerf criteria.\n\n`OlympicEvent` gives each event one stable name. `qualifies_event` reads the\naccuracy, median single-sample latency, and model array storage already collected\nby `BenchmarkReport`. The key `model_size_mb` stores decimal MB (bytes / 10**6).\nLatency and memory events require at least 85% accuracy; the accuracy event\nrequires latency below 100 ms and storage below 10 MB. Extreme push lowers the\naccuracy floor to 80%. All-around has no eligibility floor: it keeps the separate\nmetrics for discussion and does not invent a combined ranking.\n\nThe supplied policy is short so every student applies the same rules. It never\nchanges the measurements, and it cannot verify the experiment that produced them."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class OlympicEvent(Enum):\n    \"\"\"Stable names for the five classroom capstone events.\"\"\"\n    LATENCY_SPRINT = \"latency_sprint\"\n    MEMORY_CHALLENGE = \"memory_challenge\"\n    ACCURACY_CONTEST = \"accuracy_contest\"\n    ALL_AROUND = \"all_around\"\n    EXTREME_PUSH = \"extreme_push\"\n\n\ndef qualifies_event(metrics: Dict[str, Any], event: OlympicEvent) -> bool:\n    \"\"\"Check classroom eligibility without modifying or combining measurements.\n\n    Args:\n        metrics: A BenchmarkReport.metrics dict. Typed Dict[str, Any] rather than\n            Dict[str, float] because the same dict carries an int parameter_count.\n        event: The event whose rule to apply, as an OlympicEvent or its string value.\n\n    Requires accuracy in [0, 1], positive median latency in milliseconds, and\n    positive array storage in MB. Unknown events and invalid values raise;\n    missing measurements raise KeyError rather than receiving default values.\n    A False result means a valid measurement failed the selected event's rule.\n    \"\"\"\n    event = OlympicEvent(event)\n    accuracy = metrics['accuracy']\n    latency = metrics['latency_ms_median']\n    size = metrics['model_size_mb']\n    if not all(np.isfinite(value) for value in (accuracy, latency, size)):\n        raise ValueError(\"Event measurements must be finite\")\n    if not 0 <= accuracy <= 1 or latency <= 0 or size <= 0:\n        raise ValueError(\"Event measurements require valid accuracy and positive latency/storage\")\n\n    if event in (OlympicEvent.LATENCY_SPRINT, OlympicEvent.MEMORY_CHALLENGE):\n        return bool(accuracy >= 0.85)\n    if event == OlympicEvent.ACCURACY_CONTEST:\n        return bool(latency < 100.0 and size < 10.0)\n    if event == OlympicEvent.EXTREME_PUSH:\n        return bool(accuracy >= 0.80)\n    return True  # All-around compares the separate metrics, without a floor."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: qualifies_event\n\nThis test validates the event eligibility rules, including the boundaries.\n\n**What we're testing**: Each event's floor, the exact threshold values, and rejection of invalid measurements\n**Why it matters**: Eligibility is separate from schema validity, so it needs its own check; a floor that is off by one comparison lets a constant-output model win the Latency Sprint\n**Expected**: Thresholds are inclusive where stated, All-Around always qualifies, and non-finite or out-of-range measurements raise"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Implementation: Measuring a Model End to End."
+   ]
+  }
+ ]
+}

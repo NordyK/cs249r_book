@@ -1,0 +1,121 @@
+{
+ "title": "🏗️ Matrix Multiplication: The Core Computational Operation",
+ "summary": "TinyTorch tensor: 🏗️ Matrix Multiplication: The Core Computational Operation",
+ "source": {
+  "chapter": "tt-01",
+  "sections": [
+   "🏗️ Matrix Multiplication: The Core Computational Operation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Matrix Multiplication: The Core Computational Operation\n\nMatrix multiplication is fundamentally different from element-wise multiplication. It's the operation that powers linear transformations, combining information across features to produce new representations.\n\n### Why Matrix Multiplication Matters\n\nMany scientific and data-processing tasks rely on matrix multiplication:\n\n\\$\\$\\mathbf{X} \\in \\mathbb{R}^{N \\times D_{\\text{in}}}, \\quad \\mathbf{W} \\in \\mathbb{R}^{D_{\\text{in}} \\times D_{\\text{out}}} \\implies \\mathbf{Y} = \\mathbf{X}\\mathbf{W} \\in \\mathbb{R}^{N \\times D_{\\text{out}}}\\$\\$\n\nFor example, in feature projection (e.g. MNIST dimensionality reduction):\n\\$\\$\\underbrace{\\mathbf{X}}_{(32, 784)} \\times \\underbrace{\\mathbf{W}}_{(784, 256)} = \\underbrace{\\mathbf{Y}}_{(32, 256)}\\$\\$\n\n### Matrix Multiplication Visualization"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\underbrace{\\begin{bmatrix} 1 & 2 & 3 \\\\ 4 & 5 & 6 \\end{bmatrix}}_{A \\in \\mathbb{R}^{2 \\times 3}} \\times \\underbrace{\\begin{bmatrix} 7 & 8 \\\\ 9 & 1 \\\\ 1 & 2 \\end{bmatrix}}_{B \\in \\mathbb{R}^{3 \\times 2}} = \\begin{bmatrix} 1\\cdot 7 + 2\\cdot 9 + 3\\cdot 1 & 1\\cdot 8 + 2\\cdot 1 + 3\\cdot 2 \\\\ 4\\cdot 7 + 5\\cdot 9 + 6\\cdot 1 & 4\\cdot 8 + 5\\cdot 1 + 6\\cdot 2 \\end{bmatrix} = \\underbrace{\\begin{bmatrix} 28 & 16 \\\\ 79 & 49 \\end{bmatrix}}_{C \\in \\mathbb{R}^{2 \\times 2}}\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "**Computation Breakdown:**\n\\$\\$\\begin{aligned}\nC_{0,0} &= \\mathbf{A}[0, :] \\cdot \\mathbf{B}[:, 0] = [1, 2, 3] \\cdot [7, 9, 1] = 1\\cdot 7 + 2\\cdot 9 + 3\\cdot 1 = 7 + 18 + 3 = 28 \\\\\nC_{0,1} &= \\mathbf{A}[0, :] \\cdot \\mathbf{B}[:, 1] = [1, 2, 3] \\cdot [8, 1, 2] = 1\\cdot 8 + 2\\cdot 1 + 3\\cdot 2 = 8 + 2 + 6 = 16 \\\\\nC_{1,0} &= \\mathbf{A}[1, :] \\cdot \\mathbf{B}[:, 0] = [4, 5, 6] \\cdot [7, 9, 1] = 4\\cdot 7 + 5\\cdot 9 + 6\\cdot 1 = 28 + 45 + 6 = 79 \\\\\nC_{1,1} &= \\mathbf{A}[1, :] \\cdot \\mathbf{B}[:, 1] = [4, 5, 6] \\cdot [8, 1, 2] = 4\\cdot 8 + 5\\cdot 1 + 6\\cdot 2 = 32 + 5 + 12 = 49\n\\end{aligned}\\$\\$\n\n**Key Rule: Inner dimensions must match!**\n\\$\\$\\mathbf{A}_{(M \\times K)} @ \\mathbf{B}_{(K \\times N)} = \\mathbf{C}_{(M \\times N)} \\quad \\text{where the shared dimension } K \\text{ contracts}\\$\\$\n\n### Computational Complexity and Performance"
+  },
+  {
+   "type": "text",
+   "md": "For \\$\\mathbf{C} = \\mathbf{A} @ \\mathbf{B}\\$ where \\$\\mathbf{A} \\in \\mathbb{R}^{M \\times K}\\$ and \\$\\mathbf{B} \\in \\mathbb{R}^{K \\times N}\\$:\n* **Multiplications**: \\$M \\times N \\times K\\$\n* **Additions**: \\$M \\times N \\times (K - 1) \\approx M \\times N \\times K\\$\n* **Total FLOPs**: \\$\\approx 2MNK\\$ operations"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Operand",
+    "Shape",
+    "Traversal Pattern",
+    "Memory Locality & Hardware Implications"
+   ],
+   "rows": [
+    [
+     "**Matrix \\$A\\$**",
+     "\\$(M, K)\\$",
+     "Row-by-row (`A[i, :]`)",
+     "🟢 **Sequential**: Cache-line streaming friendly"
+    ],
+    [
+     "**Matrix \\$B\\$**",
+     "\\$(K, N)\\$",
+     "Column-by-column (`B[:, j]`)",
+     "🔴 **Strided**: Cache line thrashing unless tiled/transposed"
+    ],
+    [
+     "**Matrix \\$C\\$**",
+     "\\$(M, N)\\$",
+     "Row-by-row accumulation",
+     "🟢 **Sequential**: Spatial write locality"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "This is why optimized BLAS libraries (OpenBLAS, Apple Accelerate, Intel MKL) employ cache blocking, register tiling, and SIMD vectorization.\n\n### Chained Matrix Multiplications\n\n\\$\\$\\mathbf{X}_{(100 \\times 50)} \\xrightarrow{\\mathbf{W}_1 \\in \\mathbb{R}^{50 \\times 20}} \\mathbf{H}_{(100 \\times 20)} \\xrightarrow{\\mathbf{W}_2 \\in \\mathbb{R}^{20 \\times 5}} \\mathbf{Y}_{(100 \\times 5)}\\$\\$\n\nFLOPs budget for \\$100\\$ batch samples across both projections:\n\\$\\$\\text{Total Compute} = 100 \\times (2 \\times 50 \\times 20 + 2 \\times 20 \\times 5) = 100 \\times (2{,}000 + 200) = 220{,}000 \\text{ FLOPs}\\$\\$\n\nThis is why hardware acceleration matters: specialized matrix engines execute thousands of these multiply-accumulate operations in parallel!"
+  },
+  {
+   "type": "text",
+   "md": "### Shape Validation for Matrix Multiplication\n\nBefore performing any computation, matrix multiplication must verify that the\ntwo operands are compatible. There are three things that can go wrong, and each\none deserves a distinct, educational error message."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Check Order",
+    "Invariant Verified",
+    "Exception Raised",
+    "Educational Error Explanation"
+   ],
+   "rows": [
+    [
+     "**1. Type Check**",
+     "`isinstance(other, Tensor)`",
+     "`TypeError`",
+     "`Matrix multiplication requires Tensor, got {type(other).__name__}`"
+    ],
+    [
+     "**2. Scalar Rejection**",
+     "`self.ndim > 0` and `other.ndim > 0`",
+     "`ValueError`",
+     "`Matrix multiplication requires at least 1D tensors`"
+    ],
+    [
+     "**3. Inner Dimension**",
+     "`self.shape[-1] == other.shape[-2]` for a matrix operand, `other.shape[0]` for a vector",
+     "`ValueError`",
+     "`Matrix multiplication shape mismatch: {self.shape} @ {other.shape}`"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The third invariant is the one worth memorizing. Matrix multiplication contracts\n`self`'s last axis against `other`'s ROWS axis, which is `shape[-2]` once `other`\nhas two or more dimensions and `shape[0]` when it is a 1D vector. Each message\nabove is only the first line of what the code raises; three follow-up lines then\nshow the offending shapes, explain the rule, and suggest a fix.\n\nSeparating validation from computation keeps each function focused on a single\nconcept: `_validate_matmul_shapes` teaches input checking, while\n`MatMul.forward` teaches the algorithm itself."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Validate Matmul Shapes\n\n**What we're testing**: All three shape-mismatch categories are caught and named, for matrices and vectors alike\n**Why it matters**: A shape error caught at the boundary names the problem; one\nthat slips through surfaces as a NumPy error deep inside a matmul, pages away\nfrom the line that caused it\n**Expected**: Valid shapes pass silently; each invalid case raises with its reason"
+  },
+  {
+   "type": "text",
+   "md": "### Implement: MatMul\n\nWrite `forward` for the matrix product. The inputs are NumPy arrays whose shapes `Tensor.matmul` already validated; return an array. The explicit-loop guidance lives in the docstring below."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class MatMul(Function):\n    \"\"\"Matrix multiplication c = a @ b. Shapes were validated by Tensor.matmul.\"\"\"\n\n    def forward(self, a, b):\n        \"\"\"\n        Multiply two matrices.\n\n        For 2D matrices, uses explicit nested loops so you can see exactly how\n        each output element is a dot product of a row and a column. For anything\n        other than 2D @ 2D (a vector on either side, or batched 3D+ inputs),\n        delegates to np.matmul.\n\n        TODO: Compute the matrix product using explicit loops for 2D @ 2D and\n        np.matmul for every other case.\n\n        APPROACH:\n        1. For 2D @ 2D: use explicit nested loops with np.dot per element\n        2. For every other case (1D operands, batched 3D+): use np.matmul\n        3. Return the result array\n\n        EXAMPLE:\n        >>> a = Tensor([[1, 2], [3, 4]])  # 2x2\n        >>> b = Tensor([[5, 6], [7, 8]])  # 2x2\n        >>> print((a @ b).data)\n        [[19. 22.]\n         [43. 50.]]\n\n        HINTS:\n        - Inner dimensions must match: (M, K) @ (K, N) = (M, N)\n        - For 2D case: use np.dot(a[i, :], b[:, j]) for each output element\n        \"\"\"\n        # Educational implementation: explicit loops to show what matrix multiplication does\n        # This is intentionally slower than np.matmul to demonstrate the value of vectorization\n\n        # Handle 2D matrices with explicit loops (educational)\n        if len(a.shape) == 2 and len(b.shape) == 2:\n            M, K = a.shape\n            _, N = b.shape   # b's row count is K; Tensor.matmul already checked it\n            result_data = np.zeros((M, N), dtype=a.dtype)\n\n            # Explicit nested loops - students can see exactly what's happening!\n            # Each output element is a dot product of a row from A and a column from B\n            for i in range(M):\n                for j in range(N):\n                    # Dot product of row i from A with column j from B\n                    result_data[i, j] = np.dot(a[i, :], b[:, j])\n        else:\n            # Anything other than 2D @ 2D (a 1D operand, or batched 3D+ inputs)\n            # goes to np.matmul. The mechanism is the same dot product per element.\n            result_data = np.matmul(a, b)\n\n        return result_data"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Matrix Multiplication\n\nNow that validation is handled by `_validate_matmul_shapes`, this test focuses\non the computational correctness of `matmul` itself. We verify square matrices,\nrectangular matrices, and matrix-vector products all produce the expected\nnumerical results.\n\n**What we're testing**: Matrix multiplication computation for various shape combinations\n**Why it matters**: Core operation in linear algebra and data transformations\n**Expected**: Correct numerical results matching hand-calculated dot products"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Matrix Multiplication: The Core Computational Operation."
+   ]
+  }
+ ]
+}

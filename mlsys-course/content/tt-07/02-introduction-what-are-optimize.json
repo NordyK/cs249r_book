@@ -1,0 +1,73 @@
+{
+ "title": "💡 Introduction: What are Optimizers?",
+ "summary": "TinyTorch optimizers: 💡 Introduction: What are Optimizers?",
+ "source": {
+  "chapter": "tt-07",
+  "sections": [
+   "💡 Introduction: What are Optimizers?"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: What are Optimizers?\n\nOptimizers are the numerical engines that drive neural network learning. They take analytical gradients computed by Module 06's autograd engine and update model parameters toward loss minima. In high-dimensional deep learning, loss landscapes are rarely isotropic bowls. They feature ill-conditioned ravines, saddle points, and sharp cliffs.\n\n### The Ill-Conditioned Ravine Challenge\n\nConsider an anisotropic quadratic bowl with condition number \\$\\kappa = 100\\$:\n\n\\$\\$\\mathcal{L}(w_1, w_2) = 50 w_1^2 + 0.5 w_2^2 \\implies \\mathbf{H} = \\begin{bmatrix} 100 & 0 \\\\ 0 & 1 \\end{bmatrix}, \\quad \\kappa = \\frac{\\lambda_{\\max}}{\\lambda_{\\min}} = 100\\$\\$\n\n- **Steep Axis (\\$w_1\\$)**: The gradient \\$\\nabla_{w_1} \\mathcal{L} = 100 w_1\\$ is massive, causing vanilla gradient descent to oscillate violently across the valley walls.\n- **Gentle Axis (\\$w_2\\$)**: The gradient \\$\\nabla_{w_2} \\mathcal{L} = w_2\\$ is tiny, causing progress along the valley floor to stall.\n\nEvery optimization algorithm in this module implements a specialized strategy to resolve this curvature imbalance under the universal update template:"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\alpha \\cdot \\mathbf{u}(\\mathbf{g}_t, \\mathbf{s}_t)\\$\\$\n\nwhere \\$\\boldsymbol{\\theta}\\$ represents model parameters, \\$\\alpha\\$ is the learning rate, \\$\\mathbf{g}_t = \\nabla_{\\boldsymbol{\\theta}} \\mathcal{L}\\$ is the current gradient, and \\$\\mathbf{s}_t\\$ denotes internal optimizer state buffers."
+  },
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: Mathematical Background\n\n### 1. Understanding Momentum: The Physics of Optimization\n\nIn physical systems, a rolling marble possesses inertia: when traveling through a narrow ravine, alternating sideways forces cancel out while forward momentum accumulates along the valley floor.\n\n\\$\\$\\begin{aligned}\n\\mathbf{v}_t &= \\beta \\mathbf{v}_{t-1} + \\mathbf{g}_t \\\\\n\\boldsymbol{\\theta}_{t+1} &= \\boldsymbol{\\theta}_t - \\alpha \\mathbf{v}_t\n\\end{aligned}\\$\\$\n\nWith momentum coefficient \\$\\beta \\approx 0.9\\$, the effective step size along consistent gradient directions scales by \\$\\frac{1}{1 - \\beta} \\approx 10\\times\\$, while high-frequency transverse oscillations cancel.\n\n### 2. Adam: Adaptive Moment Estimation\n\nAdam maintains running exponential moving averages (EMA) of both the gradient direction (first moment \\$\\mathbf{m}\\$) and uncentered variance (second moment \\$\\mathbf{v}\\$):"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\begin{aligned}\n\\mathbf{m}_t &= \\beta_1 \\mathbf{m}_{t-1} + (1 - \\beta_1) \\mathbf{g}_t, \\quad & \\hat{\\mathbf{m}}_t &= \\frac{\\mathbf{m}_t}{1 - \\beta_1^t} \\\\\n\\mathbf{v}_t &= \\beta_2 \\mathbf{v}_{t-1} + (1 - \\beta_2) \\mathbf{g}_t^2, \\quad & \\hat{\\mathbf{v}}_t &= \\frac{\\mathbf{v}_t}{1 - \\beta_2^t}\n\\end{aligned}\\$\\$\n\nThe parameter update scales coordinates inversely by their empirical standard deviation:\n\n\\$\\$\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\frac{\\alpha}{\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon} \\hat{\\mathbf{m}}_t\\$\\$\n\n- **High-Curvature Coordinates**: Large \\$v_i \\implies \\sqrt{v_i}\\$ dampens step size, preventing explosive divergence.\n- **Low-Curvature Coordinates**: Small \\$v_i \\implies \\sqrt{v_i}\\$ amplifies step size, accelerating escape from flat plateaus.\n\n### 3. AdamW: Decoupled Weight Decay\n\nWhen standard \\$L_2\\$ regularization \\$\\frac{1}{2} \\lambda \\|\\boldsymbol{\\theta}\\|^2\\$ is folded into the loss, its gradient \\$\\lambda \\boldsymbol{\\theta}\\$ is divided by \\$\\sqrt{\\mathbf{v}}\\$. Parameters with large historical gradients receive suppressed regularization, while parameters with small gradients are over-penalized."
+  },
+  {
+   "type": "text",
+   "md": "AdamW restores scale-invariant regularization by separating parameter decay from gradient adaptation:\n\n\\$\\$\\boldsymbol{\\theta}_{t+1} = \\underbrace{(1 - \\alpha \\lambda) \\boldsymbol{\\theta}_t}_{\\text{decoupled weight shrinkage}} - \\underbrace{\\frac{\\alpha}{\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon} \\hat{\\mathbf{m}}_t}_{\\text{pure gradient adaptive step}}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Algorithm",
+    "State Buffers",
+    "Update Direction \\$\\mathbf{u}_t\\$",
+    "Regularization Mechanism"
+   ],
+   "rows": [
+    [
+     "**SGD**",
+     "None",
+     "\\$\\mathbf{g}_t\\$",
+     "Coupled gradient penalty \\$\\mathbf{g} + \\lambda \\boldsymbol{\\theta}\\$"
+    ],
+    [
+     "**SGD + Momentum**",
+     "Velocity \\$\\mathbf{v} \\in \\mathbb{R}^D\\$",
+     "\\$\\mathbf{v}_t = \\beta \\mathbf{v}_{t-1} + \\mathbf{g}_t\\$",
+     "Coupled gradient penalty \\$\\mathbf{g} + \\lambda \\boldsymbol{\\theta}\\$"
+    ],
+    [
+     "**Adam**",
+     "Moments \\$\\mathbf{m}, \\mathbf{v} \\in \\mathbb{R}^D\\$",
+     "\\$\\frac{\\hat{\\mathbf{m}}_t}{\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon}\\$",
+     "Coupled gradient penalty \\$\\mathbf{g} + \\lambda \\boldsymbol{\\theta}\\$"
+    ],
+    [
+     "**AdamW**",
+     "Moments \\$\\mathbf{m}, \\mathbf{v} \\in \\mathbb{R}^D\\$",
+     "\\$\\frac{\\hat{\\mathbf{m}}_t}{\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon}\\$",
+     "**Decoupled**: \\$\\boldsymbol{\\theta} \\leftarrow (1 - \\alpha \\lambda) \\boldsymbol{\\theta}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 💡 Introduction: What are Optimizers?."
+   ]
+  }
+ ]
+}

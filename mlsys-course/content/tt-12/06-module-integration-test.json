@@ -1,0 +1,62 @@
+{
+ "title": "🧪 Module Integration Test",
+ "summary": "TinyTorch attention: 🧪 Module Integration Test",
+ "source": {
+  "chapter": "tt-12",
+  "sections": [
+   "🧪 Module Integration Test"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🧪 Module Integration Test\n\nFinal validation that everything works together correctly."
+  },
+  {
+   "type": "text",
+   "md": "## 🤔 ML Systems Reflection Questions\n\nQuestions 1 and 2 are yours to work out, and every quantity they ask for is derivable from the tables in this module with a calculator. Questions 3 through 5 and the bonus are worked systems analyses. Read those once you have committed to your own answers for the first two, then look for where your reasoning diverged from theirs.\n\n### Question 1: Quadratic Complexity, Memory Footprint & Context Scaling\nYou benchmarked the memory scaling of the attention logit matrix \\$S = Q K^\\top / \\sqrt{d_k}\\$.\n\n**1. Exact Attention Matrix Memory Calculations**:\n- At float32 (\\$4\\text{ bytes/element}\\$), how many bytes does one head's \\$n \\times n\\$ logit matrix occupy at \\$n = 1{,}024\\$, and at \\$n = 2{,}048\\$? Give each in decimal MB.\n- By what factor does that memory grow when you double \\$n\\$? Explain why the factor is the same at every \\$n\\$."
+  },
+  {
+   "type": "text",
+   "md": "**2. Production Context Length Constraints**:\n- GPT-3 175B runs \\$L = 96\\$ layers and \\$H = 96\\$ heads at \\$n = 2{,}048\\$. Multiply out the total logit-matrix memory held for a single sequence.\n- Set your answer against the \\$80\\text{ GB}\\$ of an A100 or H100. What does that comparison rule out about running naive dense attention at \\$32\\text{K}\\$ or \\$128\\text{K}\\$ context, and which two techniques named in this module buy the headroom back?\n\n---\n\n### Question 2: Attention vs FFN Memory Bottleneck and Crossover Mechanics\nIn transformer architectures, attention is frequently the primary memory bottleneck, despite Feed-Forward Networks (FFNs) containing more parameters."
+  },
+  {
+   "type": "text",
+   "md": "**1. Dimensional Scaling Comparison**:\n- For hidden dimension \\$d\\$ with the standard \\$4d\\$ intermediate expansion, write the FFN's parameter count, its compute FLOPs, and its activation memory in terms of \\$n\\$ and \\$d\\$.\n- Do the same for self-attention with \\$H\\$ heads of dimension \\$d_k = d / H\\$, splitting its FLOP count into the projection term (in \\$n d^2\\$) and the score term (in \\$n^2 d\\$). Which of the two grows faster as \\$n\\$ rises, and which one does the activation memory follow?\n\n**2. Regime Dominance and Crossover Point**:\n- Which subsystem dominates activation memory when \\$n \\ll d\\$, and which dominates when \\$n \\gg d\\$? State the inequality that decides it.\n- Set attention's activation memory equal to the FFN's and solve for the crossover length \\$n^*\\$. Express \\$n^*\\$ in terms of \\$d_k\\$ alone, then evaluate it for the standard \\$d_k = 64\\$. Compare that number against the context lengths production models actually serve.\n\n---"
+  },
+  {
+   "type": "text",
+   "md": "### Question 3: Multi-Head Trade-offs: Subspace Diversity vs Hardware Execution\nComparing \\$H = 8\\$ heads of dimension \\$d_k = 64\\$ versus \\$H = 1\\$ head with \\$d_k = 512\\$ (where \\$d_{\\text{embed}} = 512\\$):\n\n**1. Parameter and FLOP Equivalence**:\n- **Parameter Count**:\n  - Multi-Head (\\$H = 8, d_k = 64\\$): \\$W_Q, W_K, W_V \\in \\mathbb{R}^{512 \\times 512}\\$ plus \\$W_O \\in \\mathbb{R}^{512 \\times 512} \\implies 4 \\times 512^2 = \\mathbf{1{,}048{,}576\\text{ parameters}}\\$.\n  - Single-Head (\\$H = 1, d_k = 512\\$): \\$W_Q, W_K, W_V, W_O \\in \\mathbb{R}^{512 \\times 512} \\implies 4 \\times 512^2 = \\mathbf{1{,}048{,}576\\text{ parameters}}\\$.\n  - Parameter counts are **identical**.\n- **Compute FLOPs**:\n  - Multi-Head \\$Q K^\\top\\$: \\$8 \\times (n \\times 64 \\times n) = n^2 \\times 512\\$ multiply-accumulates (\\$2 n^2 d\\text{ FLOPs}\\$).\n  - Single-Head \\$Q K^\\top\\$: \\$1 \\times (n \\times 512 \\times n) = n^2 \\times 512\\$ multiply-accumulates (\\$2 n^2 d\\text{ FLOPs}\\$).\n  - Theoretical FLOP counts are **identical**."
+  },
+  {
+   "type": "text",
+   "md": "**2. Systems and Representation Differences**:\n- **Activation Memory**: The multi-head model materializes \\$8\\$ separate \\$n \\times n\\$ attention maps, requiring \\$8 \\times n^2 \\times 4\\text{ bytes}\\$, whereas the single-head model requires only \\$1 \\times n^2 \\times 4\\text{ bytes}\\$ (**\\$8\\times\\$ memory expansion**).\n- **GPU Hardware Efficiency**: Single large GEMMs (\\$(n \\times 512) \\times (512 \\times n)\\$) maximize systolic array occupancy on Tensor Cores. Splitting into 8 smaller GEMMs (\\$(n \\times 64) \\times (64 \\times n)\\$) introduces kernel launch overhead unless batched into a single batched-strided GEMM.\n- **Representational Capacity**: Multi-head attention allows the model to jointly attend to information from different representation subspaces at different positions (e.g. tracking syntactic dependencies, semantic coreference, and positional offsets independently).\n\n---\n\n### Question 4: Causal Masking Costs & Arithmetic Intensity\nCausal autoregressive masking sets future positions (\\$j > i\\$) to \\$-\\infty\\$."
+  },
+  {
+   "type": "text",
+   "md": "**1. Computational and Memory Savings in Naive Implementations**:\n- In standard vectorized attention, the implementation computes the full dense matrix product \\$S = Q K^\\top\\$ (\\$n^2\\$ dot products), adds an \\$n \\times n\\$ mask tensor, and evaluates softmax over all \\$n\\$ columns.\n- Compute saved: **0 FLOPs**. In fact, it expends extra memory bandwidth writing and reading \\$-\\infty\\$ values across the upper triangle (\\$\\frac{n^2 - n}{2}\\$ positions).\n- Memory saved: **0 bytes**. The full \\$n \\times n\\$ matrix is still allocated in VRAM.\n\n**2. Production GPU Optimization**:\nIn production kernels (such as FlashAttention-2 causal mode):\n- The GPU thread grid tiles the attention computation into blocks (e.g. \\$128 \\times 128\\$).\n- Thread blocks located entirely in the upper triangle (\\$j > i\\$) are **never scheduled**, skipping \\$\\approx 50\\%\\$ of matrix multiply FLOPs.\n- Only the boundary tiles along the diagonal require causal masking, dramatically reducing both memory traffic and compute cycles.\n\n---"
+  },
+  {
+   "type": "text",
+   "md": "### Question 5: The Quadratic Memory Challenge & The Softmax Barrier\nMaterializing the full \\$(S \\times S)\\$ attention matrix is the primary architectural memory bottleneck.\n\n**1. Exact Numerical Memory Footprint**:\n- **\\$4{,}096\\$-token sequence with \\$32\\$ heads at float32**:\n  \\$\\$\\text{Memory} = 32 \\times 4{,}096^2 \\times 4\\text{ B} = 32 \\times 16{,}777{,}216 \\times 4\\text{ B} = 2{,}147{,}483{,}648\\text{ B} = \\mathbf{2.15\\text{ GB}} \\text{ per layer}\\$\\$\n  Across a 32-layer model: \\$32 \\times 2.15\\text{ GB} = \\mathbf{68.72\\text{ GB}}\\$ for a single sequence!\n- **\\$512\\$-token sequence with \\$8\\$ heads at float32**:\n  \\$\\$\\text{Memory} = 8 \\times 512^2 \\times 4\\text{ B} = 8 \\times 262{,}144 \\times 4\\text{ B} = 8{,}388{,}608\\text{ B} = \\mathbf{8.39\\text{ MB}} \\text{ per layer}\\$\\$\n  Across a 6-layer TinyTorch model: \\$6 \\times 8.39\\text{ MB} = \\mathbf{50.33\\text{ MB}}\\$.\n- **Scaling Behavior**: Doubling sequence length increases attention matrix memory by exactly **\\$4\\times\\$**."
+  },
+  {
+   "type": "text",
+   "md": "**2. The Softmax Normalizer Barrier**:\nWhy can't we easily avoid materializing \\$S\\$? Because the softmax operator requires a row-wise reduction:\n\\$\\$A_{i, j} = \\frac{\\exp(S_{i, j})}{\\sum_{k=1}^S \\exp(S_{i, k})}\\$\\$\nComputing the normalizer requires seeing all keys in row \\$i\\$ before outputting any probability. Standard implementations must store all \\$S_{i, j}\\$ intermediate values in off-chip global memory (HBM). **FlashAttention** overcomes this barrier using the **online softmax trick**, which maintains running row maximums and partial sums in fast SRAM tiles, avoiding global memory materialization altogether.\n\n---\n\n### Bonus Question: Training Memory Overhead & Optimizer Dynamics\nTraining requires caching activations during the forward pass to evaluate backward gradients."
+  },
+  {
+   "type": "text",
+   "md": "**1. Forward vs Backward Activation Footprint**:\n- **Inference**: Once the context vector \\$O = A V\\$ is computed, the attention weights \\$A \\in \\mathbb{R}^{B \\times H \\times S \\times S}\\$ can be immediately deallocated.\n- **Training**: Softmax weights \\$A\\$ must be retained in memory for the backward pass because the gradient of softmax depends on its forward output:\n  \\$\\$\\frac{\\partial L}{\\partial S_{i, j}} = A_{i, j} \\left( \\frac{\\partial L}{\\partial A_{i, j}} - \\sum_k \\frac{\\partial L}{\\partial A_{i, k}} A_{i, k} \\right)\\$\\$\n  During backward execution, the gradient tensor \\$\\nabla_S\\$ of the same shape (\\$B \\times H \\times S \\times S\\$) is also materialized.\n- **Training Overhead**: Training requires \\$\\mathbf{2\\times}\\$ the activation memory of inference for the attention matrix (\\$A\\$ retained + \\$\\nabla_S\\$ allocated)."
+  },
+  {
+   "type": "text",
+   "md": "**2. Optimizer Memory Immunity**:\n- The attention matrix \\$A\\$ contains **\\$0\\$ trainable parameters**. It is a transient dynamic activation generated from input embeddings.\n- Consequently, optimizer states (such as Adam's first moment \\$m_t\\$ and second moment \\$v_t\\$, consuming \\$8\\text{ bytes/param}\\$) do **not** scale with sequence length \\$S\\$. Optimizer state memory scales strictly with model parameters (\\$W_Q, W_K, W_V, W_O\\$).\n\n**3. GPT-3 Scale Activation Retention**:\nIn GPT-3 (\\$L = 96\\$ layers, \\$H = 96\\$ heads, \\$S = 2{,}048\\$):\n\\$\\$\\text{Saved Softmax Weights} = 96 \\times 96 \\times 2{,}048^2 \\times 4\\text{ B} \\approx \\mathbf{154.62\\text{ GB per sequence}}\\$\\$\nThis immense activation footprint is why modern large-scale training pipelines employ **Activation Checkpointing** (recomputing attention on the fly during backward) to trade \\$33\\%\\$ extra compute for drastic VRAM savings."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🧪 Module Integration Test."
+   ]
+  }
+ ]
+}

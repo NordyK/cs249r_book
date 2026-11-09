@@ -1,0 +1,42 @@
+{
+ "title": "🧪 Module Integration Test",
+ "summary": "TinyTorch activations: 🧪 Module Integration Test",
+ "source": {
+  "chapter": "tt-02",
+  "sections": [
+   "🧪 Module Integration Test"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🧪 Module Integration Test\n\nFinal validation that everything works together correctly."
+  },
+  {
+   "type": "text",
+   "md": "## 🤔 ML Systems Reflection Questions\n\nAnswer these to deepen your understanding of activation functions and their systems implications:\n\n### Question 1: Computational Cost Comparison\n**Question**: ReLU is the most popular activation function in hidden layers. Given what you implemented, why is ReLU computationally cheaper than Sigmoid or GELU?\n\n**Consider**:\n- What mathematical operations does ReLU require? (hint: just max(0, x))\n- What operations does Sigmoid require? (hint: exponentials)\n- If you have a hidden layer with 1 million neurons, how many exp() calls does each activation require?\n\n**Real-world context**: In production models with billions of parameters, even small per-element costs add up. ReLU's simplicity makes it several times cheaper than Sigmoid per element.\n\n---\n\n### Question 2: Numerical Stability\n**Question**: Look at your Softmax implementation. Why did we subtract the maximum value before computing exponentials?\n\n**Consider**:\n- What happens when you compute exp(1000)?\n- What about exp(1000) / (exp(1000) + exp(1001))?\n- Does subtracting a constant from all inputs change the final softmax output?"
+  },
+  {
+   "type": "text",
+   "md": "**Mathematical insight**: exp(x - max) / sum(exp(x - max)) = exp(x) / sum(exp(x)) because the constant cancels.\n\n---\n\n### Question 3: Sparsity and Efficiency\n**Question**: ReLU zeros roughly half of its outputs for any given input. A dense matrix multiply does exactly the same work whether those entries are zero or not, so the saving is not automatic. What would have to be true of the hardware, the kernel, and the data layout for activation sparsity to actually pay off?"
+  },
+  {
+   "type": "text",
+   "md": "**Consider**:\n- Storage: a sparse format stores indices alongside values, so at what density does that bookkeeping cost more bytes than the zeros it removes?\n- Computation: a dense matrix multiply multiplies by zero at full speed. What would the code need to know in advance in order to skip that work instead of performing it?\n- Structure: ReLU's zeros fall in different positions for every input, while the accelerator hardware that can actually skip zeros requires a fixed pattern (2 nonzeros in every group of 4). Which kind of sparsity does ReLU produce?\n\n**Think about**:\n- Why unstructured sparsity is easier to cash in on a bandwidth-bound kernel (fewer bytes moved) than on a compute-bound one (the multiply happens anyway)\n- Why frameworks still keep ReLU's output dense in memory\n\n---\n\n### Question 4: Activation Selection for Different Stages\n**Question**: Why do we typically use different activations for hidden stages vs. output stages of a computation?"
+  },
+  {
+   "type": "text",
+   "md": "**Consider the requirements**:\n- Hidden stages: Need to preserve information flowing through the computation, be efficient, add nonlinearity\n- Binary classification output: Need values in (0, 1) representing probability\n- Multi-class classification output: Need probability distribution (sum = 1)\n\n**Match the activation to the use case**:\n- ReLU for hidden stages (why?)\n- Sigmoid for binary output (why?)\n- Softmax for multi-class output (why?)\n\n---\n\n### Question 5: The \"Dying ReLU\" Problem\n**Question**: If ReLU outputs 0 for some inputs, those inputs get no signal passed through -- they effectively \"die.\" What situations might cause this, and why is it a problem?\n\n**Consider**:\n- If inputs to a ReLU are always negative, its output is permanently zero\n- Once a ReLU \"dies\" (always outputs 0), no information flows through it -- it contributes nothing to the computation\n- A dead ReLU is wasted capacity: it takes up memory and compute but produces no useful signal"
+  },
+  {
+   "type": "text",
+   "md": "**Solutions used in practice**:\n- LeakyReLU: f(x) = max(0.01*x, x) - allows a small signal even for negative inputs\n- PReLU: Adjustable slope for negative values (a learnable parameter controls the slope)\n- GELU: Smooth approximation that never fully zeroes out\n\n---\n\n### Bonus Question: Memory Analysis\n\n**Scenario**: You're running inference on a model with a hidden layer of size (batch=32, features=4096) using different activations.\n\n**Calculate for each activation**:\n1. How many bytes of output memory are needed? (assume float32)\n2. How many temporary buffers does Softmax need vs ReLU?\n3. If you switch from float32 to float16, what's the memory savings?\n\n**Key insight**: Activation functions are memory-light (output same size as input), but the choice affects computational speed and numerical precision significantly."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🧪 Module Integration Test."
+   ]
+  }
+ ]
+}

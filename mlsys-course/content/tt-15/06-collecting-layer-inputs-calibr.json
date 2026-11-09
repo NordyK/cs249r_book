@@ -1,0 +1,119 @@
+{
+ "title": "🏗️ Collecting Layer Inputs: Calibration Data Flow",
+ "summary": "TinyTorch quantization: 🏗️ Collecting Layer Inputs: Calibration Data Flow",
+ "source": {
+  "chapter": "tt-15",
+  "sections": [
+   "🏗️ Collecting Layer Inputs: Calibration Data Flow"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Collecting Layer Inputs: Calibration Data Flow\n\n### The Model Quantization Challenge\n\nQuantizing individual tensors is useful, but real applications need to quantize entire neural networks with multiple layers, activations, and complex data flows. The key is replacing standard layers (like Linear) with their quantized equivalents (QuantizedLinear) while keeping activation functions unchanged since they have no parameters.\n\n### Smart Layer Selection\n\nNot all layers benefit equally from quantization. Linear and convolutional layers with many parameters see the largest benefits, while activation functions (which have no parameters) cannot be quantized. Some layers like input/output projections may be sensitive to quantization and should be kept in higher precision for critical applications.\n\n### Calibration Data Flow\n\nCalibration runs sample data through the model layer-by-layer, collecting activation statistics at each layer. These statistics (min/max values, distributions) determine optimal quantization parameters for each layer, ensuring minimal accuracy loss during quantization.\n\n### Memory Impact"
+  },
+  {
+   "type": "text",
+   "md": "Packed INT8 codes use one quarter of FP32 code storage. Scale and zero-point metadata reduce the overall saving, particularly for small arrays. TinyTorch models these bytes rather than allocating packed INT8 arrays.\n\nNow let's implement the functions that make this transformation possible!"
+  },
+  {
+   "type": "text",
+   "md": "### From One Layer to a Whole Model\n\nQuantizing individual layers is useful, but production pipelines quantize entire deep architectures end-to-end. We structure full-model quantization into two sequential stages:\n\n1. **Collect layer inputs (`_collect_layer_inputs`)**: Forward calibration samples through layers \\$0 \\dots i-1\\$ with `training=False` to capture empirical activation statistics at layer \\$i\\$.\n2. **Quantize single layer (`_quantize_single_layer`)**: Instantiate `QuantizedLinear` with INT8 weights and calibrate input scales.\n\nThe composition function `quantize_model()` automates this transformation across the container graph:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Model Layer Index",
+    "Original FP32 Layer Type",
+    "Quantized Model Replacement",
+    "Parameter Precision",
+    "Memory Compression"
+   ],
+   "rows": [
+    [
+     "`layers[0]`",
+     "`Linear(784, 128)`",
+     "`QuantizedLinear(784, 128)`",
+     "INT8 weights + metadata",
+     "\\$\\approx 4\\times\\$ reduction"
+    ],
+    [
+     "`layers[1]`",
+     "`ReLU()`",
+     "`ReLU()` (Unchanged)",
+     "Stateless (0 params)",
+     "Identical (0 B)"
+    ],
+    [
+     "`layers[2]`",
+     "`Linear(128, 64)`",
+     "`QuantizedLinear(128, 64)`",
+     "INT8 weights + metadata",
+     "\\$\\approx 4\\times\\$ reduction"
+    ],
+    [
+     "`layers[3]`",
+     "`ReLU()`",
+     "`ReLU()` (Unchanged)",
+     "Stateless (0 params)",
+     "Identical (0 B)"
+    ],
+    [
+     "`layers[4]`",
+     "`Linear(64, 10)`",
+     "`QuantizedLinear(64, 10)`",
+     "INT8 weights + metadata",
+     "\\$\\approx 4\\times\\$ reduction"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### The Activation Tap\n\nBefore calibrating a layer's input scale, we must extract the exact distribution of activations arriving at its inputs during evaluation. `_collect_layer_inputs` executes a forward pass through preceding layers \\$0 \\dots i-1\\$ for up to `max_samples`:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Pipeline Stage",
+    "Component",
+    "Execution Details",
+    "Dataflow Shape"
+   ],
+   "rows": [
+    [
+     "**Input Batch**",
+     "Calibration Dataset",
+     "Unlabeled domain samples \\$\\{x^{(1)}, \\dots, x^{(N)}\\}\\$",
+     "\\$(B, d_{\\text{in}})\\$"
+    ],
+    [
+     "**Prefix Forward**",
+     "Subgraph `layers[0:i]`",
+     "Forward pass with `training=False` (disabling dropout)",
+     "\\$(B, d_{\\text{intermediate}})\\$"
+    ],
+    [
+     "**Activation Tap**",
+     "Layer \\$i\\$ Input Buffer",
+     "Collect intermediate tensors without gradient tracking",
+     "Stored activations for calibration"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _collect_layer_inputs(model, layer_index: int, calibration_data: List[Tensor], max_samples: int = 10) -> List[Tensor]:\n    \"\"\"\n    Forward calibration data through preceding layers to collect inputs for a specific layer.\n\n    TODO: Forward each calibration sample through layers 0..layer_index-1\n\n    APPROACH:\n    1. Take up to max_samples from calibration_data for efficiency\n    2. For each sample, forward through all layers before layer_index in inference mode\n    3. Collect the resulting activations as the input distribution for this layer\n\n    Args:\n        model: Model with .layers attribute (Sequential pattern)\n        layer_index: Index of the layer we want inputs for\n        calibration_data: List of sample input tensors\n        max_samples: Maximum number of samples to process (default 10)\n\n    Returns:\n        List of Tensor activations arriving at layer_index\n\n    EXAMPLE:\n    >>> model = Sequential(Linear(4, 8), ReLU(), Linear(8, 3))\n    >>> samples = [Tensor(rng.standard_normal((1, 4))) for _ in range(5)]\n    >>> inputs_at_layer2 = _collect_layer_inputs(model, 2, samples)\n    >>> print(len(inputs_at_layer2))  # 5 activation tensors\n    5\n\n    HINT:\n    - Pass through each preceding layer; if forward accepts training, set it to False\n    \"\"\"\n    sample_inputs = []\n    for data in calibration_data[:max_samples]:\n        x = data\n        for j in range(layer_index):\n            layer = model.layers[j]\n            # Calibration describes inference, so disable Dropout (also inside\n            # nested Sequential containers) using the Module 03 mode flag.\n            if 'training' in inspect.signature(layer.forward).parameters:\n                x = layer.forward(x, training=False)\n            else:\n                x = layer.forward(x)\n        sample_inputs.append(x)\n    return sample_inputs"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Collect Layer Inputs\n\nThis test validates that we correctly forward calibration data through preceding layers.\n\n**What we're testing**: Intermediate activation collection for calibration\n**Why it matters**: Accurate calibration requires knowing the true input distribution at each layer\n**Expected**: Correct number of samples with correct shape after forwarding through preceding layers"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Collecting Layer Inputs: Calibration Data Flow."
+   ]
+  }
+ ]
+}

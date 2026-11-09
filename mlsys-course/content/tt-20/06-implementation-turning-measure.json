@@ -1,0 +1,134 @@
+{
+ "title": "🏗️ Implementation: Turning Measurements into a Submission",
+ "summary": "TinyTorch capstone: 🏗️ Implementation: Turning Measurements into a Submission",
+ "source": {
+  "chapter": "tt-20",
+  "sections": [
+   "🏗️ Implementation: Turning Measurements into a Submission"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Turning Measurements into a Submission\n\nThe core function that generates a standardized JSON submission from benchmark results.\n\n**Design Goals:**\n1. **Baseline-first** - Always require baseline results (comparison reference)\n2. **Optimization optional** - Support baseline-only OR baseline+optimized submissions\n3. **Auto-calculate improvements** - Automatically compute speedup, compression, accuracy delta\n4. **Schema compliance** - Generate structure that passes validation\n5. **Extensible** - Easy to add new fields without breaking existing code"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 91 lines of code (starting with `def generate_submission(`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Understanding the Improvements Calculation\n\nWhen you provide both baseline and optimized reports, the submission system auto-calculates three foundational improvement metrics:\n\n\\$\\$\\text{Speedup } (S) = \\frac{\\text{Latency}_{\\text{base}}}{\\text{Latency}_{\\text{opt}}}\\$\\$\n\n\\$\\$\\text{Compression Ratio } (C) = \\frac{\\text{ModelSize}_{\\text{base}}}{\\text{ModelSize}_{\\text{opt}}}\\$\\$\n\n\\$\\$\\text{Accuracy Delta } (\\Delta \\text{Acc}) = \\text{Accuracy}_{\\text{opt}} - \\text{Accuracy}_{\\text{base}}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Quantitative Improvement Metric",
+    "Mathematical Definition",
+    "Numerical Example",
+    "Systems Engineering Interpretation"
+   ],
+   "rows": [
+    [
+     "**Speedup (\\$S\\$)**",
+     "\\$\\frac{T_{\\text{base}}}{T_{\\text{opt}}}\\$",
+     "\\$\\frac{10.0\\text{ ms}}{5.0\\text{ ms}} = 2.0\\times\\$",
+     "\\$2.0\\times = \\text{Optimized model is twice as fast}\\$; \\$< 1.0\\times = \\text{Regression}\\$"
+    ],
+    [
+     "**Compression Ratio (\\$C\\$)**",
+     "\\$\\frac{M_{\\text{base}}}{M_{\\text{opt}}}\\$",
+     "\\$\\frac{4.0\\text{ MB}}{1.0\\text{ MB}} = 4.0\\times\\$",
+     "\\$4.0\\times = \\text{Model footprint reduced to } 25\\%\\$; \\$< 1.0\\times = \\text{Bloat}\\$"
+    ],
+    [
+     "**Accuracy Delta (\\$\\Delta \\text{Acc}\\$)**",
+     "\\$\\text{Acc}_{\\text{opt}} - \\text{Acc}_{\\text{base}}\\$",
+     "\\$91.5\\% - 92.0\\% = -0.5\\%\\$",
+     "\\$\\ge 0.0\\% = \\text{Lossless quality}\\$; \\$-0.5\\% = \\text{Acceptable degradation}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### The Optimization Trade-off Space: Pareto Frontiers\n\nEvery physical optimization technique trades off across the three vertices of systems engineering: speed, storage, and predictive accuracy:\n\nThese are the figures the techniques are *reported* to reach on production-scale models with packed storage and hardware support. Read them as the reason to try a technique, never as the result you may claim; the workflow later in this module measures what they do to a 283-parameter MLP in NumPy, and the answer is nothing like this table."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Optimization Strategy",
+    "Prioritized Dimensions",
+    "Incurred Cost",
+    "Typical Target Deployment"
+   ],
+   "rows": [
+    [
+     "**Aggressive Quantization**",
+     "Speedup (\\$2.8\\times\\$) + Compression (\\$4\\times\\$)",
+     "Small accuracy delta (\\$-0.5\\text{ to } -1.0\\%\\$)",
+     "Edge mobile, embedded microcontrollers"
+    ],
+    [
+     "**Structured Pruning**",
+     "Compression (\\$2\\times\\$) + Memory bandwidth",
+     "Small accuracy delta, indexing overhead",
+     "Cache-constrained serverless runtimes"
+    ],
+    [
+     "**Operator Fusion + KV Caching**",
+     "Latency speedup (\\$4.8\\times\\$)",
+     "Transient SRAM working memory",
+     "Interactive LLM generation & real-time audio"
+    ],
+    [
+     "**Balanced Optimization**",
+     "Pareto frontier sweet spot",
+     "Co-designed constraint envelope",
+     "General production microservices"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Why Schema Validation Matters\n\nOur submission format is designed to be validated:\n\n```python\n# Valid submission (passes validation):\n{\n  \"tinytorch_version\": \"0.1.0\",      # ✓ Required, string\n  \"timestamp\": \"2025-01-15 14:30\",   # ✓ Required, string\n  \"baseline\": {                       # ✓ Required, object\n    \"metrics\": {                      # ✓ Required, object\n      \"accuracy\": 0.92                # ✓ Required, float in [0, 1]\n    }\n  }\n}\n\n# Invalid submission (fails validation):\n{\n  \"tinytorch_version\": 0.1,          # ✗ Wrong type (number not string)\n  # ✗ Missing timestamp\n  \"baseline\": {\n    \"metrics\": {\n      \"accuracy\": \"92%\"                # ✗ Wrong type (string not float)\n    }\n  }\n}\n```\n\nThis prevents common mistakes:\n- Forgetting required fields\n- Using wrong data types\n- Invalid value ranges (accuracy > 1.0)\n- Inconsistent structure\n\nIn production ML, schema validation is what makes benchmarks trustworthy and comparable!"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Submission Generation\n\nThis test validates the submission generation creates proper JSON structure.\n\n**What we're testing**: Submission structure, required fields, and optional fields\n**Why it matters**: Submissions must be schema-compliant for community sharing\n**Expected**: Valid JSON structure with all required fields"
+  },
+  {
+   "type": "text",
+   "md": "### The Field Contract, in Code\n\nBefore a submission is worth comparing against anyone else's, it has to be\nreadable by the tooling that aggregates it. The validator below *is* the contract.\nIt names the required fields and the ranges their values must fall in, and it ships\nwith the package so the graders and your own scripts apply exactly the same rules.\nIt is ordinary Python, a required-field list plus one assertion per constraint,\nwhich is why you can read the whole contract in one sitting."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 83 lines of code (starting with `def validate_submission_schema(submission: Dict[str, Any]) -> bool:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Schema Validation\n\nThis test validates submissions conform to the required schema.\n\n**What we're testing**: Required fields, type safety, value constraints\n**Why it matters**: Schema validation enables automated aggregation and comparison\n**Expected**: Valid submissions pass, invalid submissions fail with clear errors"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Submission with Optimization\n\nThis test validates submissions with both baseline and optimized results.\n\n**What we're testing**: Optimized section, techniques list, improvements calculation\n**Why it matters**: Comparing baseline vs optimized is the core value of benchmarking\n**Expected**: Proper improvements calculation with speedup, compression, accuracy delta"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Improvements Calculation\n\nThis test validates the mathematical correctness of improvement metrics.\n\n**What we're testing**: Speedup, compression ratio, accuracy delta formulas\n**Why it matters**: Incorrect calculations would invalidate all comparisons\n**Expected**: Exact match with manual calculations"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: JSON Serialization\n\nThis test validates save_submission() creates valid, round-trip compatible JSON.\n\n**What we're testing**: File creation, JSON validity, round-trip preservation\n**Why it matters**: Submissions must be loadable and shareable\n**Expected**: Valid JSON that loads with identical structure"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Implementation: Turning Measurements into a Submission."
+   ]
+  }
+ ]
+}

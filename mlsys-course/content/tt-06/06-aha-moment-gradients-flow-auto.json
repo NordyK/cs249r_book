@@ -1,0 +1,35 @@
+{
+ "title": "⭐ Aha Moment: Gradients Flow Automatically",
+ "summary": "TinyTorch autograd: ⭐ Aha Moment: Gradients Flow Automatically",
+ "source": {
+  "chapter": "tt-06",
+  "sections": [
+   "⭐ Aha Moment: Gradients Flow Automatically"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: Gradients Flow Automatically\n\n**What you built:** An autograd engine that computes gradients through computation graphs.\n\n**Why it matters:** Before autograd, you had to derive and code gradients by hand for every\noperation, which was error-prone and tedious. Your engine does this automatically! When you call\n`backward()`, gradients flow from the loss back through every operation to every parameter.\n\nThis is the magic behind deep learning. PyTorch, TensorFlow, and JAX all have autograd\nengines at their core. You just built one yourself!"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_autograd():\n    \"\"\"🎯 See gradients computed automatically.\"\"\"\n    print(\"🎯 AHA MOMENT: Gradients Flow Automatically\")\n    print(\"=\" * 45)\n\n    # Simple example: y = x^2, so dy/dx = 2x\n    x = Tensor(np.array([3.0]), requires_grad=True)\n    y = x * x  # y = x^2\n\n    print(f\"x = {x.data[0]}\")\n    print(f\"y = x^2 = {y.data[0]}\")\n\n    # Backward pass computes gradient\n    y.backward()\n\n    # Show computed vs expected gradient\n    expected_grad = 2 * x.data[0]\n    print(f\"\\nExpected: dy/dx = 2x = 2 * {x.data[0]} = {expected_grad}\")\n    print(f\"Computed: {x.grad[0]}\")\n    print(f\"Match: {np.allclose(x.grad[0], expected_grad)}\")\n\n    print(\"\\n✨ Gradients computed automatically, with no manual derivatives!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Autograd Engine\n\nCongratulations! You've built the gradient engine that makes neural networks learn!\n\n### Key Accomplishments\n- **Enhanced Tensor class** with backward() method (no new wrapper classes!)\n- **Built computation graph tracking** for automatic differentiation\n- **Implemented backward() for every operation** (Add, Mul, Matmul, Sum, ...) with correct gradients\n- **Completed apply()** so every operation records itself in the graph\n- **Tested complex multi-layer** computation graphs with gradient propagation\n\n### Systems Insights Discovered\n- **Reverse vs forward mode**: One sweep yields all \\$N\\$ gradients; forward mode would need \\$N\\$ sweeps for the same scalar loss\n- **Memory overhead**: The tape pins one saved tensor per operation, so the cost grows with depth rather than sitting at a fixed multiple of the parameters (measured 1x at one op, 16x at sixteen)\n- **Gradient accumulation**: Allows processing large batches in smaller chunks, and is why `zero_grad()` is needed between steps\n- **Backward pass cost**: Roughly 2x the forward pass, because each matmul's forward FLOPs buy two matmuls back (measured exactly 2.0x on a 3-layer MLP)\n- **Graph release**: `backward()` frees the tape by default; `retain_graph=True` keeps it for a second walk\n\n### Ready for Next Steps\nYour autograd implementation enables optimization!\nExport with: `tito module complete 06`"
+  },
+  {
+   "type": "text",
+   "md": "**Next**: Module 07 will add optimizers (SGD, Adam) that use these gradients to actually train neural networks!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: Gradients Flow Automatically."
+   ]
+  }
+ ]
+}

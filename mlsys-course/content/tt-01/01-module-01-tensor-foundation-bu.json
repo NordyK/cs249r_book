@@ -1,0 +1,90 @@
+{
+ "title": "Module 01: Tensor Foundation - Building Blocks of ML",
+ "summary": "TinyTorch tensor: Module 01: Tensor Foundation - Building Blocks of ML",
+ "source": {
+  "chapter": "tt-01",
+  "sections": [
+   "Module 01: Tensor Foundation - Building Blocks of ML"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 01: Tensor Foundation - Building Blocks of ML\n\nWelcome to Module 01! You're about to build the foundational Tensor class that powers all machine learning operations.\n\n## 🔗 Prerequisites & Progress\n**You've Built**: Nothing - this is our foundation!\n**You'll Build**: A complete Tensor class with arithmetic, matrix operations, and shape manipulation\n**You'll Enable**: Foundation for activations, layers, and all future neural network components\n\n**Connection Map**:\n```\nNumPy Arrays → Tensor → Activations (Module 02)\n(raw data)   (ML ops)  (intelligence)\n```\n\n## 🎯 Learning Objectives\nBy the end of this module, you will:\n1. Implement a complete Tensor class with fundamental operations\n2. Understand tensors as the universal data structure in ML\n3. Master broadcasting, matrix multiplication, and shape manipulation\n4. Test tensor operations with immediate validation\n\nLet's get started!\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/01_tensor/tensor.ipynb`\n**Building Side:** Code exports to tinytorch.core.tensor\n\n```python\nfrom tinytorch.core.tensor import Tensor   # every later module starts here\n```"
+  },
+  {
+   "type": "text",
+   "md": "**Why this matters:**\n- **Learning:** Complete tensor system in one focused module for deep understanding\n- **Production:** Proper organization like PyTorch's torch.Tensor with all core operations together\n- **Consistency:** All tensor operations and data manipulation in core.tensor\n- **Integration:** Foundation that every other module will build upon"
+  },
+  {
+   "type": "text",
+   "md": "## 📋 Module Dependencies\n\n**Prerequisites**: NONE - This is the foundation module\n\n**External Dependencies**:\n- `numpy` (for array operations and numerical computing)\n\n**TinyTorch Dependencies**: NONE\n\nThis module has NO TinyTorch dependencies.\nOther modules will import FROM this module.\n\n**Dependency Flow**:\n```\nModule 01 (Tensor) → All Other Modules\n     ↓\n  Foundation for entire TinyTorch system\n```\n\nStudents completing this module will have built the foundation\nthat every other TinyTorch component depends on."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import numpy as np\nrng = np.random.default_rng(7)\n\n# Constants for memory calculations\nBYTES_PER_FLOAT32 = 4  # Standard float32 size in bytes\nMB_TO_BYTES = 1_000_000  # Decimal megabyte (10^6 bytes), the convention used throughout TinyTorch"
+  },
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: What is a Tensor?\n\nA tensor is a multi-dimensional array that serves as the fundamental data structure in machine learning. Think of it as a universal container that can hold data in different dimensions:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dimension",
+    "Concept",
+    "Coordinate Shape",
+    "Concrete Value Example",
+    "ML Systems Role"
+   ],
+   "rows": [
+    [
+     "**0D**",
+     "Scalar",
+     "`()`",
+     "`5.0`",
+     "Loss value, learning rate, temperature"
+    ],
+    [
+     "**1D**",
+     "Vector",
+     "`(D,)`",
+     "`[1.0, 2.0, 3.0]`",
+     "Bias parameters, token sequence"
+    ],
+    [
+     "**2D**",
+     "Matrix",
+     "`(N, D)`",
+     "`[[1, 2], [3, 4]]`",
+     "Dense layer weights, batched embeddings"
+    ],
+    [
+     "**3D**",
+     "3-Tensor",
+     "`(B, S, D)`",
+     "`(Batch, SeqLen, D_model)`",
+     "Batched token sequences in Transformers"
+    ],
+    [
+     "**4D**",
+     "4-Tensor",
+     "`(B, C, H, W)`",
+     "`(Batch, Channels, Height, Width)`",
+     "Batched feature maps in Convolutional Networks"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "In computation, tensors flow through operations like transformations along a processing pipeline:\n\n\\$\\$\\underbrace{\\mathbf{X}}_{\\text{Raw Input } (N, D_0)} \\xrightarrow{\\mathbf{W}_1} \\underbrace{\\mathbf{H}_1}_{\\text{Features } (N, D_1)} \\xrightarrow{\\mathbf{W}_2} \\underbrace{\\mathbf{H}_2}_{\\text{Features } (N, D_2)} \\xrightarrow{\\mathbf{W}_3} \\underbrace{\\hat{\\mathbf{Y}}}_{\\text{Predictions } (N, C)}\\$\\$\n\nFrom simple statistics to large-scale scientific computing, tensors are the universal data container. Understanding tensors means understanding the foundation of numerical computation.\n\n### Why Tensors Matter in ML Systems\n\nIn production ML systems, tensors carry more than just data. They carry operation history, memory layout information, and execution context:\n\n\\$\\$\\text{Disk / Storage} \\xrightarrow{\\text{I/O Ingestion}} \\text{NumPy Buffer} \\xrightarrow{\\text{Class Wrap}} \\text{TinyTorch Tensor} \\xrightarrow{\\text{Kernel Execution}} \\text{Engine Output}\\$\\$\n\n**Key Insight**: Tensors bridge the gap between mathematical concepts and efficient computation on modern hardware."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 01: Tensor Foundation - Building Blocks of ML."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,31 @@
+{
+ "title": "⭐ Aha Moment: Tokens Become Vectors",
+ "summary": "TinyTorch embeddings: ⭐ Aha Moment: Tokens Become Vectors",
+ "source": {
+  "chapter": "tt-11",
+  "sections": [
+   "⭐ Aha Moment: Tokens Become Vectors"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: Tokens Become Vectors\n\n**What you built:** An embedding layer that converts token IDs to dense vectors.\n\n**Why it matters:** Tokens are just integers (like word IDs), but the table that turns them\ninto vectors is trainable, so the geometry is learned rather than given. The demo below runs\ntwenty gradient steps that pull two token rows together, and watches their cosine similarity\nmove from its random starting value to 1.0. Nothing about tokens 5 and 10 says they belong\ntogether. The gradient put them there, which is exactly how a real model ends up placing\nsimilar words near each other.\n\nWatch the last line too. Only the two rows that appeared in the batch receive any gradient\nat all, which is the sparsity that makes a 50,000-row table affordable to train.\n\nIn the next module, you'll use attention to let these embeddings interact with each other."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_embeddings():\n    \"\"\"🎯 See tokens become vectors.\"\"\"\n    print(\"🎯 AHA MOMENT: Tokens Become Vectors\")\n    print(\"=\" * 45)\n\n    # Create embedding layer: 100 vocab, 32-dimensional embeddings\n    embed = Embedding(vocab_size=100, embed_dim=32)\n    pair = Tensor(np.array([5, 10]))\n\n    def cosine(i, j):\n        u, v = embed.weight.data[i], embed.weight.data[j]\n        return float(u @ v / (np.linalg.norm(u) * np.linalg.norm(v)))\n\n    print(f\"Embedding table: {embed.weight.shape}  ← 100 tokens, 32 dims each\")\n    print(f\"\\nBefore training, cos(token 5, token 10) = {cosine(5, 10):+.3f}  (random)\")\n\n    # Twenty steps of plain gradient descent on ||W[5] - W[10]||^2.\n    # The only machinery here is the backward pass you wrote above.\n    touched = np.array([])\n    for _ in range(20):\n        vectors = embed(pair)\n        difference = vectors[0] - vectors[1]\n        loss = (difference * difference).sum()\n\n        embed.weight.grad = None\n        loss.backward()\n\n        gradient = np.asarray(embed.weight.grad)\n        touched = np.flatnonzero(np.abs(gradient).sum(axis=1))\n        embed.weight.data = embed.weight.data - 0.1 * gradient\n\n    print(f\"After 20 steps,  cos(token 5, token 10) = {cosine(5, 10):+.3f}  (pulled together)\")\n    print(f\"Rows that received any gradient: {touched} of {embed.vocab_size}\")\n\n    print(\"\\n✨ The geometry is learned, and only the rows you looked up are updated!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Embeddings\n\nCongratulations! You've built a complete embedding system that transforms discrete tokens into learnable representations!\n\n### Key Accomplishments\n- **Built Embedding class** with efficient token-to-vector lookup and Xavier initialization\n- **Implemented PositionalEncoding** for learnable position-specific patterns\n- **Created sinusoidal embeddings** using the Transformer paper formula for extrapolation\n- **Developed EmbeddingLayer** combining token and positional embeddings (production-ready)\n- **All tests pass** (validated by `test_module()`)\n\n### Systems Insights Discovered\n- **Memory scaling**: Embedding tables grow linearly with vocab_size x embed_dim\n- **Lookup efficiency**: O(1) address arithmetic per token, though a table too large for cache still slows the gather down\n- **Positional trade-offs**: Learned PE is task-specific; sinusoidal PE extrapolates to longer sequences\n- **Production patterns**: GPT-3's embedding table alone uses ~2.4 GB in FP32 (~1.2 GB in FP16)\n\n### Ready for Next Steps\nYour embeddings implementation enables attention mechanisms and transformer architectures.\nExport with: `tito module complete 11`\n\n**Next**: Module 12 will add attention mechanisms for context-aware representations!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: Tokens Become Vectors."
+   ]
+  }
+ ]
+}

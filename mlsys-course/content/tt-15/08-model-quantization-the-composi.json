@@ -1,0 +1,60 @@
+{
+ "title": "🏗️ Model Quantization: The Composition Function",
+ "summary": "TinyTorch quantization: 🏗️ Model Quantization: The Composition Function",
+ "source": {
+  "chapter": "tt-15",
+  "sections": [
+   "🏗️ Model Quantization: The Composition Function"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Model Quantization: The Composition Function\n\nNow we compose the helpers into the full model quantization pipeline. For each module in the sequential container, `quantize_model` evaluates its architectural type, gathers empirical input distributions, and performs in-place replacement:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Layer Classification",
+    "Evaluation Condition",
+    "Applied Transformation",
+    "Resulting State in `model.layers[i]`"
+   ],
+   "rows": [
+    [
+     "**Parametric Linear Layer**",
+     "`isinstance(layer, Linear)`",
+     "1. `_collect_layer_inputs(model, i, data)`<br>2. `_quantize_single_layer(layer, inputs)`",
+     "In-place replaced with `QuantizedLinear`"
+    ],
+    [
+     "**Nested Subgraph**",
+     "`hasattr(layer, 'layers')`",
+     "Recursive invocation: `quantize_model(child, inputs)`",
+     "Nested Linear layers quantized"
+    ],
+    [
+     "**Stateless Activation**",
+     "`ReLU`, `Dropout`, etc.",
+     "No-op (preserved without modification)",
+     "Retained as-is (0 parameters)"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def quantize_model(model, calibration_data: Optional[List[Tensor]] = None) -> None:\n    \"\"\"\n    Quantize all Linear layers in a model in-place, including nested containers.\n\n    TODO: Replace all Linear layers with QuantizedLinear versions\n\n    APPROACH:\n    1. Validate model has .layers attribute (Sequential pattern)\n    2. Iterate through layers, find Linear layers\n    3. For each Linear layer, collect calibration inputs (if data provided)\n    4. Replace Linear layers; recurse into nested containers with their input samples\n\n    Args:\n        model: Model to quantize (with .layers or similar structure)\n        calibration_data: Optional list of sample inputs for calibration\n\n    Returns:\n        None (modifies model in-place)\n\n    EXAMPLE:\n    >>> layer1 = Linear(10, 5)\n    >>> activation = ReLU()\n    >>> layer2 = Linear(5, 2)\n    >>> model = Sequential(layer1, activation, layer2)\n    >>> quantize_model(model)\n    >>> # Now model uses quantized layers\n\n    HINT:\n    - Use _collect_layer_inputs() to get calibration activations\n    - Use _quantize_single_layer() to create the replacement\n    \"\"\"\n    if hasattr(model, 'layers'):\n        for i, layer in enumerate(model.layers):\n            if isinstance(layer, Linear) or hasattr(layer, 'layers'):\n                # Collect calibration inputs if data provided\n                cal_inputs = None\n                if calibration_data is not None:\n                    cal_inputs = _collect_layer_inputs(model, i, calibration_data)\n\n                # Replace with quantized version\n                if isinstance(layer, Linear):\n                    model.layers[i] = _quantize_single_layer(layer, cal_inputs)\n                else:\n                    quantize_model(layer, cal_inputs)\n\n    elif isinstance(model, Linear):\n        raise ValueError(\n            f\"Cannot quantize single Linear layer in-place\\n\"\n            f\"  ❌ quantize_model() modifies models in-place, but a single layer has no container to modify\\n\"\n            f\"  💡 In-place modification requires a container (like Sequential) that holds layer references\\n\"\n            f\"  🔧 Use QuantizedLinear directly: quantized_layer = QuantizedLinear(your_linear_layer)\"\n        )\n\n    else:\n        raise ValueError(\n            f\"Unsupported model type for quantization: {type(model).__name__}\\n\"\n            f\"  ❌ quantize_model() expects a model with .layers attribute (like Sequential)\\n\"\n            f\"  💡 The function iterates through model.layers to find and replace Linear layers\\n\"\n            f\"  🔧 Wrap your layers in Sequential: model = Sequential(layer1, activation, layer2)\"\n        )"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Model Quantization\n\nThis test validates our model quantization function correctly replaces Linear layers with QuantizedLinear.\n\n**What we're testing**: Full model quantization and layer replacement\n**Why it matters**: Real applications need to quantize entire neural networks\n**Expected**: Linear layers replaced, ReLU unchanged, output shape preserved"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Model Quantization: The Composition Function."
+   ]
+  }
+ ]
+}

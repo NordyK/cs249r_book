@@ -1,0 +1,146 @@
+{
+ "title": "Module 04: Losses - Measuring How Wrong We Are",
+ "summary": "TinyTorch losses: Module 04: Losses - Measuring How Wrong We Are",
+ "source": {
+  "chapter": "tt-04",
+  "sections": [
+   "Module 04: Losses - Measuring How Wrong We Are"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 04: Losses - Measuring How Wrong We Are\n\nWelcome to Module 04! Today you'll implement the mathematical functions that measure how wrong your model's predictions are - the essential feedback signal that enables all machine learning.\n\n## 🔗 Prerequisites & Progress\n**You've Built**: Tensors (data), Activations (intelligence), Layers (architecture)\n**You'll Build**: Loss functions that measure prediction quality\n**You'll Enable**: The feedback signal needed for training\n\n**Connection Map**:\n\n\\$\\$\\underbrace{\\text{Layers}}_{\\text{predictions } \\mathbf{\\hat{y}}} \\longrightarrow \\underbrace{\\mathbf{\\text{Losses}}}_{\\text{error measurement } \\mathcal{L}(\\mathbf{\\hat{y}}, \\mathbf{y})} \\longrightarrow \\underbrace{\\text{Autograd}}_{\\text{learning signals } \\nabla_{\\boldsymbol{\\theta}}\\mathcal{L}}\\$\\$\n\n\n  \n\n\n## 🎯 Learning Objectives\nBy the end of this module, you will:\n1. Implement MSELoss for regression problems\n2. Implement CrossEntropyLoss for classification problems\n3. Implement BinaryCrossEntropyLoss for binary classification\n4. Understand numerical stability in loss computation\n5. Test all loss functions with realistic examples\n\nLet's measure prediction quality!\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/04_losses/losses.ipynb`\n**Building Side:** Code exports to `tinytorch.core.losses`\n\n```python\n# Final package structure:\nfrom tinytorch.core.losses import MSELoss, CrossEntropyLoss, BinaryCrossEntropyLoss, log_softmax  # This module\n```\n\n**Why this matters:**\n- **Learning:** Complete loss function system in one focused module\n- **Production:** Proper organization like PyTorch's `torch.nn` loss modules (`MSELoss`, `CrossEntropyLoss`, `BCELoss`)\n- **Consistency:** All loss computations and numerical stability in core.losses\n- **Integration:** Works seamlessly with layers for complete prediction-to-error workflow"
+  },
+  {
+   "type": "text",
+   "md": "## 📋 Module Dependencies\n\n**Prerequisites**: Module 01 (Tensor) must be completed\n\n**External Dependencies**:\n- `numpy` (for numerical operations)\n\n**TinyTorch Dependencies**:\n- **Module 01 (Tensor)**: Foundation for all loss computations\n  - Used for: Input/output data structures, shape operations, element-wise operations\n  - Required: Yes - losses operate on Tensor objects\n\nA loss function only needs predictions and targets, so this module imports nothing\nfrom Activations (02) or Layers (03). Those modules produce the predictions a loss\nscores, and you will wire all four together in Module 08 (Training), but\n`tinytorch.core.losses` itself depends on the Tensor alone.\n\n**Dependency Flow**:\n\n\\$\\$\\begin{array}{ccc}\n\\text{Module 01 (Tensor)} & \\longrightarrow & \\mathbf{\\text{Module 04 (Losses)}} \\\\\n\\downarrow & & \\downarrow \\\\\n\\text{Memory and Strides} & & \\text{Error Measurement}\n\\end{array}\\$\\$"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import numpy as np\nrng = np.random.default_rng(7)\n\n# Import from TinyTorch package (previous modules must be completed and exported)\nfrom tinytorch.core.tensor import Tensor, Function\n\n# Constants for numerical stability\nEPSILON = 1e-7  # Small value to prevent log(0) and numerical instability"
+  },
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: What Are Loss Functions?\n\nLoss functions are the mathematical conscience of machine learning. They measure the distance between what your model predicts and what actually happened. Without loss functions, models have no way to improve - they're like athletes training without knowing their score.\n\n### The Three Essential Loss Functions\n\nThink of loss functions as different ways to measure \"wrongness\" - each optimized for different types of problems:\n\n**MSELoss (Mean Squared Error)**: \"How far off are my continuous predictions?\"\n- Used for: Regression (predicting house prices, temperature, stock values)\n- Calculation: Average of squared differences between predictions and targets\n- Properties: Heavily penalizes large errors, smooth gradients\n\n\\$\\$\\mathcal{L}_{\\text{MSE}}(e) = e^2 \\quad \\text{where } e = (\\hat{y} - y)\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Prediction Error (\\$e\\$)",
+    "\\$-2.0\\$",
+    "\\$-1.0\\$",
+    "\\$-0.5\\$",
+    "\\$0.0\\$",
+    "\\$+0.5\\$",
+    "\\$+1.0\\$",
+    "\\$+2.0\\$"
+   ],
+   "rows": [
+    [
+     "**Squared Loss (\\$e^2\\$)**",
+     "\\$4.00\\$",
+     "\\$1.00\\$",
+     "\\$0.25\\$",
+     "\\$0.00\\$",
+     "\\$0.25\\$",
+     "\\$1.00\\$",
+     "\\$4.00\\$"
+    ],
+    [
+     "**Gradient (\\$\\frac{\\partial \\mathcal{L}}{\\partial e}\\$)**",
+     "\\$-4.0\\$",
+     "\\$-2.0\\$",
+     "\\$-1.0\\$",
+     "\\$0.0\\$",
+     "\\$+1.0\\$",
+     "\\$+2.0\\$",
+     "\\$+4.0\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "*Quadratic growth: small errors yield modest penalties, while large outlier errors yield aggressively growing gradients.*\n\n**CrossEntropyLoss**: \"How confident am I in the wrong class?\"\n- Used for: Multi-class classification (image recognition, text classification)\n- Calculation: Negative log-likelihood of correct class probability\n- Properties: Encourages confident correct predictions, punishes confident wrong ones\n\n\\$\\$\\mathcal{L}_{\\text{CE}}(p) = -\\ln(p) \\quad \\text{where } p = P(y = y^* \\mid \\mathbf{x}) \\in (0, 1]\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Predicted Probability (\\$p\\$)",
+    "\\$0.99\\$",
+    "\\$0.90\\$",
+    "\\$0.50\\$",
+    "\\$0.10\\$",
+    "\\$0.01\\$",
+    "\\$10^{-4}\\$",
+    "\\$\\to 0^+\\$"
+   ],
+   "rows": [
+    [
+     "**Loss (\\$-\\ln p\\$)**",
+     "\\$0.010\\$",
+     "\\$0.105\\$",
+     "\\$0.693\\$",
+     "\\$2.303\\$",
+     "\\$4.605\\$",
+     "\\$9.210\\$",
+     "\\$+\\infty\\$"
+    ],
+    [
+     "**Surprise / Penalty**",
+     "Negligible",
+     "Low",
+     "Moderate",
+     "Severe",
+     "Massive",
+     "Catastrophic",
+     "Asymptote"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "*Logarithmic penalty: wrong confident predictions face near-vertical asymptotic gradients.*\n\n**BinaryCrossEntropyLoss**: \"How wrong am I about yes/no decisions?\"\n- Used for: Binary classification (spam detection, medical diagnosis)\n- Calculation: Cross-entropy specialized for two classes\n- Properties: Symmetric penalty for false positives and false negatives"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Prediction \\$\\hat{y}\\$",
+    "True Target \\$y = 1\\$ (Positive)",
+    "True Target \\$y = 0\\$ (Negative)",
+    "Decision Consequence"
+   ],
+   "rows": [
+    [
+     "**\\$\\hat{y} \\to 1.0\\$ (High Conf)**",
+     "\\$\\mathcal{L} \\to 0\\$ (Near Zero Loss)",
+     "\\$\\mathcal{L} \\to +\\infty\\$ (Severe Penalty)",
+     "Confident True Positive vs False Alarm"
+    ],
+    [
+     "**\\$\\hat{y} = 0.5\\$ (Uncertain)**",
+     "\\$\\mathcal{L} = -\\ln(0.5) \\approx 0.693\\$",
+     "\\$\\mathcal{L} = -\\ln(0.5) \\approx 0.693\\$",
+     "Maximum entropy / uninformative"
+    ],
+    [
+     "**\\$\\hat{y} \\to 0.0\\$ (Low Conf)**",
+     "\\$\\mathcal{L} \\to +\\infty\\$ (Severe Penalty)",
+     "\\$\\mathcal{L} \\to 0\\$ (Near Zero Loss)",
+     "Missed Detection vs Confident Rejection"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Each loss function creates a distinct geometric error landscape that guides optimization in different ways."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 04: Losses - Measuring How Wrong We Are."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,93 @@
+{
+ "title": "🏗️ Measuring a Single Layer: Per-Layer Byte Accounting",
+ "summary": "TinyTorch quantization: 🏗️ Measuring a Single Layer: Per-Layer Byte Accounting",
+ "source": {
+  "chapter": "tt-15",
+  "sections": [
+   "🏗️ Measuring a Single Layer: Per-Layer Byte Accounting"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Measuring a Single Layer: Per-Layer Byte Accounting\n\n### Model Size Comparison: Measuring the Impact\n\nTo quantify memory savings between unquantized FP32 and quantized architectures, we conduct hierarchical byte accounting:\n\n1. **Per-Layer Profiling (`_measure_layer_bytes`)**: Quantify parameters and footprint for each layer type (FP32 vs INT8).\n2. **Model-Level Aggregation (`analyze_model_sizes`)**: Sum parameter counts and memory bytes across all constituent modules."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Layer Type",
+    "Storage Format",
+    "Parameter Measurement Formula",
+    "Modeled Byte Footprint"
+   ],
+   "rows": [
+    [
+     "**FP32 `Linear`**",
+     "IEEE 754 float32",
+     "\\$(d_{\\text{in}} \\cdot d_{\\text{out}} + d_{\\text{out}})\\$",
+     "\\$\\text{params} \\times 4 \\text{ bytes}\\$"
+    ],
+    [
+     "**`QuantizedLinear`**",
+     "INT8 codes + metadata",
+     "\\$(d_{\\text{in}} \\cdot d_{\\text{out}} + d_{\\text{out}})\\$",
+     "\\$\\text{params} \\times 1 \\text{ byte} + \\text{metadata overhead}\\$"
+    ],
+    [
+     "**Non-Parametric Layer (`ReLU`)**",
+     "Stateless",
+     "\\$0\\$",
+     "\\$0 \\text{ bytes}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### The `_measure_layer_bytes` Helper\n\nThe helper `_measure_layer_bytes` encapsulates the difference in storage representation between FP32 and quantized layers:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Layer Category",
+    "Parameter Count (\\$P\\$)",
+    "Byte Footprint Formula",
+    "Metadata Overhead (\\$\\mathcal{O}(1)\\$)"
+   ],
+   "rows": [
+    [
+     "**Standard `Linear`**",
+     "\\$N_{\\text{weights}} + M_{\\text{biases}}\\$",
+     "\\$(N + M) \\times 4 \\text{ bytes}\\$",
+     "\\$0 \\text{ bytes}\\$"
+    ],
+    [
+     "**`QuantizedLinear`**",
+     "\\$N_{\\text{weights}} + M_{\\text{biases}}\\$",
+     "\\$(N + M) \\times 1 \\text{ byte} + \\text{metadata}\\$",
+     "\\$8 \\text{ bytes per quantized array}\\$ (\\$16\\$ with a bias: \\$s_W, z_W, s_b, z_b\\$)"
+    ],
+    [
+     "**Container (`Sequential`)**",
+     "\\$\\sum_{\\ell} P_\\ell\\$",
+     "\\$\\sum_{\\ell} \\text{bytes}(\\ell)\\$",
+     "Sum of child overheads"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _measure_layer_bytes(layer, is_quantized: bool = False) -> Tuple[int, int]:\n    \"\"\"\n    Measure parameter count and byte usage for a single layer.\n\n    TODO: Count parameters and bytes differently for quantized vs FP32 layers\n\n    APPROACH:\n    1. If QuantizedLinear: use layer.memory_usage() for accurate byte count\n    2. If regular layer with parameters: count params × BYTES_PER_FLOAT32\n    3. If no parameters (e.g., ReLU): return (0, 0)\n\n    Args:\n        layer: A single layer (Linear, QuantizedLinear, ReLU, etc.)\n        is_quantized: Whether to measure as quantized (uses memory_usage() for QuantizedLinear)\n\n    Returns:\n        Tuple of (param_count, byte_count)\n\n    EXAMPLE:\n    >>> linear = Linear(100, 50)\n    >>> params, bytes_ = _measure_layer_bytes(linear)\n    >>> print(f\"Params: {params}, Bytes: {bytes_}\")\n    Params: 5050, Bytes: 20200\n\n    HINT:\n    - QuantizedLinear.memory_usage() returns a dict with 'quantized_bytes'\n    - Regular layers: sum param.data.size for count, multiply by BYTES_PER_FLOAT32 for bytes\n    \"\"\"\n    if hasattr(layer, 'layers'):\n        measurements = [_measure_layer_bytes(child, is_quantized) for child in layer.layers]\n        return sum(p for p, _ in measurements), sum(b for _, b in measurements)\n\n    if is_quantized and isinstance(layer, QuantizedLinear):\n        memory_info = layer.memory_usage()\n        param_count = sum(p.data.size for p in layer.parameters())\n        return param_count, memory_info['quantized_bytes']\n\n    if hasattr(layer, 'parameters'):\n        params = layer.parameters()\n        param_count = sum(p.data.size for p in params)\n        byte_count = param_count * BYTES_PER_FLOAT32\n        return param_count, byte_count\n\n    return 0, 0"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Measure Layer Bytes\n\nThis test validates that we correctly measure bytes for both FP32 and quantized layers.\n\n**What we're testing**: Per-layer byte accounting for different layer types\n**Why it matters**: Accurate per-layer measurement is needed for reliable compression metrics\n**Expected**: FP32 layers use 4 bytes/param, quantized layers use ~1 byte/param + overhead"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Measuring a Single Layer: Per-Layer Byte Accounting."
+   ]
+  }
+ ]
+}

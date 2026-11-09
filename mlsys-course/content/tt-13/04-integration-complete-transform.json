@@ -1,0 +1,173 @@
+{
+ "title": "🔧 Integration: Complete Transformer Workflow",
+ "summary": "TinyTorch transformers: 🔧 Integration: Complete Transformer Workflow",
+ "source": {
+  "chapter": "tt-13",
+  "sections": [
+   "🔧 Integration: Complete Transformer Workflow"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Complete Transformer Workflow\n\nNow that we've built all the components, let's see how they work together in a complete language modeling pipeline. This demonstrates the full power of the transformer architecture.\n\n### The Language Modeling Pipeline\n\n```\nComplete Workflow Visualization:\n\n1. Text Input:\n   \"hello world\" → Tokenization → [15496, 1917]\n\n2. Model Processing:\n   [15496, 1917]\n        ↓ Token Embedding\n   [[0.1, 0.5, ...], [0.3, -0.2, ...]]  # Vector representations\n        ↓ + Position Embedding\n   [[0.2, 0.7, ...], [0.1, -0.4, ...]]  # With position info\n        ↓ Transformer Block 1\n   [[0.3, 0.2, ...], [0.5, -0.1, ...]]  # After attention + MLP\n        ↓ Transformer Block 2\n   [[0.1, 0.9, ...], [0.7, 0.3, ...]]   # Further processed\n        ↓ Final LayerNorm + LM Head\n   [[0.1, 0.05, 0.8, ...], [...]]       # Probability over vocab\n\n3. Generation:\n   Model predicts next token: \"!\" (token 33)\n   New sequence: \"hello world!\"\n```\n\nThis integration demo will show:\n- **Character-level tokenization** for simplicity\n- **Forward pass** through all components\n- **Autoregressive generation** in action\n- **Temperature effects** on creativity"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 63 lines of code (starting with `def demonstrate_transformer_integration():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Parameter Scaling and Memory\n\nTransformer models scale predictably across parameter count, dataset size, and compute budgets. Understanding the mathematical breakdown of weights and intermediate activations is essential for architecting training clusters and production serving engines.\n\n### The Empirical Scaling Laws\n\nTransformer performance follows consistent power-law relationships across multiple orders of magnitude (Kaplan et al., 2020; Hoffmann et al., 2022 [Chinchilla]):\n\n\\$\\$L(N) = \\left(\\frac{N_c}{N}\\right)^{\\alpha_N}, \\qquad L(D) = \\left(\\frac{D_c}{D}\\right)^{\\alpha_D}, \\qquad L(C) = \\left(\\frac{C_c}{C}\\right)^{\\alpha_C}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Scaling Dimension",
+    "Power-Law Exponent",
+    "10× Resource Increase Impact",
+    "Optimal Allocation Ratio"
+   ],
+   "rows": [
+    [
+     "**Parameters (\\$N\\$)**",
+     "\\$\\alpha_N \\approx 0.076\\$",
+     "\\$\\approx 16\\%\\$ reduction in cross-entropy loss",
+     "Chinchilla optimum: scale parameters and tokens equally"
+    ],
+    [
+     "**Training Tokens (\\$D\\$)**",
+     "\\$\\alpha_D \\approx 0.095\\$",
+     "\\$\\approx 20\\%\\$ reduction in cross-entropy loss",
+     "\\$D \\approx 20 \\times N\\$ for compute-optimal pre-training"
+    ],
+    [
+     "**Compute FLOPs (\\$C\\$)**",
+     "\\$\\alpha_C \\approx 0.050\\$",
+     "\\$\\approx 11\\%\\$ reduction in cross-entropy loss",
+     "\\$C \\approx 6 \\times N \\times D\\$ floating-point operations"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "---\n\n### Memory Footprint Breakdown by Component\n\nTransformer memory consumption divides into four distinct categories with different asymptotic scaling behaviors:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Memory Category",
+    "Closed-Form Formula (Bytes)",
+    "Complexity",
+    "Dominant Regime",
+    "Systems Mitigation"
+   ],
+   "rows": [
+    [
+     "**Model Parameters**",
+     "\\$M_{\\text{params}} \\approx (V d + 12 L d^2 + V d) \\times 4\\$",
+     "\\$\\mathcal{O}(V d + L d^2)\\$",
+     "Large models (\\$d \\ge 4{,}096\\$)",
+     "Tensor parallelism, FP16/INT8 quantization"
+    ],
+    [
+     "**FFN Activations**",
+     "\\$M_{\\text{FFN}} = B \\times S \\times 4d \\times L \\times 4\\$",
+     "\\$\\mathcal{O}(B \\cdot S \\cdot d \\cdot L)\\$",
+     "Short sequences (\\$S \\ll d\\$)",
+     "Activation recomputation (checkpointing)"
+    ],
+    [
+     "**Attention Logits**",
+     "\\$M_{\\text{attn}} = B \\times L \\times H \\times S^2 \\times 4\\$",
+     "\\$\\mathcal{O}(B \\cdot L \\cdot H \\cdot S^2)\\$",
+     "Long sequences (\\$S \\ge 4{,}096\\$)",
+     "FlashAttention (online softmax tiling)"
+    ],
+    [
+     "**KV Cache (Serving)**",
+     "\\$M_{\\text{KV}} = 2 \\times B \\times L \\times S \\times d \\times 2\\$",
+     "\\$\\mathcal{O}(B \\cdot L \\cdot S \\cdot d)\\$",
+     "Multi-user generation",
+     "PagedAttention, Grouped-Query Attention (GQA)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The parameter row carries a \\$\\approx\\$ on purpose. It counts the two vocabulary projections and the \\$12 L d^2\\$ of block matrices, and it drops the learned positional table, every bias vector, and every LayerNorm scale and shift. For the configuration in Question 3 below those omissions come to \\$565{,}248\\$ parameters, about \\$1.9\\%\\$ of the true total, which is close enough for capacity planning and wrong for an exact count.\n\n---\n\n### The Quadratic Attention Memory Wall\n\nBecause attention weights scale as \\$S^2\\$, scaling context length from \\$2\\text{K} \\to 128\\text{K}\\$ tokens causes attention matrix storage to explode quadratically:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Sequence Length (\\$S\\$)",
+    "Head Matrix (\\$S^2 \\times 4\\text{ B}\\$)",
+    "Layer Footprint (\\$32\\text{ heads}\\$)",
+    "Model Total (\\$32\\text{ layers}\\$)",
+    "Production Context Feasibility"
+   ],
+   "rows": [
+    [
+     "**\\$1{,}024\\$ tokens**",
+     "\\$4.19\\text{ MB}\\$",
+     "\\$134.2\\text{ MB}\\$",
+     "\\$4.29\\text{ GB}\\$",
+     "Fits easily on commodity consumer GPUs"
+    ],
+    [
+     "**\\$2{,}048\\$ tokens**",
+     "\\$16.78\\text{ MB}\\$",
+     "\\$536.9\\text{ MB}\\$",
+     "\\$17.18\\text{ GB}\\$",
+     "GPT-3 (2020) native context limit"
+    ],
+    [
+     "**\\$4{,}096\\$ tokens**",
+     "\\$67.11\\text{ MB}\\$",
+     "\\$2.15\\text{ GB}\\$",
+     "\\$68.72\\text{ GB}\\$",
+     "Llama 2 native context window"
+    ],
+    [
+     "**\\$8{,}192\\$ tokens**",
+     "\\$268.4\\text{ MB}\\$",
+     "\\$8.59\\text{ GB}\\$",
+     "\\$274.9\\text{ GB}\\$",
+     "Requires Activation Checkpointing"
+    ],
+    [
+     "**\\$32{,}768\\$ tokens**",
+     "\\$4.29\\text{ GB}\\$",
+     "\\$137.4\\text{ GB}\\$",
+     "\\$4.40\\text{ TB}\\$",
+     "Intractable without FlashAttention"
+    ],
+    [
+     "**\\$131{,}072\\$ tokens**",
+     "\\$68.72\\text{ GB}\\$",
+     "\\$2.20\\text{ TB}\\$",
+     "\\$70.37\\text{ TB}\\$",
+     "Requires Ring Attention + FlashAttention-3"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_parameter_scaling():\n    \"\"\"📊 Analyze how parameter count scales with embedding dimension.\"\"\"\n    print(\"📊 Analyzing Parameter Scaling in Transformers...\")\n    print(\"Understanding why model size affects performance and cost\\n\")\n    from tinytorch.models.transformer import GPT\n\n    # Vary ONE dimension. The earlier version doubled embed_dim and grew num_layers at\n    # the same time, so neither variable's effect could be read off the output.\n    num_layers = 4\n    num_heads = 8\n    vocab_size = 50000  # Typical vocabulary size\n\n    print(f\"Holding layers = {num_layers}, heads = {num_heads}, vocab = {vocab_size:,}\\n\")\n    print(\"  d | Total params |  Vocab proj (share) |    Blocks | Growth\")\n    print(\"-\" * 68)\n\n    previous_total = None\n    for embed_dim in (64, 128, 256, 512):\n        model = GPT(\n            vocab_size=vocab_size,\n            embed_dim=embed_dim,\n            num_layers=num_layers,\n            num_heads=num_heads,\n            block_cls=TransformerBlock, norm_cls=LayerNorm, mask_fn=create_causal_mask,\n            sample_fn=sample_next_token, generate_fn=generate\n        )\n\n        total_params = sum(param.size for param in model.parameters())\n        # The two V x d vocabulary projections: the token/position embeddings and the\n        # LM head that maps back out to the vocabulary.\n        vocab_params = (sum(p.size for p in model.embedding_layer.parameters())\n                        + sum(p.size for p in model.lm_head.parameters()))\n        block_params = total_params - vocab_params\n        vocab_share = 100.0 * vocab_params / total_params\n\n        growth = \"-\" if previous_total is None else f\"{total_params / previous_total:.2f}x\"\n        print(f\"{embed_dim:3d} | {total_params:12,} | {vocab_params:11,} ({vocab_share:4.1f}%) | \"\n              f\"{block_params:9,} | {growth:>6}\")\n        previous_total = total_params\n\n    memory_mb = (previous_total * BYTES_PER_FLOAT32) / MB_TO_BYTES\n    print(f\"\\nWidest model above: {memory_mb:.1f} MB of float32 weights\")\n    print(\"💡 Doubling d only about doubles the total here, because the 2Vd vocabulary\")\n    print(\"   projections dominate every row. Scaling is effectively LINEAR in d at this\")\n    print(\"   width; the quadratic 12Ld^2 block term takes over only at production width,\")\n    print(\"   where d is large enough for 12Ld^2 to outgrow 2Vd.\")\n    print(\"🚀 Real GPT-3 has 175B parameters, requiring ~700 GB in float32 (~350 GB in float16)\")\n\nif __name__ == \"__main__\":\n    analyze_parameter_scaling()"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_attention_memory():\n    \"\"\"📊 Analyze attention memory complexity with sequence length.\"\"\"\n    print(\"📊 Analyzing Attention Memory Complexity...\")\n    print(\"Why long context is expensive and how it scales\\n\")\n\n    num_heads = 8\n    batch_size = 4\n\n    # Test different sequence lengths\n    sequence_lengths = [128, 256, 512, 1024, 2048]\n\n    print(\"Attention Matrix Memory Usage:\")\n    print(\"Seq Len | Attention Matrix Size | Memory (MB)\")\n    print(\"-\" * 45)\n\n    for seq_len in sequence_lengths:\n        # Attention matrix is (batch_size, num_heads, seq_len, seq_len)\n        attention_elements = batch_size * num_heads * seq_len * seq_len\n\n        # 4 bytes per float32\n        memory_bytes = attention_elements * BYTES_PER_FLOAT32\n        memory_mb = memory_bytes / MB_TO_BYTES\n\n        print(f\"{seq_len:6d} | {seq_len}×{seq_len} × {batch_size}×{num_heads} | {memory_mb:8.1f}\")\n\n    print()\n    print(\"💡 Attention memory grows quadratically with sequence length\")\n    print(\"🚀 This is why attention efficiency techniques are crucial for long sequences\")\n\nif __name__ == \"__main__\":\n    analyze_attention_memory()"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🔧 Integration: Complete Transformer Workflow."
+   ]
+  }
+ ]
+}

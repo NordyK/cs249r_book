@@ -1,0 +1,64 @@
+{
+ "title": "Module 09: Convolutions - Processing Images with Spatial Operations",
+ "summary": "TinyTorch convolutions: Module 09: Convolutions - Processing Images with Spatial Ope",
+ "source": {
+  "chapter": "tt-09",
+  "sections": [
+   "Module 09: Convolutions - Processing Images with Spatial Operations"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 09: Convolutions - Processing Images with Spatial Operations\n\nWelcome to Module 09! You'll implement spatial operations that transform machine learning from working with simple vectors to understanding images and spatial patterns.\n\n## 🔗 Prerequisites & Progress\n**You've Built**: Complete training pipeline with MLPs, optimizers, and data loaders (`Tensor`, `Autograd`, `Linear`, `Losses`, `Optimizers`, `Trainer`)\n**You'll Build**: Spatial operations (`Conv2d`, `MaxPool2d`, `AvgPool2d`, and `BatchNorm2d`) for image processing\n**You'll Enable**: Convolutional Neural Networks (CNNs) for computer vision and spatial representation learning\n\n### Architectural Roadmap"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Stage",
+    "Subsystem",
+    "Primitives & Capabilities",
+    "Status"
+   ],
+   "rows": [
+    [
+     "**Modules 01–08**",
+     "Training Foundation",
+     "`Tensor`, `Autograd`, `Linear`, `CrossEntropyLoss`, `AdamW`, `Trainer`",
+     "Completed"
+    ],
+    [
+     "**Module 09**",
+     "**Spatial Operations**",
+     "`Conv2d`, `MaxPool2d`, `AvgPool2d`, `BatchNorm2d`",
+     "**Active Subsystem**"
+    ],
+    [
+     "**Modules 10–13**",
+     "Language & Attention",
+     "`BPETokenizer`, `Embedding`, `MultiHeadAttention`, `TransformerBlock`",
+     "Next Target"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 🎯 Learning Objectives\nBy the end of this module, you will:\n1. Implement `Conv2d` with explicit 7-nested loops to quantify its \\$\\mathcal{O}(B \\cdot C_{\\text{out}} \\cdot H_{\\text{out}} \\cdot W_{\\text{out}} \\cdot K_h \\cdot K_w \\cdot C_{\\text{in}})\\$ computational complexity.\n2. Build pooling operations (`MaxPool2d` and `AvgPool2d`) for spatial downsampling and translation invariance.\n3. Formulate `BatchNorm2d` with running statistics tracking and a three-route backward derivation (direct, mean, and variance paths) across mini-batch axes.\n4. Compose complete convolutional pipelines (`SimpleCNN`) demonstrating \\$>139\\times\\$ parameter efficiency over dense networks.\n\n---\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/09_convolutions/convolutions.ipynb`\n**Building Side:** Code exports to `tinytorch.core.spatial`\n\n\n  \n\n\n```python\n# How to use this module:\nfrom tinytorch.core.spatial import Conv2d, MaxPool2d, AvgPool2d, BatchNorm2d\n```\n\n**Why this matters:**\n- **Learning:** Complete spatial processing system in one focused module for deep understanding\n- **Production:** Proper organization mirroring PyTorch's `torch.nn.Conv2d` and `torch.nn.BatchNorm2d`\n- **Consistency:** All spatial convolution, normalization, and pooling primitives live cleanly in `core.spatial`\n- **Integration:** Composes seamlessly with existing layers (`Linear`, `ReLU`) for complete CNN architectures"
+  },
+  {
+   "type": "text",
+   "md": "## 📋 Module Dependencies\n\n**Prerequisites**: Modules 01 (Tensor), 02 (Activations), 03 (Layers), and 06 (Autograd) must be complete\n\n**External Dependencies**:\n- `numpy` (for array operations and numerical computing)\n- `time` (for performance measurements)\n\n**TinyTorch Dependencies**:\n- `tinytorch.core.tensor` (`Tensor` and the `Function` base class from Module 01)\n- `tinytorch.core.activations` (`ReLU` from Module 02)\n- `tinytorch.core.layers` (`Linear` from Module 03)\n- `tinytorch.core.autograd` (gradient tracking and reverse-mode AD from Module 06)\n\nThis module builds directly on your tensor, layer, and autograd modules.\nSpatial operations integrate with your existing layers and backpropagation engine.\n\n**Dependency Flow**:\n\\$\\$\\underbrace{\\text{Module 01: Tensor}}_{\\text{Data and Function nodes}} \\longrightarrow \\underbrace{\\text{Modules 02, 03: Activations, Layers}}_{\\text{ReLU and Linear}} \\longrightarrow \\underbrace{\\text{Module 06: Autograd}}_{\\text{Backward halves}} \\longrightarrow \\underbrace{\\text{Module 09: Convolutions}}_{\\text{Conv2d, pooling, BatchNorm2d}}\\$\\$"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import numpy as np\nrng = np.random.default_rng(7)\nimport time\n\nfrom tinytorch.core.tensor import Tensor, Function\nfrom tinytorch.core.activations import ReLU\nfrom tinytorch.core.layers import Linear\nimport tinytorch.core.autograd  # completes every operation with its backward half"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 09: Convolutions - Processing Images with Spatial Operations."
+   ]
+  }
+ ]
+}

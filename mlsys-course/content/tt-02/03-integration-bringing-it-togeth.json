@@ -1,0 +1,41 @@
+{
+ "title": "🔧 Integration: Bringing It Together",
+ "summary": "TinyTorch activations: 🔧 Integration: Bringing It Together",
+ "source": {
+  "chapter": "tt-02",
+  "sections": [
+   "🔧 Integration: Bringing It Together"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Bringing It Together\n\nNow let's run all five activation functions on one shared input and read their\noutputs side by side. Same numbers in, five different shapes out."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def compare_activations():\n    \"\"\"Run all five activations on one shared input vector and line up the results.\"\"\"\n    x = Tensor(np.array([-2.0, -1.0, 0.0, 1.0, 2.0]))\n\n    def row(label, values):\n        print(f\"{label:<9}\" + \"\".join(f\"{v:>9.4f}\" for v in values))\n\n    print(\"All five activations on the same input vector\")\n    print(\"=\" * (9 + 9 * len(x.data)))\n    row(\"input\", x.data)\n    print(\"-\" * (9 + 9 * len(x.data)))\n    for name, activation in [(\"Sigmoid\", Sigmoid()), (\"ReLU\", ReLU()), (\"Tanh\", Tanh()),\n                             (\"GELU\", GELU()), (\"Softmax\", Softmax())]:\n        row(name, activation(x).data)\n    print(\"-\" * (9 + 9 * len(x.data)))\n    print(f\"Softmax sums to {Softmax()(x).data.sum():.4f}; the other four are element-wise,\")\n    print(\"so each of their outputs depends only on the input in the same position.\")\n\nif __name__ == \"__main__\":\n    compare_activations()"
+  },
+  {
+   "type": "text",
+   "md": "### Understanding the Output Patterns\n\nFrom the demonstration above, notice how each activation serves a different purpose:\n\n**Sigmoid**: Squashes everything to (0, 1) - good for probabilities\n**ReLU**: Zeros negatives, keeps positives - creates sparsity\n**Tanh**: Like sigmoid but centered at zero (-1, 1) - better mathematical properties for composing transformations\n**GELU**: Smooth ReLU-like behavior - modern choice for advanced architectures\n**Softmax**: Converts to probability distribution - sum equals 1\n\nThese different behaviors make each activation suitable for different computational tasks."
+  },
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Activation Computation Costs\n\nLet's understand ONE key systems concept: **computational cost differences between activations**.\n\nThis analysis reveals why ReLU dominates hidden layers while more expensive activations are reserved for specific use cases."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 79 lines of code (starting with `def analyze_activation_performance():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🔧 Integration: Bringing It Together."
+   ]
+  }
+ ]
+}

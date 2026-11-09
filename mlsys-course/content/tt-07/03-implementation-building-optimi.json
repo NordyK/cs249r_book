@@ -1,0 +1,102 @@
+{
+ "title": "🏗️ Implementation: Building Optimizers",
+ "summary": "TinyTorch optimizers: 🏗️ Implementation: Building Optimizers",
+ "source": {
+  "chapter": "tt-07",
+  "sections": [
+   "🏗️ Implementation: Building Optimizers"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Building Optimizers\n\nWe construct each optimizer incrementally, establishing the base class contract before specializing into first-order and adaptive update rules:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Component",
+    "Scope",
+    "Core Responsibility"
+   ],
+   "rows": [
+    [
+     "**`Optimizer` (Base)**",
+     "Interface & Plumbing",
+     "Holds parameter references, implements `zero_grad()`, unpacks gradient buffers"
+    ],
+    [
+     "**`SGD`**",
+     "Classical Descent",
+     "First-order gradient updates with velocity accumulation buffer"
+    ],
+    [
+     "**`Adam`**",
+     "Adaptive Moments",
+     "First-moment direction EMA, second-moment magnitude EMA, bias corrections"
+    ],
+    [
+     "**`AdamW`**",
+     "Modern Standard",
+     "Decoupled parameter decay applied directly to weights before adaptive step"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 82 lines of code (starting with `class Optimizer:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Gradient Extraction: Handling Tensor vs NumPy Gradients\n\nModule 06's `backward()` writes a bare NumPy ndarray into `param.grad`. However, during isolated unit testing or custom training loops, gradients may be initialized directly as `Tensor` instances (holding an internal `.data` buffer).\n\nTo ensure deterministic numeric updates across all algorithms, `_extract_gradient()` acts as an idempotent unwrapping contract:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Gradient Representation",
+    "Type Signature",
+    "Extraction Logic",
+    "Normalized Return"
+   ],
+   "rows": [
+    [
+     "**Autograd Engine Output**",
+     "`np.ndarray`",
+     "Direct pass-through",
+     "`np.ndarray`"
+    ],
+    [
+     "**Explicit Tensor Wrapper**",
+     "`Tensor`",
+     "Extract buffer via `grad.data`",
+     "`np.ndarray`"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "This helper is attached directly to the base `Optimizer` class via `method_of(Optimizer)` so that `SGD`, `Adam`, and `AdamW` share unified type handling."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(Optimizer)\ndef _extract_gradient(self, param: Tensor) -> np.ndarray:\n    \"\"\"\n    Extract gradient data as a NumPy array from a parameter.\n\n    Module 06's backward() stores a raw NumPy array in param.grad; a gradient\n    set by hand may be a Tensor (with a .data attribute). This helper\n    normalizes both cases to a plain NumPy array for optimizer math.\n\n    TODO: Return the gradient's underlying NumPy array\n\n    APPROACH:\n    1. Get param.grad\n    2. If it's a Tensor, return its .data attribute\n    3. If it's already a NumPy array, return it directly\n\n    EXAMPLE:\n    >>> param = Tensor([1.0, 2.0], requires_grad=True)\n    >>> param.grad = Tensor([0.1, 0.2])\n    >>> optimizer._extract_gradient(param)\n    array([0.1, 0.2])\n\n    HINT: Use isinstance(grad, Tensor) to check the type\n    \"\"\"\n    grad = param.grad\n    if isinstance(grad, Tensor):\n        return grad.data\n    else:\n        return grad"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Gradient Extraction\n\nThis test validates that `_extract_gradient` correctly handles both\nTensor-wrapped gradients and raw NumPy array gradients.\n\n**What we're testing**: Gradient normalization across storage formats\n**Why it matters**: Every optimizer needs raw NumPy data for update math\n**Expected**: NumPy array output regardless of input format"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Base Optimizer\n\nThis test validates our base Optimizer class works correctly.\n\n**What we're testing**: Parameter validation and zero_grad functionality\n**Why it matters**: Foundation for all specific optimizer implementations\n**Expected**: Proper parameter storage and gradient clearing"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Implementation: Building Optimizers."
+   ]
+  }
+ ]
+}

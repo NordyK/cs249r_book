@@ -1,0 +1,35 @@
+{
+ "title": "⭐ Aha Moment: Know Your Model",
+ "summary": "TinyTorch profiling: ⭐ Aha Moment: Know Your Model",
+ "source": {
+  "chapter": "tt-14",
+  "sections": [
+   "⭐ Aha Moment: Know Your Model"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: Know Your Model\n\n**What you built:** A complete profiler that measures parameters, FLOPs, memory, and latency.\n\n**Why it matters:** You can't optimize what you can't measure! Before making a model faster or smaller, you need to know where the time and memory go. Your profiler reveals these secrets, telling you exactly what your model costs in compute and memory.\n\nProfiling data guides optimization decisions. Quantization, compression, and acceleration all start with measurement."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_profiling():\n    \"\"\"🎯 See your profiler reveal model secrets.\"\"\"\n    print(\"🎯 AHA MOMENT: Know Your Model\")\n    print(\"=\" * 45)\n\n    # Create a simple model\n    layer = Linear(784, 128)\n\n    # Profile it\n    profiler = Profiler()\n    params = profiler.count_parameters(layer)\n    flops = profiler.count_flops(layer, input_shape=(1, 784))\n\n    print(f\"Model: Linear(784 → 128)\")\n    print(f\"\\nParameters: {params:,}\")\n    print(f\"  = 784 × 128 weights + 128 biases\")\n\n    print(f\"\\nFLOPs: {flops:,}\")\n    print(f\"  = 784 × 128 × 2 (multiply-add per output)\")\n\n    print(f\"\\nMemory: {params * BYTES_PER_FLOAT32 / KB_TO_BYTES:.1f} KB (at FP32)\")\n\n    print(\"\\n✨ Profiling reveals optimization opportunities!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Profiling\n\nCongratulations! You've built a comprehensive profiling system for ML performance analysis!\n\n### Key Accomplishments\n- **Built complete Profiler class** with parameter, FLOP, memory, and latency measurement\n- **Implemented advanced profiling functions** for forward and backward pass analysis\n- **Discovered performance characteristics** through scaling and efficiency analysis\n- **Built a profiler that is explicit about what it cannot see**: exact counts, honest estimates, and named placeholders instead of invented precision\n- **All tests pass** (validated by `test_module()`)\n\n### Systems Insights Discovered\n- **FLOPs vs Reality**: Theoretical operations don't always predict actual performance\n- **Memory Bottlenecks**: Many ML operations are limited by memory bandwidth, not compute\n- **Batch Size Effects**: Bigger batches raise arithmetic intensity only when the kernel can exploit weight reuse. Our own sweep bought no throughput at all from batch 1 to 128, because a Python-level matmul makes total cost exactly linear in batch\n- **Profiling Overhead**: Measurement tools have costs but enable data-driven optimization\n\n### Ready for Next Steps\nYour profiling implementation provides the measurement foundation for all optimization work.\nYou can't optimize what you can't measure, and you can now measure parameters, FLOPs,\nallocation footprint, and latency, while knowing exactly which numbers are counts, which\nare estimates, and which stand in for hardware this profiler cannot reach.\n\nExport with: `tito module complete 14`"
+  },
+  {
+   "type": "text",
+   "md": "**Next**: Module 15 will add quantization, the first optimization your profiler will let you measure honestly!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: Know Your Model."
+   ]
+  }
+ ]
+}

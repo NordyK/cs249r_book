@@ -1,0 +1,63 @@
+{
+ "title": "🧪 Module Integration Test",
+ "summary": "TinyTorch tokenization: 🧪 Module Integration Test",
+ "source": {
+  "chapter": "tt-10",
+  "sections": [
+   "🧪 Module Integration Test"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🧪 Module Integration Test\n\nLet's test our complete tokenization system to ensure everything works together."
+  },
+  {
+   "type": "text",
+   "md": "## 🤔 ML Systems Reflection Questions\n\nAnswer these questions to deepen your systems understanding of tokenization, memory footprint, and transformer computational complexity:\n\n### Question 1: Vocabulary Size, Dictionary Overhead & Embedding VRAM Scaling\n**Question**: You implemented tokenizers spanning character-level (\\$V \\approx 100\\$) to BPE subwords (\\$V \\approx 128{,}000\\$). Two very different memories pay for that vocabulary, a Python `dict` on the host and an embedding table on the accelerator. Which one actually constrains the deployment?\n\n**Real-world context**: In CPython each vocabulary entry costs roughly \\$100\\text{ bytes}\\$, made up of a string object (\\$\\approx 50\\text{ bytes}\\$ plus the token's length), an integer ID object (\\$\\approx 28\\text{ bytes}\\$), and a hash-table bucket holding a pointer pair and a cached hash (\\$\\approx 16\\text{ bytes}\\$ at a \\$\\approx 2/3\\$ load factor). The downstream embedding table \\$W_{\\text{embed}} \\in \\mathbb{R}^{V \\times D}\\$ and the output unembedding head must both reside in accelerator VRAM:\n\n\\$\\$\\text{Embedding Memory} = V \\times D \\times 4\\text{ bytes} \\quad (\\texttt{float32})\\$\\$\n\n**Calculate** (with \\$D = 4{,}096\\$ and `float32`):"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Tokenizer Type",
+    "Vocab Size \\$V\\$",
+    "Dict RAM",
+    "Embedding VRAM",
+    "Unembedding GEMM FLOPs (given)"
+   ],
+   "rows": [
+    [
+     "**Character**",
+     "\\$100\\$",
+     "___________ KB",
+     "___________ MB",
+     "\\$8.19 \\times 10^5\\$"
+    ],
+    [
+     "**Small BPE (GPT-2)**",
+     "\\$50{,}257\\$",
+     "___________ MB",
+     "___________ MB",
+     "\\$4.12 \\times 10^8\\$"
+    ],
+    [
+     "**Large BPE (Llama 3)**",
+     "\\$128{,}256\\$",
+     "___________ MB",
+     "___________ MB",
+     "\\$1.05 \\times 10^9\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Consider**:\n- Both columns are linear in \\$V\\$, yet only one of them ever forces a hardware decision. Which one, and what is the ratio between the two at \\$D = 4{,}096\\$?\n- Going from \\$V = 100\\$ to \\$V = 128{,}256\\$, by what factor does embedding memory grow? Is that factor the vocabulary ratio itself, and why?\n- A model with untied input and output embeddings pays the \\$V \\times D\\$ cost twice. For Llama 3's vocabulary at \\$D = 4{,}096\\$ in `float32`, how many GB is spent on embeddings before a single transformer block is instantiated?\n- Would halving \\$D\\$ or halving \\$V\\$ save more embedding memory? State what each choice costs elsewhere in the system.\n\n---\n\n### Question 2: Sequence Length Compression & Quadratic Attention Scaling\n**Question**: The phrase `\"machine learning\"` is 16 raw characters. Your `CharTokenizer` yields \\$T_{\\text{char}} = 16\\$ tokens; a trained BPE tokenizer yields 3 (`[\"machine\", \" learn\", \"ing\"]`). Compression is linear, but what it buys downstream is not.\n\n**Real-world context**: Transformer self-attention compute scales quadratically with sequence length,\n\n\\$\\$\\text{Attention FLOPs} = 4 \\cdot B \\cdot H \\cdot T^2 \\cdot D_{\\text{head}}\\$\\$\n\nwhile the KV cache written during autoregressive generation scales linearly in \\$T\\$.\n\n**Calculate**:\n- Compression factor for this phrase: \\$16 / 3 =\\$ ___________\\$\\times\\$\n- With a fixed context window \\$T_{\\max} = 512\\$, phrases that fit under character tokenization: ___________; under BPE: ___________\n- For a \\$1{,}000\\$-character document at a \\$4.5\\times\\$ compression factor: \\$T_{\\text{char}} =\\$ ___________, \\$T_{\\text{bpe}} =\\$ ___________, and the attention compute ratio \\$T_{\\text{char}}^2 / T_{\\text{bpe}}^2 =\\$ ___________\\$\\times\\$\n\n**Consider**:\n- The compression factor is \\$4.5\\times\\$ but your compute ratio is far larger. Which exponent in the FLOP formula opens that gap?\n- KV-cache memory shrinks by only \\$4.5\\times\\$, not by the compute ratio. Why do the two quantities scale differently with \\$T\\$?\n- At \\$T_{\\max} = 512\\$, the character model holds roughly 64 words of context and the BPE model roughly 340 (counting 2 words per 16 characters, as in this phrase). State that gap as a factor, and explain why it matches the compression factor rather than its square.\n\n---\n\n### Question 3: Out-of-Vocabulary Robustness, Byte Fallback & Multilingual Fairness\n**Question**: Your `CharTokenizer` sends an unseen character to ``, and your `BPETokenizer` sends an unseen subword to ``. Production byte-level BPE has no `` at all. What changed, and what did it cost?\n\n**Real-world context**: Byte-level BPE seeds the base vocabulary with all \\$256\\$ raw byte values (`0x00` through `0xFF`) before learning a single merge, so any UTF-8 string is representable. Because merges are learned from corpus frequency, high-resource languages acquire long subwords (\\$4\\$ to \\$5\\$ characters per token) while low-resource scripts (Hindi, Thai, Arabic) and unusually indented code decompose toward individual bytes (\\$1\\$ to \\$3\\$ tokens per character). Autoregressive decoding emits one token per forward pass.\n\n**Calculate**:\n- `BPETokenizer.train()` seeds its base alphabet from the training corpus alone. Train on `[\"hello\", \"hello\", \"help\"]`: how many of the \\$256\\$ byte values are absent from the base alphabet, and what does `encode(\"héllo\")` return at the accented character?\n- A Hindi prompt needs \\$3\\times\\$ the tokens of its English equivalent. Give the ratio of per-request API cost, and the ratio of generation wall-clock time.\n\n**Consider**:\n- Seeding all \\$256\\$ bytes guarantees zero ``. What does that guarantee cost, in vocabulary slots and in sequence length, for text the merges already covered?\n- Word-level tokenizers collapse identifiers such as `calculate_gradient_norm` to a single ``. Explain why that makes source code effectively unlearnable while character-level tokenization does not, in terms of what signal survives.\n- Llama 3 raised its vocabulary to \\$128\\text{K}\\$ partly for multilingual parity. Using your Question 1 figures, what is the VRAM price of that decision at \\$D = 4{,}096\\$, and who pays it?\n\n---\n\n### Question 4: Production Serving Throughput, Rust Engines & KV-Cache Caching\n**Question**: A deployment serves \\$1{,}000{,}000\\$ API requests per day at an average prompt length of \\$500\\$ tokens. Tokenization runs on the CPU, before anything reaches the accelerator. Is the tokenizer a bottleneck?\n\n**Real-world context**: A pure-Python tokenizer runs at roughly \\$0.1\\text{ ms/token}\\$ (\\$10{,}000\\$ tokens/sec). A compiled Rust tokenizer (`tiktoken`, Hugging Face `tokenizers`) runs at roughly \\$0.002\\text{ ms/token}\\$ (\\$500{,}000\\$ tokens/sec). Production systems then layer three techniques on top:\n\n- **Compiled multi-threaded pre-tokenization**: fast tokenizers split raw text with SIMD-accelerated regular expressions and execute BPE merges in parallel across CPU cores using Rust's `rayon`.\n- **System prompt prefix caching**: in conversational agents the system prompt (say 1,500 tokens of tool definitions and instructions) is identical across queries, so servers tokenize it once and cache both the token IDs and the pre-computed Key-Value attention tensors in GPU memory, bypassing tokenization and the initial transformer prefill.\n- **Zero-copy memory mapping (`mmap`)**: vocabulary files and merge ranks are serialized into binary blobs (a trie or a perfect hash structure) and loaded via `mmap`, so dozens of worker processes share one read-only physical buffer.\n\n**Calculate**:\n- Total daily tokens: ___________\n- Daily CPU time on the pure-Python path: ___________ hours\n- Daily CPU time on the Rust path: ___________ minutes\n- CPU cores the Python path needs to keep up with a 24-hour day (\\$86{,}400\\text{ s}\\$): ___________\n\n**Consider**:\n- Your last answer comes out below one core. So what actually makes tokenizer speed matter in production, aggregate throughput or per-request latency, and at which point in the request does it show up?\n- Caching the system prompt's token IDs saves tokenization; caching its KV tensors saves prefill. Which saving dominates, and what does that say about where to spend engineering effort?\n- Using your Question 1 dict-RAM figure for a \\$128\\text{K}\\$ vocabulary, how much RAM does `mmap` sharing save across 32 worker processes compared with one private copy each?"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🧪 Module Integration Test."
+   ]
+  }
+ ]
+}

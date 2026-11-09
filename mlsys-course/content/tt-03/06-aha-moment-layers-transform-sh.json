@@ -1,0 +1,35 @@
+{
+ "title": "⭐ Aha Moment: Layers Transform Shapes",
+ "summary": "TinyTorch layers: ⭐ Aha Moment: Layers Transform Shapes",
+ "source": {
+  "chapter": "tt-03",
+  "sections": [
+   "⭐ Aha Moment: Layers Transform Shapes"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: Layers Transform Shapes\n\n**What you built:** Linear layers that transform data from one dimension to another.\n\n**Why it matters:** A Linear layer is the workhorse of neural networks. The transformation\nfrom 784 features (a flattened 28×28 image) to 10 classes (digits 0-9) is exactly what\nhappens in digit recognition. You just built the core component!\n\nIn the next module, you'll add loss functions that measure how wrong predictions are.\nCombined with your layers, this creates the foundation for learning."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_layers():\n    \"\"\"🎯 See how layers transform shapes.\"\"\"\n    print(\"🎯 AHA MOMENT: Layers Transform Shapes\")\n    print(\"=\" * 45)\n\n    # Create a layer that transforms 784 → 10 (like MNIST)\n    layer = Linear(784, 10)\n\n    # Simulate a batch of 32 flattened images\n    batch = Tensor(rng.standard_normal((32, 784)))\n\n    # Forward pass\n    output = layer(batch)\n\n    print(f\"Input shape:  {batch.shape}  ← 32 images, 784 pixels each\")\n    print(f\"Output shape: {output.shape}  ← 32 images, 10 classes each\")\n    print(f\"Parameters:   {784 * 10 + 10:,} (weights + biases)\")\n\n    print(\"\\n✨ Your layer transforms images to class predictions!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Layers\n\nCongratulations! You've built the fundamental building blocks that make neural networks possible!\n\n### Key Accomplishments\n- Built Linear layers with proper weight initialization and parameter management\n- Created Dropout layers for regularization with training/inference mode handling\n- Demonstrated manual layer composition, then bundled the same chain into a Sequential\n  container that forwards the training flag and collects each parameter exactly once\n- Analyzed memory scaling and computational complexity of layer operations\n- All tests pass ✅ (validated by `test_module()`)\n\n### Systems Insights Discovered\n- **Parameter memory is the floor**: a Linear layer stores in_features x out_features\n  weights once, while the activations kept for backward scale with batch size. For this\n  module's 784->256->128->10 network that is 50.4 KB of layer outputs against 940.6 KB of\n  parameters at batch 32, so the weights still dominate. Flipping the ratio takes either a\n  batch near 6,000 or a much wider architecture\n- **Initialization is not cosmetic**: LeCun scaling (sqrt(1/fan_in)) holds variance at 1.0\n  through a linear map, which is exactly what it was derived for. ReLU then zeros half the\n  signal, so a Linear+ReLU pair loses roughly 2x. Stacking this module's own Linear and\n  ReLU eight times at 256->256 on unit-variance input, the activation variance falls\n  1.00 -> 0.34 -> 0.17 -> 0.089 -> 0.048 -> 0.028 -> 0.014 -> 0.0076 -> 0.0035, a ~285x\n  collapse. Recovering that missing factor of 2 is the whole reason He/Kaiming\n  (sqrt(2/fan_in)) exists\n- **Dropout costs memory, not just compute**: the mask is a full float32 tensor\n  the same shape as the activations it gates\n- **Composition is the whole idea**: layers are interchangeable because they almost all\n  agree on one contract, forward(x) -> Tensor. Dropout is the seam, since it reads a\n  training flag, passed as forward(x, training=...) or stored on the layer by\n  model.train()/model.eval(), and that single extra flag is why Sequential.forward has to\n  inspect each layer's signature before calling it\n\n### Ready for Next Steps\nYour layer implementation enables building complete neural networks! The Linear layer provides learnable transformations, manual composition chains them together, and Dropout prevents overfitting.\n\nExport with: `tito module complete 03`"
+  },
+  {
+   "type": "text",
+   "md": "**Next**: Module 04 will add loss functions (CrossEntropyLoss, MSELoss) that measure how wrong your model is - the foundation for learning!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: Layers Transform Shapes."
+   ]
+  }
+ ]
+}

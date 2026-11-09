@@ -1,0 +1,162 @@
+{
+ "title": "🏗️ Adam: Adaptive Moment Estimation",
+ "summary": "TinyTorch optimizers: 🏗️ Adam: Adaptive Moment Estimation",
+ "source": {
+  "chapter": "tt-07",
+  "sections": [
+   "🏗️ Adam: Adaptive Moment Estimation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Adam: Adaptive Moment Estimation\n\nAdam (Adaptive Moment Estimation) solves a fundamental failure mode of SGD: in deep networks, different parameters require radically different effective step sizes.\n\n### The Parameter Sensitivity Dilemma\n\nConsider a neural network where early feature layers receive attenuated backpropagated gradients (\\$\\sim 10^{-4}\\$), while the classification head receives direct, large-magnitude error signals (\\$\\sim 10^{-1}\\$). A single global scalar learning rate \\$\\alpha\\$ produces an impossible trade-off:\n- **Small \\$\\alpha\\$**: Output weights converge smoothly, but early layers remain virtually frozen.\n- **Large \\$\\alpha\\$**: Early layers learn effectively, but output layer weights oscillate wildly or explode.\n\n### Adam's Dual-Momentum Formulation\n\nAdam dynamically normalizes each coordinate's update step by tracking two running statistics via Exponential Moving Averages (EMA):\n\n\\$\\$\\begin{aligned}\n\\mathbf{m}_t &= \\beta_1 \\mathbf{m}_{t-1} + (1 - \\beta_1) \\mathbf{g}_t && \\text{(First Moment: Directional Velocity)} \\\\\n\\mathbf{v}_t &= \\beta_2 \\mathbf{v}_{t-1} + (1 - \\beta_2) \\mathbf{g}_t^{\\odot 2} && \\text{(Second Moment: Coordinate Energy / Variance)}\n\\end{aligned}\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "With standard defaults \\$\\beta_1 = 0.9\\$ and \\$\\beta_2 = 0.999\\$, \\$\\mathbf{m}_t\\$ averages over \\$\\sim 10\\$ recent gradients while \\$\\mathbf{v}_t\\$ averages energy over \\$\\sim 1000\\$ recent steps.\n\n### Bias Correction: Resolving the Cold-Start Problem\n\nBecause buffers are initialized at zero (\\$\\mathbf{m}_0 = \\mathbf{0}, \\mathbf{v}_0 = \\mathbf{0}\\$), early-step running moments are heavily biased toward zero. Unrolling the recurrence for stationary expectation \\$\\mathbb{E}[\\mathbf{g}_i] \\approx \\mathbb{E}[\\mathbf{g}_t]\\$:\n\n\\$\\$\\mathbb{E}[\\mathbf{m}_t] = \\mathbb{E}\\left[(1 - \\beta_1) \\sum_{i=1}^t \\beta_1^{t-i} \\mathbf{g}_i\\right] = (1 - \\beta_1^t) \\mathbb{E}[\\mathbf{g}_t] \\implies \\hat{\\mathbf{m}}_t = \\frac{\\mathbf{m}_t}{1 - \\beta_1^t}\\$\\$\n\n\\$\\$\\mathbb{E}[\\mathbf{v}_t] = \\mathbb{E}\\left[(1 - \\beta_2) \\sum_{i=1}^t \\beta_2^{t-i} \\mathbf{g}_i^{\\odot 2}\\right] = (1 - \\beta_2^t) \\mathbb{E}[\\mathbf{g}_t^{\\odot 2}] \\implies \\hat{\\mathbf{v}}_t = \\frac{\\mathbf{v}_t}{1 - \\beta_2^t}\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "The bias correction divisor \\$1 - \\beta^t\\$ starts near zero and asymptotes to \\$1.0\\$ as \\$t \\to \\infty\\$, ensuring mathematically unbiased estimators from the very first step:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Step \\$t\\$",
+    "Raw Accumulator \\$\\mathbf{m}_t\\$",
+    "Bias Divisor \\$(1 - \\beta_1^t)\\$",
+    "Unbiased Estimate \\$\\hat{\\mathbf{m}}_t = \\frac{\\mathbf{m}_t}{1 - \\beta_1^t}\\$",
+    "Effective Step Scaling"
+   ],
+   "rows": [
+    [
+     "\\$t = 1\\$",
+     "\\$0.100 \\cdot \\mathbf{g}\\$",
+     "\\$1 - 0.900 = 0.100\\$",
+     "\\$\\frac{0.100 \\mathbf{g}}{0.100} = 1.000 \\cdot \\mathbf{g}\\$",
+     "\\$100\\%\\$ true gradient signal"
+    ],
+    [
+     "\\$t = 2\\$",
+     "\\$0.190 \\cdot \\mathbf{g}\\$",
+     "\\$1 - 0.810 = 0.190\\$",
+     "\\$\\frac{0.190 \\mathbf{g}}{0.190} = 1.000 \\cdot \\mathbf{g}\\$",
+     "\\$100\\%\\$ true gradient signal"
+    ],
+    [
+     "\\$t = 3\\$",
+     "\\$0.271 \\cdot \\mathbf{g}\\$",
+     "\\$1 - 0.729 = 0.271\\$",
+     "\\$\\frac{0.271 \\mathbf{g}}{0.271} = 1.000 \\cdot \\mathbf{g}\\$",
+     "\\$100\\%\\$ true gradient signal"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### The Scale-Invariant Update Step\n\nDividing directional momentum by the root-mean-square energy yields coordinate-wise scale invariance:\n\n\\$\\$\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\alpha \\frac{\\hat{\\mathbf{m}}_t}{\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon}\\$\\$\n\nParameters with consistently large gradients are scaled down, while parameters with faint gradients are boosted, allowing all network layers to learn concurrently at rate \\$\\sim \\alpha\\$."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class Adam(Optimizer):\n    \"\"\"\n    Adam optimizer with adaptive learning rates.\n\n    Adam computes individual adaptive learning rates for different parameters\n    from estimates of first and second moments of the gradients.\n    This makes it effective for problems with sparse gradients or noisy data.\n    \"\"\"\n\n    def __init__(self, params: List[Tensor], lr: float = DEFAULT_LEARNING_RATE_ADAM, betas: tuple = (DEFAULT_BETA1, DEFAULT_BETA2), eps: float = DEFAULT_EPS, weight_decay: float = 0.0):\n        \"\"\"\n        Initialize Adam optimizer.\n\n        TODO: Set up Adam with adaptive learning rates\n\n        APPROACH:\n        1. Call parent constructor\n        2. Store hyperparameters (lr, betas, eps, weight_decay)\n        3. Initialize first and second moment buffers\n\n        PARAMETERS:\n        - lr: Learning rate (default: 0.001)\n        - betas: Coefficients for computing running averages (default: (0.9, 0.999))\n        - eps: Small constant for numerical stability (default: 1e-8)\n        - weight_decay: L2 penalty coefficient (default: 0.0)\n\n        EXAMPLE:\n        >>> optimizer = Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999))\n        \"\"\"\n        for name, value in ((\"lr\", lr), (\"eps\", eps), (\"weight_decay\", weight_decay)):\n            if not np.isfinite(value) or value < 0:\n                raise ValueError(f\"{name} must be finite and nonnegative\")\n        if len(betas) != 2 or any(not np.isfinite(beta) or not 0 <= beta < 1 for beta in betas):\n            raise ValueError(\"betas must contain two finite values in [0, 1)\")\n        super().__init__(params)\n\n        self.lr = lr\n        self.beta1, self.beta2 = betas\n        self.eps = eps\n        self.weight_decay = weight_decay\n\n        # Initialize moment buffers (created lazily)\n        self.m_buffers = [None for _ in self.params]  # First moment (mean)\n        self.update_counts = [0 for _ in self.params]  # Age of each parameter's moments\n        self.v_buffers = [None for _ in self.params]  # Second moment (variance)"
+  },
+  {
+   "type": "text",
+   "md": "### Moment Updates: EMA and Bias Correction\n\nAdam tracks two running statistics per parameter: a first moment (\\$\\mathbf{m}\\$, exponentially decaying average of past gradients) and a second uncentered moment (\\$\\mathbf{v}\\$, exponentially decaying average of squared gradients). Because buffers are initialized to zero, both statistics are biased toward zero in early iterations and require step-dependent scaling corrections:\n\n\\$\\$\\begin{aligned}\n\\text{Raw First Moment (EMA):} \\quad & \\mathbf{m}_t = \\beta_1 \\mathbf{m}_{t-1} + (1 - \\beta_1) \\mathbf{g}_t \\\\\n\\text{Raw Second Moment (EMA):} \\quad & \\mathbf{v}_t = \\beta_2 \\mathbf{v}_{t-1} + (1 - \\beta_2) \\mathbf{g}_t^2 \\\\\n\\text{Bias-Corrected Estimates:} \\quad & \\hat{\\mathbf{m}}_t = \\frac{\\mathbf{m}_t}{1 - \\beta_1^t}, \\quad \\hat{\\mathbf{v}}_t = \\frac{\\mathbf{v}_t}{1 - \\beta_2^t}\n\\end{aligned}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Moment Buffer",
+    "Statistic Modeled",
+    "Default Parameter",
+    "Bias Correction Factor",
+    "Asymptotic Behavior (\\$t \\to \\infty\\$)"
+   ],
+   "rows": [
+    [
+     "**First Moment \\$\\mathbf{m}\\$**",
+     "Mean direction",
+     "\\$\\beta_1 = 0.9\\$",
+     "\\$1 - \\beta_1^t\\$",
+     "\\$1 - 0.9^t \\to 1.0\\$"
+    ],
+    [
+     "**Second Moment \\$\\mathbf{v}\\$**",
+     "Uncentered variance",
+     "\\$\\beta_2 = 0.999\\$",
+     "\\$1 - \\beta_2^t\\$",
+     "\\$1 - 0.999^t \\to 1.0\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "This helper isolates the moment tracking and bias correction mathematics so that `step()` cleanly composes extraction, moment evaluation, and coordinate updates."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(Adam)\ndef _update_moments(self, i: int, grad_data: np.ndarray) -> tuple:\n    \"\"\"\n    Update first and second moment estimates with bias correction.\n\n    Computes the exponential moving averages of the gradient (first moment)\n    and the squared gradient (second moment), then applies bias correction\n    to counteract the zero-initialization bias in early training steps.\n\n    TODO: Update moment buffers and return bias-corrected estimates\n\n    APPROACH:\n    1. Initialize m and v buffers to zeros if this is the first call\n    2. Update first moment: m = beta1 * m + (1 - beta1) * grad\n    3. Update second moment: v = beta2 * v + (1 - beta2) * grad^2\n    4. Compute bias corrections using this parameter's update count\n    5. Return bias-corrected m_hat and v_hat\n\n    EXAMPLE:\n    >>> m_hat, v_hat = self._update_moments(0, np.array([0.1, 0.2]))\n    >>> # m_hat ≈ grad (after bias correction at step 1)\n    >>> # v_hat ≈ grad^2 (after bias correction at step 1)\n\n    HINTS:\n    - Increment self.update_counts[i] here: only a parameter with a gradient ages\n    - Bias correction denominators: (1 - beta^t) approach 1 as t grows\n    \"\"\"\n    # Initialize buffers if needed\n    if self.m_buffers[i] is None:\n        self.m_buffers[i] = np.zeros_like(grad_data)\n        self.v_buffers[i] = np.zeros_like(grad_data)\n\n    # Update biased first moment estimate\n    self.m_buffers[i] = self.beta1 * self.m_buffers[i] + (1 - self.beta1) * grad_data\n\n    # Update biased second moment estimate\n    self.v_buffers[i] = self.beta2 * self.v_buffers[i] + (1 - self.beta2) * (grad_data ** 2)\n\n    # A parameter with grad=None skipped this update. Its moments are younger\n    # than the optimizer's global step count, so correct using their own age.\n    self.update_counts[i] += 1\n    bias_correction1 = 1 - self.beta1 ** self.update_counts[i]\n    bias_correction2 = 1 - self.beta2 ** self.update_counts[i]\n\n    # Compute bias-corrected moments\n    m_hat = self.m_buffers[i] / bias_correction1\n    v_hat = self.v_buffers[i] / bias_correction2\n\n    return m_hat, v_hat"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Adam Moment Updates\n\nThis test validates that `_update_moments` correctly computes exponential\nmoving averages and bias correction for Adam's first and second moments.\n\n**What we're testing**: EMA computation and bias correction math\n**Why it matters**: Incorrect moments produce wrong adaptive learning rates\n**Expected**: Bias-corrected moments match hand-calculated values"
+  },
+  {
+   "type": "text",
+   "md": "### Adam Step: Composing Gradient Extraction, Moments, and Update\n\nThe Adam `step()` pipeline executes a sequence of localized numerical transformations across each parameter:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Step Phase",
+    "Mathematical Operation",
+    "Systems Invariant"
+   ],
+   "rows": [
+    [
+     "**1. Extraction**",
+     "\\$\\mathbf{g} = \\text{unwrap}(\\text{param.grad})\\$",
+     "Obtains contiguous float32 NumPy buffer"
+    ],
+    [
+     "**2. Coupled Decay**",
+     "\\$\\mathbf{g} \\leftarrow \\mathbf{g} + \\lambda \\boldsymbol{\\theta}\\$",
+     "Coupled \\$L_2\\$ penalty added into a fresh array, leaving `param.grad` untouched"
+    ],
+    [
+     "**3. Moments**",
+     "\\$(\\hat{\\mathbf{m}}, \\hat{\\mathbf{v}}) = \\text{EMA}(\\mathbf{g})\\$",
+     "Bias-corrected first and second moment updates"
+    ],
+    [
+     "**4. Mutation**",
+     "\\$\\boldsymbol{\\theta} \\leftarrow \\boldsymbol{\\theta} - \\alpha \\frac{\\hat{\\mathbf{m}}}{\\sqrt{\\hat{\\mathbf{v}}} + \\epsilon}\\$",
+     "Elementwise update that rebinds `param.data` to a new array"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\frac{\\alpha}{\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon} \\hat{\\mathbf{m}}_t\\$\\$"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(Adam)\ndef step(self):\n    \"\"\"\n    Perform Adam update step by composing helpers.\n\n    TODO: Implement Adam parameter update using _extract_gradient and _update_moments\n\n    APPROACH:\n    1. Increment the global step_count (each moment helper tracks its own age)\n    2. For each parameter with gradients:\n       a. Extract gradient with self._extract_gradient(param)\n       b. Apply weight decay to gradient if specified\n       c. Update moments with self._update_moments(i, grad_data)\n       d. Update parameter: param -= lr * m_hat / (sqrt(v_hat) + eps)\n\n    FORMULAS:\n    - θ_t = θ_{t-1} - lr * m̂_t / (√v̂_t + ε)\n\n    HINTS:\n    - step_count counts optimizer calls; update_counts counts each parameter's updates\n    - _update_moments returns (m_hat, v_hat) tuple\n    - Weight decay modifies grad_data before moment update\n    - Keep the parameter's dtype: .astype(param.data.dtype, copy=False)\n    \"\"\"\n    # Count optimizer calls; each parameter separately counts its moment updates.\n    self.step_count += 1\n\n    for i, param in enumerate(self.params):\n        if param.grad is None:\n            continue\n\n        # Extract gradient using shared helper\n        grad_data = self._extract_gradient(param)\n\n        # Apply weight decay to a copy, so param.grad is never mutated\n        if self.weight_decay != 0:\n            grad_data = grad_data + self.weight_decay * param.data\n\n        # Update moments and get bias-corrected estimates\n        m_hat, v_hat = self._update_moments(i, grad_data)\n\n        # Update parameter, keeping its dtype (float32 stays float32)\n        update = self.lr * m_hat / (np.sqrt(v_hat) + self.eps)\n        param.data = (param.data - update).astype(param.data.dtype, copy=False)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Adam Optimizer\n\nThis test validates our Adam implementation works correctly.\n\n**What we're testing**: Adam updates with adaptive learning rates and bias correction\n**Why it matters**: Most popular optimizer for modern neural networks\n**Expected**: Correct parameter updates following Adam formulas"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Adam: Adaptive Moment Estimation."
+   ]
+  }
+ ]
+}

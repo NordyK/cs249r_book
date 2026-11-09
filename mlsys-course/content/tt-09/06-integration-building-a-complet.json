@@ -1,0 +1,242 @@
+{
+ "title": "🔧 Integration: Building a Complete CNN",
+ "summary": "TinyTorch convolutions: 🔧 Integration: Building a Complete CNN",
+ "source": {
+  "chapter": "tt-09",
+  "sections": [
+   "🔧 Integration: Building a Complete CNN"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Building a Complete CNN\n\nNow we combine convolution, activation, pooling, and linear classification into an end-to-end Convolutional Neural Network (`SimpleCNN`). You will see how spatial operations extract hierarchical visual representations from raw input pixels.\n\n### SimpleCNN Architecture Datapath"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Layer",
+    "Operation",
+    "Input Shape",
+    "Kernel / Stride / Pad",
+    "Output Shape",
+    "Parameters",
+    "Activations (\\$B\\$ samples)"
+   ],
+   "rows": [
+    [
+     "**Input**",
+     "RGB Image Batch",
+     "\\$(B, 3, 32, 32)\\$",
+     "—",
+     "\\$(B, 3, 32, 32)\\$",
+     "0",
+     "\\$3{,}072 \\times B\\$"
+    ],
+    [
+     "**Conv1**",
+     "Spatial Filter Bank",
+     "\\$(B, 3, 32, 32)\\$",
+     "\\$K=3, S=1, P=1\\$",
+     "\\$(B, 16, 32, 32)\\$",
+     "\\$16 \\cdot (3 \\cdot 3^2) + 16 = \\mathbf{448}\\$",
+     "\\$16{,}384 \\times B\\$"
+    ],
+    [
+     "**ReLU1**",
+     "Non-linear Gating",
+     "\\$(B, 16, 32, 32)\\$",
+     "Elementwise",
+     "\\$(B, 16, 32, 32)\\$",
+     "0",
+     "\\$16{,}384 \\times B\\$"
+    ],
+    [
+     "**Pool1**",
+     "Spatial Downsampling",
+     "\\$(B, 16, 32, 32)\\$",
+     "\\$K=2, S=2\\$",
+     "\\$(B, 16, 16, 16)\\$",
+     "0",
+     "\\$4{,}096 \\times B\\$"
+    ],
+    [
+     "**Conv2**",
+     "Higher-level Features",
+     "\\$(B, 16, 16, 16)\\$",
+     "\\$K=3, S=1, P=1\\$",
+     "\\$(B, 32, 16, 16)\\$",
+     "\\$32 \\cdot (16 \\cdot 3^2) + 32 = \\mathbf{4{,}640}\\$",
+     "\\$8{,}192 \\times B\\$"
+    ],
+    [
+     "**ReLU2**",
+     "Non-linear Gating",
+     "\\$(B, 32, 16, 16)\\$",
+     "Elementwise",
+     "\\$(B, 32, 16, 16)\\$",
+     "0",
+     "\\$8{,}192 \\times B\\$"
+    ],
+    [
+     "**Pool2**",
+     "Spatial Downsampling",
+     "\\$(B, 32, 16, 16)\\$",
+     "\\$K=2, S=2\\$",
+     "\\$(B, 32, 8, 8)\\$",
+     "0",
+     "\\$2{,}048 \\times B\\$"
+    ],
+    [
+     "**Flatten**",
+     "Spatial Unrolling",
+     "\\$(B, 32, 8, 8)\\$",
+     "Reshape",
+     "\\$(B, 2048)\\$",
+     "0",
+     "\\$2{,}048 \\times B\\$"
+    ],
+    [
+     "**FC**",
+     "Classification Logits",
+     "\\$(B, 2048)\\$",
+     "Module 03 `Linear`",
+     "\\$(B, 10)\\$",
+     "\\$2048 \\cdot 10 + 10 = \\mathbf{20{,}490}\\$",
+     "\\$10 \\times B\\$"
+    ],
+    [
+     "**Total**",
+     "**SimpleCNN Pipeline**",
+     "**\\$(B, 3, 32, 32)\\$**",
+     "—",
+     "**\\$(B, 10)\\$**",
+     "**25,578**",
+     "**\\$60{,}426 \\times B\\$ elements (\\$\\approx 241.7\\text{ KB} \\times B\\$)**"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The activation column counts elements, not bytes. Summing it gives \\$3{,}072 + 16{,}384 + 16{,}384 + 4{,}096 + 8{,}192 + 8{,}192 + 2{,}048 + 2{,}048 + 10 = 60{,}426\\$ elements per sample, which at \\$4\\$ B/element is \\$241{,}704\\$ B, or \\$\\approx 241.7\\$ KB per sample. Autograd has to keep every one of them live until the backward pass reaches it.\n\n---\n\n### The Parameter Efficiency Story: CNN vs Dense MLP"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Subsystem / Layer",
+    "CNN Architecture (`SimpleCNN`)",
+    "Dense Equivalent (`Linear` MLP)",
+    "Parameter Savings"
+   ],
+   "rows": [
+    [
+     "**Stage 1**",
+     "`Conv2d(3, 16, 3, p=1)`: 448 params",
+     "`Linear(3072, 1000)`: 3,073,000 params",
+     "**\\$6{,}859\\times\\$ fewer parameters**"
+    ],
+    [
+     "**Stage 2**",
+     "`Conv2d(16, 32, 3, p=1)`: 4,640 params",
+     "`Linear(1000, 500)`: 500,500 params",
+     "**\\$107\\times\\$ fewer parameters**"
+    ],
+    [
+     "**Classification Head**",
+     "`Linear(2048, 10)`: 20,490 params",
+     "`Linear(500, 10)`: 5,010 params",
+     "Tailored feature routing"
+    ],
+    [
+     "**Total Parameters**",
+     "**25,578 parameters**",
+     "**3,578,510 parameters**",
+     "**\\$>139\\times\\$ parameter reduction**"
+    ],
+    [
+     "**Parameter Buffer**",
+     "\\$\\mathbf{\\approx 102\\text{ KB}}\\$ (L1/L2 cache resident)",
+     "\\$\\mathbf{\\approx 14.3\\text{ MB}}\\$ (spills to DRAM)",
+     "Dramatically reduced memory bandwidth"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "---\n\n### Receptive Field Growth Across Layers\n\nAs representations pass through alternating convolutions and pooling layers, the effective receptive field (the input region contributing to an activation) expands rapidly:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Layer Stage",
+    "Kernel Size",
+    "Stride",
+    "Layer Receptive Field",
+    "Cumulative Receptive Field",
+    "Visual Semantic Scale"
+   ],
+   "rows": [
+    [
+     "**Input Image**",
+     "—",
+     "—",
+     "\\$1 \\times 1\\$",
+     "\\$1 \\times 1\\$ (\\$1\\text{ px}\\$)",
+     "Raw RGB color values"
+    ],
+    [
+     "**Conv1**",
+     "\\$3 \\times 3\\$",
+     "1",
+     "\\$3 \\times 3\\$",
+     "\\$3 \\times 3\\$ (\\$9\\text{ px}\\$)",
+     "Oriented edges, luminance contrasts"
+    ],
+    [
+     "**Pool1**",
+     "\\$2 \\times 2\\$",
+     "2",
+     "\\$2 \\times 2\\$",
+     "\\$4 \\times 4\\$ (\\$16\\text{ px}\\$)",
+     "Aggregated corner/junction responses"
+    ],
+    [
+     "**Conv2**",
+     "\\$3 \\times 3\\$",
+     "1",
+     "\\$3 \\times 3\\$",
+     "\\$8 \\times 8\\$ (\\$64\\text{ px}\\$)",
+     "Combinations of corners, textured patches"
+    ],
+    [
+     "**Pool2**",
+     "\\$2 \\times 2\\$",
+     "2",
+     "\\$2 \\times 2\\$",
+     "\\$10 \\times 10\\$ (\\$100\\text{ px}\\$)",
+     "Multi-part motifs spanning roughly a tenth of the \\$32 \\times 32\\$ image"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Each row applies the same recurrence. Carry a jump \\$j\\$ (the cumulative stride, starting at \\$1\\$) alongside the receptive field \\$r\\$, then for a layer with kernel \\$k\\$ and stride \\$s\\$ set \\$r \\leftarrow r + (k - 1) \\cdot j\\$ and \\$j \\leftarrow j \\cdot s\\$. Pool2 sees \\$r = 8 + (2 - 1) \\cdot 2 = 10\\$, because by then every step of its window covers \\$j = 4\\$ input pixels."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 89 lines of code (starting with `class SimpleCNN:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: SimpleCNN Integration\n\nThis test validates that spatial operations work together in a complete CNN architecture.\n\n**What we're testing**: End-to-end spatial processing pipeline\n**Why it matters**: Spatial operations must compose correctly for real CNNs\n**Expected**: Proper dimension reduction and one logit per class"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🔧 Integration: Building a Complete CNN."
+   ]
+  }
+ ]
+}

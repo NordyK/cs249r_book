@@ -1,0 +1,31 @@
+{
+ "title": "⭐ Aha Moment: Attention Finds Relationships",
+ "summary": "TinyTorch attention: ⭐ Aha Moment: Attention Finds Relationships",
+ "source": {
+  "chapter": "tt-12",
+  "sections": [
+   "⭐ Aha Moment: Attention Finds Relationships"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: Attention Finds Relationships\n\n**What you built:** Attention mechanisms that let tokens interact with each other.\n\n**Why it matters:** Before attention, models processed tokens independently. Attention lets\neach token \"look at\" every other token and decide what's relevant. This is how transformers\nunderstand that \"it\" refers to \"the cat\" in a sentence!\n\nNothing is trained yet, so the demo below plants the match by hand. It makes one key an exact\ncopy of one query, then shows the attention weight collapsing onto that position.\n\nIn the next module, you'll combine attention with MLPs to build full transformer blocks."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_attention():\n    \"\"\"🎯 See attention compute relationships.\"\"\"\n    print(\"🎯 AHA MOMENT: Attention Finds Relationships\")\n    print(\"=\" * 45)\n\n    # Its own generator, so this prints the same numbers standalone or in module order\n    demo_rng = np.random.default_rng(1234)\n\n    # 4 tokens with 8-dim embeddings\n    Q = demo_rng.standard_normal((1, 4, 8))\n    K = demo_rng.standard_normal((1, 4, 8))\n    V = demo_rng.standard_normal((1, 4, 8))\n\n    # Plant the relationship. Key 2 becomes an exact copy of query 0, standing in for\n    # the key that a pronoun like \"it\" would be hunting for.\n    match_pos = 2\n    K[0, match_pos] = Q[0, 0]\n\n    output, weights = scaled_dot_product_attention(Tensor(Q), Tensor(K), Tensor(V))\n    token0 = weights.data[0, 0, :]\n\n    print(\"Sequence length: 4 tokens\")\n    print(\"Embedding dim:   8\")\n    print(f\"Planted match:   query 0 matches key {match_pos}\")\n    print(f\"\\nAttention weights shape: {weights.shape}\")\n\n    print(f\"\\nToken 0 attention: {token0.round(3)}\")\n    print(f\"Strongest match:   position {int(token0.argmax())}, holding {token0.max():.1%} of the weight\")\n    print(f\"Row sum:           {token0.sum():.1f} (a probability distribution over the 4 positions)\")\n\n    drift = float(np.abs(output.data[0, 0] - V[0, match_pos]).max())\n    print(f\"\\nToken 0's output lands within {drift:.2f} of value vector {match_pos},\")\n    print(\"so it is a near copy of the matched value rather than an average of all four.\")\n\n    print(\"\\n✨ Attention routed token 0 to the position we planted!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Attention\n\nCongratulations! You've built the attention mechanism that revolutionized deep learning!\n\n### Key Accomplishments\n- **Built scaled dot-product attention** with O(n^2) complexity understanding\n- **Implemented multi-head attention** for parallel relationship learning\n- **Experienced quadratic memory scaling** firsthand through analysis functions\n- **Tested causal masking** for language modeling applications\n- **All tests pass** (validated by `test_module()`)\n\n### Systems Insights Discovered\n- **Quadratic scaling**: Attention memory grows as n^2, limiting context lengths\n- **Memory bottlenecks**: Attention matrices dominate memory in transformers (~154.62 GB per sequence at GPT-3 scale)\n- **Multi-head parallelism**: Different heads can specialize in different relationship types\n- **Production challenges**: Understanding why attention efficiency research is crucial\n\n### Ready for Next Steps\nYour attention implementation is the core mechanism that enables modern language models!\nExport with: `tito module complete 12`\n\n**Next**: Module 13 will combine attention with feed-forward layers to build complete transformer blocks!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: Attention Finds Relationships."
+   ]
+  }
+ ]
+}

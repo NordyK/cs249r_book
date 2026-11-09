@@ -1,0 +1,155 @@
+{
+ "title": "🏗️ Implementation: Building Layer Foundation",
+ "summary": "TinyTorch layers: 🏗️ Implementation: Building Layer Foundation",
+ "source": {
+  "chapter": "tt-03",
+  "sections": [
+   "🏗️ Implementation: Building Layer Foundation",
+   "🏗️ Sequential: Layer Container for Composition"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Building Layer Foundation\n\nLet's build our layer system step by step. We'll implement two essential layer types on top of a shared base class, then add a container that chains them:\n\n1. **Linear Layer** - The workhorse of neural networks\n2. **Dropout Layer** - Prevents overfitting\n3. **Sequential** - Chains layers so a network is one callable object\n\n### Key Design Principles:\n- Forward methods never modify the input in place; they return a Tensor computed from it\n- parameters() lists exactly the tensors a layer learns. Module 07 will add optimizers that update whatever this list returns\n- Gradient tracking is not the layer's job. Module 06 will add it to Tensor without changing these classes"
+  },
+  {
+   "type": "text",
+   "md": "### Layer Base Class: Foundation for All Layers\n\nAll neural network layers share common functionality: forward pass, parameter management, and callable interface. The base Layer class provides this consistent interface.\n\nEvery layer also carries a `training` flag, `True` by default. Most layers ignore it; Dropout reads it to decide whether to mask. `model.train()` and `model.eval()` flip that flag on the model *and every layer stored inside it*, the same tree walk PyTorch's `nn.Module.train()` does. `set_training_mode` is that walk, written once so that the training loop you will build in Module 08 can switch any model, including a hand-written class that never inherited from `Layer`."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 96 lines of code (starting with `def set_training_mode(model, training=True):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Linear Layer: The Foundation of Neural Networks\n\nLinear layers (also known as Dense or Fully Connected layers) apply an affine transformation to incoming features:\n\n\\$\\$\\mathbf{Y} = \\mathbf{X}\\mathbf{W} + \\mathbf{b}\\$\\$\n\nWhere:\n- \\$\\mathbf{X} \\in \\mathbb{R}^{B \\times D_{\\text{in}}}\\$: Input feature representations across batch size \\$B\\$\n- \\$\\mathbf{W} \\in \\mathbb{R}^{D_{\\text{in}} \\times D_{\\text{out}}}\\$: Trainable weight kernel\n- \\$\\mathbf{b} \\in \\mathbb{R}^{D_{\\text{out}}}\\$: Trainable bias vector, broadcast across the batch dimension\n- \\$\\mathbf{Y} \\in \\mathbb{R}^{B \\times D_{\\text{out}}}\\$: Projected output representations\n\n### Why Linear Layers Matter\n\nLinear layers learn **feature projections**. Each output column \\$j\\$ in \\$\\mathbf{W}\\$ corresponds to a learned synthetic detector: \\$y_{bj} = \\sum_i x_{bi} w_{ij} + b_j\\$. Stacking these projections enables networks to uncover hierarchical representations.\n\n### Coordinate Contraction"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\begin{matrix}\n\\text{Input Batch} & & \\text{Weight Kernel} & & \\text{Bias Offset} & & \\text{Output Logits} \\\\\n\\mathbf{X} & \\times & \\mathbf{W} & + & \\mathbf{b} & = & \\mathbf{Y} \\\\\n[B, D_{\\text{in}}] & & [D_{\\text{in}}, D_{\\text{out}}] & & [D_{\\text{out}}] & & [B, D_{\\text{out}}] \\\\\n[32, 784] & \\times & [784, 10] & + & [10] & = & [32, 10]\n\\end{matrix}\\$\\$\n\n### Memory Footprint Analysis: Linear(784, 256)"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Parameter Component",
+    "Matrix Shape",
+    "Data Type",
+    "Element Count",
+    "Storage Footprint (FP32)"
+   ],
+   "rows": [
+    [
+     "**Weight Matrix \\$\\mathbf{W}\\$**",
+     "\\$(784, 256)\\$",
+     "`float32`",
+     "\\$784 \\times 256 = 200{,}704\\$",
+     "\\$200{,}704 \\times 4\\text{ B} = 802.82\\text{ KB}\\$"
+    ],
+    [
+     "**Bias Vector \\$\\mathbf{b}\\$**",
+     "\\$(256,)\\$",
+     "`float32`",
+     "\\$256\\$",
+     "\\$256 \\times 4\\text{ B} = 1.02\\text{ KB}\\$"
+    ],
+    [
+     "**Total Resident Parameters**",
+     "—",
+     "—",
+     "**\\$200{,}960\\$ parameters**",
+     "**\\$803.84\\text{ KB}\\$**"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Every KB and MB in this module is decimal (\\$1\\text{ KB} = 1000\\text{ B}\\$, \\$1\\text{ MB} = 10^6\\text{ B}\\$), the convention disk and network vendors use. Divide by \\$1024\\$ instead and the same weight matrix reads \\$784.0\\text{ KiB}\\$, which is the same bytes under a different name."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 112 lines of code (starting with `class Linear(Layer):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Linear Layer\n\nThis test validates our Linear layer implementation works correctly.\n\n**What we're testing**: Weight initialization, forward pass, parameter management\n**Why it matters**: Foundation for all neural network architectures\n**Expected**: Proper shapes, LeCun-style scaling, parameter counting"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Linear Edge Cases\n\nAdditional tests for edge cases and error handling.\n\n**What we're testing**: Linear layer behavior at the boundaries, covering empty batches,\nsingle samples, large weight magnitudes, and mismatched input widths\n**Why it matters**: Edge cases are where a layer that \"works\" quietly stops\nworking, usually the first time a real dataset has a ragged final batch\n**Expected**: Correct shapes at every boundary, clear errors on genuine mismatches"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Linear Parameter Collection\n\nTests to ensure Linear layer parameters can be collected for optimization.\n\n**What we're testing**: parameters() returns the weight and bias, in a form the\noptimizer accepts\n**Why it matters**: The optimizer trains exactly what parameters() hands it. A\nparameter left out of that list is a parameter that silently never learns\n**Expected**: Both tensors returned, with the shapes the layer was built with"
+  },
+  {
+   "type": "text",
+   "md": "### Dropout Layer: Preventing Co-Adaptation via Inverted Regularization\n\nDropout is an empirical regularization technique that randomly masks features during training, preventing individual neurons from co-adapting and memorizing idiosyncratic noise in the training set.\n\n### Inverted Dropout Formulation\n\nDuring training, each element is retained with probability \\$q = 1 - p\\$. In **inverted dropout**, surviving elements are scaled by \\$\\frac{1}{1-p}\\$ at training time:\n\n\\$\\$\\mathbf{m} \\sim \\text{Bernoulli}(1 - p), \\quad \\hat{\\mathbf{m}} = \\frac{\\mathbf{m}}{1 - p}\\$\\$\n\\$\\$\\mathbf{y}_{\\text{train}} = \\mathbf{x} \\odot \\hat{\\mathbf{m}}, \\quad \\mathbb{E}[\\mathbf{y}_{\\text{train}}] = \\mathbf{x} \\odot \\frac{\\mathbb{E}[\\mathbf{m}]}{1 - p} = \\mathbf{x}\\$\\$\n\n\\$\\$\\mathbf{y}_{\\text{eval}} = \\mathbf{x}\\$\\$\n\nBecause \\$\\mathbb{E}[\\mathbf{y}_{\\text{train}}] = \\mathbf{y}_{\\text{eval}}\\$, **no scaling or modification is required during inference**! Evaluation runs at full throughput as a pure identity operation.\n\n### Training vs. Evaluation Trace (\\$p = 0.5 \\implies \\text{scale} = 2.0\\$)"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\mathbf{x} = \\begin{bmatrix} 1.0 & 2.0 & 3.0 & 4.0 & 5.0 & 6.0 & 7.0 & 8.0 \\end{bmatrix}\\$\\$\n\n\\$\\$\\text{Training Mask } \\hat{\\mathbf{m}} = \\begin{bmatrix} 2.0 & 0.0 & 2.0 & 0.0 & 2.0 & 2.0 & 0.0 & 2.0 \\end{bmatrix}\\$\\$\n\n\\$\\$\\mathbf{y}_{\\text{train}} = \\mathbf{x} \\odot \\hat{\\mathbf{m}} = \\begin{bmatrix} 2.0 & 0.0 & 6.0 & 0.0 & 10.0 & 12.0 & 0.0 & 16.0 \\end{bmatrix}\\$\\$\n\n\\$\\$\\mathbf{y}_{\\text{eval}} = \\mathbf{x} = \\begin{bmatrix} 1.0 & 2.0 & 3.0 & 4.0 & 5.0 & 6.0 & 7.0 & 8.0 \\end{bmatrix}\\$\\$\n\n### Execution Mode & Memory Comparison"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Operational Mode",
+    "Transformation Rule",
+    "Expectation \\$\\mathbb{E}[y]\\$",
+    "Active Buffer Overhead"
+   ],
+   "rows": [
+    [
+     "**Training Mode (`train()`)**",
+     "\\$\\mathbf{x} \\odot \\frac{\\mathbf{m}}{1-p}\\$",
+     "\\$\\mathbf{x}\\$ (invariant)",
+     "Input (\\$X\\text{ MB}\\$) + Mask (\\$X\\text{ MB}\\$) + Output (\\$X\\text{ MB}\\$) \\$\\approx 3X\\text{ MB}\\$ peak"
+    ],
+    [
+     "**Inference Mode (`eval()`)**",
+     "Identity (\\$\\mathbf{x}\\$)",
+     "\\$\\mathbf{x}\\$ (exact)",
+     "**Zero overhead**; no mask allocated or evaluated"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 165 lines of code (starting with `class Dropout(Layer):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Dropout Decision Logic\n\nBefore testing the full dropout forward pass, we verify the decision logic in\nisolation. The `_should_apply_dropout` helper encapsulates a concept that often\ntrips students up: dropout is *only* active during training *and* only when\np > 0. Testing this separately makes it easy to pinpoint bugs in the\ntraining-vs-inference distinction without interference from randomness.\n\n**What we're testing**: Training/inference mode detection and p=0 bypass\n**Why it matters**: A single wrong boolean can silently disable regularization or corrupt inference\n**Expected**: True only when training=True AND p > 0"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Dropout Mask Generation\n\nThe mask is the heart of dropout. Each element is drawn independently:\nkept with probability \\$1-p\\$, dropped otherwise. Kept elements are scaled\nby \\$\\frac{1}{1-p}\\$ so the expected output equals the input. This is \"inverted\ndropout.\" We test both the statistical properties (fraction of zeros)\nand the scaling (surviving values equal \\$\\frac{1}{1-p}\\$).\n\n\\$\\$p = 0.5 \\implies \\text{keep\\_prob} = 0.5, \\quad \\text{scale} = \\frac{1}{0.5} = 2.0\\$\\$\n\n\\$\\$\\mathbf{u} = \\begin{bmatrix} 0.3 & 0.8 & 0.1 & 0.6 \\end{bmatrix} \\xrightarrow{\\mathbf{u} < 0.5} \\mathbf{m} = \\begin{bmatrix} 1 & 0 & 1 & 0 \\end{bmatrix} \\xrightarrow{\\times 2.0} \\hat{\\mathbf{m}} = \\begin{bmatrix} 2.0 & 0.0 & 2.0 & 0.0 \\end{bmatrix}\\$\\$\n\n**What we're testing**: Mask shape, scaling factor, and survival statistics\n**Why it matters**: Wrong scaling silently shifts all predictions at inference time\n**Expected**: Correct shape, values in \\$\\{0, \\frac{1}{1-p}\\}\\$, \\$\\approx 50\\%\\$ survival for \\$p=0.5\\$"
+  },
+  {
+   "type": "text",
+   "md": "## 🏗️ Sequential: Layer Container for Composition\n\n`Sequential` chains layers together, calling forward() on each in order.\n\n**Progressive Disclosure**: After learning to compose layers explicitly\n(h = relu(linear1(x)); out = linear2(h)), you can use Sequential for convenience:\n\n```python\nmodel = Sequential(Linear(784, 128), ReLU(), Linear(128, 10))\nout = model(x)  # Chains all layers automatically\n```\n\nThis is TinyTorch's equivalent of PyTorch's nn.Sequential - simpler but same idea."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 76 lines of code (starting with `class Sequential:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Dropout Layer\n\nThis test validates our Dropout layer implementation works correctly.\n\n**What we're testing**: Training vs inference behavior, probability scaling, randomness\n**Why it matters**: Essential for preventing overfitting in neural networks\n**Expected**: Correct masking during training, passthrough during inference"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Implementation: Building Layer Foundation, 🏗️ Sequential: Layer Container for Composition."
+   ]
+  }
+ ]
+}

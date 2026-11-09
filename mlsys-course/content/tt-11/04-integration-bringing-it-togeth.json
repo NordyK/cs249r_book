@@ -1,0 +1,173 @@
+{
+ "title": "🔧 Integration: Bringing It Together",
+ "summary": "TinyTorch embeddings: 🔧 Integration: Bringing It Together",
+ "source": {
+  "chapter": "tt-11",
+  "sections": [
+   "🔧 Integration: Bringing It Together"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Bringing It Together\n\nNow let's assemble the complete production embedding pipeline that combines discrete token table lookups, variance magnitude scaling, and positional injection into a unified, reusable `EmbeddingLayer`.\n\n### End-to-End Embedding Datapath"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Phase",
+    "Operation",
+    "Mathematical Formula",
+    "Tensor Shape Contract"
+   ],
+   "rows": [
+    [
+     "**1. Input Ingestion**",
+     "Discrete Token IDs",
+     "\\$X \\in \\mathbb{Z}^{B \\times T}, \\, X_{b, t} \\in [0, V-1]\\$",
+     "\\$(B, T)\\$"
+    ],
+    [
+     "**2. Table Gather**",
+     "Memory Pointer Lookup",
+     "\\$E = W_{\\text{token}}[X]\\$",
+     "\\$(B, T, d_{\\text{embed}})\\$"
+    ],
+    [
+     "**3. Variance Scaling**",
+     "Token Signal Stabilization",
+     "\\$E_{\\text{scaled}} = E \\cdot \\sqrt{d_{\\text{embed}}}\\$ (if enabled)",
+     "\\$(B, T, d_{\\text{embed}})\\$"
+    ],
+    [
+     "**4. Positional Slicing**",
+     "Coordinate Extraction",
+     "\\$P_{\\text{active}} = P[0:T, :]\\$",
+     "\\$(T, d_{\\text{embed}})\\$"
+    ],
+    [
+     "**5. Broadcast Addition**",
+     "Composite Representation",
+     "\\$H = E_{\\text{scaled}} + P_{\\text{active}}\\$",
+     "\\$(B, T, d_{\\text{embed}})\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Why Scale by \\$\\sqrt{d_{\\text{embed}}}\\$?\nThe argument in Vaswani et al. (2017) rests on the initializer that paper uses. It assumes \\$W_{\\text{token}} \\sim \\mathcal{N}(0, 1/d_{\\text{embed}})\\$, so each token row has norm \\$\\mathcal{O}(1)\\$ and individual elements have typical magnitude \\$\\mathcal{O}(1/\\sqrt{d_{\\text{embed}}})\\$.\n- Fixed sinusoidal encodings \\$P\\$ have amplitude on \\$[-1, 1]\\$ with variance \\$\\approx 0.5\\$, so a row of \\$P\\$ has norm \\$\\sqrt{d_{\\text{embed}}/2} = 16.0\\$ at \\$d_{\\text{embed}} = 512\\$.\n- Adding \\$P\\$ to an unscaled \\$E\\$ therefore lets the position signal drown out lexical identity by a factor of \\$\\sqrt{d_{\\text{embed}}}\\$ (at \\$d_{\\text{embed}} = 512\\$ that is \\$\\sqrt{512} \\approx 22.6\\times\\$).\n- Multiplying \\$E\\$ by \\$\\sqrt{d_{\\text{embed}}}\\$ balances the two signals before they enter the first self-attention block.\n\n**TinyTorch does not use that initializer, and the numbers move.** `Embedding.__init__` uses Xavier-uniform over \\$V + d_{\\text{embed}}\\$, so the row variance is governed by the *vocabulary*, not by \\$d_{\\text{embed}}\\$ alone. Measured at \\$V = 50{,}000\\$ and \\$d_{\\text{embed}} = 512\\$, the weight variance is \\$3.96 \\times 10^{-5}\\$ against the paper's \\$1/d_{\\text{embed}} = 1.95 \\times 10^{-3}\\$, about \\$50\\times\\$ smaller, and a token row has norm \\$0.14\\$ rather than \\$\\mathcal{O}(1)\\$. The real pre-scaling imbalance is then roughly \\$110\\times\\$, not \\$22.6\\times\\$, and after multiplying by \\$\\sqrt{512}\\$ the token row reaches only \\$3.2\\$, so sinusoidal positions still dominate by about \\$5\\times\\$. The scaling is the right idea, but its exact factor is tuned to an initializer this module does not use. Switching `Embedding.__init__` to \\$\\mathcal{N}(0, 1/d_{\\text{embed}})\\$ would make \\$\\sqrt{d_{\\text{embed}}}\\$ the exactly correct correction.\n\n---\n\n### Interface Contract Specification: `EmbeddingLayer`"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Configuration Argument",
+    "Type",
+    "Default",
+    "Description & Invariant"
+   ],
+   "rows": [
+    [
+     "`vocab_size`",
+     "`int`",
+     "*required*",
+     "Total unique tokens in vocabulary \\$V\\$; upper bound for input IDs"
+    ],
+    [
+     "`embed_dim`",
+     "`int`",
+     "*required*",
+     "Hidden dimension width \\$d_{\\text{embed}}\\$; must be positive"
+    ],
+    [
+     "`max_seq_len`",
+     "`int`",
+     "`512`",
+     "Maximum supported sequence length \\$T_{\\text{max}}\\$"
+    ],
+    [
+     "`pos_encoding`",
+     "`str` or `None`",
+     "`'learned'`",
+     "Strategy: `'learned'` (trainable), `'sinusoidal'` (fixed math), or `None`"
+    ],
+    [
+     "`scale_embeddings`",
+     "`bool`",
+     "`False`",
+     "When `True`, scales token embeddings by \\$\\sqrt{d_{\\text{embed}}}\\$ prior to addition"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 88 lines of code (starting with `class EmbeddingLayer:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: EmbeddingLayer Initialization\n\nThis test validates that `__init__` correctly assembles sub-components for each\npositional encoding strategy.\n\n**What we're testing**: Sub-component creation and configuration storage\n**Why it matters**: Incorrect initialization cascades into broken forward passes\n**Expected**: Correct component types, parameter counts, and error on invalid strategy"
+  },
+  {
+   "type": "text",
+   "md": "### EmbeddingLayer Forward Pass\n\nThe `forward` method composes the full embedding pipeline: token lookup,\noptional scaling, positional encoding addition, and batch dimension handling.\n\n### `EmbeddingLayer.forward` Execution Pipeline"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Execution Step",
+    "Operation",
+    "Condition / Scope",
+    "Shape Transformation"
+   ],
+   "rows": [
+    [
+     "**1. Rank Alignment**",
+     "Add batch dimension",
+     "If input is 1D vector `(seq,)`",
+     "`(seq,)` \\$\\rightarrow\\$ `(1, seq)`"
+    ],
+    [
+     "**2. Token Lookup**",
+     "Direct index gather",
+     "Gather embedding weights",
+     "`(batch, seq)` \\$\\rightarrow\\$ `(batch, seq, embed_dim)`"
+    ],
+    [
+     "**3. Embedding Scaling**",
+     "Multiply by \\$\\sqrt{d_{\\text{embed}}}\\$",
+     "Optional (`scale_embeddings=True`)",
+     "Normalized variance preservation"
+    ],
+    [
+     "**4. Positional Encoding**",
+     "Add coordinate vectors",
+     "Learned (`pos_encoding`) or sinusoidal table",
+     "\\$\\mathbf{E}_{\\text{pos}} = \\mathbf{E}_{\\text{tok}} + \\mathbf{P}\\$"
+    ],
+    [
+     "**5. Output Squeeze**",
+     "Squeeze batch dimension",
+     "If input was originally 1D",
+     "`(1, seq, embed_dim)` \\$\\rightarrow\\$ `(seq, embed_dim)`"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 84 lines of code (starting with `# Continue the EmbeddingLayer class with forward and utility methods`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Complete Embedding System\n\nThis test validates our EmbeddingLayer combines all components correctly for production use.\n\n**What we're testing**: Token + positional embedding integration, scaling, and batch processing\n**Why it matters**: Production transformers use this exact pattern\n**Expected**: Correct shapes, proper scaling, flexible position encoding support"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🔧 Integration: Bringing It Together."
+   ]
+  }
+ ]
+}

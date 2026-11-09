@@ -1,0 +1,67 @@
+{
+ "title": "📐 Foundations: Mathematical Formulations",
+ "summary": "TinyTorch compression: 📐 Foundations: Mathematical Formulations",
+ "source": {
+  "chapter": "tt-16",
+  "sections": [
+   "📐 Foundations: Mathematical Formulations"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: Mathematical Formulations\n\nUnderstanding the mathematical principles behind compression enables disciplined trade-offs between parameter volume, arithmetic intensity, and representation fidelity.\n\n### 0. The Three Axes of Compression\n\nThe word \"compression\" names three different quantities, and almost no technique moves all three. The axes are the **parameter count** \\$P\\$, how many numbers the model holds; the **bits per parameter** \\$b\\$, how wide each stored number is; and the **operation count**, how many multiply-accumulates one forward pass performs. Model bytes are the product \\$P \\cdot b / 8\\$, while latency on compute-bound hardware tracks the operation count, so a technique can cut one axis in half and leave the model neither smaller on disk nor faster to run. Whenever you read or write a compression number, name its axis."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Technique",
+    "Parameter count \\$P\\$",
+    "Bits per parameter \\$b\\$",
+    "Operation count"
+   ],
+   "rows": [
+    [
+     "**Unstructured magnitude pruning**",
+     "Fewer nonzeros, identical array shape",
+     "Unchanged",
+     "Unchanged on a dense kernel"
+    ],
+    [
+     "**Structured channel pruning**",
+     "Reduced, once the zeroed columns are sliced out",
+     "Unchanged",
+     "Reduced by the same factor, after that slicing"
+    ],
+    [
+     "**Low-rank SVD** (\\$r < r^*\\$)",
+     "Reduced to \\$r(M + N)/MN\\$ of dense",
+     "Unchanged",
+     "Reduced by the same factor"
+    ],
+    [
+     "**Quantization** (Module 15)",
+     "Unchanged",
+     "\\$32 \\to 8\\$ bits, a \\$4\\times\\$ cut",
+     "Same count, cheaper per operation"
+    ],
+    [
+     "**Knowledge distillation**",
+     "Reduced by architectural choice",
+     "Unchanged",
+     "Reduced by architectural choice"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Read the first row carefully, because it is the one that catches people. Setting a weight to zero does not remove it. The array keeps its shape, every byte is still written to disk, and a dense GEMM still issues the multiply and dutifully computes \\$x \\cdot 0\\$. Turning those zeros into a saving takes two further things, neither of which arrives for free: a **sparse storage format** that stops storing them (COO or CSR, each of which hands part of the win back as index bytes), and a **sparse kernel** that stops multiplying them, which typically overtakes a dense kernel only at \\$\\ge 85\\%\\$ sparsity. Until both are in place, \\$90\\%\\$ sparsity is \\$0\\%\\$ compression on every axis that a user can measure. This is why the exercises below report sparsity and output drift rather than a model size, and why the cascade table in 🔧 names a storage format on every row.\n\nThe axes also explain why real deployment pipelines stack techniques instead of pushing one of them harder. Quantization and pruning are complementary because they attack different axes, so their savings multiply. Two techniques on the same axis mostly compete. Throughout this module a compression ratio is written original divided by compressed, so it is a number above \\$1.0\\$ and larger means smaller.\n\n### 1. Magnitude-Based Pruning (Unstructured)\n\nMagnitude pruning hypothesizes that weights with the smallest absolute values contribute least to output activations. For a weight matrix \\$W \\in \\mathbb{R}^{M \\times N}\\$, a binary pruning mask \\$\\Omega \\in \\{0, 1\\}^{M \\times N}\\$ is evaluated via a magnitude cutoff threshold \\$\\tau\\$. The mask gets its own symbol because \\$M\\$ is already the row count of \\$W\\$:\n\n\\$\\$\\Omega_{i, j} = \\begin{cases} 1 & \\text{if } |W_{i, j}| \\ge \\tau \\\\ 0 & \\text{otherwise} \\end{cases}, \\quad W_{\\text{pruned}} = W \\odot \\Omega\\$\\$\n\nGiven target sparsity \\$S \\in [0, 1]\\$, the scalar threshold \\$\\tau\\$ satisfies:\n\n\\$\\$\\tau = \\text{Quantile}\\left( \\{|W_{i, j}|\\}, \\, S \\right)\\$\\$\n\n\\$\\$\\text{Global Sparsity} = \\frac{\\sum_{i, j} \\mathbf{1}\\left( (W_{\\text{pruned}})_{i, j} = 0 \\right)}{M \\times N} = 1 - \\frac{\\|W_{\\text{pruned}}\\|_0}{\\|W\\|_0}\\$\\$\n\nCount the zeros in \\$W_{\\text{pruned}}\\$, not in \\$W\\$. A freshly initialized \\$W\\$ has essentially none, so measuring the original would report \\$0\\%\\$ however hard you pruned. This is also why `measure_sparsity` is called after `magnitude_prune` and never before it.\n\n### 2. Structured Channel Pruning\n\nUnstructured pruning leaves scattered scalar zeros in dense storage arrays, requiring sparse BLAS representations (e.g. Compressed Sparse Row/Column, COO) that rarely yield wall-clock speedups on modern GPU tensor cores unless sparsity reaches \\$\\ge 85\\%\\$. That figure is used consistently throughout this module.\n\nStructured pruning eliminates contiguous parameter slices (such as entire output channels or column vectors in linear projections), directly shrinking the matrix dimensions:\n\n\\$\\$\\|W_{:, c}\\|_2 = \\sqrt{\\sum_{r=1}^M W_{r, c}^2}, \\quad c \\in \\{1, \\dots, N\\}\\$\\$\n\nChannels with the lowest \\$\\ell_2\\$-norm are zeroed out, and once a whole column is zero it can be excised, reducing dense matrix multiply dimensions from \\$(M \\times N)\\$ to \\$(M \\times N')\\$. The FLOP reduction is guaranteed on dense hardware, but only after the excision; zeroing the columns is what makes the excision legal, and the two steps are separate.\n\n### 3. Knowledge Distillation & Dark Knowledge\n\nKnowledge distillation trains a compact student model \\$\\mathcal{S}\\$ with parameters \\$\\theta_s\\$ to mimic the continuous predictive probability distribution of an over-parameterized teacher \\$\\mathcal{T}\\$ with frozen parameters \\$\\theta_t\\$.\n\nThe total objective function balances soft target mimicry with ground-truth supervised cross-entropy:\n\n\\$\\$\\mathcal{L}_{\\text{total}} = \\alpha \\cdot \\mathcal{L}_{\\text{soft}} + (1 - \\alpha) \\cdot \\mathcal{L}_{\\text{hard}}\\$\\$\n\n\\$\\$\\mathcal{L}_{\\text{soft}} = D_{\\text{KL}}\\left( \\sigma\\left(\\frac{z_t}{T}\\right) \\,\\Big\\|\\, \\sigma\\left(\\frac{z_s}{T}\\right) \\right) = \\sum_{k=1}^C p_k^t \\log \\left(\\frac{p_k^t}{p_k^s}\\right)\\$\\$\n\nwhere temperature parameter \\$T > 1\\$ softens probability distributions over output classes \\$C\\$:\n\n\\$\\$p_k = \\sigma\\left(\\frac{z}{T}\\right)_k = \\frac{\\exp(z_k / T)}{\\sum_{j=1}^C \\exp(z_j / T)}\\$\\$\n\n\n  \n  \n\n\n\nAt \\$T=1\\$, the softmax distribution is peaked, suppressing inter-class correlations (\"dark knowledge\"). At \\$T=3\\text{--}5\\$, minor class probabilities roughly double, exposing structural similarities between related semantic categories (e.g., distinguishing between a sedan and an SUV versus a truck). On the three-class example tabulated later in this module, the smallest class goes from \\$0.140\\$ at \\$T=1\\$ to \\$0.261\\$ at \\$T=3\\$ and \\$0.289\\$ at \\$T=5\\$. The effect is a factor of two, which is enough to carry a usable gradient where there was almost none, and it is not the factor of ten or more that \"orders of magnitude\" would promise.\n\n**The missing \\$T^2\\$.** Softening the distributions also shrinks their gradients. Differentiating \\$\\mathcal{L}_{\\text{soft}}\\$ through \\$z_s / T\\$ brings out a factor of \\$1/T\\$ on each side, so the soft gradient scales as \\$1/T^2\\$. Hinton et al. (2015) therefore multiply the soft term by \\$T^2\\$, which keeps its gradient magnitude comparable across temperatures and lets \\$\\alpha\\$ mean the same thing at \\$T = 10\\$ as at \\$T = 2\\$:\n\n\\$\\$\\mathcal{L}_{\\text{total}} = \\alpha \\cdot T^2 \\cdot \\mathcal{L}_{\\text{soft}} + (1 - \\alpha) \\cdot \\mathcal{L}_{\\text{hard}}\\$\\$\n\nThe implementation in this module omits the \\$T^2\\$, so its soft term really does collapse as temperature rises. You can watch it happen in the 📊 analysis table, where the KL term falls by roughly two orders of magnitude between \\$T = 1\\$ and \\$T = 10\\$ on one fixed pair of models (\\$0.296\\$ to \\$0.003\\$ on a top-to-bottom run of this module). The practical consequence is that without \\$T^2\\$, raising the temperature quietly turns off the teacher, and any \\$\\alpha\\$ you tuned at one temperature is wrong at the next.\n\n### 4. Low-Rank Approximation (Truncated SVD)\n\nBy the Eckart-Young-Mirsky Theorem, the optimal rank-\\$r\\$ approximation of a weight matrix \\$W \\in \\mathbb{R}^{M \\times N}\\$ in Frobenius norm is obtained via truncated Singular Value Decomposition:\n\n\\$\\$W = U \\Sigma V^T \\approx U_r \\Sigma_r V_r^T\\$\\$\n\nwhere \\$U_r \\in \\mathbb{R}^{M \\times r}\\$, \\$\\Sigma_r = \\text{diag}(\\sigma_1, \\dots, \\sigma_r) \\in \\mathbb{R}^{r \\times r}\\$, and \\$V_r^T \\in \\mathbb{R}^{r \\times N}\\$.\n\n\n  \n  \n\n\n\nBy absorbing \\$\\Sigma_r\\$ into \\$U_r\\$ or \\$V_r^T\\$, the linear projection \\$y = x W^T\\$ is factorized into two cascaded low-rank operations:\n\n\\$\\$A = U_r \\sqrt{\\Sigma_r} \\in \\mathbb{R}^{M \\times r}, \\quad B = \\sqrt{\\Sigma_r} V_r^T \\in \\mathbb{R}^{r \\times N} \\implies W \\approx A B\\$\\$\n\nTwo parameter counts follow, and which one applies depends on whether you absorbed \\$\\Sigma_r\\$ or kept it:\n\n\\$\\$P_{\\text{dense}} = M \\times N \\quad \\longrightarrow \\quad P_{\\text{absorbed}} = r(M + N), \\qquad P_{\\text{stored}} = r(M + N + 1)\\$\\$\n\nAbsorbing \\$\\Sigma_r\\$ into the factors leaves two matrices and costs \\$r(M + N)\\$. Keeping the \\$r\\$ singular values as a separate vector, which is what `low_rank_approximate` returns so that you can inspect the spectrum, costs one extra number per retained rank, so \\$r(M + N + 1)\\$. The break-even rank uses the count you actually store, and this module stores all three factors:\n\n\\$\\$\\text{Break-Even Rank Threshold } r^*: \\quad r^* = \\frac{M \\cdot N}{M + N + 1} \\quad \\left(\\text{When } M = N, \\quad r^* \\approx \\frac{N}{2}\\right)\\$\\$\n\nIf the chosen rank \\$r\\$ exceeds \\$r^*\\$, the factorized representation contains *more* parameters and requires *more* FLOPs than the original dense layer. This is not a hypothetical. The naive choice \"keep half the ranks\" (\\$r = \\min(M, N)/2\\$) lands almost exactly on \\$r^*\\$ for a square matrix, so it buys nothing at all; a \\$100 \\times 100\\$ matrix at \\$r = 50\\$ stores \\$10{,}050\\$ numbers against \\$10{,}000\\$ dense. `low_rank_approximate` therefore raises a `ValueError` rather than returning a factorization larger than its input."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 📐 Foundations: Mathematical Formulations."
+   ]
+  }
+ ]
+}

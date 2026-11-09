@@ -1,0 +1,38 @@
+{
+ "title": "🧪 Module Integration Test",
+ "summary": "TinyTorch optimizers: 🧪 Module Integration Test",
+ "source": {
+  "chapter": "tt-07",
+  "sections": [
+   "🧪 Module Integration Test"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🧪 Module Integration Test\n\nFinal validation that everything works together correctly."
+  },
+  {
+   "type": "text",
+   "md": "## 🤔 ML Systems Reflection Questions\n\nAnswer these to deepen your understanding of optimizer operations and their systems implications:\n\n### Question 1: Memory vs Performance\n**Question**: You've implemented SGD (8 bytes per parameter, 2x) and Adam (16 bytes per parameter, 4x), counting weight plus gradient plus optimizer state. For a model with 10 billion parameters at float32 (4 bytes each):\n\n**Consider**:\n- How much total memory does each optimizer require?\n- On one 80 GB accelerator, what is the largest model each optimizer can hold? Adam's extra 8 bytes per parameter is the whole question.\n- What real-world constraints might force you to choose SGD over Adam?\n\n**Calculate**:\n- Parameters: 10 x 10^9\n- Bytes per float32: 4\n- SGD memory (2x, 8 B/param): ___________GB\n- Adam memory (4x, 16 B/param): ___________GB\n\n---\n\n### Question 2: Learning Rate Sensitivity\n**Question**: SGD uses a fixed learning rate for all parameters, while Adam adapts per-parameter."
+  },
+  {
+   "type": "text",
+   "md": "**Consider**:\n- Why might Adam converge faster on problems with parameters at different scales?\n- When might SGD's uniform learning rate actually be an advantage?\n- How does momentum in SGD relate to Adam's first moment estimation?\n\n**Real-world context**: Deep neural networks often have early layers with very different gradient magnitudes than later layers. Adam's adaptive rates help balance these naturally.\n\n---\n\n### Question 3: Optimizer State Management\n**Question**: Adam and AdamW maintain momentum buffers (m, v) that persist across training steps.\n\n**Consider**:\n- What happens to these buffers when you checkpoint during training?\n- If you resume training with different hyperparameters, should you restore the old buffers?\n- How does optimizer state affect training when you restart from a checkpoint?\n\n**Think about**:\n- Checkpoint size: Adam stores 2 additional tensors per parameter\n- Resume behavior: Warm vs cold restart implications\n- Resume behavior: What happens to momentum buffers if you change learning rate mid-training?\n\n---\n\n### Question 4: Weight Decay Trade-offs\n**Question**: AdamW decouples weight decay from gradient updates."
+  },
+  {
+   "type": "text",
+   "md": "**Consider**:\n- Why does Adam's coupled weight decay behave inconsistently?\n- In what scenarios would AdamW's consistent regularization matter most?\n- How does weight decay interact with learning rate schedules?\n\n**Real-world context**: The AdamW paper showed that proper decoupling leads to better generalization on ImageNet and language models.\n\n---\n\n### Question 5: Memory Requirements at Production Scale\n**Question**: For training a GPT-scale model with 1 billion parameters, calculate the memory requirements:\n\n**Calculate**:\n- Parameters: 1 x 10^9\n- Bytes per float32: 4\n- Parameter memory: ___________GB\n\n**With Adam optimizer (4x memory, 16 B/param)**:\n- Total: ___________GB\n\n**Real-world implications**:\n- Why do we need multiple GPUs for training large models?\n- Why is understanding optimizer memory crucial for choosing hardware?\n- When would you choose SGD over Adam despite slower convergence?\n\n---\n\n### Bonus Question: Optimization Analysis\n\n**Scenario**: You're training a deep neural network and observing the following:\n- Loss decreases rapidly for first 1000 steps\n- Loss plateaus between steps 1000-5000\n- Loss suddenly increases at step 5000"
+  },
+  {
+   "type": "text",
+   "md": "**Questions**:\n1. What might cause the plateau? How would momentum help?\n2. What might cause the sudden increase? Is this an optimizer issue?\n3. How would you diagnose whether this is a learning rate problem vs. data problem?\n4. Would switching from Adam to AdamW help in this scenario?\n\n**Key insight**: Optimization is not just about algorithms. It is about understanding the interaction between data, model architecture, and training dynamics."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🧪 Module Integration Test."
+   ]
+  }
+ ]
+}

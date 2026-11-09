@@ -1,0 +1,162 @@
+{
+ "title": "📊 Systems Analysis: Tokenization Trade-offs",
+ "summary": "TinyTorch tokenization: 📊 Systems Analysis: Tokenization Trade-offs",
+ "source": {
+  "chapter": "tt-10",
+  "sections": [
+   "📊 Systems Analysis: Tokenization Trade-offs"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Tokenization Trade-offs\n\nLet's understand the key systems concepts in tokenization: **vocabulary size vs sequence length trade-offs** and **memory implications**.\n\nThis analysis reveals why different tokenization strategies make different choices for different use cases."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_tokenization_strategies():\n    \"\"\"📊 Compare different tokenization strategies on various texts.\"\"\"\n    print(\"📊 Analyzing Tokenization Strategies...\")\n    print(\"=\" * 60)\n\n    # Create test corpus with different text types\n    corpus = [\n        \"Hello world\",\n        \"The quick brown fox jumps over the lazy dog\",\n        \"Machine learning is transforming artificial intelligence\",\n        \"Tokenization is fundamental to natural language processing\",\n        \"Subword units balance vocabulary size and sequence length\"\n    ]\n\n    # Test different strategies\n    strategies = [\n        (\"Character\", create_tokenizer(\"char\", corpus=corpus)),\n        (\"BPE-100\", create_tokenizer(\"bpe\", vocab_size=100, corpus=corpus)),\n        (\"BPE-500\", create_tokenizer(\"bpe\", vocab_size=500, corpus=corpus))\n    ]\n\n    print(f\"{'Strategy':<12} {'Vocab':<8} {'Avg Len':<8} {'Compression':<12} {'Unique':<10}\")\n    print(\"-\" * 60)\n\n    for name, tokenizer in strategies:\n        stats = analyze_tokenization(corpus, tokenizer)\n\n        print(f\"{name:<12} {stats['vocab_size']:<8} \"\n              f\"{stats['avg_sequence_length']:<8.1f} \"\n              f\"{stats['compression_ratio']:<12.2f} \"\n              f\"{stats['unique_tokens']:<10}\")\n\n    print(\"\\n💡 KEY INSIGHTS:\")\n    print(\"   1. Character tokenization: Small vocab, long sequences, covers seen characters\")\n    print(\"   2. BPE: Larger vocab trades off with shorter sequences\")\n    print(\"   3. Higher compression ratio = more characters per token = efficiency\")\n\n    print(\"\\n🚀 REAL-WORLD IMPLICATIONS:\")\n    print(\"   - GPT-2/3 use ~50K BPE tokens; GPT-4 uses ~100K\")\n    print(\"   - Character models need more compute (longer sequences)\")\n    print(\"   - Embedding table size scales with vocabulary size\")\n\n    print(\"\\n\" + \"=\" * 60)\n\nif __name__ == \"__main__\":\n    analyze_tokenization_strategies()"
+  },
+  {
+   "type": "text",
+   "md": "### Memory Profiling: Actual Tokenizer Memory Usage\n\nLet's measure the real memory footprint of different tokenization strategies. This is crucial for understanding resource requirements in production systems."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_tokenization_memory():\n    \"\"\"📊 Measure actual memory usage of different tokenizers.\"\"\"\n    import tracemalloc\n\n    KB_TO_BYTES = 1000  # Decimal kilobyte\n\n    print(\"📊 Analyzing Tokenization Memory Usage...\")\n    print(\"=\" * 70)\n\n    # Create test corpora of varying sizes\n    corpus_small = [\"hello world\"] * 100\n    corpus_medium = [\"the quick brown fox jumps over the lazy dog\"] * 1000\n    corpus_large = [\"machine learning processes natural language text\"] * 5000\n\n    results = []\n\n    for corpus_name, corpus in [(\"Small (100)\", corpus_small),\n                                  (\"Medium (1K)\", corpus_medium),\n                                  (\"Large (5K)\", corpus_large)]:\n        # Character tokenizer memory\n        tracemalloc.start()\n        char_tok = CharTokenizer()\n        char_tok.build_vocab(corpus)\n        char_current, char_peak = tracemalloc.get_traced_memory()\n        tracemalloc.stop()\n\n        # BPE tokenizer memory\n        tracemalloc.start()\n        bpe_tok = BPETokenizer(vocab_size=1000)\n        bpe_tok.train(corpus, vocab_size=1000)\n        bpe_current, bpe_peak = tracemalloc.get_traced_memory()\n        tracemalloc.stop()\n\n        results.append({\n            'corpus': corpus_name,\n            'char_kb': char_peak / KB_TO_BYTES,\n            'bpe_kb': bpe_peak / KB_TO_BYTES,\n            'char_vocab': char_tok.vocab_size,\n            'bpe_vocab': len(bpe_tok.vocab)\n        })\n\n    # Display results\n    print(f\"{'Corpus':<15} {'Char Mem (KB)':<15} {'BPE Mem (KB)':<15} {'Char Vocab':<12} {'BPE Vocab':<12}\")\n    print(\"-\" * 70)\n\n    for r in results:\n        print(f\"{r['corpus']:<15} {r['char_kb']:<15.1f} {r['bpe_kb']:<15.1f} \"\n              f\"{r['char_vocab']:<12} {r['bpe_vocab']:<12}\")\n\n    print(\"\\n💡 Key Insights:\")\n    print(\"- Character tokenizer: Minimal memory (small vocab ~100 tokens)\")\n    print(\"- BPE tokenizer: More memory (larger vocab + merge rules storage)\")\n    print(\"- Stored tokenizer memory scales with vocabulary and merge rules; training also stores corpus words\")\n    print(\"- BPE merge rules add overhead (list of tuples)\")\n    print(\"\\n🚀 Production: Use memory-mapped vocabularies for 50K+ token models\")\n\nif __name__ == \"__main__\":\n    analyze_tokenization_memory()"
+  },
+  {
+   "type": "text",
+   "md": "### Performance Benchmarking: Encoding/Decoding Speed\n\nSpeed matters in production! Let's measure how fast different tokenizers can process text.\nThis helps understand computational bottlenecks in NLP pipelines."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def benchmark_tokenization_speed():\n    \"\"\"📊 Measure encoding/decoding speed for different strategies.\"\"\"\n    import time\n\n    print(\"📊 Benchmarking Tokenization Speed...\")\n    print(\"=\" * 70)\n\n    # Prepare test data (1000 texts, varying lengths)\n    test_texts = [\n        \"hello world\",\n        \"the quick brown fox jumps over the lazy dog\",\n        \"machine learning is transforming artificial intelligence\",\n        \"tokenization enables natural language processing in neural networks\"\n    ] * 250  # 1000 total texts\n\n    # Build tokenizers on training corpus\n    corpus = test_texts[:100]\n    tokenizers = [\n        (\"Character\", create_tokenizer(\"char\", corpus=corpus)),\n        (\"BPE-500\", create_tokenizer(\"bpe\", vocab_size=500, corpus=corpus)),\n        (\"BPE-2000\", create_tokenizer(\"bpe\", vocab_size=2000, corpus=corpus))\n    ]\n\n    print(f\"{'Strategy':<12} {'Encode (ms)':<15} {'Decode (ms)':<15} {'Total Tokens':<15}\")\n    print(\"-\" * 70)\n\n    for name, tokenizer in tokenizers:\n        # Benchmark encoding\n        start = time.perf_counter()\n        all_tokens = [tokenizer.encode(text) for text in test_texts]\n        encode_time = (time.perf_counter() - start) * 1000\n\n        # Benchmark decoding\n        start = time.perf_counter()\n        decoded = [tokenizer.decode(tokens) for tokens in all_tokens]\n        decode_time = (time.perf_counter() - start) * 1000\n\n        total_tokens = sum(len(t) for t in all_tokens)\n\n        print(f\"{name:<12} {encode_time:<15.1f} {decode_time:<15.1f} {total_tokens:<15}\")\n\n    print(\"\\n💡 Key Insights:\")\n    print(\"- Character tokenization: Fastest (simple dict lookup, O(n) complexity)\")\n    print(\"- BPE tokenization: Slower (requires merge rule application)\")\n    print(\"- Larger BPE vocab: Fewer final tokens but more merge operations\")\n    print(\"- Decoding is typically faster than encoding\")\n    print(\"\\n🚀 Production: Use Rust-based tokenizers (Hugging Face tokenizers library)\")\n    print(\"   Compiled tokenizers can be 10-100× faster than pure Python!\")\n\nif __name__ == \"__main__\":\n    benchmark_tokenization_speed()"
+  },
+  {
+   "type": "text",
+   "md": "### Scaling Analysis: How BPE Training Time Grows\n\nUnderstanding algorithmic complexity helps us predict performance on larger datasets.\nLet's measure how BPE training time scales with corpus size."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_bpe_scaling():\n    \"\"\"📊 Analyze how BPE training scales with corpus size.\"\"\"\n    import string\n    import time\n\n    KB_TO_BYTES = 1000  # Decimal kilobyte\n\n    print(\"📊 Analyzing BPE Training Scaling...\")\n    print(\"=\" * 70)\n\n    # Seeded locally so the table is reproducible without the package shipping a\n    # module-level generator.\n    rng = np.random.default_rng(7)\n\n    # Generate random text helper\n    def generate_random_text(length=10):\n        return ''.join(rng.choice(list(string.ascii_lowercase + ' '), size=length))\n\n    corpus_sizes = [100, 500, 1000, 2500]\n\n    print(f\"{'Corpus Size':<15} {'Training Time (ms)':<20} {'Vocab Size':<15} {'Memory (KB)':<15}\")\n    print(\"-\" * 70)\n\n    for size in corpus_sizes:\n        # Generate corpus\n        corpus = [generate_random_text(length=15) for _ in range(size)]\n\n        # Measure training time and memory\n        import tracemalloc\n        tracemalloc.start()\n\n        start = time.perf_counter()\n        tokenizer = BPETokenizer(vocab_size=500)\n        tokenizer.train(corpus, vocab_size=500)\n        train_time = (time.perf_counter() - start) * 1000\n\n        memory_kb = tracemalloc.get_traced_memory()[1] / KB_TO_BYTES\n        tracemalloc.stop()\n\n        print(f\"{size:<15} {train_time:<20.1f} {len(tokenizer.vocab):<15} {memory_kb:<15.1f}\")\n\n    print(\"\\n💡 Key Insights:\")\n    print(\"- BPE training cost is about (number of merges) x (corpus size)\")\n    print(\"- Each merge iteration rescans every word to count all pairs\")\n    print(\"- Training memory includes vocabulary, merge rules, and unique corpus words\")\n    print(\"- Large corpora (millions of docs) need optimized implementations\")\n    print(\"\\n🚀 Production strategies:\")\n    print(\"   - Sample representative subset for training (~1M sentences)\")\n    print(\"   - Use incremental training with checkpointing\")\n    print(\"   - Cache pair frequency counts between iterations\")\n\nif __name__ == \"__main__\":\n    analyze_bpe_scaling()"
+  },
+  {
+   "type": "text",
+   "md": "### Performance Analysis: Vocabulary Size vs Sequence Length\n\nThe selection of vocabulary size \\$V\\$ governs a fundamental systems tension between **CPU memory allocation** (embedding parameter footprint) and **GPU compute complexity** (self-attention sequence scaling):"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Strategy",
+    "Target Vocab Size \\$V\\$",
+    "Sequence Length \\$T\\$ (1k words)",
+    "Embedding Table (\\$D=4096\\$)",
+    "Attention Matrix Entries (\\$T^2\\$, per head)",
+    "Primary Systems Ceiling"
+   ],
+   "rows": [
+    [
+     "**Character-Level**",
+     "\\$\\approx 100 - 256\\$",
+     "\\$\\approx 5{,}000\\$ tokens",
+     "\\$\\mathbf{1.6\\text{ MB}}\\$ (L3 cache resident)",
+     "**\\$25.0\\text{M}\\$ entries** (\\$14.8\\times\\$)",
+     "Compute & KV-Cache Bound"
+    ],
+    [
+     "**BPE-Compact**",
+     "\\$\\approx 8{,}000\\$",
+     "\\$\\approx 1{,}600\\$ tokens",
+     "\\$\\mathbf{131.1\\text{ MB}}\\$",
+     "**\\$2.56\\text{M}\\$ entries** (\\$1.5\\times\\$)",
+     "Balanced Edge Footprint"
+    ],
+    [
+     "**BPE-Standard (GPT-2/3)**",
+     "\\$\\approx 50{,}257\\$",
+     "\\$\\approx 1{,}300\\$ tokens",
+     "\\$\\mathbf{823.4\\text{ MB}}\\$",
+     "**\\$1.69\\text{M}\\$ entries** (\\$1.0\\times\\$)",
+     "Balanced Server Footprint"
+    ],
+    [
+     "**BPE-Extended (GPT-4/Llama 3)**",
+     "\\$\\approx 100{,}000 - 128{,}256\\$",
+     "\\$\\approx 1{,}150\\$ tokens",
+     "\\$\\mathbf{1.64\\text{ GB}} - \\mathbf{2.10\\text{ GB}}\\$",
+     "**\\$1.32\\text{M}\\$ entries** (\\$0.78\\times\\$)",
+     "High VRAM Allocation"
+    ],
+    [
+     "**Word-Level**",
+     "\\$>200{,}000\\$",
+     "\\$\\approx 1{,}000\\$ tokens",
+     "\\$\\mathbf{>3.28\\text{ GB}}\\$",
+     "**\\$1.00\\text{M}\\$ entries** (\\$0.59\\times\\$)",
+     "OOV Spillage & Parameter Blowup"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "#### Mathematical Systems Trade-Off\n\nThe total inference memory footprint divides between static parameter weights and dynamic activation buffers:\n\n\\$\\$M_{\\text{embed}} = V \\times D \\times 4\\text{ bytes}, \\qquad M_{\\text{attn}} = 2 \\times B \\times H \\times T^2 \\times 4\\text{ bytes}\\$\\$\n\nBecause attention scales **quadratically** with sequence length \\$T\\$ while embedding memory scales **linearly** with vocabulary size \\$V\\$, modern LLMs intentionally scale vocabulary up to \\$\\approx 100\\text{K} - 128\\text{K}\\$ tokens. By the table above that buys roughly \\$12\\%\\$ shorter sequences (\\$1{,}300 \\to 1{,}150\\$ tokens), and because attention is quadratic in \\$T\\$ even that modest cut compounds across every layer.\n\n#### Industry Benchmark Tokenizers"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Model Family",
+    "Tokenizer Framework",
+    "Vocabulary Size \\$V\\$",
+    "Average Compression",
+    "Multilingual Support"
+   ],
+   "rows": [
+    [
+     "**GPT-2 / GPT-3**",
+     "Byte-level BPE (`tiktoken`)",
+     "\\$50{,}257\\$",
+     "\\$\\approx 3.7\\text{ chars/token}\\$",
+     "English-dominated"
+    ],
+    [
+     "**GPT-4 / ChatGPT**",
+     "Byte-level BPE (`cl100k_base`)",
+     "\\$100{,}277\\$",
+     "\\$\\approx 4.2\\text{ chars/token}\\$",
+     "Enhanced code & multilingual"
+    ],
+    [
+     "**Llama 3 (Meta)**",
+     "Byte-level BPE (`tiktoken`)",
+     "\\$128{,}256\\$",
+     "\\$\\approx 4.4\\text{ chars/token}\\$",
+     "Optimized code & multi-token words"
+    ],
+    [
+     "**BERT (Google)**",
+     "WordPiece",
+     "\\$30{,}522\\$",
+     "\\$\\approx 4.1\\text{ chars/token}\\$",
+     "Fixed English vocabulary"
+    ],
+    [
+     "**T5 (Google)**",
+     "SentencePiece Unigram",
+     "\\$32{,}128\\$",
+     "\\$\\approx 3.9\\text{ chars/token}\\$",
+     "Universal 100+ language support"
+    ]
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 📊 Systems Analysis: Tokenization Trade-offs."
+   ]
+  }
+ ]
+}

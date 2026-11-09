@@ -1,0 +1,109 @@
+{
+ "title": "💡 Introduction: Why Embeddings?",
+ "summary": "TinyTorch embeddings: 💡 Introduction: Why Embeddings?",
+ "source": {
+  "chapter": "tt-11",
+  "sections": [
+   "💡 Introduction: Why Embeddings?"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: Why Embeddings?\n\nNeural networks operate on dense vector spaces where linear transformations, inner products, and gradient descent can operate. However, human language arrives as discrete, symbolic tokens (\\$t_i \\in \\{0, 1, \\dots, V-1\\}\\$). Embeddings provide the foundational bridge converting sparse, discrete tokens into dense, continuous vectors where geometric proximity reflects semantic similarity.\n\n### The Token-to-Vector Challenge\n\nConsider token indices emitted by our BPE tokenizer: `[1, 42, 7]`. How do we convert these arbitrary integers into rich, learnable representations that an attention layer can process?\n\n### Comparing Input Representations"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dimension",
+    "Discrete Token IDs",
+    "One-Hot Encoding",
+    "Continuous Dense Embeddings"
+   ],
+   "rows": [
+    [
+     "**Data Type**",
+     "Integers \\$t_i \\in \\mathbb{Z}\\$",
+     "Sparse binary vector \\$\\{0, 1\\}^V\\$",
+     "Dense floating-point vector \\$\\mathbb{R}^{d_{\\text{embed}}}\\$"
+    ],
+    [
+     "**Memory per Token**",
+     "\\$4\\text{ bytes}\\$ (`int32`)",
+     "\\$V \\times 4\\text{ bytes}\\$ (\\$200\\text{ KB}\\$ for \\$V=50\\text{K}\\$)",
+     "\\$d_{\\text{embed}} \\times 4\\text{ bytes}\\$ (\\$2\\text{ KB}\\$ for \\$d=512\\$)"
+    ],
+    [
+     "**Semantic Similarity**",
+     "Undefined (distance is arbitrary)",
+     "Orthogonal (\\$\\mathbf{x}_i^\\top \\mathbf{x}_j = 0\\$ for all \\$i \\neq j\\$)",
+     "Angle/Dot Product (\\$\\cos(\\theta) \\in [-1, 1]\\$)"
+    ],
+    [
+     "**Computational Mechanism**",
+     "Table Gather (\\$W[t_i, :]\\$)",
+     "Huge Matrix Multiply (\\$\\mathbf{x}^\\top W\\$)",
+     "Direct memory indexing \\$\\mathcal{O}(d_{\\text{embed}})\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### The Four-Stage Embedding Datapath\n\n1. **Token Embedding Gather (\\$W_{\\text{token}}[t_i, :]\\$)**: Gathers a dense feature vector representing the static lexical and semantic meaning of token ID \\$t_i\\$.\n2. **Positional Encoding (\\$P[pos, :]\\$)**: Injects temporal sequence awareness into the permutation-invariant representation so that `\"dog bites man\"` \\$\\neq\\$ `\"man bites dog\"`.\n3. **Magnitude Scaling (\\$\\sqrt{d_{\\text{embed}}}\\$)**: In standard Transformer architectures (Vaswani et al., 2017), token embeddings are scaled by \\$\\sqrt{d_{\\text{embed}}}\\$ to stabilize activation variance relative to position signals.\n4. **Element-wise Composition (\\$H = E \\cdot \\sqrt{d_{\\text{embed}}} + P\\$)**: Produces the final position-aware contextual tensor \\$H \\in \\mathbb{R}^{B \\times T \\times d_{\\text{embed}}}\\$ dispatched to Multi-Head Attention."
+  },
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: Embedding Strategies\n\nDifferent embedding approaches make distinct architectural trade-offs across memory residency, computational complexity, and sequence extrapolation capabilities.\n\n### Token Embedding Lookup: Forward Gather & Backward Scatter-Add\n\nIn mathematical terms, an embedding layer is a parameter weight matrix \\$W \\in \\mathbb{R}^{V \\times d_{\\text{embed}}}\\$. For an input batch of token IDs \\$X \\in \\mathbb{Z}^{B \\times T}\\$ where each index \\$t \\in \\{0, 1, \\dots, V-1\\}\\$:\n\n\n  \n\n\n1. **Forward Pass (Row Gather)**:\n   Rather than constructing an enormous one-hot tensor \\$\\mathbf{x} \\in \\{0, 1\\}^{B \\times T \\times V}\\$ and computing a matrix multiplication \\$\\mathbf{x} W\\$, hardware gathers rows directly by physical pointer indexing:\n   \\$\\$E_{b, t, :} = W[X_{b, t}, :]\\$\\$\n   This achieves \\$\\mathcal{O}(1)\\$ pointer arithmetic per token, avoiding \\$\\mathcal{O}(V)\\$ zero multiplications and gigabytes of intermediate activation memory.\n\n2. **Backward Pass (Scatter-Add Accumulation)**:\n   When a sequence contains repeated tokens (e.g. `[2, 0, 2]`), multiple output rows propagate gradients back to the same row in weight matrix \\$W\\$:\n   \\$\\$\\frac{\\partial \\mathcal{L}}{\\partial W[v, :]} = \\sum_{(b, t): X_{b, t} = v} \\frac{\\partial \\mathcal{L}}{\\partial E_{b, t, :}}\\$\\$\n   \n   > **Warning: The Silent Buffered Write**\n   > In NumPy, the naive `grad_weight[indices] += grad_output` fails silently when `indices` contains duplicate entries. Fancy-index `+=` is a **buffered** fetch-modify-write. NumPy fetches `grad_weight[indices]` into a temporary, adds `grad_output` to that temporary, then writes the temporary back, so for a repeated row the last write wins and every earlier contribution disappears. You can watch it happen in two lines. `a = np.zeros(3); a[[0, 0, 1]] += 1` leaves `[1., 1., 0.]` rather than the `[2., 1., 0.]` you wanted. TinyTorch instead calls `np.add.at(grad_weight, indices, grad_output)`, which NumPy's own documentation describes as the **unbuffered** in-place form of the same ufunc. It applies each addition straight to memory with no temporary, so duplicate rows accumulate. Notice what is *not* going on here. This code is single-threaded, nothing races, and no atomic is involved. Atomics enter the story one level down, inside a CUDA scatter kernel where thousands of threads really do add into the same row at the same time."
+  },
+  {
+   "type": "text",
+   "md": "---\n\n### Positional Encoding Strategies\n\nBecause the self-attention mechanism in Transformers is permutation-equivariant (it treats an unordered set of vectors identically regardless of temporal sequence), position information must be explicitly injected into the embeddings:\n\n\\$\\$H_{b, t, :} = E_{\\text{token}}[X_{b, t}, :] + P[t, :]\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Strategy",
+    "Mathematical Formulation",
+    "Trainable Params",
+    "Extrapolation Bound",
+    "Real-World Models"
+   ],
+   "rows": [
+    [
+     "**Learned Positional**",
+     "\\$P \\in \\mathbb{R}^{T_{\\text{max}} \\times d_{\\text{embed}}}\\$",
+     "\\$T_{\\text{max}} \\times d_{\\text{embed}}\\$",
+     "Hard limit at \\$T_{\\text{max}}\\$ (crashes if \\$T > T_{\\text{max}}\\$)",
+     "BERT, GPT-2, OPT"
+    ],
+    [
+     "**Sinusoidal Positional**",
+     "\\$P_{(t, 2i)} = \\sin\\left(\\frac{t}{10000^{2i/d}}\\right)\\$",
+     "\\$0\\$ (fixed math function)",
+     "Extrapolates to arbitrary \\$T\\$",
+     "Original Transformer (Vaswani et al.)"
+    ],
+    [
+     "**Rotary (RoPE)**",
+     "Complex 2D rotation \\$\\mathbf{R}_{\\Theta, t}^d \\mathbf{q}_t\\$",
+     "\\$0\\$ (applied to Q/K vectors)",
+     "Superior relative length generalization",
+     "Llama 2/3, Mistral, Gemma"
+    ],
+    [
+     "**Relative Bias (ALiBi)**",
+     "Attention logit bias \\$-m \\cdot \\vert i - j \\vert\\$",
+     "\\$0\\$ (linear penalty in attention)",
+     "Extrapolates to \\$10\\times\\$ training length",
+     "BLOOM, Falcon, MPT"
+    ]
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 💡 Introduction: Why Embeddings?."
+   ]
+  }
+ ]
+}

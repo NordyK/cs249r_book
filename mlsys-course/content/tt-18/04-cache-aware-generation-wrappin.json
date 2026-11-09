@@ -1,0 +1,384 @@
+{
+ "title": "🏗️ Cache-Aware Generation: Wrapping Attention Without Editing It",
+ "summary": "TinyTorch memoization: 🏗️ Cache-Aware Generation: Wrapping Attention Without Editin",
+ "source": {
+  "chapter": "tt-18",
+  "sections": [
+   "🏗️ Cache-Aware Generation: Wrapping Attention Without Editing It",
+   "📊 Systems Analysis: KV Cache Performance"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Cache-Aware Generation: Wrapping Attention Without Editing It\n\n### Integration Strategy\n\nNow we need a clean way to enable KV caching in our existing transformer models without editing Module 12 or Module 13. We'll write an `enable_kv_cache()` function that:\n\n1. Creates a KVCache instance sized for the model\n2. Puts a `CachedAttention` stand-in in front of each block's attention layer\n3. Returns the cache for manual control if needed\n\nThe stand-in owns the original attention layer and decides, on every call, which of two paths to take:\n1. A full sequence (training, or an ordinary forward pass) goes straight to the original attention\n2. A single new token is projected to K,V once, written into the cache, and attended against everything cached so far\n\n`disable_kv_cache()` removes the stand-ins and the model is exactly as it was. Nothing inside the model is patched: `block.attention` simply points at a different object for a while, the same wrapping pattern PyTorch uses for `DataParallel` and quantization stubs, which stand in front of a module and forward to it."
+  },
+  {
+   "type": "text",
+   "md": "### Generation Flow Comparison\n\n```\nWithout Cache (Current):\nfor each new token:\n    input_seq = [all tokens so far]        # Length grows: 1, 2, 3, ...\n    logits = model.forward(input_seq)       # Recomputes everything!\n    next_token = sample(logits[-1])\n    append next_token\n\nWith Cache (New):\ncache = enable_kv_cache(model)\nwith cache.generation():\n    for each prompt or generated token:\n        input_token = [just new token]      # Length always 1\n        logits = model.forward(input_token, start_pos=cache.seq_pos)\n        cache.advance()                     # All layers have written their K,V\n        next_token = sample(logits[-1])\n```\n\n**Key Difference**: Input changes from growing sequence to single token, with cache providing history."
+  },
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Non-Invasive Model Enhancement\n\n### The Challenge\n\nWe built KV caching in Module 18 (this module), but our transformer (Modules 12-13) doesn't know about it!\n\n**❌ BAD Solution**: Go back and modify Module 12 (MultiHeadAttention)\n- Breaks \"forward-only\" learning (students shouldn't revisit old modules)\n- Makes Module 12 depend on Module 18 (wrong dependency direction!)\n- Violates clean module boundaries\n\n**✅ GOOD Solution**: Module 18 ADDS caching to existing models without modification!\n- Use composition (wrap the model, keep its classes untouched)\n- Module 18 wraps/enhances Module 12, not modifies it\n- Students learn systems engineering: \"Add capabilities, don't break old code\"\n\n### Using KV Cache in Practice\n\nTo use KV caching in your transformer generation:\n\n**Before Generation:**\n1. Enable caching with `enable_kv_cache(model)`\n2. Cache is automatically sized for your model architecture\n3. Verify memory usage is acceptable\n\n**During Generation:**\n1. Enter `with cache.generation():` (the `_cached_generate` helper does this for you)\n2. Process prompt tokens **one at a time** at `start_pos=cache.seq_pos` so each one populates the cache. Prefill here is sequential; handing the whole prompt in as one multi-token forward silently bypasses the cache and leaves it empty\n3. For subsequent tokens:\n   - Only process the NEW token (not entire sequence)\n   - Cache is automatically updated with new K,V pairs\n   - Cached values are automatically used in attention\n   - Cache position advances after all layers\n\n**After Generation:**\n1. Reset cache if generating another sequence: `model._kv_cache.reset()`\n2. Disable caching if needed: `disable_kv_cache(model)`\n3. Monitor memory usage for production deployment"
+  },
+  {
+   "type": "text",
+   "md": "### Theoretical Scaling: Projection Operations Avoided"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Generated Tokens (\\$S\\$)",
+    "Naive Projections (\\$\\frac{S(S+1)}{2}\\$)",
+    "Cached Projections (\\$S\\$)",
+    "Reduction Ratio (\\$\\frac{S+1}{2}\\$)",
+    "Computational Savings"
+   ],
+   "rows": [
+    [
+     "**10 tokens**",
+     "\\$55 \\text{ ops}\\$",
+     "\\$10 \\text{ ops}\\$",
+     "\\$5.5\\times\\$",
+     "\\$81.8\\%\\$"
+    ],
+    [
+     "**25 tokens**",
+     "\\$325 \\text{ ops}\\$",
+     "\\$25 \\text{ ops}\\$",
+     "\\$13.0\\times\\$",
+     "\\$92.3\\%\\$"
+    ],
+    [
+     "**50 tokens**",
+     "\\$1,275 \\text{ ops}\\$",
+     "\\$50 \\text{ ops}\\$",
+     "\\$25.5\\times\\$",
+     "\\$96.1\\%\\$"
+    ],
+    [
+     "**100 tokens**",
+     "\\$5,050 \\text{ ops}\\$",
+     "\\$100 \\text{ ops}\\$",
+     "\\$50.5\\times\\$",
+     "\\$98.0\\%\\$"
+    ],
+    [
+     "**512 tokens**",
+     "\\$131,328 \\text{ ops}\\$",
+     "\\$512 \\text{ ops}\\$",
+     "\\$256.5\\times\\$",
+     "\\$99.6\\%\\$"
+    ],
+    [
+     "**2048 tokens**",
+     "\\$2,098,176 \\text{ ops}\\$",
+     "\\$2,048 \\text{ ops}\\$",
+     "\\$1,024.5\\times\\$",
+     "\\$99.9\\%\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "These counts describe key and value projections (\\$\\frac{S(S+1)}{2}\\$ vs \\$S\\$), not total wall-clock time. Attention still scores every cached key for each new query: full-sequence forwards score \\$t^2\\$ pairs at step \\$t\\$, while a cached forward scores \\$t\\$ pairs. End-to-end latency also encompasses feed-forward MLP projections, token sampling, prefix copies, and Python runtime overhead.\n\n### Production Serving Memory Formulas\n\n\\$\\$\\mathcal{M}_{\\text{cache}} = 2 \\cdot L \\cdot B \\cdot H \\cdot S_{\\max} \\cdot d_k \\cdot 4 \\text{ bytes}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Model Architecture",
+    "Layers (\\$L\\$)",
+    "Heads (\\$H\\$)",
+    "Head Dim (\\$d_k\\$)",
+    "Context (\\$S_{\\max}\\$)",
+    "Cache Memory per Stream (\\$B=1\\$)"
+   ],
+   "rows": [
+    [
+     "**GPT-2 Small (124M)**",
+     "12",
+     "12",
+     "64",
+     "1,024",
+     "\\$\\approx 75.5 \\text{ MB}\\$"
+    ],
+    [
+     "**GPT-2 XL (1.5B)**",
+     "48",
+     "25",
+     "64",
+     "1,024",
+     "\\$\\approx 629.1 \\text{ MB}\\$"
+    ],
+    [
+     "**Llama 2 (7B)**",
+     "32",
+     "32",
+     "128",
+     "4,096",
+     "\\$\\approx 4.29 \\text{ GB}\\$"
+    ],
+    [
+     "**GPT-3 (175B)**",
+     "96",
+     "96",
+     "128",
+     "2,048",
+     "\\$\\approx 19.33 \\text{ GB}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Every row above is float32 at \\$B = 1\\$, in **decimal** units (\\$1 \\text{ MB} = 10^6\\$ bytes, \\$1 \\text{ GB} = 10^9\\$ bytes), which is the convention this module, including `KVCache.get_memory_usage`, uses throughout. Work the Llama 2 row yourself as a check: \\$2 \\times 32 \\times 1 \\times 32 \\times 4096 \\times 128 \\times 4 = 4{,}294{,}967{,}296\\$ bytes. Halving any row gives the float16 figure, and serving stacks quote float16 far more often than float32, so always ask which precision a published cache number assumes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 87 lines of code (starting with `def _cached_generation_step(x: Tensor, attention: Any, cache_obj: \"KVCache\",`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### _create_cache_storage: Validate Model and Allocate Cache\n\nThis helper validates that a model conforms to the transformer structural invariants required for KV caching, dynamically sizes head dimensions, and attaches a pre-allocated `KVCache` instance directly onto the model instance.\n\n### Dynamic Cache Allocation Specification"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Model Attribute",
+    "Target Type",
+    "Derived Cache Specification",
+    "Validation Invariant"
+   ],
+   "rows": [
+    [
+     "`model.embed_dim`",
+     "`int`",
+     "\\$d_{\\text{model}} = 128\\$",
+     "Total model hidden dimensionality"
+    ],
+    [
+     "`model.num_heads`",
+     "`int`",
+     "\\$H = 4\\$",
+     "Number of independent attention heads"
+    ],
+    [
+     "`head_dim`",
+     "Derived",
+     "\\$d_k = d_{\\text{model}} // H = 32\\$",
+     "Invariant: \\$d_{\\text{model}} \\pmod H == 0\\$"
+    ],
+    [
+     "`model.num_layers`",
+     "`int`",
+     "\\$L = 4\\$",
+     "Instantiates \\$L\\$ dedicated \\$(K, V)\\$ tensor tuples"
+    ],
+    [
+     "`model.max_seq_len`",
+     "`int`",
+     "\\$S_{\\max} = 64\\$",
+     "Buffer temporal capacity allocated in DRAM"
+    ],
+    [
+     "`model.blocks`",
+     "`list`",
+     "\\$\\text{len}(\\text{blocks}) == L\\$",
+     "Transformer blocks hosting attention layers"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Upon successful validation, the instantiated cache is bound as `model._kv_cache` with lifecycle flag `model._cache_enabled = True`."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 63 lines of code (starting with `def _create_cache_storage(model: Any) -> Tuple[\"KVCache\", int]:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _create_cache_storage\n\n**What we're testing**: Model validation, head_dim calculation, and cache creation\n**Why it matters**: Cache must match the model's architecture exactly or attention will produce wrong results\n**Expected**: Valid models get caches; invalid models get clear error messages"
+  },
+  {
+   "type": "text",
+   "md": "### CachedAttention: The Stand-In That Chooses the Path\n\n`CachedAttention` takes the place of a block's attention layer while the cache is enabled. It keeps the original layer as `self.attention` and decides which execution path each forward call takes. Decoupling the **dispatch decision** here from the **numerical computation** in `_cached_generation_step` makes both independently testable.\n\n### Stand-In Dispatch Decision Matrix"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Invocation Scope",
+    "Sequence Length (`x.shape[1]`)",
+    "Target Route",
+    "Executed Implementation",
+    "Computational Complexity"
+   ],
+   "rows": [
+    [
+     "**Outside Scope (`_generation_active=False`)**",
+     "Any (\\$S \\ge 1\\$)",
+     "**Original Path**",
+     "`self.attention.forward(x, mask)`",
+     "Full causal attention, supports training autograd"
+    ],
+    [
+     "**Inside Scope (`_generation_active=True`)**",
+     "Multi-token (\\$S > 1\\$)",
+     "**Original Path**",
+     "`self.attention.forward(x, mask)`",
+     "Full-sequence fallback: the cache is NOT populated"
+    ],
+    [
+     "**Inside Scope (`_generation_active=True`)**",
+     "Single token (\\$S == 1\\$)",
+     "**Cached Path**",
+     "`_cached_generation_step(x, ...)`",
+     "\\$\\mathcal{O}(1)\\$ projection write + \\$\\mathcal{O}(t)\\$ prefix attention"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Read that middle row carefully, because it is a trap.** In a production serving stack, a multi-token forward inside the generation scope is the *prefill*: the whole prompt goes through in one parallel pass and writes every prompt position into the cache at once. TinyTorch's stand-in does no such thing. It hands a multi-token input straight to the original attention, which knows nothing about the cache, so `seq_pos` stays where it was and not one row is written. The next single-token decode step then attends to whatever prefix the cache happens to hold, which after a skipped prefill is nothing at all, and it returns confident, wrong logits with no error and no warning. Prefill in this module is therefore **sequential**: feed the prompt one token at a time, exactly as `_cached_generate` does, so that every prompt position writes its own \\$(K, V)\\$ row.\n\nInside `cache.generation()`, the prompt tokens take the cached path one at a time for that reason. The initial prompt token encounters an empty cache, attends strictly to itself, and registers its \\$(K, V)\\$ representation into slot 0 for subsequent tokens. The exact token coordinate is synchronized via `start_pos=cache.seq_pos`, enabling positional embeddings to preserve temporal coordinates."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class CachedAttention:\n    \"\"\"\n    Stand-in for one block's attention layer while a KV cache is enabled.\n\n    Holds the original attention layer and the cache. enable_kv_cache() puts one\n    of these at block.attention; disable_kv_cache() puts the original back.\n    \"\"\"\n\n    def __init__(self, attention: Any, cache_obj: KVCache, layer_idx: int) -> None:\n        self.attention = attention      # the original MultiHeadAttention layer\n        self.cache = cache_obj\n        self.layer_idx = layer_idx\n\n    def parameters(self) -> List[Tensor]:\n        \"\"\"The stand-in owns no weights of its own.\"\"\"\n        return self.attention.parameters()\n\n    def forward(self, x: Tensor, mask: Optional[Tensor] = None) -> Tensor:\n        \"\"\"\n        Route one call to the right path.\n\n        TODO: Implement the two-path dispatch\n\n        APPROACH:\n        1. Outside cache.generation(), or for a full sequence, return\n           self.attention.forward(x, mask) unchanged\n        2. Inside that scope, route one new token through\n           _cached_generation_step, including its optional attention mask\n\n        Note that path 1 writes nothing to the cache, so a multi-token forward\n        inside the generation scope is a fallback, not a parallel prefill.\n        Prefill here is sequential: one token per forward.\n\n        EXAMPLE:\n        >>> stand_in = CachedAttention(block.attention, cache, layer_idx=0)\n        >>> stand_in.forward(x_train)   # (1, 10, D): original attention, cache untouched\n        >>> with cache.generation():\n        ...     stand_in.forward(x_token)  # (1, 1, D): cached step, cache updated\n\n        HINTS:\n        - x.shape[1] is the sequence length\n        - The cached step handles an empty cache itself (the first token attends to itself)\n        \"\"\"\n        if not self.cache._generation_active or x.shape[1] > 1:\n            return self.attention.forward(x, mask)\n        return _cached_generation_step(x, self.attention, self.cache, self.layer_idx, mask)\n\n    def __call__(self, x: Tensor, mask: Optional[Tensor] = None) -> Tensor:\n        return self.forward(x, mask)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: CachedAttention\n\n**What we're testing**: The stand-in routes ordinary forwards to the original attention and explicitly scoped single tokens through the cache, and the cached path reproduces uncached causal attention\n**Why it matters**: Wrong routing causes silent correctness bugs (training reads the cache, or generation ignores it), and a cache that changes the numbers is not an optimization\n**Expected**: Full-sequence output identical to the original layer with the cache untouched; token-by-token outputs match the causal attention output at every position"
+  },
+  {
+   "type": "text",
+   "md": "### _cached_generate: Generation Loop with KV Cache\n\nThis helper coordinates the two-phase autoregressive generation pipeline: sequential prompt prefilling followed by token-by-token generation with static buffer advancement.\n\n### Two-Phase Generation Lifecycle"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Execution Phase",
+    "Input Token Tensor",
+    "Active Cache Slice",
+    "Attention Mechanism",
+    "Arithmetic Complexity"
+   ],
+   "rows": [
+    [
+     "**Phase 1: Prefill**",
+     "Prompt tokens \\$t \\in [0, P-1]\\$ sequentially",
+     "Populates slots \\$0 \\dots P-1\\$",
+     "Single query attending to current prefix",
+     "\\$\\mathcal{O}(P)\\$ projections, \\$\\mathcal{O}(P^2)\\$ attention"
+    ],
+    [
+     "**Phase 2: Decode Step 1**",
+     "Single token \\$\\mathbf{x}_{P} \\in \\mathbb{R}^{1 \\times 1}\\$",
+     "Writes to slot \\$P\\$, reads \\$0 \\dots P\\$",
+     "Vector-matrix GEMV (\\$1 \\times P\\$ scores)",
+     "1 new projection, \\$P+1\\$ score pairs"
+    ],
+    [
+     "**Phase 2: Decode Step \\$k\\$**",
+     "Single token \\$\\mathbf{x}_{P+k-1} \\in \\mathbb{R}^{1 \\times 1}\\$",
+     "Writes to slot \\$P+k-1\\$, reads \\$0 \\dots P+k-1\\$",
+     "Vector-matrix GEMV (\\$1 \\times (P+k)\\$ scores)",
+     "1 new projection, \\$P+k\\$ score pairs"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "At each decode step, `cache.advance()` moves the write cursor forward by 1. When `temperature == 0.0`, greedy argmax selection is used; for non-zero temperatures, stable categorical sampling with logit scaling is applied."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 95 lines of code (starting with `def _cached_generate(model: Any, prompt_tokens: List[int], max_new_tokens: int,`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _cached_generate\n\n**What we're testing**: The autoregressive generation loop with cache advancement\n**Why it matters**: The generation loop must correctly advance the cache and produce valid token IDs\n**Expected**: Generates the requested number of tokens, all valid indices into the vocabulary"
+  },
+  {
+   "type": "text",
+   "md": "### enable_kv_cache: Compose the Cache Into the Model\n\nThis is the main entry point that composes the subsystem helpers into an integrated runtime. It attaches the pre-allocated cache and wraps each transformer block's attention layer in place.\n\n### Dynamic Model Enhancement Lifecycle"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Sequence Step",
+    "Invoked Primitive",
+    "Model Modification",
+    "Invariant Enforced"
+   ],
+   "rows": [
+    [
+     "**Step 1: Validate & Allocate**",
+     "`_create_cache_storage(model)`",
+     "Attaches `model._kv_cache`",
+     "Verifies head dimension divisibility and allocates DRAM buffers"
+    ],
+    [
+     "**Step 2: Unwrap Idempotence**",
+     "Check `isinstance(block.attention, CachedAttention)`",
+     "Unwraps previous stand-in if already present",
+     "Prevents nested wrapper recursion if enabled repeatedly"
+    ],
+    [
+     "**Step 3: Wrap Attention**",
+     "`CachedAttention(block.attention, cache, layer_idx)`",
+     "Replaces `block.attention` with stand-in",
+     "Preserves original weights, parameters, and duck typing"
+    ],
+    [
+     "**Step 4: Expose Telemetry**",
+     "`cache.get_memory_usage()`",
+     "Displays layer and head allocations",
+     "Informs operator of buffer footprint in MB"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 61 lines of code (starting with `def enable_kv_cache(model: Any) -> KVCache:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def disable_kv_cache(model: Any) -> None:\n    \"\"\"\n    Disable KV caching and restore original attention behavior.\n\n    Args:\n        model: Model with caching enabled\n\n    EXAMPLE:\n        ```python\n        cache = enable_kv_cache(model)\n        # ... do cached generation ...\n        disable_kv_cache(model)  # Back to normal\n        ```\n    \"\"\"\n    if not getattr(model, '_cache_enabled', False):\n        print(\"⚠️  KV cache not enabled on this model\")\n        return\n\n    # Take the stand-ins out; each one still holds the original layer\n    for block in model.blocks:\n        if isinstance(block.attention, CachedAttention):\n            block.attention = block.attention.attention\n\n    # Clean up\n    model._cache_enabled = False\n    if hasattr(model, '_kv_cache'):\n        delattr(model, '_kv_cache')\n\n    print(\"✓ KV cache disabled, original attention restored\")"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Non-Invasive Cache Integration\n\nThis test validates that `enable_kv_cache()` works without breaking the model.\n\n**What we're testing**: Non-invasive cache integration with transformer models\n**Why it matters**: Must add caching without modifying existing modules (forward-only learning)\n**Expected**: Cache enables/disables cleanly, model forward pass still works"
+  },
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: KV Cache Performance\n\nLet's analyze the performance characteristics and trade-offs of KV caching. Understanding these trade-offs is essential for making informed decisions about when and how to use caching in production systems."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 64 lines of code (starting with `def analyze_kvcache_memory():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 76 lines of code (starting with `def analyze_kvcache_speedup():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Cache-Aware Generation: Wrapping Attention Without Editing It, 📊 Systems Analysis: KV Cache Performance."
+   ]
+  }
+ ]
+}

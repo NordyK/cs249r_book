@@ -1,0 +1,120 @@
+{
+ "title": "💡 Introduction: What are Spatial Operations?",
+ "summary": "TinyTorch convolutions: 💡 Introduction: What are Spatial Operations?",
+ "source": {
+  "chapter": "tt-09",
+  "sections": [
+   "💡 Introduction: What are Spatial Operations?"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: What are Spatial Operations?\n\nSpatial operations transform machine learning from working with simple vectors to understanding images and spatial patterns. When you look at a photo, your brain naturally processes spatial relationships, including edges, textures, and objects. Spatial operations give neural networks this same capability.\n\n### The Two Core Spatial Operations\n\n- **Convolution (`Conv2d`)**: Detects local patterns by sliding learnable filters across the spatial grid.\n- **Pooling (`MaxPool2d`, `AvgPool2d`)**: Downsamples spatial dimensions while preserving dominant features and building translation tolerance.\n\n---\n\n### Visual Example: How Convolution Works\n\nFor a 2D input channel \\$\\mathbf{X}\\$ and a \\$K \\times K\\$ kernel \\$\\mathbf{W}\\$:\n\\$\\$(\\mathbf{X} * \\mathbf{W})[i, j] = \\sum_{m=0}^{K-1} \\sum_{n=0}^{K-1} \\mathbf{X}[i+m, j+n] \\cdot \\mathbf{W}[m, n]\\$\\$\n\nAt each valid spatial coordinate \\$(i, j)\\$, the kernel overlaps an input patch of size \\$K \\times K\\$. The overlapping elements are multiplied elementwise and accumulated into a single output scalar.\n\n### Why Spatial Operations Transform Machine Learning"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Characteristic",
+    "Fully-Connected Dense Layer (`Linear`)",
+    "2D Convolution Layer (`Conv2d`)",
+    "MLSys & Architectural Advantage"
+   ],
+   "rows": [
+    [
+     "**Input Shape**",
+     "Flattened \\$(3072,)\\$ vector",
+     "Structured \\$(3, 32, 32)\\$ image tensor",
+     "Preserves 2D spatial grid topology"
+    ],
+    [
+     "**Weight Count**",
+     "\\$3{,}072 \\times 14{,}400 \\approx 44.2\\text{M}\\$ weights",
+     "\\$16 \\times (3 \\times 3 \\times 3) = 432\\$ weights",
+     "**\\$>100{,}000\\times\\$ parameter reduction** via weight sharing"
+    ],
+    [
+     "**Connectivity**",
+     "All-to-all dense connectivity",
+     "\\$3 \\times 3\\$ local receptive field",
+     "Exploits local pixel correlation"
+    ],
+    [
+     "**Inductive Bias**",
+     "Spatial shifts require retraining",
+     "Identical kernel applied across all coordinates",
+     "Translation equivariance: \\$f(\\text{shift}(x)) = \\text{shift}(f(x))\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Convolution achieves dramatic parameter reduction while preserving the spatial relationships critical for visual representations."
+  },
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: Convolution, Step by Step\n\n### Understanding Convolution Step by Step\n\nConvolution is fundamentally a **sliding window dot product**. Let us trace a \\$3 \\times 4\\$ input convolved with a \\$2 \\times 2\\$ kernel:\n\n\\$\\$\\mathbf{X} = \\begin{bmatrix} 1 & 2 & 3 & 4 \\\\ 5 & 6 & 7 & 8 \\\\ 9 & 0 & 1 & 2 \\end{bmatrix}, \\qquad \\mathbf{K} = \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\end{bmatrix}\\$\\$\n\n- **Position \\$(0, 0)\\$**:\n  \\$\\$\\mathbf{X}_{0:2, 0:2} \\odot \\mathbf{K} = \\begin{bmatrix} 1 & 2 \\\\ 5 & 6 \\end{bmatrix} \\odot \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\end{bmatrix} = 1(1) + 2(0) + 5(0) + 6(1) = 7\\$\\$\n- **Position \\$(0, 1)\\$**:\n  \\$\\$\\mathbf{X}_{0:2, 1:3} \\odot \\mathbf{K} = \\begin{bmatrix} 2 & 3 \\\\ 6 & 7 \\end{bmatrix} \\odot \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\end{bmatrix} = 2(1) + 3(0) + 6(0) + 7(1) = 9\\$\\$\n- **Position \\$(0, 2)\\$**:\n  \\$\\$\\mathbf{X}_{0:2, 2:4} \\odot \\mathbf{K} = \\begin{bmatrix} 3 & 4 \\\\ 7 & 8 \\end{bmatrix} \\odot \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\end{bmatrix} = 3(1) + 4(0) + 7(0) + 8(1) = 11\\$\\$\n- **Position \\$(1, 0)\\$**:\n  \\$\\$\\mathbf{X}_{1:3, 0:2} \\odot \\mathbf{K} = \\begin{bmatrix} 5 & 6 \\\\ 9 & 0 \\end{bmatrix} \\odot \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\end{bmatrix} = 5(1) + 6(0) + 9(0) + 0(1) = 5\\$\\$\n- **Position \\$(1, 1)\\$**:\n  \\$\\$\\mathbf{X}_{1:3, 1:3} \\odot \\mathbf{K} = \\begin{bmatrix} 6 & 7 \\\\ 0 & 1 \\end{bmatrix} \\odot \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\end{bmatrix} = 6(1) + 7(0) + 0(0) + 1(1) = 7\\$\\$\n- **Position \\$(1, 2)\\$**:\n  \\$\\$\\mathbf{X}_{1:3, 2:4} \\odot \\mathbf{K} = \\begin{bmatrix} 7 & 8 \\\\ 1 & 2 \\end{bmatrix} \\odot \\begin{bmatrix} 1 & 0 \\\\ 0 & 1 \\end{bmatrix} = 7(1) + 8(0) + 1(0) + 2(1) = 9\\$\\$\n\nYielding the output feature map \\$\\mathbf{Y} \\in \\mathbb{R}^{2 \\times 3}\\$:\n\\$\\$\\mathbf{Y} = \\begin{bmatrix} 7 & 9 & 11 \\\\ 5 & 7 & 9 \\end{bmatrix}\\$\\$\n\n---\n\n### The Full 4D Convolution Formula\n\nExtending beyond a single channel to batches and multi-channel filter banks:\n\\$\\$O[b, c_{\\text{out}}, i, j] = \\text{bias}[c_{\\text{out}}] + \\sum_{c_{\\text{in}}=0}^{C_{\\text{in}}-1} \\sum_{m=0}^{K_h-1} \\sum_{n=0}^{K_w-1} I[b, c_{\\text{in}}, i \\cdot S_h + m, j \\cdot S_w + n] \\times W[c_{\\text{out}}, c_{\\text{in}}, m, n]\\$\\$\n\nWhere:\n- \\$S_h, S_w\\$ denote vertical and horizontal strides.\n- \\$K_h, K_w\\$ denote kernel height and width.\n- \\$C_{\\text{in}}, C_{\\text{out}}\\$ denote input and output channel depths.\n\n#### A Naming Confession: This Is Cross-Correlation\n\nThe sum above, and the one every `Conv2d` in this module computes, is *cross-correlation*, not convolution. True convolution flips the kernel before sliding it, reading \\$W[K_h - 1 - m, K_w - 1 - n]\\$ where the formula above reads \\$W[m, n]\\$. Every production framework, PyTorch and TensorFlow and JAX alike, skips the flip, because a kernel that is learned rather than designed simply absorbs it and the two operations reach identical solutions. The mathematical name stuck to the engineering shortcut, so `Conv2d` everywhere means the un-flipped sum, and the flip only matters when you port a hand-designed filter in from signal processing.\n\nAlso note that \\$S_h, S_w\\$ and \\$P_h, P_w\\$ are written separately here because that is the general case. TinyTorch's `Conv2d` takes one integer for stride and one for padding, so \\$S_h = S_w\\$ and \\$P_h = P_w\\$ always; handing it a tuple raises a bare `TypeError` from the arithmetic rather than a helpful message. `MaxPool2d` and `AvgPool2d` do accept a tuple stride, so the layers are not interchangeable on that argument."
+  },
+  {
+   "type": "text",
+   "md": "---\n\n### Pooling: Spatial Summarization\n\nGiven the input feature map:\n\\$\\$\\mathbf{X} = \\begin{bmatrix} 1 & 3 & 2 & 4 \\\\ 5 & 6 & 7 & 8 \\\\ 2 & 9 & 1 & 3 \\\\ 0 & 1 & 9 & 3 \\end{bmatrix}\\$\\$\n\n- **Max Pooling** (\\$2 \\times 2\\$ window, stride \\$2\\$):\n  \\$\\$\\mathbf{Y}_{\\text{max}} = \\begin{bmatrix} \\max(\\{1, 3, 5, 6\\}) & \\max(\\{2, 4, 7, 8\\}) \\\\ \\max(\\{2, 9, 0, 1\\}) & \\max(\\{1, 3, 9, 3\\}) \\end{bmatrix} = \\begin{bmatrix} 6 & 8 \\\\ 9 & 9 \\end{bmatrix}\\$\\$\n\n- **Average Pooling** (\\$2 \\times 2\\$ window, stride \\$2\\$):\n  \\$\\$\\mathbf{Y}_{\\text{avg}} = \\begin{bmatrix} \\frac{1+3+5+6}{4} & \\frac{2+4+7+8}{4} \\\\ \\frac{2+9+0+1}{4} & \\frac{1+3+9+3}{4} \\end{bmatrix} = \\begin{bmatrix} 3.75 & 5.25 \\\\ 3.00 & 4.00 \\end{bmatrix}\\$\\$\n\n---\n\n### Computational & Memory Budget\n\nFor a standard early convolutional layer with input \\$(1, 3, 224, 224)\\$, 64 filters of size \\$(3, 3, 3)\\$, stride \\$1\\$, and padding \\$1\\$:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Component",
+    "Tensor Shape",
+    "Elements",
+    "Precision & Memory"
+   ],
+   "rows": [
+    [
+     "**Input Activations**",
+     "\\$(1, 3, 224, 224)\\$",
+     "\\$150{,}528\\$",
+     "\\$4\\text{ B/elem} \\to 602.1\\text{ KB}\\$"
+    ],
+    [
+     "**Filter Weights**",
+     "\\$(64, 3, 3, 3)\\$",
+     "\\$1{,}728\\$",
+     "\\$4\\text{ B/elem} \\to 6.9\\text{ KB}\\$"
+    ],
+    [
+     "**Biases**",
+     "\\$(64,)\\$",
+     "\\$64\\$",
+     "\\$4\\text{ B/elem} \\to 256\\text{ B}\\$"
+    ],
+    [
+     "**Output Activations**",
+     "\\$(1, 64, 224, 224)\\$",
+     "\\$3{,}211{,}264\\$",
+     "\\$4\\text{ B/elem} \\to 12.85\\text{ MB}\\$"
+    ],
+    [
+     "**Total Forward Memory**",
+     "—",
+     "\\$3{,}363{,}584\\$",
+     "\\$\\mathbf{\\approx 13.45\\text{ MB}}\\$"
+    ],
+    [
+     "**Compute Operations**",
+     "\\$1 \\cdot 64 \\cdot 224 \\cdot 224 \\cdot (3 \\cdot 3 \\cdot 3)\\$",
+     "—",
+     "**\\$86.7\\text{M MACs}\\$** (\\$173.4\\text{ MFLOPs}\\$)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Memory figures in this module are decimal throughout. KB means \\$10^3\\$ bytes and MB means \\$10^6\\$ bytes, so \\$602{,}112\\$ B reads as \\$602.1\\$ KB rather than the \\$588\\$ KiB a binary conversion would give.\n\nNotice that kernel size impacts compute quadratically: switching from \\$3 \\times 3\\$ (\\$9\\$ weights/channel) to \\$7 \\times 7\\$ (\\$49\\$ weights/channel) increases compute by \\$\\approx 5.44\\times\\$!\n\n---\n\n### Key Properties That Enable Deep Learning\n- **Translation Equivariance**: Translating an object in the input produces an identical translation in the feature map: \\$f(T_v(x)) = T_v(f(x))\\$.\n- **Weight Sharing**: The same learned detector applies across every spatial location, drastically reducing capacity requirements.\n- **Local Connectivity**: Pixels close together carry the highest statistical mutual information.\n- **Hierarchical Representations**: Shallow layers detect edges; middle layers combine edges into motifs; deep layers compose motifs into semantic parts."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 💡 Introduction: What are Spatial Operations?."
+   ]
+  }
+ ]
+}

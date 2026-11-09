@@ -1,0 +1,224 @@
+{
+ "title": "🔧 Integration: Working with Real Datasets",
+ "summary": "TinyTorch dataloader: 🔧 Integration: Working with Real Datasets",
+ "source": {
+  "chapter": "tt-05",
+  "sections": [
+   "🔧 Integration: Working with Real Datasets",
+   "📊 Systems Analysis: Data Pipeline Performance"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Working with Real Datasets\n\nNow that you've built the DataLoader abstraction, you're ready to use it with real data!\n\n### Using Real Datasets: The TinyTorch Approach\n\nTinyTorch separates **mechanics** (this module) from **application** (examples/milestones):"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Layer",
+    "Scope",
+    "Key Abstractions & Datasets",
+    "Systems Purpose"
+   ],
+   "rows": [
+    [
+     "**Mechanics**",
+     "`tinytorch.core.dataloader`",
+     "`Dataset`, `TensorDataset`, `DataLoader`",
+     "Core iteration, chunking, and memory layout"
+    ],
+    [
+     "**Application**",
+     "`milestones/` & `datasets/`",
+     "`TinyDigits` (\\$8 \\times 8\\$), MNIST (\\$28 \\times 28\\$), CIFAR-10 (\\$32 \\times 32 \\times 3\\$)",
+     "End-to-end model training workflows"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Understanding Image Data\n\n**What does image data actually look like?**\n\nImages are 2D arrays of numbers (pixel intensities). Here are actual \\$8 \\times 8\\$ grayscale handwritten digits:\n\n\\$\\$\\begin{array}{ccc}\n\\mathbf{\\text{Digit 5}} & \\mathbf{\\text{Digit 3}} & \\mathbf{\\text{Digit 8}} \\\\\n\\begin{bmatrix}\n0 & 0 & 12 & 13 & 5 & 0 & 0 & 0 \\\\\n0 & 0 & 13 & 15 & 10 & 0 & 0 & 0 \\\\\n0 & 3 & 15 & 13 & 16 & 7 & 0 & 0 \\\\\n0 & 8 & 13 & 6 & 15 & 4 & 0 & 0 \\\\\n0 & 0 & 0 & 6 & 16 & 5 & 0 & 0 \\\\\n0 & 0 & 5 & 15 & 16 & 9 & 0 & 0 \\\\\n0 & 0 & 9 & 16 & 9 & 0 & 0 & 0 \\\\\n0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\n\\end{bmatrix} &\n\\begin{bmatrix}\n0 & 0 & 11 & 12 & 0 & 0 & 0 & 0 \\\\\n0 & 2 & 16 & 16 & 16 & 7 & 0 & 0 \\\\\n0 & 0 & 8 & 16 & 8 & 0 & 0 & 0 \\\\\n0 & 0 & 0 & 12 & 13 & 0 & 0 & 0 \\\\\n0 & 0 & 1 & 16 & 15 & 9 & 0 & 0 \\\\\n0 & 0 & 14 & 16 & 16 & 16 & 7 & 0 \\\\\n0 & 5 & 16 & 8 & 8 & 16 & 0 & 0 \\\\\n0 & 3 & 16 & 16 & 16 & 12 & 0 & 0\n\\end{bmatrix} &\n\\begin{bmatrix}\n0 & 0 & 10 & 14 & 8 & 1 & 0 & 0 \\\\\n0 & 0 & 16 & 15 & 15 & 9 & 0 & 0 \\\\\n0 & 0 & 15 & 5 & 5 & 13 & 0 & 0 \\\\\n0 & 1 & 16 & 5 & 5 & 13 & 0 & 0 \\\\\n0 & 6 & 16 & 16 & 16 & 16 & 1 & 0 \\\\\n1 & 16 & 3 & 1 & 1 & 15 & 1 & 0 \\\\\n0 & 9 & 16 & 16 & 16 & 15 & 0 & 0 \\\\\n0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\n\\end{bmatrix}\n\\end{array}\\$\\$\n\n**Shape transformations in DataLoader:**\n\n\\$\\$\\begin{aligned}\n\\mathbf{\\text{Individual Sample (from Dataset):}} \\quad & \\mathbf{x}_i \\in \\mathbb{R}^{8 \\times 8}, \\quad y_i \\in \\{0, \\dots, 9\\} \\\\\n\\mathbf{\\text{Collated Batch (batch size } B = 32\\text{):}} \\quad & \\mathbf{X}_{\\text{batch}} \\in \\mathbb{R}^{32 \\times 8 \\times 8}, \\quad \\mathbf{y}_{\\text{batch}} \\in \\mathbb{R}^{32}\n\\end{aligned}\\$\\$\n\nThis is what your model sees during training!\n\n### Quick Start with Real Data\n\n**Tiny Datasets (ships with TinyTorch):**\n```python\n# 8×8 handwritten digits, ships with TinyTorch, no download\nimport pickle\nfrom pathlib import Path\n\n# You work in modules/05_dataloader/, so resolve the dataset from the project\n# root rather than the current directory (the same approach\n# milestones/04_1998_cnn/01_lecun_tinydigits.py takes).\nproject_root = next(p for p in [Path.cwd(), *Path.cwd().parents]\n                    if (p / \"datasets\" / \"tinydigits\").is_dir())\n\nwith open(project_root / \"datasets\" / \"tinydigits\" / \"train.pkl\", 'rb') as f:\n    data = pickle.load(f)\nimages = Tensor(data['images'])  # (1000, 8, 8) float32\nlabels = Tensor(data['labels'])  # (1000,) int64\n\ndataset = TensorDataset(images, labels)\nloader = DataLoader(dataset, batch_size=32, shuffle=True)\n\n# Each batch contains real digit images!\nfor batch_images, batch_labels in loader:\n    # batch_images: (32, 8, 8) - 32 digit images\n    # batch_labels: (32,) - their labels (0-9)\n    break\n```\n\n**Full Datasets (for serious training):**\n```python\n# milestones/data_manager.py: DatasetManager.get_mnist() and\n# DatasetManager.get_cifar10() download the full sets\n# milestones/04_1998_cnn/02_lecun_cifar10.py shows them feeding a DataLoader\n```\n\n### What You've Accomplished\n\nYou've built the **data loading infrastructure** that powers all modern ML:\n- ✅ Dataset abstraction (universal interface)\n- ✅ TensorDataset (in-memory efficiency)\n- ✅ DataLoader (batching, shuffling, iteration)\n- ✅ Data Augmentation (RandomHorizontalFlip, RandomCrop, Compose)\n\n**Next steps:** Apply your DataLoader and augmentation to real datasets in the milestones!\n\n**Real-world connection:** You've implemented the same patterns as:\n- PyTorch's `torch.utils.data.DataLoader`\n- PyTorch's `torchvision.transforms`\n- TensorFlow's `tf.data.Dataset`\n- Production ML pipelines everywhere"
+  },
+  {
+   "type": "text",
+   "md": "### Common Pitfalls and Best Practices\n\nBefore we move to integration testing, let's cover common mistakes students and practitioners make with data loading:\n\n### Common Mistakes to Avoid\n\n**1. Forgetting to Shuffle Training Data**\n```python\n# ❌ WRONG - No shuffling means same batches every epoch\ntrain_loader = DataLoader(train_dataset, batch_size=32, shuffle=False)\n\n# ✅ CORRECT - Shuffle for training, but not for validation\ntrain_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)\nval_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)\n```\n**Why it matters:** Without shuffling, your model sees the same batch combinations every epoch, which can introduce ordering effects. Shuffling does not by itself prevent overfitting.\n\n**2. Batch Size Too Large (Out of Memory)**\n```python\n# ❌ WRONG - Batch size might exceed GPU memory\nloader = DataLoader(dataset, batch_size=1024)  # Might cause OOM!\n\n# ✅ CORRECT - Start small and increase gradually\nloader = DataLoader(dataset, batch_size=32)    # Safe starting point\n# Monitor GPU memory, then try 64, 128, etc.\n```\n**Why it matters:** Batch size directly determines peak memory usage. Too large = crash. Too small = slow training."
+  },
+  {
+   "type": "text",
+   "md": "**3. Improper Train/Validation Split**\n```python\n# ❌ WRONG - Validation data leaking into training\nall_data = dataset\ntrain_loader = DataLoader(all_data, batch_size=32, shuffle=True)  # No split!\n\n# ✅ CORRECT - Separate train and validation\ntrain_size = int(0.8 * len(dataset))\ntrain_data = TensorDataset(images[:train_size], labels[:train_size])\nval_data = TensorDataset(images[train_size:], labels[train_size:])\ntrain_loader = DataLoader(train_data, batch_size=32, shuffle=True)\nval_loader = DataLoader(val_data, batch_size=32, shuffle=False)\n```\n**Why it matters:** Using the same data for training and validation gives falsely optimistic performance metrics.\n\n**4. Not Handling Uneven Batches**\n```python\n# Dataset with 1000 samples, batch_size=128\n# Creates: [128, 128, 128, 128, 128, 128, 128, 104] samples per batch\n# Your model must handle variable batch sizes!\n\n# Example: Don't assume batch_size in forward pass\ndef forward(self, x):\n    batch_size = x.shape[0]  # ✅ Get actual batch size\n    # Don't hardcode: batch_size = 128  # ❌ Breaks on last batch\n```\n\n### Best Practices for Production\n\n**1. Batch Size Selection Strategy**"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Step",
+    "Action",
+    "Decision Criterion",
+    "Target Outcome"
+   ],
+   "rows": [
+    [
+     "**1**",
+     "**Initialize Baseline**",
+     "Start at \\$B = 32\\$",
+     "Safe baseline for modern accelerators"
+    ],
+    [
+     "**2**",
+     "**Profile Resident Memory**",
+     "Measure peak allocator footprint",
+     "Determine device memory headroom"
+    ],
+    [
+     "**3**",
+     "**Scale Batch Dimension**",
+     "Memory \\$< 75\\% \\implies B \\leftarrow 2B\\$<br>Memory \\$> 85\\% \\implies\\$ keep or reduce",
+     "Maximize compute density while avoiding OOM"
+    ],
+    [
+     "**4**",
+     "**Convergence Tuning**",
+     "Adjust learning rate proportionally (\\$\\eta \\propto \\sqrt{B}\\$ or \\$B\\$)",
+     "Maintain optimization stability"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**2. Data Augmentation Placement**\n- **Option A:** In Dataset's `__getitem__` (random crop, flip, etc.)\n- **Option B:** After DataLoader in training loop (batch-level operations)\n- **Rule:** Image-level augmentation in Dataset, batch-level in loop\n\n**3. Shuffling Strategy**\n- **Training:** Always shuffle (`shuffle=True`)\n- **Validation:** Never shuffle (`shuffle=False`)\n- **Testing:** Never shuffle (`shuffle=False`)\n- **Reason:** Validation/test need reproducible metrics\n\n**4. Memory-Constrained Scenarios**\n\nWith larger batch sizes, you process more data per step, but large batches may not fit in memory. When that happens, techniques like gradient accumulation can simulate larger batches using smaller ones that fit. For now, just choose a batch size that fits comfortably in your available memory.\n\nThese patterns will save you hours of debugging and help you build robust data pipelines!"
+  },
+  {
+   "type": "text",
+   "md": "### Bringing It Together\n\nLet's test how our DataLoader integrates with a complete training workflow, simulating real ML pipeline usage."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Training Workflow\n\n**What we're testing**: Complete training loop with train/val split\n**Why it matters**: DataLoader must work seamlessly in real training pipelines\n**Expected**: All samples processed correctly with proper batch shapes"
+  },
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Data Pipeline Performance\n\nNow let's understand data pipeline performance like production ML engineers. Understanding where time and memory go is crucial for building systems that scale.\n\n### The Performance Question: Where Does Time Go?\n\nIn a typical training step, time is split between host data preparation and accelerator computation:\n\n\\$\\$T_{\\text{step}} = T_{\\text{load}} + T_{\\text{compute}}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Pipeline Regime",
+    "Latency Relation",
+    "System Bottleneck",
+    "Mitigation Strategy"
+   ],
+   "rows": [
+    [
+     "**Data-Starved (I/O Bound)**",
+     "\\$T_{\\text{load}} > T_{\\text{compute}}\\$",
+     "Host CPU / Disk I/O",
+     "Prefetching, background workers, and page-locked host buffers the accelerator can copy from without the CPU staging it first"
+    ],
+    [
+     "**Compute-Bound**",
+     "\\$T_{\\text{compute}} > T_{\\text{load}}\\$",
+     "Accelerator arithmetic units",
+     "Mixed-precision (FP16/BF16), and merging several small operations into one pass over the data so it is read once instead of repeatedly"
+    ],
+    [
+     "**Balanced Pipeline**",
+     "\\$T_{\\text{load}} \\approx T_{\\text{compute}}\\$",
+     "Overlapped Execution",
+     "Full saturation of both CPU pipeline and GPU compute"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Memory Scaling: The Batch Size Trade-off\n\nBatch size creates a fundamental trade-off in resident memory versus hardware execution efficiency:\n\n\\$\\$\\text{Batch Memory Footprint} = B \\times H \\times W \\times C \\times 4\\text{ bytes (float32)}\\$\\$\n\nSizes below are decimal, so \\$1\\text{ KB} = 10^3\\$ bytes and \\$1\\text{ MB} = 10^6\\$ bytes. Every table and analysis cell in this module uses that convention."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Batch Size \\$B\\$",
+    "Memory Footprint",
+    "Bytes per Batch",
+    "Host Loop Overhead",
+    "Accelerator Utilization"
+   ],
+   "rows": [
+    [
+     "**\\$B = 8\\$**",
+     "\\$25.1\\text{ KB}\\$",
+     "\\$8 \\times 3{,}136\\text{ B}\\$",
+     "High (many tiny host iterations)",
+     "Low (most arithmetic units sit idle)"
+    ],
+    [
+     "**\\$B = 64\\$**",
+     "\\$200.7\\text{ KB}\\$",
+     "\\$64 \\times 3{,}136\\text{ B}\\$",
+     "Moderate (balanced loop overhead)",
+     "High (enough parallel work to keep the accelerator's compute units busy)"
+    ],
+    [
+     "**\\$B = 512\\$**",
+     "\\$1.61\\text{ MB}\\$",
+     "\\$512 \\times 3{,}136\\text{ B}\\$",
+     "Minimal (few large matrix multiplications)",
+     "Maximum (saturates peak memory bandwidth)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Shuffling Overhead Analysis\n\nShuffling seems simple, but let's measure its real systems cost:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Operation",
+    "Complexity",
+    "Memory Allocation",
+    "Implementation Mechanism"
+   ],
+   "rows": [
+    [
+     "**1. Index Generation**",
+     "\\$O(N)\\$",
+     "\\$\\approx 36 N\\text{ bytes}\\$",
+     "Allocates `list(range(N))` in CPython"
+    ],
+    [
+     "**2. Fisher-Yates Shuffle**",
+     "\\$O(N)\\$",
+     "\\$0\\text{ bytes}\\$",
+     "In-place random pointer swapping"
+    ],
+    [
+     "**3. Sample Access**",
+     "\\$O(1)\\$",
+     "\\$0\\text{ bytes}\\$",
+     "Fast pointer index into memory"
+    ],
+    [
+     "**4. Collation Buffer**",
+     "\\$O(B \\times D)\\$",
+     "\\$4 B D\\text{ bytes}\\$",
+     "Contiguous float32 array allocated per batch"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "For \\$50,000\\$ samples: approximately \\$36 \\times 50,000 \\approx 1.8\\text{ MB}\\$ for indices, which is negligible compared to model parameters and feature tensors.\n\n### Pipeline Bottleneck Identification\n\nWe'll measure three critical metrics:\n\n1. **Throughput**: Samples processed per second\n2. **Memory Usage**: Peak memory during batch loading\n3. **Overhead**: Time spent on data vs computation\n\nThese measurements will reveal whether our pipeline is CPU-bound (slow data loading) or compute-bound (slow model)."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 173 lines of code (starting with `def analyze_dataloader_performance():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🔧 Integration: Working with Real Datasets, 📊 Systems Analysis: Data Pipeline Performance."
+   ]
+  }
+ ]
+}

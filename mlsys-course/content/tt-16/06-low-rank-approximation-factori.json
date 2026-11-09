@@ -1,0 +1,36 @@
+{
+ "title": "🏗️ Low-Rank Approximation: Factorizing a Weight Matrix",
+ "summary": "TinyTorch compression: 🏗️ Low-Rank Approximation: Factorizing a Weight Matrix",
+ "source": {
+  "chapter": "tt-16",
+  "sections": [
+   "🏗️ Low-Rank Approximation: Factorizing a Weight Matrix"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Low-Rank Approximation: Factorizing a Weight Matrix\n\nLow-rank approximation discovers that large weight matrices often contain redundant information that can be captured with much smaller matrices through mathematical decomposition.\n\n### The Intuition Behind Low-Rank Approximation\n\nImagine you're storing a massive spreadsheet where many columns are highly correlated. Instead of storing all columns separately, you could store a few \"basis\" columns and coefficients for how to combine them to recreate the original data.\n\n```\nLow-Rank Decomposition Visualization:\n\nThree stored factors for rank k = 2:\n    W (4×5) ≈ U (4×2) @ diag(S (2,)) @ V^T (2×5)\n\nParameter Reduction:\n- Original: 4 × 5 = 20 parameters\n- Compressed: (4 × 2) + 2 + (2 × 5) = 20 parameters\n- Size ratio: 20/20 = 1.0 (no savings for this small example)\n\nFor larger matrices, savings become dramatic:\n- W (1000×1000): 1M parameters\n- U (1000×100) + S (100,) + V^T (100×1000): 200,100 parameters\n- Size ratio: 0.2001 (79.99% savings)\n```\n\n### SVD: The Mathematical Foundation"
+  },
+  {
+   "type": "text",
+   "md": "Singular Value Decomposition (SVD) finds the optimal low-rank approximation by identifying the most important \"directions\" in the data:\n\n```\nSVD Decomposition:\n    W = U × Σ × V^T\n\nWhere:\n    U: Left singular vectors (input patterns)\n    Σ: Singular values (importance weights)\n    V^T: Right singular vectors (output patterns)\n\nTruncated SVD (Rank-k approximation):\n    W ≈ U[:,:k] × Σ[:k] × V^T[:k,:]\n\nQuality vs Compression Trade-off:\n    Higher k → Better approximation, less compression\n    Lower k → More compression, worse approximation\n\nChoosing Optimal Rank:\n    Method 1: Fixed ratio (k = ratio × min(m,n))\n    Method 2: Energy threshold (keep 90% of singular value energy)\n    Method 3: Error threshold (reconstruction error < threshold)\n```\n\n### When Low-Rank Works Best\n\nLow-rank approximation works well when:\n- **Matrices are large**: Compression benefits scale with size\n- **Data has structure**: Correlated patterns enable compression\n- **Moderate accuracy loss acceptable**: Some precision traded for efficiency\n\nIt works poorly when:\n- **Matrices are already small**: Overhead exceeds benefits\n- **Data is random**: No patterns to exploit\n- **High precision required**: SVD introduces approximation error"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 68 lines of code (starting with `def low_rank_approximate(`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Low-Rank Approximation\n\nThis test validates SVD-based matrix factorization for compression.\n\n**What we're testing**: Truncated SVD decomposition and reconstruction\n**Why it matters**: Enables significant parameter reduction for large matrices\n**Expected**: Correct factorization with acceptable reconstruction error"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Low-Rank Approximation: Factorizing a Weight Matrix."
+   ]
+  }
+ ]
+}

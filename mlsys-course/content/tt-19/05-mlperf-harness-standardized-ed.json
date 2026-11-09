@@ -1,0 +1,338 @@
+{
+ "title": "🏗️ MLPerf Harness: Standardized Edge Compliance",
+ "summary": "TinyTorch benchmarking: 🏗️ MLPerf Harness: Standardized Edge Compliance",
+ "source": {
+  "chapter": "tt-19",
+  "sections": [
+   "🏗️ MLPerf Harness: Standardized Edge Compliance"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ MLPerf Harness: Standardized Edge Compliance\n\nMLPerf® is a trademark of MLCommons. This module provides MLPerf-style standardized\nbenchmarks that enable fair comparison across different systems, similar to how the\nofficial MLPerf suite works for larger models. This is important for reproducible\nresearch and industry adoption.\n\n### Why Standardization Matters\n\nWithout standards, every team benchmarks differently:\n- Different datasets, input sizes, measurement protocols\n- Different accuracy metrics, latency definitions\n- Different hardware configurations, software stacks\n\nThis makes it impossible to compare results across papers, products, or research groups.\n\n### MLPerf Benchmark Architecture"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Architecture Layer",
+    "Core Responsibilities",
+    "Operational Specification"
+   ],
+   "rows": [
+    [
+     "**1. Benchmark Definition**",
+     "Standardized task configuration",
+     "Fixed input tensors, evaluation datasets, accuracy targets (\\$\\text{Acc}_{\\text{target}}\\$), latency constraints (\\$\\text{Lat}_{\\text{max}}\\$)"
+    ],
+    [
+     "**2. Execution Protocol**",
+     "Controlled measurement environment",
+     "Seeded input generation, untimed warmup iterations, monotonic interval sampling via `perf_counter`"
+    ],
+    [
+     "**3. Compliance Engine**",
+     "Objective threshold gating",
+     "Evaluates \\$\\text{Acc} \\ge \\text{Acc}_{\\text{target}} \\land \\text{Lat} \\le \\text{Lat}_{\\text{max}}\\$ to produce pass/fail verification"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Standard Benchmark Tasks\n\n**What MLPerf Tiny actually specifies, and what this module adds.** MLPerf Tiny\ndefines a **quality target** per task and then **measures** latency and energy. It\ndoes not impose a latency threshold a submission must clear; a slow submission is a\nvalid submission with a slow number. The millisecond ceilings below are **TinyTorch\nclassroom thresholds**, invented here so that `run_standard_benchmark` has something\nto gate on and you can see a pass/fail harness work. The accuracy targets are the\nreal ones.\n\n**Keyword Spotting**: Wake word detection from audio\n- Input: 1-second 16kHz audio samples\n- Task: Binary classification (keyword present/absent)\n- Quality target (MLPerf Tiny): 90% top-1 accuracy\n- Latency ceiling: <100ms *(TinyTorch classroom threshold, not an MLPerf rule)*\n\n**Visual Wake Words**: Person detection in images\n- Input: 96×96 RGB images\n- Task: Binary classification (person present/absent)\n- Quality target (MLPerf Tiny): 80% top-1 accuracy\n- Latency ceiling: <200ms *(TinyTorch classroom threshold, not an MLPerf rule)*"
+  },
+  {
+   "type": "text",
+   "md": "**Anomaly Detection**: Industrial sensor monitoring\n- Input: 640-element sensor feature vectors\n- Task: MLPerf Tiny scores this by **AUC ≥ 0.85** on an autoencoder's reconstruction\n  error, not by classification accuracy. This module simplifies it to a binary\n  accuracy ≥ 0.85 so that all four tasks share one scoring path. AUC is\n  threshold-free and accuracy is not, so the two are not interchangeable; the\n  simplification is ours\n- Latency ceiling: <50ms *(TinyTorch classroom threshold, not an MLPerf rule)*\n\n**Image Classification**: Tiny image recognition (CIFAR-10)\n- Input: 32×32 RGB images\n- Task: Multi-class classification (10 classes)\n- Quality target (MLPerf Tiny): 85% top-1 accuracy (ResNet-8 on CIFAR-10)\n- Latency ceiling: <150ms *(TinyTorch classroom threshold, not an MLPerf rule)*\n\n### Reproducibility Requirements\n\nAll MLPerf benchmarks use:\n- **Fixed random seeds**: Deterministic input generation\n- **Standardized hardware**: Reference implementations for comparison\n- **Statistical validation**: Multiple runs with confidence intervals\n- **Compliance reporting**: Machine-readable results format"
+  },
+  {
+   "type": "text",
+   "md": "### MLPerf.__init__: Configuring Standard Benchmarks\n\nThe `MLPerf` constructor sets up four standardized benchmark tasks, each with\nfixed input shapes, target accuracy, and maximum latency thresholds. Using a\nfixed random seed ensures reproducible results across different systems.\n\nThe accuracy column is MLPerf Tiny's real quality target. The latency column is a\n**TinyTorch classroom threshold**: MLPerf Tiny measures latency and does not gate on\nit, so these four ceilings exist only to give this harness something to check."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Benchmark Task",
+    "Input Tensor Shape",
+    "Domain & Modality",
+    "Accuracy Target (MLPerf Tiny)",
+    "Latency Ceiling (TinyTorch)"
+   ],
+   "rows": [
+    [
+     "`keyword_spotting`",
+     "`(1, 16000)`",
+     "1-second 16kHz audio stream",
+     "\\$\\ge 90\\%\\$",
+     "\\$< 100\\text{ ms}\\$"
+    ],
+    [
+     "`visual_wake_words`",
+     "`(1, 96, 96, 3)`",
+     "96×96 RGB vision camera",
+     "\\$\\ge 80\\%\\$",
+     "\\$< 200\\text{ ms}\\$"
+    ],
+    [
+     "`anomaly_detection`",
+     "`(1, 640)`",
+     "Multi-channel acoustic sensor",
+     "\\$\\ge 0.85\\$ **AUC** upstream, simplified to \\$\\ge 85\\%\\$ accuracy here",
+     "\\$< 50\\text{ ms}\\$"
+    ],
+    [
+     "`image_classification`",
+     "`(1, 32, 32, 3)`",
+     "32×32 CIFAR-10 RGB stream",
+     "\\$\\ge 85\\%\\$ (ResNet-8)",
+     "\\$< 150\\text{ ms}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 73 lines of code (starting with `class MLPerf:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: MLPerf.__init__\n\n**What we're testing**: Benchmark configuration setup with all four standard tasks\n**Why it matters**: Correct configurations ensure fair, standardized comparisons\n**Expected**: Four benchmarks with proper input shapes and thresholds"
+  },
+  {
+   "type": "text",
+   "md": "### MLPerf._run_latency_test: Measuring Inference Latency\n\nThis helper runs the latency measurement phase: warmup, then timed inference\nfor each test input. Returns lists of latencies (ms) and model predictions:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Test Protocol Step",
+    "Execution Action",
+    "Statistical / Systems Impact"
+   ],
+   "rows": [
+    [
+     "**Warmup Phase**",
+     "Execute \\$\\max(1, \\lfloor N / 10 \\rfloor)\\$ inputs",
+     "Heats instruction caches, registers, and memory controllers (untimed)"
+    ],
+    [
+     "**Monotonic Timing**",
+     "`with precise_timer() as timer:`",
+     "Samples userspace monotonic clock around single model invocation"
+    ],
+    [
+     "**Result Logging**",
+     "`latencies.append(timer.elapsed * 1000)`",
+     "Converts elapsed seconds to milliseconds for per-sample distribution"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _mlperf_run_latency_test(self, model: Any, test_inputs: List[Any],\n                                  benchmark_name: str, num_runs: int) -> Tuple[List[float], List[Any]]:\n    \"\"\"\n    Run latency measurement phase with warmup.\n\n    TODO: Implement warmup and measurement phases for latency testing\n\n    APPROACH:\n    1. Warmup phase: run 10% of inputs without timing\n    2. Measurement phase: time each inference with precise_timer\n    3. Use duck-typing (forward/predict/callable) for model invocation\n    4. Return latencies in ms and predictions list\n\n    HINTS:\n    - warmup_runs = max(1, num_runs // 10)\n    - Use precise_timer() context manager\n    - Convert elapsed seconds to ms: timer.elapsed * 1000\n    \"\"\"\n    # Warmup phase (10% of runs)\n    warmup_runs = max(1, num_runs // 10)\n    print(f\"   Warming up ({warmup_runs} runs)...\")\n    for i in range(warmup_runs):\n        if hasattr(model, 'forward'):\n            model.forward(test_inputs[i])\n        elif hasattr(model, 'predict'):\n            model.predict(test_inputs[i])\n        elif callable(model):\n            model(test_inputs[i])\n\n    # Measurement phase\n    print(f\"   Measuring performance ({num_runs} runs)...\")\n    latencies = []\n    predictions = []\n\n    for i, test_input in enumerate(test_inputs):\n        with precise_timer() as timer:\n            try:\n                if hasattr(model, 'forward'):\n                    output = model.forward(test_input)\n                elif hasattr(model, 'predict'):\n                    output = model.predict(test_input)\n                elif callable(model):\n                    output = model(test_input)\n                else:\n                    raise TypeError(f\"{type(model).__name__} has no forward(), predict(), or __call__ to benchmark\")\n            except Exception as exc:\n                raise RuntimeError(f\"{benchmark_name}: model failed on input {i}: {exc}\") from exc\n\n            predictions.append(output)\n\n        latencies.append(timer.elapsed * 1000)  # Convert to ms\n\n    return latencies, predictions\n\nMLPerf._run_latency_test = _mlperf_run_latency_test"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: MLPerf._run_latency_test\n\n**What we're testing**: Warmup and measurement phase execution\n**Why it matters**: Proper warmup eliminates cold-start bias in measurements\n**Expected**: Positive latency values and predictions for each input"
+  },
+  {
+   "type": "text",
+   "md": "### MLPerf._run_accuracy_test: Evaluating Prediction Quality\n\nThis helper calculates accuracy by comparing model predictions against synthetic\nground truth labels. It handles both binary classification (keyword spotting,\nvisual wake words, anomaly detection) and multi-class classification (image\nclassification).\n\nWe'll build this in two steps: first a helper to extract a clean prediction\narray from various output formats, then the accuracy calculation itself."
+  },
+  {
+   "type": "text",
+   "md": "#### Step 1: Extract Prediction Array\n\nModel outputs can be TinyTorch Tensors, numpy arrays, or plain Python objects.\nThis helper normalizes them into a flat numpy array for label extraction."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _extract_pred_array(pred) -> np.ndarray:\n    \"\"\"\n    Extract a flat numpy array from a model prediction.\n\n    Args:\n        pred: Raw prediction (Tensor, numpy array, or list)\n\n    Returns:\n        Flattened numpy array of prediction values\n\n    TODO: Normalize various prediction formats into a flat numpy array\n\n    APPROACH:\n    1. If pred has .data attribute (TinyTorch Tensor), use it\n    2. Otherwise convert to numpy array\n    3. Flatten if multi-dimensional\n    \"\"\"\n    if hasattr(pred, 'data'):\n        pred_array = pred.data\n    else:\n        pred_array = np.array(pred)\n\n    # Convert to numpy array if needed (handle memoryview objects)\n    if not isinstance(pred_array, np.ndarray):\n        pred_array = np.array(pred_array)\n\n    if len(pred_array.shape) > 1:\n        pred_array = pred_array.flatten()\n\n    return pred_array"
+  },
+  {
+   "type": "text",
+   "md": "#### Step 2: Calculate Accuracy\n\nUse _extract_pred_array to get clean predictions, then compare against\nsynthetic ground truth for binary and multi-class tasks.\n\nExpect chance-level numbers here (50% binary, 10% multi-class) when the model\nunder test has nothing to do with the synthetic labels. Resist the urge to\n\"fix\" that by nudging the score toward the compliance target. A benchmark that\nadjusts its output until the result looks plausible has stopped measuring."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 67 lines of code (starting with `def _mlperf_run_accuracy_test(self, model: Any, predictions: List[Any],`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _extract_pred_array\n\n**What we're testing**: Prediction array extraction from various output formats\n**Why it matters**: Models return Tensors, numpy arrays, or lists, and we need to handle all of them\n**Expected**: Always returns a flat numpy array regardless of input format"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: MLPerf._run_accuracy_test\n\n**What we're testing**: Accuracy calculation for binary and multi-class tasks\n**Why it matters**: Accuracy determines whether a model meets compliance thresholds\n**Expected**: Accuracy value between 0 and 1"
+  },
+  {
+   "type": "text",
+   "md": "### MLPerf.run_standard_benchmark: Complete Benchmark Execution\n\nThis method orchestrates a complete standardized benchmark: input generation,\nlatency testing, accuracy evaluation, and compliance determination. It composes\nthe `_run_latency_test` and `_run_accuracy_test` helpers into the full protocol:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Pipeline Step",
+    "Mechanism",
+    "Verification Target"
+   ],
+   "rows": [
+    [
+     "**Config Resolution**",
+     "Task lookup in `self.benchmarks`",
+     "Retrieves target accuracy and latency threshold"
+    ],
+    [
+     "**Input Synthesis**",
+     "Seeded random generation (`seed=42`)",
+     "Generates \\$N\\$ reproducible synthetic tensors or consumes empirical inputs"
+    ],
+    [
+     "**Latency Sampling**",
+     "`_run_latency_test()`",
+     "10% warmup discard, per-run latency distribution"
+    ],
+    [
+     "**Quality Evaluation**",
+     "`_run_accuracy_test()`",
+     "Top-1 accuracy score across measured predictions"
+    ],
+    [
+     "**Compliance Gating**",
+     "Threshold comparison",
+     "\\$\\text{compliant} \\iff (\\text{accuracy} \\ge \\text{target}) \\land (p_{90} \\le \\text{limit})\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Which Latency Statistic Gates, and How Many Samples It Needs\n\nThis harness is **single-stream**: one example per timed call, enforced by\n`_run_accuracy_test`. MLPerf Inference's single-stream metric is the **90th\npercentile**, so that is what the gate uses. The 99th percentile is the **server**\nscenario's rule, and borrowing it here would import a tail bound from a workload this\nharness does not run. The gated statistic and the printed statistic must be the same\none, or a reader sees a number beside a verdict it did not produce.\n\nA percentile needs samples to mean anything, and this is where classroom benchmarks\nquietly break:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Samples \\$n\\$",
+    "What `np.percentile(latencies, 99)` actually returns"
+   ],
+   "rows": [
+    [
+     "\\$3\\$",
+     "An interpolation \\$98\\%\\$ of the way from the second value to the maximum"
+    ],
+    [
+     "\\$5\\$",
+     "Essentially the maximum: for `[1, 1, 1, 1, 50]` it returns \\$48.04\\$"
+    ],
+    [
+     "\\$100\\$",
+     "The first honest estimate, and still a noisy one"
+    ],
+    [
+     "\\$\\ge 10{,}000\\$",
+     "A stable tail estimate"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The unit tests below run \\$n = 3\\$ and \\$n = 5\\$ because they test the protocol, not\nperformance. Read any percentile from them as the maximum wearing a percentile's name.\nMLPerf's server scenario mandates hundreds of thousands of queries for exactly this\nreason, and it uses a **non-interpolating order statistic** (the\n\\$\\lceil 0.99 n \\rceil\\$-th sorted sample) where `np.percentile` interpolates between\nneighbors, so the two disagree on small \\$n\\$."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 116 lines of code (starting with `def mlperf_run_standard_benchmark(self, model: Any, benchmark_name: str,`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: MLPerf.run_standard_benchmark\n\n**What we're testing**: Complete benchmark execution, and that random_seed actually controls the data\n**Why it matters**: A benchmark that prints a seed it never uses reports a number nobody can reproduce\n**Expected**: Results dict with all required metrics and compliance flags; equal seeds give identical inputs, different seeds give different ones"
+  },
+  {
+   "type": "text",
+   "md": "### MLPerf.generate_compliance_report: Scorecard Generation\n\nThe compliance report compiles results from multiple benchmarks into both\nmachine-readable JSON and human-readable markdown formats, with overall\ncompliance determination:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Report Stage",
+    "Processing Operation",
+    "Generated Artifact"
+   ],
+   "rows": [
+    [
+     "**Statistical Aggregation**",
+     "Count compliant vs non-compliant tasks",
+     "Compliance ratio: \\$\\frac{N_{\\text{compliant}}}{N_{\\text{total}}}\\$"
+    ],
+    [
+     "**Structured Output**",
+     "`_compile_report_data()`",
+     "Machine-readable JSON dictionary"
+    ],
+    [
+     "**Human-Readable Summary**",
+     "`_format_summary_markdown()`",
+     "Formatted Markdown scorecard table"
+    ],
+    [
+     "**Overall Verdict**",
+     "Evaluate unanimous compliance",
+     "Status tag: `COMPLIANT` vs `NON-COMPLIANT`"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "We will build this in two modular steps: compiling structured report data,\nthen formatting it into a human-readable summary."
+  },
+  {
+   "type": "text",
+   "md": "#### Step 1: Compile Structured Report Data\n\nProcess raw benchmark results into a structured dictionary with compliance\nstatistics, ready for JSON serialization."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 71 lines of code (starting with `def _mlperf_compile_report_data(self, results: Dict[str, Dict[str, Any]]) -> Dic`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "#### Step 2: Format Human-Readable Summary\n\nConvert structured report data into a markdown compliance summary."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _mlperf_format_compliance_summary(self, report_data: Dict[str, Any]) -> str:\n    \"\"\"\n    Format report data into a human-readable markdown summary.\n\n    Args:\n        report_data: Structured report dict from _compile_report_data\n\n    Returns:\n        Markdown-formatted summary string\n\n    TODO: Generate markdown summary from structured report data\n\n    APPROACH:\n    1. Add header with model name and date\n    2. Show overall COMPLIANT/NON-COMPLIANT status\n    3. List each benchmark with PASS/FAIL and metrics\n    \"\"\"\n    summary_lines = []\n    summary_lines.append(\"# TinyTorch Classroom Benchmark Report (not official MLPerf)\")\n    summary_lines.append(\"=\" * 40)\n    summary_lines.append(f\"Model: {report_data['model_name']}\")\n    summary_lines.append(f\"Date: {report_data['timestamp']}\")\n    summary_lines.append(\"\")\n\n    if report_data['summary']:\n        overall = report_data['summary']['overall_compliant']\n        rate = report_data['summary']['compliance_rate']\n        compliant_count = report_data['summary']['compliant_benchmarks']\n        total = report_data['summary']['total_benchmarks']\n\n        summary_lines.append(f\"## Overall Result: {'✅ COMPLIANT' if overall else '❌ NON-COMPLIANT'}\")\n        summary_lines.append(f\"Compliance Rate: {rate:.1%} ({compliant_count}/{total})\")\n        summary_lines.append(\"\")\n\n        summary_lines.append(\"## Benchmark Details:\")\n        for benchmark_name, result in report_data['benchmarks'].items():\n            status = \"✅ PASS\" if result['compliant'] else \"❌ FAIL\"\n            summary_lines.append(f\"- **{benchmark_name}**: {status}\")\n            summary_lines.append(f\"  - Accuracy: {result['accuracy']:.1%} (target: {result['target_accuracy']:.1%})\")\n            # Print the statistic the gate used (p90, single-stream), then the mean\n            # as context. Printing only the mean beside a p90 verdict leaves the\n            # reader with a passing-looking number next to FAIL and no explanation.\n            gated = result.get('p90_latency_ms')\n            gated_text = f\"{gated:.1f}ms p90\" if gated is not None else \"p90 unavailable\"\n            summary_lines.append(\n                f\"  - Latency: {gated_text} (gated, target: <{result['target_latency_ms']}ms); \"\n                f\"mean {result['mean_latency_ms']:.1f}ms\")\n            summary_lines.append(\"\")\n    else:\n        summary_lines.append(\"No successful benchmark runs.\")\n\n    return \"\\n\".join(summary_lines)\n\nMLPerf._format_compliance_summary = _mlperf_format_compliance_summary"
+  },
+  {
+   "type": "text",
+   "md": "#### Step 3: Compose the Full Compliance Report\n\nCombine data compilation, JSON serialization, and summary formatting."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def mlperf_generate_compliance_report(self, results: Dict[str, Dict[str, Any]],\n                                           output_path: str = \"mlperf_report.json\") -> str:\n    \"\"\"\n    Generate MLPerf compliance report.\n\n    TODO: Compose _compile_report_data and _format_compliance_summary\n\n    APPROACH:\n    1. Compile structured data with self._compile_report_data(results)\n    2. Save JSON report with json.dump\n    3. Format summary with self._format_compliance_summary(report_data)\n    4. Save summary markdown alongside JSON\n    \"\"\"\n    # Compile structured report data\n    report_data = self._compile_report_data(results)\n\n    # Save JSON report\n    with open(output_path, 'w', encoding='utf-8') as f:\n        json.dump(report_data, f, indent=2)\n\n    # Generate and save human-readable summary\n    summary_text = self._format_compliance_summary(report_data)\n\n    summary_path = output_path.replace('.json', '_summary.md')\n    with open(summary_path, 'w', encoding='utf-8') as f:\n        f.write(summary_text)\n\n    print(f\"📄 MLPerf report saved to {output_path}\")\n    print(f\"📄 Summary saved to {summary_path}\")\n\n    return summary_text\n\nMLPerf.generate_compliance_report = mlperf_generate_compliance_report"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: MLPerf._compile_report_data\n\n**What we're testing**: Structured data compilation from raw benchmark results\n**Why it matters**: Correct data structure is the foundation for both JSON and markdown reports\n**Expected**: Dict with benchmarks, summary, compliance stats"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: MLPerf._format_compliance_summary\n\n**What we're testing**: Markdown summary generation from structured report data\n**Why it matters**: Human-readable reports are what engineers actually read\n**Expected**: Markdown string with COMPLIANT/NON-COMPLIANT status and benchmark details"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: MLPerf (Full Class Integration)\n\nThis test validates our MLPerf class provides standardized benchmarking\nwith proper compliance reporting.\n\n**What we're testing**: Industry-standard benchmark protocols and compliance reporting\n**Why it matters**: Standardized benchmarks enable fair cross-system comparison\n**Expected**: Proper metrics, compliance checking, and report generation"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ MLPerf Harness: Standardized Edge Compliance."
+   ]
+  }
+ ]
+}

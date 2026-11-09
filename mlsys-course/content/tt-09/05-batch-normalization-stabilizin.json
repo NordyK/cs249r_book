@@ -1,0 +1,108 @@
+{
+ "title": "🏗️ Batch Normalization: Stabilizing Deep Network Training",
+ "summary": "TinyTorch convolutions: 🏗️ Batch Normalization: Stabilizing Deep Network Training",
+ "source": {
+  "chapter": "tt-09",
+  "sections": [
+   "🏗️ Batch Normalization: Stabilizing Deep Network Training"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Batch Normalization: Stabilizing Deep Network Training\n\nBatch Normalization (`BatchNorm2d`) stabilizes the optimization landscape of deep convolutional networks. By standardizing activations to zero mean and unit variance across the mini-batch and spatial dimensions, it smooths the optimization landscape and allows substantially higher learning rates. The original paper credited reduced \"internal covariate shift\" for that gain, but Santurkar et al. (2018) showed experimentally that the reduction does not account for it, so read the phrase as the historical explanation rather than the mechanism.\n\n### The BatchNorm2d Formulation\n\nFor each feature channel \\$c \\in \\{0, \\dots, C-1\\}\\$, across a mini-batch \\$\\mathcal{B}\\$ of size \\$N = B \\times H \\times W\\$:\n\n1. **Mini-Batch Statistics** (evaluated during training):\n   \\$\\$\\mu_c = \\frac{1}{N} \\sum_{b=1}^B \\sum_{h=1}^H \\sum_{w=1}^W x_{b, c, h, w}, \\qquad \\sigma_c^2 = \\frac{1}{N} \\sum_{b=1}^B \\sum_{h=1}^H \\sum_{w=1}^W (x_{b, c, h, w} - \\mu_c)^2\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "2. **Standardization**:\n   \\$\\$\\widehat{x}_{b, c, h, w} = \\frac{x_{b, c, h, w} - \\mu_c}{\\sqrt{\\sigma_c^2 + \\epsilon}}\\$\\$\n\n3. **Affine Transformation** (learnable scale \\$\\gamma_c\\$ and shift \\$\\beta_c\\$):\n   \\$\\$y_{b, c, h, w} = \\gamma_c \\widehat{x}_{b, c, h, w} + \\beta_c\\$\\$\n\n4. **Running Statistics Tracking** (exponential moving average):\n   \\$\\$\\mu_{\\text{run}} \\leftarrow (1 - \\alpha) \\mu_{\\text{run}} + \\alpha \\mu_c, \\qquad \\sigma_{\\text{run}}^2 \\leftarrow (1 - \\alpha) \\sigma_{\\text{run}}^2 + \\alpha \\sigma_c^2\\$\\$\n\n---\n\n### Train vs Eval Mode: A Critical Systems Distinction"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Operational Attribute",
+    "Training Mode (`model.train()`)",
+    "Evaluation Mode (`model.eval()`)"
+   ],
+   "rows": [
+    [
+     "**Statistics Used**",
+     "Current mini-batch statistics \\$\\mu_c, \\sigma_c^2\\$",
+     "Accumulated running statistics \\$\\mu_{\\text{run}}, \\sigma_{\\text{run}}^2\\$"
+    ],
+    [
+     "**Running Stats Update**",
+     "Updated dynamically via exponential moving average",
+     "Frozen, strictly read-only"
+    ],
+    [
+     "**Sample Coupling**",
+     "Predictions depend on other samples in the batch",
+     "Each sample is normalized independently"
+    ],
+    [
+     "**Single-Sample (\\$B=1\\$)**",
+     "Statistics describe one image rather than the data distribution, so they swing sample to sample",
+     "Fully deterministic and mathematically stable"
+    ],
+    [
+     "**Backward Pass Path**",
+     "3 coupled gradient paths through \\$\\mu\\$ and \\$\\sigma^2\\$",
+     "1 direct path: \\$\\frac{\\partial \\mathcal{L}}{\\partial x} = \\frac{\\gamma}{\\sigma_{\\text{run}}} \\frac{\\partial \\mathcal{L}}{\\partial y}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The \\$B=1\\$ row is usually justified by saying the variance across the batch is zero. That holds for `BatchNorm1d` on vectors, which have no spatial extent to reduce over. It does not hold here. This layer reduces over axes \\$(0, 2, 3)\\$, so at \\$B=1\\$ a single \\$8 \\times 8\\$ feature map still supplies \\$N = 1 \\cdot 8 \\cdot 8 = 64\\$ samples per channel, the per-channel variance is perfectly finite, and the output comes out with unit standard deviation exactly as it should. The real problem is different and no less fatal. Those statistics characterize one image rather than the data distribution, so a bright image and a dark one get divided by different constants and the network sees neither the way it was trained to see it. Eval mode fixes that by normalizing every sample with the same frozen running statistics, which is why single-sample inference always runs in eval mode."
+  },
+  {
+   "type": "text",
+   "md": "### The Backward Pass: Three Coupled Gradient Routes\n\nIn training mode, the statistics \\$\\mu_c\\$ and \\$\\sigma_c^2\\$ are functions of every input element \\$x_i\\$ in channel \\$c\\$. Consequently, perturbing an input pixel affects the output through three distinct pathways:\n\n1. **Direct Path**: Perturbation propagating directly through standardized \\$\\widehat{x}_i\\$.\n2. **Mean Path**: Perturbation shifting the batch mean \\$\\mu_c\\$, which shifts all normalized activations.\n3. **Variance Path**: Perturbation altering the sample variance \\$\\sigma_c^2\\$, which rescales all activations.\n\nSumming all three partial derivatives yields the closed-form gradient w.r.t. input \\$x_i\\$:\n\n\\$\\$\\frac{\\partial \\mathcal{L}}{\\partial x_i} = \\frac{\\gamma}{N \\sqrt{\\sigma_c^2 + \\epsilon}} \\left[ N \\frac{\\partial \\mathcal{L}}{\\partial \\widehat{x}_i} - \\sum_{j=1}^N \\frac{\\partial \\mathcal{L}}{\\partial \\widehat{x}_j} - \\widehat{x}_i \\sum_{j=1}^N \\left( \\frac{\\partial \\mathcal{L}}{\\partial \\widehat{x}_j} \\cdot \\widehat{x}_j \\right) \\right]\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "In **eval mode**, the running statistics are frozen constants. The mean and variance paths contribute zero gradient, and the expression collapses to:\n\n\\$\\$\\frac{\\partial \\mathcal{L}}{\\partial x_i} = \\frac{\\gamma}{\\sqrt{\\sigma_{\\text{run}}^2 + \\epsilon}} \\cdot \\frac{\\partial \\mathcal{L}}{\\partial y_i}\\$\\$"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class BatchNorm2dFunction(Function):\n    \"\"\"\n    The BatchNorm2d operation: normalize with the given statistics, then scale and shift.\n\n    Computes gradients for x, gamma, and beta in one pass.\n    output = gamma * ((x - mean) / sqrt(var + eps)) + beta\n\n    In training mode the batch statistics depend on x, so the gradient for x\n    carries three terms. In eval mode the statistics are frozen constants and\n    only the direct term survives.\n    \"\"\"\n\n    def forward(self, x: np.ndarray, gamma: np.ndarray, beta: np.ndarray) -> np.ndarray:\n        \"\"\"Normalize with self.mean / self.var (chosen by the layer), then scale and shift.\"\"\"\n        channels = x.shape[1]\n        mean_reshaped = np.asarray(self.mean).reshape(1, channels, 1, 1)\n        var_reshaped = np.asarray(self.var).reshape(1, channels, 1, 1)\n        # Keep 1/std: the forward needs it, and so does every term of the backward\n        self.inv_std = 1.0 / np.sqrt(var_reshaped + self.eps)\n        self.normalized_data = (np.asarray(x) - mean_reshaped) * self.inv_std\n        gamma_reshaped = np.asarray(gamma).reshape(1, channels, 1, 1)\n        beta_reshaped = np.asarray(beta).reshape(1, channels, 1, 1)\n        return gamma_reshaped * self.normalized_data + beta_reshaped\n\n\n    def backward(self, grad_output: np.ndarray) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:\n        \"\"\"Compute gradients for BatchNorm2d (x, gamma, beta).\"\"\"\n        x, gamma, beta = self.inputs\n\n        grad_x = grad_gamma = grad_beta = None\n        normalized = self.normalized_data\n        reduce_axes = (0, 2, 3)   # everything except the channel axis\n\n        # Gradient for beta: it was added to every position, so sum them all back\n        if isinstance(beta, Tensor) and beta.requires_grad:\n            grad_beta = grad_output.sum(axis=reduce_axes)\n\n        # Gradient for gamma: it scaled the normalized values\n        if isinstance(gamma, Tensor) and gamma.requires_grad:\n            grad_gamma = (grad_output * normalized).sum(axis=reduce_axes)\n\n        # Gradient for x\n        if isinstance(x, Tensor) and x.requires_grad:\n            gamma_data = gamma.data if isinstance(gamma, Tensor) else gamma\n            channels = normalized.shape[1]\n            grad_norm = grad_output * np.asarray(gamma_data).reshape(1, channels, 1, 1)\n\n            if self.training:\n                # Batch statistics depend on x, so all three paths contribute.\n                n = normalized.shape[0] * normalized.shape[2] * normalized.shape[3]\n                sum_grad = grad_norm.sum(axis=reduce_axes, keepdims=True)\n                sum_grad_norm = (grad_norm * normalized).sum(axis=reduce_axes, keepdims=True)\n                grad_x = (self.inv_std / n) * (\n                    n * grad_norm - sum_grad - normalized * sum_grad_norm\n                )\n            else:\n                # Frozen statistics are constants: only the direct path survives.\n                grad_x = grad_norm * self.inv_std\n\n        return (grad_x, grad_gamma, grad_beta)"
+  },
+  {
+   "type": "text",
+   "md": "### BatchNorm2d: The Layer Architecture\n\nThe `BatchNorm2d` layer manages two learnable parameter tensors (`gamma`, `beta`) and maintains two stateful running buffers (`running_mean`, `running_var`).\n\n- **Training**: Computes mini-batch statistics across axes \\$(0, 2, 3)\\$, standardizes, and updates running statistics via EMA (\\$\\text{momentum} = 0.1\\$).\n- **Inference (`eval`)**: Freezes all running statistics, standardizing inputs deterministically with zero batch coupling.\n\nThis layer deviates from PyTorch in one place worth knowing about. `running_var` here accumulates the *biased* batch variance, \\$\\frac{1}{N} \\sum (x - \\mu)^2\\$, which is what `np.var` returns, while `torch.nn.BatchNorm2d` accumulates the *unbiased* estimate with \\$\\frac{1}{N-1}\\$. The two differ by a factor of \\$\\frac{N}{N-1}\\$, invisible at the \\$N = B \\cdot H \\cdot W\\$ in the thousands that a real feature map gives you, and worth a few percent at toy sizes. Load a PyTorch checkpoint into this layer and the eval-mode outputs drift by \\$\\sqrt{\\frac{N}{N-1}}\\$, since the variance enters through a square root."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 183 lines of code (starting with `class BatchNorm2d:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: BatchNorm2d._validate_input\n\n**What we're testing**: Input shape validation catches common mistakes\n**Why it matters**: Clear errors save hours of debugging wrong tensor shapes\n**Expected**: Accepts valid 4D input, rejects 2D/3D/wrong channels with helpful messages"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: BatchNorm2d._get_stats\n\n**What we're testing**: Statistics computation in training vs eval mode\n**Why it matters**: Wrong statistics = wrong normalization = broken model\n**Expected**: Training mode computes batch stats and updates running stats; eval mode uses frozen stats"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: BatchNorm2d\n\nThis test validates batch normalization implementation.\n\n**What we're testing**: Normalization behavior, train/eval mode, running statistics\n**Why it matters**: BatchNorm is essential for training deep CNNs effectively\n**Expected**: Normalized outputs with proper mean/variance characteristics"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: BatchNorm2d Gradients\n\n**What we're testing**: That gamma and beta receive gradients, and that the\nanalytic backward matches a numerical estimate\n**Why it matters**: BatchNorm's parameters are handed to the optimizer. If no\ngradient reaches them the layer looks fine, trains fine, and learns nothing.\nThe failure is invisible from the forward pass alone\n**Expected**: Non-None gradients of the right shape, matching finite differences"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Pooling Operations\n\nThis test validates both max and average pooling implementations.\n\n**What we're testing**: Dimension reduction, aggregation correctness\n**Why it matters**: Pooling is essential for computational efficiency in CNNs\n**Expected**: Correct output shapes and proper value aggregation"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Batch Normalization: Stabilizing Deep Network Training."
+   ]
+  }
+ ]
+}

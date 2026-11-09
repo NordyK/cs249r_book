@@ -1,0 +1,199 @@
+{
+ "title": "📐 Foundations: The Science of Benchmarking",
+ "summary": "TinyTorch capstone: 📐 Foundations: The Science of Benchmarking",
+ "source": {
+  "chapter": "tt-20",
+  "sections": [
+   "📐 Foundations: The Science of Benchmarking"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: The Science of Benchmarking\n\nBefore we build our submission system, let's understand what makes a good benchmark and why standardized reporting matters.\n\n### The Three Pillars of Good Benchmarking"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Pillar",
+    "Operational Principle",
+    "Required Controls",
+    "Systems Failure Mode Prevented"
+   ],
+   "rows": [
+    [
+     "**Repeatability**",
+     "Identical inputs produce statistically consistent distributions",
+     "Seeded PRNG (`default_rng(7)`), fixed datasets, many trials (\\$N=100\\$ by default, lowered to 10 or 50 in this module's demos so a notebook run stays quick)",
+     "Single-run outlier distortion (GC pauses, OS jitter)"
+    ],
+    [
+     "**Comparability**",
+     "Fair apples-to-apples evaluation across model variants",
+     "Identical hardware platform, shared evaluation sets",
+     "Incomparable heterogeneous execution environments"
+    ],
+    [
+     "**Completeness**",
+     "Multi-dimensional characterization",
+     "Quality, Latency, Memory, Throughput",
+     "Blind optimization sacrificing latency for parameter size"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### What Metrics Actually Matter?\n\nDifferent engineering stakeholders care about distinct system dimensions:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Engineering Persona",
+    "Primary Metric",
+    "Secondary Metric",
+    "Production SLA Focus"
+   ],
+   "rows": [
+    [
+     "**ML Researcher**",
+     "Task accuracy (\\$\\text{Top-1}\\$), \\$F_1\\$, BLEU",
+     "Training epochs, loss convergence",
+     "Generalization and model capacity"
+    ],
+    [
+     "**Systems Engineer**",
+     "Latency (\\$p_{50}, p_{99}\\$ tail), throughput",
+     "Allocator peak memory, cache misses",
+     "Real-time interactive deadlines (\\$< 100\\text{ ms}\\$)"
+    ],
+    [
+     "**Product Manager**",
+     "End-to-end user perceived latency",
+     "Cloud infrastructure cost per query",
+     "Retention, conversion, and service reliability"
+    ],
+    [
+     "**DevOps / MLOps**",
+     "Binary artifact footprint (MB), DRAM RSS",
+     "Concurrency headroom, thermal throttle",
+     "Resource density in serverless or edge silicon"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Key Insight**: A complete benchmark captures ALL perspectives, not just one.\n\n### Benchmark Report Components\n\nOur `BenchmarkReport` class tracks everything required for end-to-end reproducibility:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Metadata Category",
+    "Tracked Attributes",
+    "Systems Role"
+   ],
+   "rows": [
+    [
+     "**Model Characteristics**",
+     "`parameter_count`, `model_size_mb`",
+     "Parameter storage and hardware memory footprint"
+    ],
+    [
+     "**Inference Latency**",
+     "`latency_ms_mean`, `latency_ms_std`, `latency_ms_median`",
+     "Execution speed and statistical dispersion across runs"
+    ],
+    [
+     "**Tail Latency**",
+     "`latency_ms_p95`, `latency_ms_p99`",
+     "The percentiles an SLA is written against, from Module 19's `BenchmarkResult`"
+    ],
+    [
+     "**Throughput**",
+     "`throughput` (\\$\\text{samples}/\\text{sec}\\$)",
+     "Batch processing capacity under sustained load"
+    ],
+    [
+     "**Model Quality**",
+     "`accuracy` (\\$\\% \\text{ or ratio}\\$)",
+     "Preservation of functional predictive accuracy"
+    ],
+    [
+     "**System Context**",
+     "Platform, processor, Python / NumPy version, timestamp",
+     "Exact hardware and software environment for reproducibility"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Latency vs. Throughput: A Critical Distinction\n\nMany engineers conflate latency and throughput. They quantify distinct physical characteristics:\n\n\\$\\$\\text{Latency} = T_{\\text{batch}=1} \\quad [\\text{ms}]\\$\\$\n\n\\$\\$\\text{Throughput} = \\frac{N_{\\text{batch}}}{T_{\\text{batch}}} \\quad \\left[\\frac{\\text{samples}}{\\text{second}}\\right]\\$\\$\n\nBy Little's Law, the maximum concurrency \\$L\\$ that an engine can sustain without queuing delay is:\n\n\\$\\$L = \\text{Throughput} \\times \\text{Latency}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Performance Metric",
+    "Physical Definition",
+    "Primary Use Case",
+    "Scaling Behavior"
+   ],
+   "rows": [
+    [
+     "**Latency (\\$T_1\\$)**",
+     "Time to process a single sample from arrival to return",
+     "Interactive web APIs, autonomous control, robotics",
+     "Bounded by memory bandwidth and kernel launch latency"
+    ],
+    [
+     "**Throughput (\\$\\Phi\\$)**",
+     "Total input samples evaluated per unit time",
+     "Offline indexing, batch inference, dataset preprocessing",
+     "Scales with tensor parallelism and larger GEMM tile sizes"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Because the two pull in opposite directions, `BenchmarkReport` measures them with two different calls: latency times `model.forward` on one sample, and throughput times `model.forward` on the whole test batch and divides the batch size by that time. Deriving one from the other (\\$1000 / \\text{latency\\_ms}\\$) would erase exactly the trade-off this relationship exposes.\n\n### Why Variance Matters\n\nSingle measurements lie. Reporting statistical dispersion reveals true system predictability:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Measurement Sequence",
+    "Individual Trials (ms)",
+    "Mean (\\$\\mu\\$)",
+    "Standard Deviation (\\$s\\$)",
+    "Production Assessment"
+   ],
+   "rows": [
+    [
+     "**Engine A (Consistent)**",
+     "\\$9.2, 10.1, 9.8, 10.5, 10.4\\$",
+     "\\$10.0\\text{ ms}\\$",
+     "\\$0.5\\text{ ms}\\$",
+     "Predictable real-time compliance; low tail jitter"
+    ],
+    [
+     "**Engine B (Erratic)**",
+     "\\$5.2, 14.8, 8.1, 15.3, 6.6\\$",
+     "\\$10.0\\text{ ms}\\$",
+     "\\$4.2\\text{ ms}\\$",
+     "Unacceptable tail spikes; causes frame drops and timeouts"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Which model would you deploy?** Engine A, because deterministic execution is essential for production SLAs.\n\n### The Submission Schema: Enforcing Standards\n\nOur submission format follows a schema, enforced by `validate_submission_schema`, that ensures:\n- **Required fields** can't be omitted (no incomplete results)\n- **Type safety** prevents errors (accuracy is float, not string)\n- **Version tracking** allows format evolution\n- **Nested structure** organizes related data logically\n\n```\nSubmission schema (the fields validate_submission_schema requires):\n{\n  \"tinytorch_version\": \"0.1.0\",           ← Version tracking\n  \"submission_type\": \"capstone_benchmark\", ← Classification\n  \"timestamp\": \"2025-01-15 14:30:00\",     ← When run\n  \"system_info\": {                         ← Environment\n    \"platform\": \"macOS-14.0-arm64\",\n    \"python_version\": \"3.11.0\",\n    \"numpy_version\": \"1.24.0\"\n  },\n  \"baseline\": {                            ← Required baseline\n    \"model_name\": \"simple_mlp\",\n    \"metrics\": {\n      \"parameter_count\": 1000,\n      \"model_size_mb\": 0.004,            ← MB (bytes / 10**6)\n      \"accuracy\": 0.92,\n      \"latency_ms_mean\": 0.15,           ← single sample\n      \"latency_ms_std\": 0.02,\n      \"latency_ms_median\": 0.14,\n      \"latency_ms_p95\": 0.21,            ← the tail an SLA is written against\n      \"latency_ms_p99\": 0.34,\n      \"throughput_samples_per_sec\": 95238.1\n    }\n  },\n  \"optimized\": {                           ← Optional optimization\n    \"model_name\": \"quantized_mlp\",\n    \"metrics\": { ... },\n    \"techniques_applied\": [\"int8_quantization\", \"pruning\"]\n  },\n  \"improvements\": {                        ← Auto-calculated; < 1.0 is a regression\n    \"speedup\": 2.3,\n    \"compression_ratio\": 4.1,\n    \"accuracy_delta\": -0.01\n  }\n}\n```\n\nNote that `throughput_samples_per_sec` is not \\$1000 / \\text{latency\\_ms\\_mean}\\$, which would be \\$6{,}667\\$ here rather than \\$95{,}238\\$. The two come from two separate measurements. A derived throughput would erase the batching effect instead of reporting it."
+  },
+  {
+   "type": "text",
+   "md": "This structure makes it trivial to:\n- **Validate** submissions programmatically\n- **Compare** different models objectively\n- **Aggregate** results across the community\n- **Visualize** trends and trade-offs\n\nNow let's build it!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 📐 Foundations: The Science of Benchmarking."
+   ]
+  }
+ ]
+}

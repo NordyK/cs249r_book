@@ -1,0 +1,68 @@
+{
+ "title": "📐 Foundations: Understanding the Autoregressive Generation Problem",
+ "summary": "TinyTorch memoization: 📐 Foundations: Understanding the Autoregressive Generation P",
+ "source": {
+  "chapter": "tt-18",
+  "sections": [
+   "📐 Foundations: Understanding the Autoregressive Generation Problem"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: Understanding the Autoregressive Generation Problem\n\n### The Core Inefficiency\n\nWhen generating text token by token, causal transformers face a fundamental computational bottleneck. Let us analyze what occurs during naive generation without memoization:\n\nAt autoregressive decoding step \\$t\\$, the model processes an incoming prompt or previous generated token \\$\\mathbf{x}_t \\in \\mathbb{R}^{1 \\times d_{\\text{model}}}\\$. Without caching, the model must re-feed the entire historical context \\$\\mathbf{X}_{1:t} = [\\mathbf{x}_1; \\mathbf{x}_2; \\dots; \\mathbf{x}_t] \\in \\mathbb{R}^{t \\times d_{\\text{model}}}\\$ through all transformer layers:\n\n\\$\\$\\mathbf{Q}_{1:t} = \\mathbf{X}_{1:t} \\mathbf{W}_Q, \\quad \\mathbf{K}_{1:t} = \\mathbf{X}_{1:t} \\mathbf{W}_K, \\quad \\mathbf{V}_{1:t} = \\mathbf{X}_{1:t} \\mathbf{W}_V\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\text{Attention}(\\mathbf{Q}_{1:t}, \\mathbf{K}_{1:t}, \\mathbf{V}_{1:t}) = \\text{softmax}\\left(\\frac{\\mathbf{Q}_{1:t} \\mathbf{K}_{1:t}^T}{\\sqrt{d_k}} + \\mathbf{M}_{\\text{causal}}\\right) \\mathbf{V}_{1:t}\\$\\$\n\nNotice that the \\$i\\$-th row of \\$\\mathbf{K}_{1:t}\\$ and \\$\\mathbf{V}_{1:t}\\$ (for any prior step \\$i < t\\$) is mathematically identical to what was computed at step \\$i\\$:\n\n\\$\\$\\mathbf{k}_i = \\mathbf{x}_i \\mathbf{W}_K \\in \\mathbb{R}^{1 \\times d_k}, \\quad \\mathbf{v}_i = \\mathbf{x}_i \\mathbf{W}_V \\in \\mathbb{R}^{1 \\times d_v}\\$\\$\n\nBecause weight matrices \\$\\mathbf{W}_K, \\mathbf{W}_V\\$ and token representations \\$\\mathbf{x}_i\\$ are static during inference, recomputing historical keys and values at step \\$t\\$ performs 100% redundant matrix multiplications.\n\n### Computational Complexity Analysis\n\nLet \\$S\\$ denote the total sequence length. Across \\$S\\$ generation steps, the cumulative number of key and value vector projections computed under naive execution is:"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\mathcal{N}_{\\text{naive}}(S) = \\sum_{t=1}^S t = \\frac{S(S+1)}{2} \\approx \\frac{1}{2} S^2 \\in \\mathcal{O}(S^2)\\$\\$\n\nFor a sequence of \\$S = 100\\$ tokens:\n\\$\\$\\mathcal{N}_{\\text{naive}}(100) = \\frac{100 \\times 101}{2} = 5,050 \\text{ projections}\\$\\$\n\nOnly \\$100\\$ projections are mathematically necessary (one per token). The remaining \\$4,950\\$ projections (\\$98.02\\%\\$ of all projection FLOPs) are redundant recomputation!\n\n### The Key-Value Caching Insight\n\nBy caching \\$\\mathbf{K}_{1:t-1}\\$ and \\$\\mathbf{V}_{1:t-1}\\$ from prior steps in high-speed GPU/CPU memory, step \\$t\\$ only needs to project the single newest token:\n\n\\$\\$\\mathbf{q}_t = \\mathbf{x}_t \\mathbf{W}_Q \\in \\mathbb{R}^{1 \\times d_k}, \\quad \\mathbf{k}_t = \\mathbf{x}_t \\mathbf{W}_K \\in \\mathbb{R}^{1 \\times d_k}, \\quad \\mathbf{v}_t = \\mathbf{x}_t \\mathbf{W}_V \\in \\mathbb{R}^{1 \\times d_v}\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "The new key \\$\\mathbf{k}_t\\$ and value \\$\\mathbf{v}_t\\$ are appended in-place to pre-allocated buffers:\n\n\\$\\$\\mathbf{K}_{1:t} = \\begin{bmatrix} \\mathbf{K}_{\\text{cached}} \\\\ \\mathbf{k}_t \\end{bmatrix} \\in \\mathbb{R}^{t \\times d_k}, \\quad \\mathbf{V}_{1:t} = \\begin{bmatrix} \\mathbf{V}_{\\text{cached}} \\\\ \\mathbf{v}_t \\end{bmatrix} \\in \\mathbb{R}^{t \\times d_v}\\$\\$\n\nAttention scoring simplifies from matrix-matrix multiplication to vector-matrix multiplication:\n\n\\$\\$\\mathbf{a}_t = \\text{softmax}\\left(\\frac{\\mathbf{q}_t \\mathbf{K}_{1:t}^T}{\\sqrt{d_k}}\\right) \\in \\mathbb{R}^{1 \\times t}\\$\\$\n\n\\$\\$\\mathbf{o}_t = \\mathbf{a}_t \\mathbf{V}_{1:t} \\in \\mathbb{R}^{1 \\times d_v}\\$\\$\n\nThe total projection complexity collapses to:\n\n\\$\\$\\mathcal{N}_{\\text{cached}}(S) = \\sum_{t=1}^S 1 = S \\in \\mathcal{O}(S)\\$\\$\n\n### Memory vs Compute Trade-Off Analysis"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Execution Model",
+    "Persistent KV Storage",
+    "Projection FLOPs (\\$S\\$ tokens)",
+    "Attention Score FLOPs (\\$S\\$ tokens)",
+    "Recomputation Redundancy"
+   ],
+   "rows": [
+    [
+     "**Naive (No Cache)**",
+     "\\$\\mathbf{0} \\text{ bytes}\\$ (stateless)",
+     "\\$\\frac{S(S+1)}{2} \\cdot 4 d_{\\text{model}} d_k \\in \\mathcal{O}(S^2)\\$",
+     "\\$\\sum_{t=1}^S t^2 \\approx \\frac{1}{3} S^3 \\in \\mathcal{O}(S^3)\\$",
+     "\\$1 - \\frac{2}{S+1} \\approx 98\\%\\$ wasted FLOPs"
+    ],
+    [
+     "**Cached (`KVCache`)**",
+     "\\$2 \\cdot L \\cdot B \\cdot H \\cdot S_{\\max} \\cdot d_k \\cdot 4 \\text{ B}\\$",
+     "\\$S \\cdot 4 d_{\\text{model}} d_k \\in \\mathcal{O}(S)\\$",
+     "\\$\\sum_{t=1}^S t = \\frac{S(S+1)}{2} \\in \\mathcal{O}(S^2)\\$",
+     "**0% redundant projection FLOPs**"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Why a Decode Step Is Bound by Bytes, Not FLOPs\n\nOne more fact decides how much the cache is actually worth. A decode step emits a single token, and to emit it the processor must read the *entire* weight set out of DRAM: every projection matrix and every MLP matrix, in every layer. That is hundreds of megabytes of traffic against a few megaflops of arithmetic, so the step finishes when the bytes arrive, not when the ALUs are done. Decoding is memory-bandwidth-bound, while the prefill of a long prompt, which reuses each loaded weight across many tokens, is compute-bound."
+  },
+  {
+   "type": "text",
+   "md": "The cache therefore removes redundant *bytes moved* as much as redundant FLOPs, and that is why its measured payoff is far smaller than its operation counts. The 📊 analysis at the end of this module makes the gap visible: the attention score-pair ratio climbs from \\$8.8\\times\\$ to roughly \\$69\\times\\$ while the measured wall-clock speedup only moves from \\$1.2\\times\\$ to a little over \\$2\\times\\$. Nothing is wrong with either number. The ratio counts arithmetic the cache eliminates; the clock also pays for weight reads, the MLP, prefix copies, and Python interpreter overhead, none of which the cache touches.\n\n**Systems Takeaway**: DRAM *capacity* is the cheap resource; DRAM *bandwidth* is the scarce one and DRAM *latency* is the wall. Trading \\$\\mathcal{O}(S)\\$ persistent cache capacity for a large reduction in redundant bytes and FLOPs per token is the standard architecture of LLM serving."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 📐 Foundations: Understanding the Autoregressive Generation Problem."
+   ]
+  }
+ ]
+}

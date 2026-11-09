@@ -1,0 +1,68 @@
+{
+ "title": "Module 05: DataLoader - Efficient Data Pipeline for ML Training",
+ "summary": "TinyTorch dataloader: Module 05: DataLoader - Efficient Data Pipeline for ML Train",
+ "source": {
+  "chapter": "tt-05",
+  "sections": [
+   "Module 05: DataLoader - Efficient Data Pipeline for ML Training"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 05: DataLoader - Efficient Data Pipeline for ML Training\n\nWelcome to Module 05! You're about to build the data loading infrastructure that transforms how ML models consume data during training.\n\n## 🔗 Prerequisites & Progress\n- **You've Built**: Tensor operations, activations, layers, and losses\n- **You'll Build**: Dataset abstraction, DataLoader with batching/shuffling, and real dataset support\n- **You'll Enable**: Efficient data pipelines that feed neural networks with properly formatted batches\n\n\n  \n\n\n\\$\\$\\underbrace{\\text{Losses}}_{\\text{Mod 04}} \\longrightarrow \\mathbf{\\underbrace{\\text{DataLoader}}_{\\text{Mod 05 (Active)}}} \\longrightarrow \\underbrace{\\text{Autograd}}_{\\text{Mod 06}} \\longrightarrow \\underbrace{\\text{Optimizers}}_{\\text{Mod 07}} \\longrightarrow \\underbrace{\\text{Training}}_{\\text{Mod 08}}\\$\\$\n\n## 🎯 Learning Objectives\nBy the end of this module, you will:\n1. Understand the data pipeline: individual samples → batches → training\n2. Implement Dataset abstraction and TensorDataset for tensor-based data\n3. Build DataLoader with intelligent batching, shuffling, and memory-efficient iteration\n4. Experience data pipeline performance characteristics firsthand\n5. Apply augmentation transforms (flip, crop) inside the data pipeline\n\nLet's transform scattered data into organized learning batches!\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/05_dataloader/dataloader.ipynb`\n**Building Side:** Code exports to `tinytorch.core.dataloader`\n\n```python\n# How to use this module:\nfrom tinytorch.core.dataloader import Dataset, DataLoader, TensorDataset\n# Real data: datasets/tinydigits/ ships with TinyTorch; milestones/data_manager.py\n# downloads MNIST and CIFAR-10 for the milestones.\n```\n\n**Why this matters:**\n- **Learning:** Complete data loading system in one focused module for deep understanding\n- **Production:** Proper organization like PyTorch's `torch.utils.data` with all core data utilities\n- **Efficiency:** Optimized data pipelines are crucial for training speed and memory usage\n- **Integration:** Works seamlessly with training loops to create complete ML systems"
+  },
+  {
+   "type": "text",
+   "md": "## 📋 Module Dependencies\n\n**Prerequisites**: Module 01 (Tensor) must be complete\n\n**External Dependencies**:\n- `numpy` (for array operations and numerical computing)\n- `random` (for shuffling indices)\n- `abc` (for abstract base class)\n- `typing` (for type hints)\n- `sys` and `time` (for the memory and timing measurements in the analysis cells)\n\n**TinyTorch Dependencies**:\n- `tinytorch.core.tensor.Tensor` (foundation from Module 01)\n\n**Dependency Flow**:\n\\$\\$\\begin{array}{ccc}\n\\mathbf{\\text{Module 01: Tensor}} & \\longrightarrow & \\mathbf{\\text{Module 05: DataLoader}} \\\\\n\\downarrow & & \\downarrow \\\\\n\\textit{Multi-dimensional array engine} & & \\textit{Batched, shuffled iterator}\n\\end{array}\\$\\$\n\nStudents completing this module will have built the data loading\ninfrastructure that powers all training in TinyTorch."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "# Essential imports for data loading\nimport random\nimport sys\nimport time\nfrom abc import ABC, abstractmethod\nfrom typing import Callable, Iterator, List, Optional, Tuple, Union\n\nimport numpy as np\nrng = np.random.default_rng(7)\n\n# Import real Tensor class from tinytorch package\nfrom tinytorch.core.tensor import Tensor"
+  },
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: Understanding the Data Pipeline\n\nBefore we implement anything, let's understand what happens when neural networks \"eat\" data. The journey from raw data to trained models follows a specific pipeline that every ML engineer must master.\n\n### The Data Pipeline Journey\n\nImagine you have 50,000 images of cats and dogs, and you want to train a neural network to classify them:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Stage",
+    "Component",
+    "Responsibility",
+    "Memory & I/O Characteristic"
+   ],
+   "rows": [
+    [
+     "**1. Dataset Interface**",
+     "`Dataset`",
+     "Point-wise random access via `__getitem__(i)`",
+     "Zero-copy indexing or on-demand file I/O"
+    ],
+    [
+     "**2. Index Permutation**",
+     "`Sampler`",
+     "Generate index schedule \\$\\pi = [\\pi_0, \\pi_1, \\dots, \\pi_{N-1}]\\$",
+     "\\$O(N)\\$ integer pointer array in host RAM"
+    ],
+    [
+     "**3. Batch Collation**",
+     "`DataLoader`",
+     "Slices \\$B\\$ samples and stacks into \\$(B, \\dots)\\$ batch",
+     "Allocates contiguous batch tensor buffer"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Why This Pipeline Matters\n\n**Individual Access (Dataset)**: Neural networks can't process 50,000 files at once. We need a way to access one sample at a time: \"Give me image #1,247\".\n\n**Batch Processing (DataLoader)**: GPUs are parallel machines, so they are much faster processing 32 images simultaneously than 1 image 32 times.\n\n**Memory Efficiency**: A file-backed Dataset can read samples on demand. Our\nTensorDataset instead holds all source tensors in memory; DataLoader adds one\nbatch at a time. Sample extraction and collation copy values, so batching does\nnot make the source dataset disappear or provide zero-copy access.\n\n**Training Variety**: Shuffling changes sample order and batch composition each epoch. It reduces order effects but does not by itself prevent overfitting."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 05: DataLoader - Efficient Data Pipeline for ML Training."
+   ]
+  }
+ ]
+}

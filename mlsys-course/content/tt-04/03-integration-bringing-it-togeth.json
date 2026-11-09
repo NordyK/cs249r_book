@@ -1,0 +1,104 @@
+{
+ "title": "🔧 Integration: Bringing It Together",
+ "summary": "TinyTorch losses: 🔧 Integration: Bringing It Together",
+ "source": {
+  "chapter": "tt-04",
+  "sections": [
+   "🔧 Integration: Bringing It Together"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Bringing It Together\n\nNow let's test how our loss functions work together with real data scenarios and explore their behavior with different types of predictions.\n\n### Real-World Loss Function Usage Patterns\n\nUnderstanding when and why to use each loss function is crucial for ML engineering success:\n\n\\$\\$\\mathbf{\\text{Supervised Learning Problem Formulation}}\\$\\$\n\\$\\$\\begin{array}{ccc}\n\\swarrow & & \\searrow \\\\\n\\mathbf{\\text{Continuous Regression}} & & \\mathbf{\\text{Categorical Classification}} \\\\\n\\downarrow & & \\swarrow \\qquad\\qquad\\qquad\\qquad \\searrow \\\\\n\\mathbf{\\text{MSELoss}} & \\mathbf{\\text{Binary (2 Mutually Exclusive Classes)}} & \\mathbf{\\text{Multi-Class (} C \\ge 3 \\text{ Classes)}} \\\\\n(\\text{Linear Output } \\hat{y} \\in \\mathbb{R}) & \\downarrow & \\downarrow \\\\\n& \\mathbf{\\text{BinaryCrossEntropyLoss}} & \\mathbf{\\text{CrossEntropyLoss}} \\\\\n& (\\text{Sigmoid Probability } \\hat{y} \\in [0, 1]) & (\\text{Log-Softmax Logits } \\mathbf{z} \\in \\mathbb{R}^C)\n\\end{array}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Problem Domain",
+    "Output Modality",
+    "Recommended TinyTorch Loss",
+    "Example Task"
+   ],
+   "rows": [
+    [
+     "**Continuous Regression**",
+     "Unconstrained scalar \\$\\hat{y} \\in \\mathbb{R}\\$",
+     "`MSELoss`",
+     "House pricing, temperature forecasting, trajectory regression"
+    ],
+    [
+     "**Binary Classification**",
+     "Single probability \\$\\hat{y} \\in [0, 1]\\$",
+     "`BinaryCrossEntropyLoss`",
+     "Spam filtering, fraud detection, medical anomaly detection"
+    ],
+    [
+     "**Multi-Class Classification**",
+     "\\$C\\$-class logits \\$\\mathbf{z} \\in \\mathbb{R}^C\\$",
+     "`CrossEntropyLoss`",
+     "Image classification, next-token language modeling, audio phonemes"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Loss Function Behavior Comparison\n\nEach loss function creates different learning pressures on your model:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Error Distance \\$\\lvert e \\rvert\\$",
+    "MSE Loss (\\$\\lvert e \\rvert^2\\$)",
+    "BCE / CE Loss (\\$-\\ln(1 - \\lvert e \\rvert)\\$)",
+    "Relative Learning Pressure"
+   ],
+   "rows": [
+    [
+     "**Small Error (\\$0.1\\$)**",
+     "\\$0.010\\$",
+     "\\$0.105\\$",
+     "Moderate gradient push across both paradigms"
+    ],
+    [
+     "**Medium Error (\\$0.5\\$)**",
+     "\\$0.250\\$",
+     "\\$0.693\\$",
+     "BCE/CE applies nearly \\$3\\times\\$ higher penalty than MSE"
+    ],
+    [
+     "**Large Error (\\$0.9\\$)**",
+     "\\$0.810\\$",
+     "\\$2.303\\$",
+     "BCE/CE penalty accelerates logarithmically toward asymptote"
+    ],
+    [
+     "**Extreme Outlier (\\$1.0^-\\$)**",
+     "\\$1.000\\$",
+     "\\$15.942\\$ (clamped, float32)",
+     "Cross-entropy generates an emergency restorative gradient"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "*MSE scales quadratically (gentle on confident wrong guesses, sensitive to outliers). BCE/CE scales logarithmically, generating explosive gradient updates when the model is confidently wrong.*\n\n### Pitfall: CrossEntropyLoss Takes Raw Logits\n\n`CrossEntropyLoss` applies log-softmax itself, so it must be handed **raw logits**. Passing\nit probabilities (the output of a softmax you already applied) is the most common mistake in\nthis API, and it inherits from PyTorch, where `torch.nn.CrossEntropyLoss` has the same\ncontract. There is no shape error and no exception. The loss is simply wrong.\n\nTake Case 1 from the table above, a model that is correct and confident. Its logits\n\\$[5.0, 1.0, 0.1]\\$ give a loss of \\$0.025\\$. Hand the same model's probabilities\n\\$[0.975, 0.018, 0.007]\\$ to the loss instead and it returns \\$0.568\\$, more than twenty times\nlarger, because the loss softmaxes them a second time into \\$[0.567, 0.218, 0.215]\\$:\n\n```python\nce = CrossEntropyLoss()\nce(Tensor([[5.0, 1.0, 0.1]]),    Tensor([0]))  # 0.0254  correct: raw logits\nce(Tensor([[0.975, 0.018, 0.007]]), Tensor([0]))  # 0.5675  wrong: already softmaxed\n```\n\nProbabilities sum to \\$1\\$, so their spread can never exceed \\$1\\$ and no logit gap can exceed\n\\$e \\approx 2.72\\$ after the second exponentiation. The model's confidence is flattened away.\nTraining still runs, the loss still falls, and it plateaus early with no obvious cause. Two\nchecks catch it. Feed the loss a deliberately confident correct example and confirm the loss\nis near zero rather than near \\$\\ln C\\$, and grep your forward pass for a `softmax` before the\nloss. `BinaryCrossEntropyLoss` is the opposite contract, taking probabilities in \\$[0, 1]\\$,\nwhich is why it validates its input range and `CrossEntropyLoss` does not."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_loss_behaviors():\n    \"\"\"\n    📊 Compare how different loss functions behave with various prediction patterns.\n\n    This helps students understand when to use each loss function.\n    \"\"\"\n    print(\"📊 Analysis: Loss Function Behavior Comparison...\")\n\n    # Initialize loss functions\n    mse_loss = MSELoss()\n    ce_loss = CrossEntropyLoss()\n    bce_loss = BinaryCrossEntropyLoss()\n\n    print(\"\\n1. Regression Scenario (House Price Prediction)\")\n    print(\"   Predictions: [200k, 250k, 300k], Targets: [195k, 260k, 290k]\")\n    house_pred = Tensor([200.0, 250.0, 300.0])  # In thousands\n    house_target = Tensor([195.0, 260.0, 290.0])\n    mse = mse_loss.forward(house_pred, house_target)\n    print(f\"   MSE Loss: {mse.data:.2f} (thousand²)\")\n\n    print(\"\\n2. Multi-Class Classification (Image Recognition)\")\n    print(\"   Classes: [cat, dog, bird], Predicted: confident about cat, uncertain about dog\")\n    # Logits: [2.0, 0.5, 0.1] suggests model is most confident about class 0 (cat)\n    image_logits = Tensor([[2.0, 0.5, 0.1], [0.3, 1.8, 0.2]])  # Two samples\n    image_targets = Tensor([0, 1])  # First is cat (0), second is dog (1)\n    ce = ce_loss.forward(image_logits, image_targets)\n    print(f\"   Cross-Entropy Loss: {ce.data:.3f}\")\n\n    print(\"\\n3. Binary Classification (Spam Detection)\")\n    print(\"   Predictions: [0.9, 0.1, 0.7, 0.3] (spam probabilities)\")\n    spam_pred = Tensor([0.9, 0.1, 0.7, 0.3])\n    spam_target = Tensor([1.0, 0.0, 1.0, 0.0])  # 1=spam, 0=not spam\n    bce = bce_loss.forward(spam_pred, spam_target)\n    print(f\"   Binary Cross-Entropy Loss: {bce.data:.3f}\")\n\n    print(\"\\n💡 Key Insights:\")\n    print(\"   - MSE penalizes large errors heavily (good for continuous values)\")\n    print(\"   - Cross-Entropy encourages confident correct predictions\")\n    print(\"   - Binary Cross-Entropy balances false positives and negatives\")"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_loss_sensitivity():\n    \"\"\"\n    📊 Analyze how sensitive each loss function is to prediction errors.\n\n    This demonstrates the different error landscapes created by each loss.\n    \"\"\"\n    print(\"\\n📊 Analysis: Loss Function Sensitivity to Errors...\")\n\n    # Create a range of prediction errors for analysis\n    true_value = 1.0\n    predictions = np.linspace(0.1, 1.9, 181)  # From 0.1 to 1.9\n\n    # Initialize loss functions\n    mse_loss = MSELoss()\n    bce_loss = BinaryCrossEntropyLoss()\n\n    mse_losses = []\n    bce_losses = []\n    probabilities = np.linspace(0.01, 1.0, 100)\n\n    for pred in predictions:\n        # MSE analysis\n        pred_tensor = Tensor([pred])\n        target_tensor = Tensor([true_value])\n        mse = mse_loss.forward(pred_tensor, target_tensor)\n        mse_losses.append(mse.data)\n\n    # BCE accepts probabilities, so analyze its own valid input range.\n    for probability in probabilities:\n        bce_pred_tensor = Tensor([probability])\n        bce_target_tensor = Tensor([1.0])  # Target is \"positive class\"\n        bce = bce_loss.forward(bce_pred_tensor, bce_target_tensor)\n        bce_losses.append(bce.data)\n\n    # Find minimum losses\n    min_mse_idx = np.argmin(mse_losses)\n    min_bce_idx = np.argmin(bce_losses)\n\n    idx_05 = np.argmin(np.abs(predictions - 0.5))\n    bce_idx_05 = np.argmin(np.abs(probabilities - 0.5))\n    bce_idx_01 = np.argmin(np.abs(probabilities - 0.1))\n\n    print(f\"MSE Loss:\")\n    print(f\"  Minimum at prediction = {predictions[min_mse_idx]:.2f}, loss = {mse_losses[min_mse_idx]:.4f}\")\n    print(f\"  At prediction = 0.5: loss = {mse_losses[idx_05]:.4f}\")\n    print(f\"  At prediction = 0.1: loss = {mse_losses[0]:.4f}\")\n\n    print(f\"\\nBinary Cross-Entropy Loss:\")\n    print(f\"  Minimum at prediction = {probabilities[min_bce_idx]:.2f}, loss = {bce_losses[min_bce_idx]:.4f}\")\n    print(f\"  At prediction = 0.5: loss = {bce_losses[bce_idx_05]:.4f}\")\n    print(f\"  At prediction = 0.1: loss = {bce_losses[bce_idx_01]:.4f}\")\n\n    print(f\"\\n💡 Sensitivity Insights:\")\n    print(\"   - MSE grows quadratically with error distance\")\n    print(\"   - BCE grows logarithmically, heavily penalizing wrong confident predictions\")\n    print(\"   - Both encourage correct predictions but with different curvatures\")\n\nif __name__ == \"__main__\":\n    analyze_loss_behaviors()\n    analyze_loss_sensitivity()"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🔧 Integration: Bringing It Together."
+   ]
+  }
+ ]
+}

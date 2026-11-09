@@ -1,0 +1,202 @@
+{
+ "title": "🏗️ INT8 Dequantization: Restoring Precision",
+ "summary": "TinyTorch quantization: 🏗️ INT8 Dequantization: Restoring Precision",
+ "source": {
+  "chapter": "tt-15",
+  "sections": [
+   "🏗️ INT8 Dequantization: Restoring Precision",
+   "🏗️ QuantizedLinear: The Heart of Efficient Networks"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ INT8 Dequantization: Restoring Precision\n\nDequantization evaluates the inverse affine transformation, projecting discrete 8-bit integer coordinates back onto the continuous floating-point manifold:\n\n\\$\\$\\hat{x} = (q - z) \\times s\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Stage",
+    "Input Representation",
+    "Transformation Step",
+    "Output Representation",
+    "Numerical Trace Example"
+   ],
+   "rows": [
+    [
+     "**Quantized Code**",
+     "\\$q \\in [-128, 127]\\$ (INT8)",
+     "Raw quantized coordinate",
+     "Integer tensor",
+     "\\$q = [-128, -27, 127]\\$"
+    ],
+    [
+     "**Zero Point Offset**",
+     "\\$z \\in [-128, 127]\\$",
+     "Center subtraction \\$(q - z)\\$",
+     "Zero-centered integer",
+     "\\$q - z = [-89, 12, 166]\\$ (for \\$z = -39\\$)"
+    ],
+    [
+     "**Scale Expansion**",
+     "\\$s \\in \\mathbb{R}^+\\$",
+     "Continuous scaling \\$\\times s\\$",
+     "Reconstructed FP32",
+     "\\$\\hat{x} = [-1.5008, 0.2024, 2.7993]\\$"
+    ],
+    [
+     "**Error Bound**",
+     "\\$",
+     "\\hat{x} - x",
+     "\\$",
+     "Pointwise absolute error"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Systems Significance of Dequantization:**\n- **Inference Emulation**: In systems without native INT8 GEMM accelerators, weights are stored packed in INT8 (saving \\$4\\times\\$ memory and disk bandwidth) and dequantized on-the-fly into vector registers before executing FP32 BLAS routines.\n- **Hardware GEMM Fusion**: In production INT8 hardware (e.g. NVIDIA Tensor Cores or Intel VNNI), the integer dot product \\$\\sum q_{w} q_{x}\\$ is computed directly in INT32 accumulators, and the dequantization scale \\$s_w s_x\\$ is applied once at the end of the tile accumulation."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def dequantize_int8(q_tensor: Tensor, scale: float, zero_point: int) -> Tensor:\n    \"\"\"\n    Dequantize INT8 tensor back to FP32.\n\n    TODO: Implement dequantization using the inverse formula\n\n    APPROACH:\n    1. Apply inverse quantization: (quantized_value - zero_point) * scale\n    2. Return as new FP32 Tensor\n\n    Args:\n        q_tensor: Quantized INT8 tensor\n        scale: Scaling factor from quantization\n        zero_point: Zero point offset from quantization\n\n    Returns:\n        Reconstructed FP32 tensor\n\n    EXAMPLE:\n    >>> q_tensor = Tensor([[-100, 0, 50]])  # INT8 values\n    >>> scale, zero_point = 0.02, -25\n    >>> fp32_tensor = dequantize_int8(q_tensor, scale, zero_point)\n    >>> print(fp32_tensor.data)\n    [[-1.5, 0.5, 1.5]]  # Reconstructed FP32 values\n\n    HINT:\n    - Formula: dequantized = (quantized - zero_point) * scale\n    \"\"\"\n    if scale <= 0 or not np.isfinite(scale):\n        raise ValueError(f\"Scale must be positive and finite, got {scale}\")\n    if not (-128 <= zero_point <= 127):\n        raise ValueError(f\"Zero point must be in [-128, 127], got {zero_point}\")\n\n    # Apply inverse quantization formula\n    # This is the correct inverse of: quantized = (value / scale) + zero_point\n    # Therefore: value = (quantized - zero_point) * scale\n    # Compute on a wider grid: a valid float32 endpoint can round just beyond\n    # float32's range, while a subnormal scale may not fit in float32 at all.\n    dequantized_data = (q_tensor.data.astype(np.float64) - zero_point) * scale\n    fp32_limit = np.finfo(np.float32).max\n    return Tensor(np.clip(dequantized_data, -fp32_limit, fp32_limit))"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: INT8 Dequantization\n\nThis test validates our dequantization function correctly restores FP32 values from INT8.\n\n**What we're testing**: Roundtrip quantize -> dequantize preserves values\n**Why it matters**: Neural networks need FP32 values for computation\n**Expected**: Small reconstruction error after roundtrip"
+  },
+  {
+   "type": "text",
+   "md": "## 🏗️ QuantizedLinear: The Heart of Efficient Networks\n\n### Architectural Comparison: FP32 vs Quantized Linear"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Architectural Dimension",
+    "Baseline `Linear`",
+    "`QuantizedLinear` (Simulated)",
+    "Production INT8 GEMM"
+   ],
+   "rows": [
+    [
+     "**Weight Storage**",
+     "FP32 (4 bytes / weight)",
+     "INT8 codes in FP32 (1 byte modeled)",
+     "Packed INT8 (`int8_t`, 1 byte physical)"
+    ],
+    [
+     "**Weight Memory Footprint**",
+     "\\$N \\times M \\times 4\\$ bytes",
+     "\\$N \\times M \\times 1 + 8\\$ bytes modeled",
+     "\\$N \\times M \\times 1 + 8\\$ bytes physical"
+    ],
+    [
+     "**Execution Path**",
+     "Direct FP32 GEMM: \\$Y = X W + b\\$",
+     "Dequantize \\$\\hat{W} \\to\\$ FP32 GEMM",
+     "Integer Tensor Core GEMM \\$\\to\\$ Rescale"
+    ],
+    [
+     "**Memory Bandwidth Demand**",
+     "\\$100\\%\\$ (baseline)",
+     "\\$25\\%\\$ weight streaming bandwidth",
+     "\\$25\\%\\$ weight & activation bandwidth"
+    ],
+    [
+     "**Dynamic Calibration**",
+     "Not required",
+     "Optional input calibration",
+     "Required for activation scales"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Quantized Forward Pass Mathematics\n\nIn `QuantizedLinear`, weights and biases are stored as discrete INT8 coordinates with accompanying scale and zero-point metadata:\n\n\\$\\$\\hat{W} = (Q_W - z_W) \\times s_W, \\quad \\hat{b} = (Q_b - z_b) \\times s_b\\$\\$\n\nThe forward pass reconstructs the weights on-the-fly and executes high-precision matrix multiplication:\n\n\\$\\$Y = X \\hat{W} + \\hat{b} = X \\left( (Q_W - z_W) s_W \\right) + (Q_b - z_b) s_b\\$\\$\n\n### Activation Calibration Pipeline"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Calibration Stage",
+    "Operations",
+    "Systems Rationale"
+   ],
+   "rows": [
+    [
+     "**1. Sample Profiling**",
+     "Forward \\$N\\$ calibration batches through preceding layers",
+     "Capture empirical activation statistics without updating weights"
+    ],
+    [
+     "**2. Distribution Bound**",
+     "Evaluate \\$[\\min(X_{\\text{calib}}), \\max(X_{\\text{calib}})]\\$ across collected inputs",
+     "Prevent clipping dynamic range on normal inference inputs"
+    ],
+    [
+     "**3. Parameter Derivation**",
+     "Compute \\$s_{\\text{in}} = (x_{\\max} - x_{\\min}) / 255\\$ and \\$z_{\\text{in}}\\$",
+     "Establish optimal input quantization lattice"
+    ],
+    [
+     "**4. Quantization Ready**",
+     "Store \\$s_{\\text{in}}, z_{\\text{in}}\\$ on layer instance",
+     "Enables full input discretization when moving to INT8 execution"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Lifecycle of a Quantized Layer"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Phase",
+    "When Executed",
+    "Operations Performed",
+    "Computational Cost"
+   ],
+   "rows": [
+    [
+     "**Initialization**",
+     "Quantization time (Offline)",
+     "Quantize \\$W \\to Q_W\\$, \\$b \\to Q_b\\$; store \\$s_W, z_W, s_b, z_b\\$",
+     "One-time overhead (\\$\\mathcal{O}(NM)\\$)"
+    ],
+    [
+     "**Calibration**",
+     "Pre-deployment (Offline)",
+     "Pass unlabeled validation samples, compute input scale \\$s_X, z_X\\$",
+     "One-time forward pass (\\$\\mathcal{O}(B \\cdot NM)\\$)"
+    ],
+    [
+     "**Inference Forward**",
+     "Runtime (Per query)",
+     "Dequantize \\$\\hat{W}\\$, evaluate matrix multiply \\$Y = X \\hat{W} + \\hat{b}\\$",
+     "Amortized \\$\\mathcal{O}(NM)\\$ GEMM"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Memory Layout Note**:\nIn TinyTorch's pedagogical environment, integer codes are simulated inside NumPy `float32` arrays to preserve broad framework compatibility. The reported \\$4\\times\\$ memory reduction models the packed byte representation (\\$1\\$ byte per parameter) achieved when deployed with C++ runtime engines (like TensorRT or ONNX Runtime)."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 213 lines of code (starting with `class QuantizedLinear:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: QuantizedLinear\n\nThis test validates our QuantizedLinear layer works correctly and achieves memory savings.\n\n**What we're testing**: Quantized layer forward pass and compression ratio\n**Why it matters**: This is the core component that replaces Linear layers in models\n**Expected**: Forward pass produces similar output with ~4x compression"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ INT8 Dequantization: Restoring Precision, 🏗️ QuantizedLinear: The Heart of Efficient Networks."
+   ]
+  }
+ ]
+}

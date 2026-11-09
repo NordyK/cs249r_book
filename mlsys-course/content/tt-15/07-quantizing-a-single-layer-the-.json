@@ -1,0 +1,76 @@
+{
+ "title": "🏗️ Quantizing a Single Layer: The Replacement Step",
+ "summary": "TinyTorch quantization: 🏗️ Quantizing a Single Layer: The Replacement Step",
+ "source": {
+  "chapter": "tt-15",
+  "sections": [
+   "🏗️ Quantizing a Single Layer: The Replacement Step"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Quantizing a Single Layer: The Replacement Step\n\nThis helper wraps an isolated `Linear` layer into a `QuantizedLinear` instance, quantizing its weights and biases to INT8 and optionally executing input activation calibration:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Component",
+    "Unquantized `Linear` Layer",
+    "Target `QuantizedLinear` Layer",
+    "Memory Footprint Impact"
+   ],
+   "rows": [
+    [
+     "**Weights (\\$W\\$)**",
+     "`float32` (\\$4\\$ bytes / parameter)",
+     "`int8` (\\$1\\$ byte / parameter)",
+     "\\$75\\%\\$ reduction (\\$4\\times\\$ smaller)"
+    ],
+    [
+     "**Biases (\\$b\\$)**",
+     "`float32` (\\$4\\$ bytes / parameter)",
+     "`int8` (\\$1\\$ byte / parameter)",
+     "\\$75\\%\\$ reduction (\\$4\\times\\$ smaller)"
+    ],
+    [
+     "**Quantization Scales**",
+     "None",
+     "\\$s_W, s_b \\in \\mathbb{R}^+\\$ (`float32`)",
+     "\\$+4\\$ bytes per quantized array"
+    ],
+    [
+     "**Zero Points**",
+     "None",
+     "\\$z_W, z_b \\in \\mathbb{Z}\\$ (`int32`)",
+     "\\$+4\\$ bytes per quantized array"
+    ],
+    [
+     "**Forward Interface**",
+     "`forward(X)`",
+     "`forward(X)` (Identical signature)",
+     "Drop-in replacement"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The convention used throughout this module is **8 bytes of metadata per quantized array** (one \\$4\\$-byte scale plus one \\$4\\$-byte zero point), so a layer with a bias carries \\$16\\$ bytes. The calibrated input parameters \\$s_X, z_X\\$ are activation state rather than stored weights, so `memory_usage()` does not count them."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _quantize_single_layer(layer: Linear, calibration_inputs: Optional[List[Tensor]] = None) -> QuantizedLinear:\n    \"\"\"\n    Quantize a single Linear layer and optionally calibrate it.\n\n    TODO: Create a QuantizedLinear from a Linear layer, then calibrate if inputs provided\n\n    APPROACH:\n    1. Wrap the Linear layer in a QuantizedLinear (quantizes weights/bias)\n    2. If calibration_inputs provided, call calibrate() on the quantized layer\n\n    Args:\n        layer: Linear layer to quantize\n        calibration_inputs: Optional list of activation tensors for calibration\n\n    Returns:\n        QuantizedLinear: The quantized replacement layer\n\n    EXAMPLE:\n    >>> original = Linear(8, 3)\n    >>> original.weight = Tensor(rng.standard_normal((8, 3)) * 0.5)\n    >>> quantized = _quantize_single_layer(original)\n    >>> print(quantized.q_weight.data.min(), quantized.q_weight.data.max())\n    -128.0 127.0\n\n    NOTE: values are INT8-range but stored as float32 (see QuantizedLinear) --\n    simulated quantization, so the memory saving is computed, not measured.\n\n    HINT:\n    - QuantizedLinear(layer) handles weight/bias quantization\n    - quantized_layer.calibrate(inputs) sets input quantization parameters\n    \"\"\"\n    quantized_layer = QuantizedLinear(layer)\n\n    if calibration_inputs is not None:\n        quantized_layer.calibrate(calibration_inputs)\n\n    return quantized_layer"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Quantize Single Layer\n\nThis test validates that we correctly quantize one Linear layer with optional calibration.\n\n**What we're testing**: Single-layer quantization and calibration\n**Why it matters**: This is the atomic building block for full model quantization\n**Expected**: INT8 weights, optional calibration parameters set"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Quantizing a Single Layer: The Replacement Step."
+   ]
+  }
+ ]
+}

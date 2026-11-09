@@ -1,0 +1,26 @@
+{
+ "title": "🤔 ML Systems Reflection Questions",
+ "summary": "TinyTorch autograd: 🤔 ML Systems Reflection Questions",
+ "source": {
+  "chapter": "tt-06",
+  "sections": [
+   "🤔 ML Systems Reflection Questions"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🤔 ML Systems Reflection Questions\n\nBefore we wrap up, reflect on these systems-level questions. Use only knowledge from Modules 01-05 (no forward references to concepts you haven't learned yet).\n\n### Question 1: Computational Graph Memory\n**Scenario**: A 10-layer neural network processes a single sample. Each layer performs matrix multiplication (matmul) and addition (bias).\n\n**Question**: How much memory does the computation graph use compared to just storing the weights?\n\n**Consider**:\n- What tensors must be saved during forward pass for backward pass?\n- If weights take 10MB total, estimate graph memory overhead\n- When is the graph freed?\n\n---\n\n### Question 2: Gradient Accumulation\n**Scenario**: A weight matrix is shared between two computation paths in a network (like a tied-weights architecture), so it appears twice in the graph your `backward()` walks.\n\n**Question**: Your `backward()` accumulates with `grad = grad + new_grad` rather than assigning. Why is `+=` the correct rule for a tensor with two consumers, and what would the walk produce if it assigned instead?\n\n**Consider**:\n- What does the chain rule say about a variable appearing in two terms of the same expression?\n- Which of the two contributions survives an assignment, and does the answer depend on traversal order?\n- Why must the topological order reach a tensor only after every consumer has handed it something?\n- The same rule persists across calls to `backward()`. What does that cost you if you never call `zero_grad()`?\n\n---\n\n### Question 3: Backward Pass Cost\n**Scenario**: A forward pass through a 3-layer MLP takes 10ms.\n\n**Question**: Is the backward pass faster, slower, or the same speed as the forward pass? Why?\n\n**Consider**:\n- Operations in forward pass: matmul, activation, addition\n- Operations in backward pass: matmul (for gradients), element-wise multiplication (chain rule)\n- Number of matmul operations: forward vs. backward\n- Memory access patterns: reading vs. writing gradients\n\n**Hint**: Think about matrix multiplication gradients:\n```\nForward:  y = x @ W       (one matmul)\nBackward: grad_x = grad_y @ W.T     (one matmul)\n          grad_W = x.T @ grad_y     (another matmul)\n```\n\n---\n\n### Question 4: Graph Retention\n**Scenario**: You're training a language model that processes sequences of varying lengths.\n\n**Question**: When should you call `.zero_grad()`? What happens if you forget?\n\n**Consider**:\n- Gradient accumulation behavior (Question 2)\n- Memory growth over multiple iterations\n- Training correctness: what values do parameters see?\n\n**Example**:\n```python\nfor batch in dataloader:\n    # Should zero_grad() go here?\n    loss = model(batch)\n    loss.backward()\n    optimizer.step()\n    # Or should zero_grad() go here?\n```\n\n---\n\n### Question 5: Production Pattern\n**Scenario**: PyTorch and TensorFlow use `requires_grad` flags instead of always tracking gradients for every tensor."
+  },
+  {
+   "type": "text",
+   "md": "**Question**: Why? What's the performance benefit of making gradient tracking opt-in?\n\n**Consider**:\n- Memory: What gets stored when requires_grad=True vs. False?\n- Compute: What operations are skipped when requires_grad=False?\n- Typical model: What percentage of tensors need gradients?\n  - Inputs (data): requires_grad = ?\n  - Weights: requires_grad = ?\n  - Intermediate activations: requires_grad = ?\n  - Targets (labels): requires_grad = ?\n\n**Hint**: In a typical training loop, think about:\n- How many tensors are created per forward pass?\n- How many of those tensors are actually parameters that need updates?\n- What's the memory multiplier for gradient tracking?\n\n---\n\nAfter answering these questions, consider:\n1. **Which surprised you most?** What behavior was counterintuitive?\n2. **What trade-offs exist?** Memory vs. compute? Simplicity vs. efficiency?\n3. **How does this connect to Module 01?** Why did we include requires_grad, grad, and backward() from the start?\n4. **What production patterns emerged?** What choices would you make differently for a research prototype vs. production system?\n\nThese questions prepare you for Module 07 (Optimizers), where you'll use these gradients to actually update parameters and train models!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🤔 ML Systems Reflection Questions."
+   ]
+  }
+ ]
+}

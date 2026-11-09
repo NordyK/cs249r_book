@@ -1,0 +1,475 @@
+{
+ "title": "🏗️ Implementation: Building Transformer Components",
+ "summary": "TinyTorch transformers: 🏗️ Implementation: Building Transformer Components",
+ "source": {
+  "chapter": "tt-13",
+  "sections": [
+   "🏗️ Implementation: Building Transformer Components"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Building Transformer Components\n\nNow we'll implement each transformer component with a clear understanding of their role in the overall architecture. We'll follow the pattern: **Explanation → Implementation → Test** for each component.\n\nEach component serves a specific purpose:\n- **LayerNorm**: Stabilizes training and normalizes activations\n- **MLP**: Provides non-linear transformation and \"thinking\" capacity\n- **TransformerBlock**: Combines attention with MLP using residual connections\n- **Autoregressive Generation**: Standalone token sampling and autoregressive decoding loops"
+  },
+  {
+   "type": "text",
+   "md": "### Understanding Layer Normalization\n\nLayer Normalization provides the foundation of stable transformer optimization. In deep residual networks, signal variances compound across layers; without normalization, activation values explode or collapse into extreme saturating regions.\n\n#### Three-Stage LayerNorm Formulation\n\n1. **Feature-Axis Statistics**: Compute mean and variance along the trailing hidden dimension (\\$d_{\\text{embed}}\\$) for each batch and sequence index \\$(b, s)\\$:\n   \\$\\$\\mu_{b, s} = \\frac{1}{d_{\\text{embed}}} \\sum_{i=1}^{d_{\\text{embed}}} x_{b, s, i}, \\qquad \\sigma^2_{b, s} = \\frac{1}{d_{\\text{embed}}} \\sum_{i=1}^{d_{\\text{embed}}} (x_{b, s, i} - \\mu_{b, s})^2\\$\\$\n\n2. **Standardization & Numerical Guardrail**: Subtract mean and scale by standard deviation, adding \\$\\epsilon = 10^{-5}\\$ to prevent division by zero:\n   \\$\\$\\hat{x}_{b, s, i} = \\frac{x_{b, s, i} - \\mu_{b, s}}{\\sqrt{\\sigma^2_{b, s} + \\epsilon}}\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "3. **Learnable Affine Restoration**: Allow the optimization process to recover arbitrary representation scales and biases:\n   \\$\\$y_{b, s, i} = \\gamma_i \\cdot \\hat{x}_{b, s, i} + \\beta_i, \\quad \\text{where } \\gamma, \\beta \\in \\mathbb{R}^{d_{\\text{embed}}}\\$\\$\n\n#### Normalization Variants in Deep Learning"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Normalization Scheme",
+    "Normalization Axes",
+    "Learnable Params",
+    "Batch Size Dependence",
+    "Autoregressive Inference"
+   ],
+   "rows": [
+    [
+     "**BatchNorm**",
+     "Batch + Spatial \\$(B, H, W)\\$",
+     "\\$2 \\cdot C\\$",
+     "Extreme (fails at \\$B=1\\$)",
+     "Incompatible with autoregressive generation"
+    ],
+    [
+     "**LayerNorm**",
+     "Feature Axis \\$(d_{\\text{embed}})\\$",
+     "\\$2 \\cdot d_{\\text{embed}}\\$",
+     "**Zero** (\\$B=1\\$ native)",
+     "Standard across GPT-2, GPT-3, BERT"
+    ],
+    [
+     "**RMSNorm**",
+     "Feature Axis (Root-Mean-Square)",
+     "\\$1 \\cdot d_{\\text{embed}}\\$ (\\$\\gamma\\$ only)",
+     "**Zero** (\\$B=1\\$ native)",
+     "Modern default (Llama 2/3, Mistral, Gemma)"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 135 lines of code (starting with `class LayerNormFunction(Function):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Layer Normalization\n\nThis test validates our LayerNorm implementation works correctly.\n\n**What we're testing**: Normalization statistics and parameter learning\n**Why it matters**: Essential for transformer stability and training\n**Expected**: Mean approximately 0, std approximately 1 after normalization, learnable parameters work"
+  },
+  {
+   "type": "text",
+   "md": "### Understanding the Multi-Layer Perceptron (MLP)\n\nThe Multi-Layer Perceptron (also termed the Feed-Forward Network, FFN) provides the primary computational transformation in each transformer block. While self-attention allows tokens to exchange information across positions, the MLP processes each position completely independently, applying identical weights to every token vector.\n\n#### Mathematical Formulation & Two-Layer Funnel\n\n\\$\\$\\text{FFN}(x) = \\text{GELU}(x W_1 + b_1) W_2 + b_2\\$\\$\n\nwhere input \\$x \\in \\mathbb{R}^{B \\times S \\times d_{\\text{embed}}}\\$ is expanded to intermediate dimension \\$d_{\\text{ff}} = 4 \\cdot d_{\\text{embed}}\\$ before being contracted back:\n\n#### Detailed Parameter and FLOP Breakdown"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Sub-Layer Operation",
+    "Input Tensor",
+    "Weight Matrix",
+    "Bias Vector",
+    "Parameters (\\$d=512\\$)",
+    "Compute FLOPs / Token"
+   ],
+   "rows": [
+    [
+     "**Linear 1 (Up-Projection)**",
+     "\\$(B, S, d)\\$",
+     "\\$(d, 4d)\\$",
+     "\\$(4d,)\\$",
+     "\\$512 \\times 2{,}048 + 2{,}048 = 1{,}050{,}624\\$",
+     "\\$2 \\cdot d \\cdot 4d = 2{,}097{,}152\\$"
+    ],
+    [
+     "**GELU Activation**",
+     "\\$(B, S, 4d)\\$",
+     "—",
+     "—",
+     "\\$0\\$ (activation)",
+     "\\$\\approx 8 \\cdot 4d = 16{,}384\\$"
+    ],
+    [
+     "**Linear 2 (Down-Projection)**",
+     "\\$(B, S, 4d)\\$",
+     "\\$(4d, d)\\$",
+     "\\$(d,)\\$",
+     "\\$2{,}048 \\times 512 + 512 = 1{,}049{,}088\\$",
+     "\\$2 \\cdot 4d \\cdot d = 2{,}097{,}152\\$"
+    ],
+    [
+     "**Total MLP Sub-Layer**",
+     "—",
+     "—",
+     "—",
+     "\\$\\mathbf{8d^2 + 5d \\approx 2.10\\text{M params}}\\$",
+     "\\$\\approx \\mathbf{16 d^2 \\text{ FLOPs}}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Why 4× Expansion Matters**:\n- **Representation Capacity**: The MLP contains approximately \\$\\frac{2}{3}\\$ of all parameters within each transformer block (compared to \\$4d^2\\$ in attention).\n- **Associative Memory**: Empirical research (Geva et al., 2021) demonstrates that FFN weights function as key-value memories, where first-layer weights detect factual patterns and second-layer weights produce output distributions.\n\n#### Non-Linear Activation Comparison: GELU vs ReLU"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Property",
+    "Rectified Linear Unit (\\$\\text{ReLU}\\$)",
+    "Gaussian Error Linear Unit (\\$\\text{GELU}\\$)"
+   ],
+   "rows": [
+    [
+     "**Mathematical Definition**",
+     "\\$\\text{ReLU}(x) = \\max(0, x)\\$",
+     "\\$\\text{GELU}(x) = x \\cdot \\Phi(x) \\approx x \\cdot \\sigma(1.702x)\\$, the sigmoid form your Module 02 `GELU` computes (PyTorch's `approximate='tanh'` uses \\$0.5x\\left(1 + \\tanh\\left(\\sqrt{2/\\pi}(x + 0.044715x^3)\\right)\\right)\\$ instead)"
+    ],
+    [
+     "**Curvature & Continuity**",
+     "Piecewise linear; non-differentiable cusp at \\$x = 0\\$",
+     "Smooth, continuously differentiable across entire real domain \\$\\mathbb{R}\\$"
+    ],
+    [
+     "**Negative Input Handling**",
+     "Hard zero clamp (\\$\\frac{d}{dx} = 0\\$ for \\$x < 0\\$)",
+     "Small negative curvature; allows gradient recovery"
+    ],
+    [
+     "**Dead Neuron Vulnerability**",
+     "High (negative activations permanently kill gradient flow)",
+     "Negligible (smooth probabilistic gating prevents dead units)"
+    ],
+    [
+     "**Architectural Adoption**",
+     "Classical CNNs (AlexNet, ResNet)",
+     "Standard in GPT-2, GPT-3, BERT, and modern LLMs"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 82 lines of code (starting with `class MLP:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: MLP (Feed-Forward Network)\n\nThis test validates our MLP implementation works correctly.\n\n**What we're testing**: Shape preservation and parameter counting\n**Why it matters**: MLP provides the non-linear transformation in transformers\n**Expected**: Input/output shapes match, correct parameter count"
+  },
+  {
+   "type": "text",
+   "md": "### Understanding the Complete Transformer Block\n\nThe `TransformerBlock` represents the fundamental atomic unit of GPT and modern generative language models. It harmonizes two complementary operations: **spatial information routing** across tokens via multi-head causal self-attention, and **pointwise non-linear feature synthesis** via the two-stage MLP.\n\n#### Pre-Norm vs Post-Norm Architectural Comparison\n\nThe original Transformer (Vaswani et al., 2017) utilized **Post-LayerNorm** (\\$x = \\text{LN}(x + \\text{Sublayer}(x))\\$). Modern large language models almost exclusively adopt **Pre-LayerNorm** (\\$x = x + \\text{Sublayer}(\\text{LN}(x))\\$):"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Architectural Trait",
+    "Post-LayerNorm (Original 2017)",
+    "Pre-LayerNorm (Modern GPT / Llama)"
+   ],
+   "rows": [
+    [
+     "**Formulation**",
+     "\\$x_{l+1} = \\text{LayerNorm}(x_l + F_l(x_l))\\$",
+     "\\$x_{l+1} = x_l + F_l(\\text{LayerNorm}(x_l))\\$"
+    ],
+    [
+     "**Residual Path**",
+     "Passes through non-linear normalization at every layer",
+     "Completely clean identity skip highway"
+    ],
+    [
+     "**Gradient Backprop**",
+     "Scales as \\$\\prod_{l=1}^L \\frac{1}{\\sigma_l}\\$; prone to vanishing/explosion",
+     "Direct addition: \\$\\frac{\\partial \\mathcal{L}}{\\partial x_0} = \\frac{\\partial \\mathcal{L}}{\\partial x_L} (I + \\sum \\frac{\\partial F_l}{\\partial x_l})\\$"
+    ],
+    [
+     "**Warmup Requirement**",
+     "Strict linear learning rate warmup required to prevent divergence",
+     "Extremely robust; converges reliably with minimal warmup"
+    ],
+    [
+     "**Scaling Capability**",
+     "Difficult to train beyond 16–24 layers without careful initialization scaling (Xiong et al., 2020)",
+     "Scalable to 100+ layers without numerical instability"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The clean residual path has one consequence worth naming. Nothing ever normalizes the stream itself, so every sublayer adds into it and its magnitude keeps growing with depth. A post-LN stack renormalizes after each addition, but a pre-LN stack does not, which is why `GPT` ends with a final `ln_f` before the LM head. That last normalization is the only one the residual stream ever receives, and without it the un-embedding projection sees activations whose scale depends on how many layers happened to be stacked.\n\n#### Step-by-Step Data Transformation in TransformerBlock\n\nFor an input batch of token embeddings \\$x_0 \\in \\mathbb{R}^{B \\times S \\times d_{\\text{embed}}}\\$:"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\begin{aligned}\n\\text{Step 1 (Attention Pre-LN):} \\quad & x_1 = \\text{LayerNorm}_1(x_0) \\\\\n\\text{Step 2 (Causal Attention):} \\quad & \\Delta_{\\text{attn}} = \\text{MultiHeadAttention}(x_1, \\text{mask}) \\\\\n\\text{Step 3 (First Highway Sum):} \\quad & x_2 = x_0 + \\Delta_{\\text{attn}} \\\\\n\\text{Step 4 (MLP Pre-LN):} \\quad & x_3 = \\text{LayerNorm}_2(x_2) \\\\\n\\text{Step 5 (MLP Expansion):} \\quad & \\Delta_{\\text{mlp}} = \\text{MLP}(x_3) \\\\\n\\text{Step 6 (Second Highway Sum):} \\quad & x_4 = x_2 + \\Delta_{\\text{mlp}}\n\\end{aligned}\\$\\$\n\nEvery sub-layer acts as an \"off-ramp\" that reads from the continuous residual stream and writes an additive delta back into it, preserving the identity gradient highway throughout the model."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 114 lines of code (starting with `class TransformerBlock:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### The Causal Mask\n\nGPT is autoregressive, so position i may attend only to positions j ≤ i. The helper\nbelow encodes that rule in the binary convention Module 12's `_apply_mask`\nexpects (1 = attend, 0 = block). `GPT.forward` builds one for every sequence."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def create_causal_mask(seq_len: int) -> Tensor:\n    \"\"\"\n    Create a causal (autoregressive) attention mask.\n\n    This mask ensures that position i can only attend to positions j where j ≤ i.\n    Essential for autoregressive language models like GPT.\n\n    Args:\n        seq_len: Length of the sequence\n\n    Returns:\n        Tensor of shape (1, seq_len, seq_len) with:\n        - 1.0 for positions that CAN be attended to (lower triangle)\n        - 0.0 for positions that CANNOT be attended to (upper triangle)\n\n    Example:\n        For seq_len=4, creates:\n        [[1, 0, 0, 0],\n         [1, 1, 0, 0],\n         [1, 1, 1, 0],\n         [1, 1, 1, 1]]\n\n    Usage:\n        >>> from tinytorch.core.transformers import create_causal_mask\n        >>> mask = create_causal_mask(seq_len=10)\n        >>> output = attention(x, mask=mask)\n    \"\"\"\n    # Lower triangular matrix: 1 = can attend, 0 = cannot attend\n    mask = np.tril(np.ones((seq_len, seq_len), dtype=np.float32))\n    return Tensor(mask[np.newaxis, :, :])  # Add batch dimension"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Transformer Block\n\nThis test validates our complete TransformerBlock implementation.\n\n**What we're testing**: Shape preservation, residual connections, parameter counting\n**Why it matters**: This is the core component that will be stacked to create GPT\n**Expected**: Input/output shapes match, all components work together"
+  },
+  {
+   "type": "text",
+   "md": "### Understanding the Complete GPT Architecture\n\nGPT (Generative Pre-trained Transformer) integrates token and positional embeddings, stacked pre-LN transformer blocks, a final normalization layer, and an un-embedding projection head into a unified autoregressive generative system.\n\n#### Autoregressive Generation Mechanics\n\nAt generation time, text is emitted one token at a time. Each predicted token is appended to the sequence prefix to form the input for the next forward pass:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Generation Step",
+    "Context Prefix (\\$x_{1:t-1}\\$)",
+    "Active Query Token (\\$x_{t-1}\\$)",
+    "Argmax / Sampled Token (\\$x_t\\$)",
+    "Updated Prefix (\\$x_{1:t}\\$)"
+   ],
+   "rows": [
+    [
+     "**Step 1**",
+     "`\"The\"`",
+     "`\"The\"`",
+     "`\"cat\"`",
+     "`\"The cat\"`"
+    ],
+    [
+     "**Step 2**",
+     "`\"The cat\"`",
+     "`\"cat\"`",
+     "`\"sat\"`",
+     "`\"The cat sat\"`"
+    ],
+    [
+     "**Step 3**",
+     "`\"The cat sat\"`",
+     "`\"sat\"`",
+     "`\"on\"`",
+     "`\"The cat sat on\"`"
+    ],
+    [
+     "**Step 4**",
+     "`\"The cat sat on\"`",
+     "`\"on\"`",
+     "`\"the\"`",
+     "`\"The cat sat on the\"`"
+    ],
+    [
+     "**Step 5**",
+     "`\"The cat sat on the\"`",
+     "`\"the\"`",
+     "`\"mat\"`",
+     "`\"The cat sat on the mat\"`"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "#### Causal Masking: Preserving Autoregressive Integrity\n\nDuring pre-training, the model receives full sequences in parallel. To prevent position \\$i\\$ from attending to future tokens (\\$j > i\\$), we inject an upper-triangular mask of \\$-\\infty\\$ prior to row-wise softmax normalization:\n\n\\$\\$S_{\\text{masked}}[i, j] = \\begin{cases} S[i, j] & \\text{if } j \\le i \\\\ -\\infty & \\text{if } j > i \\end{cases} \\implies A[i, j] = \\text{softmax}(S_{\\text{masked}})_{i, j} = 0 \\quad (\\forall j > i)\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Query Position (\\$i\\$)",
+    "Key 0 (\"The\")",
+    "Key 1 (\"cat\")",
+    "Key 2 (\"sat\")",
+    "Key 3 (\"on\")",
+    "Visibility Semantics"
+   ],
+   "rows": [
+    [
+     "**Pos 0 (\"The\")**",
+     "\\$A_{0,0} = 1.0\\$",
+     "\\$0.0\\$ (\\$-\\infty\\$)",
+     "\\$0.0\\$ (\\$-\\infty\\$)",
+     "\\$0.0\\$ (\\$-\\infty\\$)",
+     "Token 0 attends strictly to itself"
+    ],
+    [
+     "**Pos 1 (\"cat\")**",
+     "\\$A_{1,0}\\$",
+     "\\$A_{1,1}\\$",
+     "\\$0.0\\$ (\\$-\\infty\\$)",
+     "\\$0.0\\$ (\\$-\\infty\\$)",
+     "Token 1 attends to tokens \\$\\{0, 1\\}\\$"
+    ],
+    [
+     "**Pos 2 (\"sat\")**",
+     "\\$A_{2,0}\\$",
+     "\\$A_{2,1}\\$",
+     "\\$A_{2,2}\\$",
+     "\\$0.0\\$ (\\$-\\infty\\$)",
+     "Token 2 attends to tokens \\$\\{0, 1, 2\\}\\$"
+    ],
+    [
+     "**Pos 3 (\"on\")**",
+     "\\$A_{3,0}\\$",
+     "\\$A_{3,1}\\$",
+     "\\$A_{3,2}\\$",
+     "\\$A_{3,3}\\$",
+     "Token 3 attends to all preceding context"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "#### Temperature Scaling in Autoregressive Sampling\n\nTemperature \\$T > 0\\$ controls the entropy of the output probability distribution:\n\n\\$\\$P(w_i) = \\frac{\\exp(z_i / T)}{\\sum_{j=1}^V \\exp(z_j / T)}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Sampling Regime",
+    "Temperature (\\$T\\$)",
+    "Logit Transformation",
+    "Probability Distribution Profile",
+    "Behavioral Characteristics"
+   ],
+   "rows": [
+    [
+     "**Greedy / Deterministic**",
+     "\\$T \\to 0\\$",
+     "Extreme scaling (\\$z / \\epsilon \\to \\pm\\infty\\$)",
+     "One-hot Dirac delta (\\$\\max z_i \\to 1.0\\$)",
+     "Strict argmax decoding; repetitive but factual"
+    ],
+    [
+     "**Low Temperature**",
+     "\\$T = 0.2 - 0.5\\$",
+     "Sharpened logits (\\$z_i\\$ scaled by \\$2\\times\\$ to \\$5\\times\\$)",
+     "Peak-concentrated distribution",
+     "High confidence; ideal for code and math"
+    ],
+    [
+     "**Balanced (Default)**",
+     "\\$T = 0.7 - 1.0\\$",
+     "Unmodified / lightly scaled",
+     "Faithful to model's learned distribution",
+     "Balanced fluency, diversity, and coherence"
+    ],
+    [
+     "**High Temperature**",
+     "\\$T \\ge 1.5\\$",
+     "Flattened logits (\\$z_i / 1.5\\$)",
+     "Near-uniform entropy distribution",
+     "Creative, diverse, but prone to hallucinations"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "#### Transformer Scaling Laws: Parameter Allocation Across Scales"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Architecture Tier",
+    "Parameters",
+    "Layers (\\$L\\$)",
+    "Heads (\\$H\\$)",
+    "Hidden Dim (\\$d_{\\text{embed}}\\$)",
+    "MLP / FFN Dim (\\$d_{\\text{ff}}\\$)",
+    "Context Window (\\$S\\$)",
+    "Primary Deployment Profile"
+   ],
+   "rows": [
+    [
+     "**TinyTorch GPT**",
+     "\\$\\approx 200\\text{K}\\$",
+     "\\$2\\$",
+     "\\$4\\$",
+     "\\$64\\$",
+     "\\$256\\$",
+     "\\$128\\$",
+     "CPU educational inspection"
+    ],
+    [
+     "**GPT-2 Small**",
+     "\\$124\\text{M}\\$",
+     "\\$12\\$",
+     "\\$12\\$",
+     "\\$768\\$",
+     "\\$3{,}072\\$",
+     "\\$1{,}024\\$",
+     "Edge devices & consumer GPUs"
+    ],
+    [
+     "**Llama 3 (8B)**",
+     "\\$8.0\\text{B}\\$",
+     "\\$32\\$",
+     "\\$32\\$",
+     "\\$4{,}096\\$",
+     "\\$14{,}336\\$",
+     "\\$8{,}192\\$",
+     "Single workstation GPU (\\$24\\text{ GB}\\$ VRAM at FP16)"
+    ],
+    [
+     "**GPT-3 (175B)**",
+     "\\$175\\text{B}\\$",
+     "\\$96\\$",
+     "\\$96\\$",
+     "\\$12{,}288\\$",
+     "\\$49{,}152\\$",
+     "\\$2{,}048\\$",
+     "Multi-GPU node and beyond (\\$8\\times\\text{A100}\\$ per node)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Two notes on that table. The \\$4\\times\\$ expansion this module builds is an empirical convention, not a law, and the newest models have already left it. Llama 3's \\$d_{\\text{ff}} = 14{,}336\\$ is \\$3.5d\\$ rather than \\$4d\\$ because SwiGLU splits the up-projection across three matrices instead of two, so a smaller width holds the same parameter budget. Llama 3 8B also needs more than \\$16\\text{ GB}\\$ in practice, since \\$16\\text{ GB}\\$ is exactly its FP16 weights with nothing left for the KV cache or activations."
+  },
+  {
+   "type": "text",
+   "md": "### 🎲 Autoregressive Generation & Token Sampling\n\nLanguage models generate text by iteratively predicting the probability distribution of the next token, sampling a token, and appending it to the sequence context.\n\nIn accordance with the **LEGO Bricks Principle**, generation logic is decoupled from neural network layers. Any sequence model implementing a `.forward()` method can be driven by these standalone inference utilities."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def sample_next_token(logits: np.ndarray, temperature: float = 1.0, rng: Any = None) -> int:\n    \"\"\"\n    Sample one token from vocabulary logits using temperature scaling.\n\n    Args:\n        logits: Unnormalized model logits, shape (1, vocab_size) or (vocab_size,)\n        temperature: Sampling temperature (T >= 0). T=0 is greedy argmax.\n        rng: Optional random number generator (defaults to module rng)\n\n    Returns:\n        Sampled token index as an integer.\n\n    TODO: Implement temperature-scaled token sampling.\n\n    APPROACH:\n    1. Validate that temperature is finite and non-negative.\n    2. Flatten logits; if temperature is 0, return argmax (greedy decoding).\n    3. Center logits by subtracting max(logits) for numerical stability.\n    4. Scale by temperature, exponentiate, and normalize to get probabilities.\n    5. Sample a token index using the categorical probability distribution.\n    \"\"\"\n    # Apply temperature scaling\n    if not np.isfinite(temperature) or temperature < 0:\n        raise ValueError(\"temperature must be finite and nonnegative\")\n    flat_logits = np.asarray(logits, dtype=np.float64).reshape(-1)\n    if temperature == 0:\n        return int(np.argmax(flat_logits))\n    # Center in float64 before division so tiny temperatures cannot turn\n    # the largest logit into infinity. Negative overflow means zero mass.\n    centered_logits = flat_logits - np.max(flat_logits)\n    with np.errstate(over=\"ignore\", under=\"ignore\"):\n        scaled_logits = centered_logits / temperature\n        exp_logits = np.exp(scaled_logits)\n\n    # Convert to probabilities (softmax with numerical stability)\n    probs = exp_logits / np.sum(exp_logits)\n\n    generator = rng if rng is not None else globals().get(\"rng\", np.random.default_rng(7))\n    # Sample next token from probability distribution\n    next_token = generator.choice(len(flat_logits), p=probs)\n    return int(next_token)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Token Sampling\n\nThis test validates `sample_next_token` across greedy decoding (temperature=0) and stochastic temperature regimes.\n\n**What we're testing**: Temperature scaling, softmax probability output, valid token range\n**Why it matters**: Sampling quality controls generation coherence and creativity\n**Expected**: Valid token indices, probabilities sum to 1, temperature affects distribution"
+  },
+  {
+   "type": "text",
+   "md": "### 🔤 Autoregressive Generation Loop\n\nThe `generate()` function drives any causal language model token-by-token."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def generate(model: Any, prompt_tokens: Tensor, max_new_tokens: int = 50,\n             temperature: float = 1.0, max_seq_len: int = 1024, rng: Any = None) -> Tensor:\n    \"\"\"\n    Generate text autoregressively by repeatedly sampling next tokens from a model.\n\n    Args:\n        model: Any sequence model with a forward(tokens) -> logits method\n        prompt_tokens: Prompt token IDs, shape (1, seq_len)\n        max_new_tokens: Number of tokens to generate\n        temperature: Sampling temperature\n        max_seq_len: Maximum supported sequence length\n        rng: Optional random number generator (defaults to module rng)\n\n    Returns:\n        Tensor of shape (1, prompt_len + max_new_tokens)\n\n    TODO: Implement autoregressive generation loop.\n\n    APPROACH:\n    1. Validate prompt shape, max_new_tokens, and total length against max_seq_len.\n    2. Maintain current tokens initialized from prompt_tokens.\n    3. In a loop for max_new_tokens iterations:\n       - Run model.forward(current_tokens) to get sequence logits.\n       - Extract logits for the last token position.\n       - Call sample_next_token to sample the next token ID.\n       - Append the new token to current_tokens along the sequence dimension.\n    4. Return the completed token sequence as a Tensor.\n    \"\"\"\n    if len(prompt_tokens.shape) != 2 or prompt_tokens.shape[0] != 1 or prompt_tokens.shape[1] == 0:\n        raise ValueError(\"generate expects one nonempty prompt with shape (1, sequence)\")\n    if not isinstance(max_new_tokens, (int, np.integer)) or max_new_tokens < 0:\n        raise ValueError(\"max_new_tokens must be a nonnegative integer\")\n    if prompt_tokens.shape[1] + max_new_tokens > max_seq_len:\n        raise ValueError(\"Prompt plus generated tokens exceeds max_seq_len\")\n    current_tokens = Tensor(prompt_tokens.data.copy())\n\n    for _ in range(max_new_tokens):\n        # Forward pass to get logits for current sequence\n        logits = model.forward(current_tokens)\n\n        # Extract last position logits: (1, vocab_size)\n        last_logits = logits.data[:, -1, :]\n\n        # Sample next token\n        next_token_id = sample_next_token(last_logits, temperature, rng=rng)\n\n        # Append to sequence\n        next_token = np.array([[next_token_id]])\n        current_tokens = Tensor(np.concatenate([current_tokens.data, next_token], axis=1))\n\n    return current_tokens"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Autoregressive Generation\n\nThis test validates the standalone `generate` utility using a deterministic mock sequence model.\n\n**What we're testing**: Token-by-token autoregressive loop, sequence expansion, prompt preservation\n**Why it matters**: Drives any causal language model to produce continuous text\n**Expected**: Output shape is (1, prompt_len + max_new_tokens), prompt prefix preserved"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "# Re-export model architectures for downstream compatibility\ntry:\n    from tinytorch.models.transformer import GPT, TinyGPT\nexcept ImportError:\n    pass"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 🏗️ Implementation: Building Transformer Components."
+   ]
+  }
+ ]
+}

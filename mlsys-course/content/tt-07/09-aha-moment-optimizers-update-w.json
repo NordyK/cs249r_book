@@ -1,0 +1,35 @@
+{
+ "title": "⭐ Aha Moment: Optimizers Update Weights",
+ "summary": "TinyTorch optimizers: ⭐ Aha Moment: Optimizers Update Weights",
+ "source": {
+  "chapter": "tt-07",
+  "sections": [
+   "⭐ Aha Moment: Optimizers Update Weights"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: Optimizers Update Weights\n\n**What you built:** Optimization algorithms (SGD, Adam) that update neural network weights.\n\n**Why it matters:** Gradients tell us which direction reduces the loss, but someone has to\nactually move the weights. That's what optimizers do! SGD takes simple steps, while Adam\nadapts the learning rate for each parameter, like having a personal trainer for each weight.\n\nIn the next module, you'll combine optimizers with a training loop to actually train networks!"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_optimizers():\n    \"\"\"🎯 See optimizers update weights.\"\"\"\n    print(\"🎯 AHA MOMENT: Optimizers Update Weights\")\n    print(\"=\" * 45)\n\n    # Create a parameter with a gradient\n    weight = Tensor(np.array([5.0]), requires_grad=True)\n\n    # SGD takes a step in the opposite direction\n    optimizer = SGD([weight], lr=0.5)\n    # Set the gradient by hand so the demo needs no forward or backward pass\n    weight.grad = np.array([1.0])  # Gradient pointing \"uphill\"\n\n    print(f\"Initial weight: {weight.data[0]:.2f}\")\n    print(f\"Gradient:       {weight.grad[0]:.2f} (pointing uphill)\")\n\n    optimizer.step()\n\n    print(f\"\\nAfter SGD step: {weight.data[0]:.2f}\")\n    print(f\"Moved: {5.0 - weight.data[0]:.2f} (opposite to gradient)\")\n\n    print(\"\\n✨ Optimizer moves weights to reduce loss!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Optimizers\n\nCongratulations! You've built sophisticated optimization algorithms that power modern neural network training!\n\n### Key Accomplishments\n- **Built SGD optimizer** with momentum for stable gradient descent and oscillation reduction\n- **Implemented Adam optimizer** with adaptive learning rates and bias correction for different parameter scales\n- **Created AdamW optimizer** with decoupled weight decay for proper regularization\n- **Analyzed memory trade-offs**: 8 bytes per parameter for SGD (2x), 12 with momentum (3x), 16 for Adam/AdamW (4x)\n- **All tests pass** (validated by `test_module()`)\n\n### Systems Insights Discovered\n- **Memory scaling**: counting weight plus gradient plus optimizer state, plain SGD needs 2x the parameter bytes, SGD with momentum 3x, and Adam/AdamW 4x, which is the 16 bytes per parameter in FP32\n- **Adaptive learning**: Adam automatically adjusts step sizes per parameter for faster convergence\n- **Weight decay coupling**: AdamW fixes Adam's inconsistent regularization by decoupling weight decay\n- **State management**: Optimizer buffers must be checkpointed for training resume\n\n### Ready for Next Steps\nYour optimizer implementations enable sophisticated neural network training! With gradients from Module 06 and optimizers from Module 07, you're ready to build complete training loops.\n\nExport with: `tito module complete 07`"
+  },
+  {
+   "type": "text",
+   "md": "**Next**: Module 08 will add training loops, learning rate scheduling, and checkpointing for complete end-to-end neural network training!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: Optimizers Update Weights."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,71 @@
+{
+ "title": "💡 Introduction: Why Compression Matters",
+ "summary": "TinyTorch compression: 💡 Introduction: Why Compression Matters",
+ "source": {
+  "chapter": "tt-16",
+  "sections": [
+   "💡 Introduction: Why Compression Matters"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: Why Compression Matters\n\nBefore we learn compression, let's profile a layer's weights with the Module 14\nProfiler. The layer below is freshly initialized, so its weights follow the\ninitializer's distribution, not anything learned. That is exactly the point of\nthe exercise: a fresh layer already has a wide spread of magnitudes, and the\nquestion every pruning method asks is how much of the small end can go. The\nevidence that the answer is \"most of it\" comes from trained networks, which is\nwhy Milestone 06 measures accuracy before and after pruning on real digits."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "# Profile weight distribution to discover pruning opportunities\n# Module 14 (Profiling) must be completed before Module 16\nfrom tinytorch.perf.profiling import Profiler\n\ndef show_weight_distribution_motivation():\n    \"\"\"Display weight distribution analysis - motivates compression techniques.\"\"\"\n    profiler = Profiler()\n\n    # Create a model and analyze its weights\n    model = Linear(512, 512)\n    param_count = profiler.count_parameters(model)\n\n    print(\"🧪 Profiling Parameter Distribution (freshly initialized Linear(512, 512)):\\n\")\n    print(f\"   Total parameters: {param_count:,}\")\n    print(f\"   Model memory: {param_count * BYTES_PER_FLOAT32 / MB_TO_BYTES:.1f} MB (FP32)\")\n\n    # Analyze weight distribution\n    weights = model.weight.data.flatten()\n    abs_weights = np.abs(weights)\n    largest = np.max(abs_weights)\n\n    print(\"\\n   |Weight| Statistics:\")\n    print(f\"   Mean: {np.mean(abs_weights):.4f}\")\n    print(f\"   Std:  {np.std(abs_weights):.4f}\")\n    print(f\"   Min:  {np.min(abs_weights):.4f}\")\n    print(f\"   Max:  {largest:.4f}\")\n\n    # Thresholds relative to the largest weight, so the table means the same\n    # thing whatever scale the initializer (or a trained network) uses\n    fractions = [0.01, 0.05, 0.10, 0.25]\n    below = {}\n    print(\"\\n   Weights Below a Fraction of the Largest |Weight|:\")\n    print(\"   Threshold        |  Percentage\")\n    print(\"   -----------------|--------------\")\n    for fraction in fractions:\n        below[fraction] = np.sum(abs_weights < fraction * largest) / len(weights) * 100\n        print(f\"   < {fraction:4.0%} of max   |  {below[fraction]:5.1f}%\")\n\n    print(\"\\n💡 Key Observations (computed from this layer):\")\n    print(f\"   • {below[0.10]:.0f}% of the weights are under a tenth of the largest one\")\n    print(f\"   • {below[0.25]:.0f}% are under a quarter of it; the spread is wide even before training\")\n    print(\"   • A fresh layer proves only that magnitudes vary; trained networks are the evidence\")\n    print(\"     that the small end can go (Han et al., 2015, removed 50-90% of the weights of\")\n    print(\"     trained networks with little accuracy loss)\")\n\n    print(\"\\n🎯 The Problem:\")\n    print(\"   Every weight, however small, costs the same to store and multiply.\")\n\n    print(\"\\n✨ The Solution:\")\n    print(\"   Prune (remove) small weights:\")\n    print(\"   • Magnitude pruning: Set small weights to zero\")\n    print(\"   • Structured pruning: Zero entire neurons/channels so they can later be deleted\")\n    print(\"   • Then measure what it cost: this module measures output drift,\")\n    print(\"     Milestone 06 measures accuracy\\n\")\n\nif __name__ == \"__main__\":\n    show_weight_distribution_motivation()"
+  },
+  {
+   "type": "text",
+   "md": "### Model Compression Concepts\n\nDeep neural networks are typically over-parameterized: their parameter matrices contain extensive statistical redundancy. While over-parameterization facilitates convex optimization dynamics during gradient descent training, inference requires only a fraction of the trained weight volume.\n\nModel compression bridges the gap between research models and production edge constraints by eliminating redundant parameters, factorizing low-rank manifolds, and distilling dark knowledge into compact student topologies.\n\n### The Model Compression Taxonomy"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Category",
+    "Compression Paradigm",
+    "Operational Mechanism",
+    "Hardware Acceleration Profile",
+    "Accuracy Trade-Off"
+   ],
+   "rows": [
+    [
+     "**Weight-Based**",
+     "**Magnitude Pruning**",
+     "Zero out individual scalar weights \\$\\lvert W_{i, j} \\rvert < \\tau\\$",
+     "Requires sparse BLAS (CSR/COO); dense kernels see \\$0\\times\\$ speedup",
+     "Minimal loss at \\$\\le 70\\%\\$ sparsity"
+    ],
+    [
+     "**Weight-Based**",
+     "**Structured Pruning**",
+     "Zero out entire columns/channels \\$\\lVert W_{:, c} \\rVert_2 < \\tau\\$",
+     "Dense GEMM dimension reduction (\\$M \\times N \\to M \\times N'\\$) once the zeroed columns are sliced out; immediate speedup after that step",
+     "Higher risk of capacity collapse"
+    ],
+    [
+     "**Weight-Based**",
+     "**Low-Rank SVD**",
+     "Truncate singular spectrum \\$W \\approx A B\\$",
+     "Replaces 1 large GEMM with 2 small GEMMs (\\$r(M+N)\\$ FLOPs)",
+     "Exact rank-dependent error bound"
+    ],
+    [
+     "**Architecture-Based**",
+     "**Knowledge Distillation**",
+     "Train smaller student on softened teacher logits",
+     "Native execution on any hardware target at full student throughput",
+     "Often matches or exceeds raw student"
+    ]
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: 💡 Introduction: Why Compression Matters."
+   ]
+  }
+ ]
+}
