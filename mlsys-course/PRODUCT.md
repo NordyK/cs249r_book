@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-Plain static HTML, CSS and JavaScript with no build step, opened from a folder; `serve.py` (Python standard library) saves progress to `progress/progress.json`, runs exercise unit tests and runs playground code locally. Inferred and recommended: the stack question was put to the user on 2026-11-09 and the build proceeds on this answer until they reply.
+Plain static HTML, CSS and JavaScript with no build step, opened from a folder; `serve.py` (Python standard library) saves progress to `progress/progress.json`, runs exercise unit tests and runs playground code locally. Confirmed by the user on 2026-11-09.
 
 ## Users
 

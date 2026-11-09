@@ -189,7 +189,7 @@ def lessons_from(src, cid, name):
         if kind == "md":
             m = re.match(r"^#{1,2} (.+)$", body, re.M)
             if m and (cur is None or wc(" ".join(b for _, b in cur["items"])) > 500):
-                cur = {"title": re.sub(r"[#*`]", "", m.group(1)).strip(), "items": []}
+                cur = {"title": re.sub(r"[#*`\U0001F000-\U0001FAFF\u2600-\u27BF\uFE0F\u200D]", "", m.group(1)).strip(), "items": []}
                 groups.append(cur)
         if cur is None:
             cur = {"title": "Introduction", "items": []}

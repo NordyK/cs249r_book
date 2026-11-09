@@ -5,6 +5,12 @@ What it does:
   * serves the course (index.html, assets/, course/data.js)
   * saves learner progress to progress/progress.json  (GET/POST /api/progress)
   * runs an exercise's unit tests when you click "Run tests"  (POST /api/run-tests)
+  * saves the learner's edited exercise file (POST /api/save-exercise; only files listed as "starter"
+    in that exercise's exercise.json can be written)
+  * runs playground code with this computer's python3 (POST /api/run-python; isolated mode, temp
+    folder, 20 second limit, localhost only)
+
+This MLSys edition is maintained in mlsys-course-tools/; do not refresh it with init_course.py --update.
 
 The command that gets run comes from exercises/<dir>/exercise.json (written when the course was
 built), never from the browser request. Only the folder name is taken from the request.
@@ -20,6 +26,7 @@ import shutil
 import socketserver
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import webbrowser
@@ -100,6 +107,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._save_progress(body)
         if path == "/api/run-tests":
             return self._run_tests(body)
+        if path == "/api/save-exercise":
+            return self._save_exercise(body)
+        if path == "/api/run-python":
+            return self._run_python(body)
         return self._json(404, {"error": "not found"})
 
     def _save_progress(self, body):
@@ -146,6 +157,66 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if len(out) > OUTPUT_LIMIT:
             out = out[:OUTPUT_LIMIT // 2] + "\n… [obcięto / truncated] …\n" + out[-OUTPUT_LIMIT // 2:]
         return self._json(200, {"ok": code == 0 and not timed_out, "exit_code": code, "timed_out": timed_out,
+                                "output": out, "duration_ms": int((time.time() - t0) * 1000)})
+
+
+    def _origin_ok(self):
+        origin = self.headers.get("Origin")
+        if not origin:
+            return True
+        host = re.sub(r"^https?://", "", origin).rsplit(":", 1)[0].strip("[]")
+        return host in ("127.0.0.1", "localhost", "::1")
+
+    def _save_exercise(self, body):
+        if not self._origin_ok():
+            return self._json(403, {"error": "bad origin"})
+        name, rel, content = str(body.get("dir", "")), str(body.get("path", "")), body.get("content")
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+", name) or name.startswith("."):
+            return self._json(400, {"error": "bad exercise name"})
+        if not isinstance(content, str) or len(content) > 1024 * 1024:
+            return self._json(400, {"error": "bad content"})
+        ex_dir = os.path.join(EXERCISES, name)
+        try:
+            with open(os.path.join(ex_dir, "exercise.json"), "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+        except (OSError, ValueError):
+            return self._json(404, {"error": "exercise not found"})
+        if rel not in (cfg.get("starter") or []):
+            return self._json(403, {"error": "only the exercise's starter files can be saved"})
+        target = os.path.realpath(os.path.join(ex_dir, rel))
+        if not target.startswith(os.path.realpath(ex_dir) + os.sep):
+            return self._json(403, {"error": "bad path"})
+        tmp = target + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(content)
+        os.replace(tmp, target)
+        return self._json(200, {"ok": True})
+
+    def _run_python(self, body):
+        if not self._origin_ok():
+            return self._json(403, {"error": "bad origin"})
+        code = body.get("code")
+        if not isinstance(code, str) or len(code) > 200000:
+            return self._json(400, {"error": "bad code"})
+        py = sys.executable or shutil.which("python3")
+        t0, timed_out = time.time(), False
+        with tempfile.TemporaryDirectory(prefix="mlsys-play-") as tmp:
+            src = os.path.join(tmp, "main.py")
+            with open(src, "w", encoding="utf-8") as f:
+                f.write(code)
+            env = {"PATH": os.environ.get("PATH", ""), "HOME": tmp, "PYTHONDONTWRITEBYTECODE": "1",
+                   "PYTHONIOENCODING": "utf-8", "MPLBACKEND": "Agg"}
+            try:
+                p = subprocess.run([py, "-I", src], cwd=tmp, env=env, stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, timeout=20)
+                rc, out = p.returncode, p.stdout.decode("utf-8", "replace")
+            except subprocess.TimeoutExpired as e:
+                timed_out, rc = True, -1
+                out = (e.stdout or b"").decode("utf-8", "replace") if isinstance(e.stdout, bytes) else ""
+        out = out.replace(tmp, ".")
+        if len(out) > OUTPUT_LIMIT:
+            out = out[:OUTPUT_LIMIT // 2] + "\n... [truncated] ...\n" + out[-OUTPUT_LIMIT // 2:]
+        return self._json(200, {"ok": rc == 0 and not timed_out, "exit_code": rc, "timed_out": timed_out,
                                 "output": out, "duration_ms": int((time.time() - t0) * 1000)})
 
 

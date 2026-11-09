@@ -27,6 +27,11 @@ function h(tag, props, ...kids) {
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const $ = (s, r) => (r || document).querySelector(s);
 /* replaceChildren() stringifies arrays and null — fill() flattens, drops empties and accepts text */
+/* the renderers pass optional children as `cond ? node : null`; drop those instead of printing "null" */
+for (const m of ["append", "replaceChildren", "prepend"]) {
+  const orig = Element.prototype[m];
+  Element.prototype[m] = function (...kids) { return orig.apply(this, kids.filter(k => k != null && k !== false)); };
+}
 function fill(el, ...kids) { el.replaceChildren(...kids.flat(Infinity).filter(k => k != null && k !== false).map(k => (k.nodeType ? k : document.createTextNode(String(k))))); return el; }
 /* in-page confirm — native window.confirm is silently "false" in Android WebView */
 function ask(msg, yes) {
@@ -542,14 +547,39 @@ function sanitizeSvg(src) {
   return tpl.innerHTML;
 }
 
+/* ═════════════ MLSys course player (Neo Kinpaku, reading column + margin apparatus) ═════════════
+   Everything above this line is the book-to-course core (DOM helpers, LaTeX→MathML, mini markdown,
+   highlighting). Everything below is this course's player: chapter-at-a-time loading, the margin,
+   playgrounds, calculators, the logbook. */
+
+/* ───────────── icons (authored, 1.5px stroke, 20px grid) ───────────── */
+const ICON_PATHS = {
+  check: "M4 10.5l4 4 8-9", x: "M5 5l10 10M15 5L5 15", arrow: "M4 10h12M11 5l5 5-5 5", back: "M16 10H4M9 5L4 10l5 5",
+  chevron: "M7 4l6 6-6 6", down: "M4 7l6 6 6-6", play: "M6 4l10 6-10 6z", menu: "M3 6h14M3 10h14M3 14h14",
+  sun: "M10 6.5a3.5 3.5 0 110 7 3.5 3.5 0 010-7zM10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.4 1.4M14.6 14.6L16 16M4 16l1.4-1.4M14.6 5.4L16 4",
+  moon: "M15.5 12.5A6.5 6.5 0 017.5 4.5a6.5 6.5 0 108 8z", hint: "M7.5 15.5h5M8 18h4M10 2a5.5 5.5 0 00-3.3 9.9c.5.4.8 1 .8 1.6h5c0-.6.3-1.2.8-1.6A5.5 5.5 0 0010 2z",
+  flask: "M8 2.5h4M8.5 2.5v5L3.8 15.4A1.5 1.5 0 005.1 17.5h9.8a1.5 1.5 0 001.3-2.1L11.5 7.5v-5M6 12h8",
+  calc: "M5 2.5h10a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1v-13a1 1 0 011-1zM6.5 5h7v3h-7zM7 11h.01M10 11h.01M13 11h.01M7 14h.01M10 14h.01M13 14h.01",
+  flag: "M4.5 18V3M4.5 3.5h10l-2.5 4 2.5 4h-10", book: "M3 4.5A1.5 1.5 0 014.5 3H9v13H4.5A1.5 1.5 0 003 17.5zM17 4.5A1.5 1.5 0 0015.5 3H11v13h4.5a1.5 1.5 0 011.5 1.5z",
+  eye: "M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6S1.5 10 1.5 10zM10 7.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5z", code: "M7 6l-4 4 4 4M13 6l4 4-4 4",
+  log: "M5 3h10v14H5zM8 7h4M8 10h4M8 13h2", search: "M8.5 3a5.5 5.5 0 110 11 5.5 5.5 0 010-11zM12.5 12.5L17 17", save: "M4 3h9l3 3v11H4zM7 3v4h5V3M7 17v-5h6v5",
+  cards: "M3 6h11v10H3zM6 3h11v10", hammer: "M11 7l-7.5 7.5a1.4 1.4 0 002 2L13 9M10 4.5l3-1.5 4 4-1.5 3-2.5-.5-2.5-2.5z", reset: "M4 10a6 6 0 106-6H6M6 1.5L3.5 4 6 6.5",
+};
+function icon(name, cls) {
+  const ns = "http://www.w3.org/2000/svg", s = document.createElementNS(ns, "svg");
+  s.setAttribute("viewBox", "0 0 20 20"); s.setAttribute("aria-hidden", "true"); s.setAttribute("class", "ic" + (cls ? " " + cls : ""));
+  const p = document.createElementNS(ns, "path"); p.setAttribute("d", ICON_PATHS[name] || ""); s.append(p); return s;
+}
+const fmtInt = n => Number(n).toLocaleString("en-US");
+
 /* ───────────── progress storage ───────────── */
-let P = { version: 1, lessons: {}, quizzes: {}, exercises: {}, cards: {}, last: null, updated: null };
+const BLANK = () => ({ version: 2, lessons: {}, quizzes: {}, exercises: {}, cards: {}, playgrounds: {}, widgets: {}, log: [], last: null, updated: null });
+let P = BLANK();
 let serverMode = false, saveTimer = null;
 const LS_KEY = "course-progress:" + C.meta.id;
-const stamp = o => (o && o.updated) || "";
 async function loadProgress() {
   let local = null;
-  try { local = JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch (e) { /* ignore */ }
+  try { local = JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch (e) { /* private window */ }
   let remote = null;
   if (location.protocol.indexOf("http") === 0) {
     try {
@@ -557,156 +587,183 @@ async function loadProgress() {
       if (r.ok && (await r.json()).ok) { serverMode = true; const pr = await fetch("api/progress", { cache: "no-store" }); remote = await pr.json(); }
     } catch (e) { serverMode = false; }
   }
-  const pick = serverMode ? (remote && remote.updated ? remote : (local || remote)) : local;
-  if (pick && typeof pick === "object") P = Object.assign({ version: 1, lessons: {}, quizzes: {}, exercises: {}, cards: {}, last: null, updated: null }, pick);
-  if (serverMode && (!remote || !remote.updated) && local) save(true);
+  const newer = (a, b) => ((a && a.updated) || "") >= ((b && b.updated) || "") ? a : b;
+  const pick = serverMode ? (remote && remote.updated ? newer(remote, local) : (local || remote)) : local;
+  if (pick && typeof pick === "object") P = Object.assign(BLANK(), pick);
+  if (serverMode && local && pick === local) save(true);
 }
 function save(now) {
   P.updated = new Date().toISOString();
-  try { localStorage.setItem(LS_KEY, JSON.stringify(P)); } catch (e) { /* ignore */ }
-  const doPost = () => {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(P)); } catch (e) { /* storage full or blocked */ }
+  const post = () => {
     if (!serverMode) return;
-    fetch("api/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(P) }).then(r => { if (!r.ok) throw new Error(); setSaveState(); }).catch(() => { const s = $("#saveState"); if (s) s.textContent = "⚠ " + t("serverErr"); });
+    fetch("api/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(P) })
+      .then(r => { if (!r.ok) throw new Error(); setSaveState("ok"); }).catch(() => setSaveState("err"));
   };
   clearTimeout(saveTimer);
-  if (now) doPost(); else saveTimer = setTimeout(doPost, 350);
-  setSaveState(); refreshChrome();
+  if (now) post(); else saveTimer = setTimeout(post, 350);
+  setSaveState(serverMode ? "pending" : "local"); refreshChrome();
 }
-function setSaveState() { const s = $("#saveState"); if (s) s.textContent = serverMode ? t("savedFile") : t("savedBrowser"); }
+function setSaveState(s) {
+  const el = $("#saveState"); if (!el) return;
+  el.dataset.state = s || (serverMode ? "ok" : "local");
+  el.textContent = s === "err" ? "Not saved: the course helper stopped" : serverMode ? "Saved to progress/progress.json" : "Saved in this browser";
+}
+/* the logbook: one line per thing the learner finished, so a later session knows what happened */
+function logEvent(kind, ref, text) {
+  P.log = P.log || [];
+  const last = P.log[P.log.length - 1];
+  if (last && last.kind === kind && last.ref === ref && Date.now() - Date.parse(last.at) < 60000) { last.text = text; last.at = new Date().toISOString(); return; }
+  P.log.push({ at: new Date().toISOString(), kind, ref, text });
+  if (P.log.length > 2000) P.log.splice(0, P.log.length - 2000);
+}
 
-/* ───────────── course model helpers ───────────── */
-const ORDER = []; const CH_OF = {};
-C.chapters.forEach((ch, ci) => ch.lessons.forEach(id => { ORDER.push(id); CH_OF[id] = ci; }));
+/* ───────────── course model ───────────── */
+const ORDER = [], CH_OF = {}, STUB = {}, CH_BY_ID = {};
+C.chapters.forEach((ch, ci) => { CH_BY_ID[ch.id] = ch; (ch.stubs || []).forEach(s => { ORDER.push(s.id); CH_OF[s.id] = ci; STUB[s.id] = s; }); });
+const LES = {};
 const lessonDone = id => !!(P.lessons[id] && P.lessons[id].completed);
 const lessonStarted = id => !!(P.lessons[id] && (P.lessons[id].visited || P.lessons[id].completed));
-function chapterPct(ch) { if (!ch.lessons.length) return 0; return Math.round(100 * ch.lessons.filter(lessonDone).length / ch.lessons.length); }
-function overallPct() { return ORDER.length ? Math.round(100 * ORDER.filter(lessonDone).length / ORDER.length) : 0; }
-function allBlocks(les) { return les.blocks || []; }
-function practiceOf(les) {
-  let qT = 0, qC = 0, eT = 0, eP = 0;
-  allBlocks(les).forEach(b => {
-    if (b.type === "quiz" && !(b.mode === "test" || les.kind === "test")) { qT += b.questions.length; const s = P.quizzes[b.id]; qC += s && s.correct ? s.correct.length : 0; }
-    if (b.type === "exercise") { eT++; if (P.exercises[b.id] && P.exercises[b.id].status === "passed") eP++; }
+const chDone = ch => ch.stubs.filter(s => lessonDone(s.id)).length;
+const overallPct = () => ORDER.length ? Math.round(1000 * ORDER.filter(lessonDone).length / ORDER.length) / 10 : 0;
+function testOf(ch) { for (const s of ch.stubs) for (const q of s.quizzes) if (q.test) return q.id; return null; }
+function exOf(ch) { const out = []; ch.stubs.forEach(s => out.push(...s.exercises)); return out; }
+function nextLessonId() { const first = ORDER.find(id => !lessonDone(id)); return (P.last && STUB[P.last] && !lessonDone(P.last)) ? P.last : first; }
+const chLabel = ch => { const m = /^(Vol [IV]+|TinyTorch \d+)\s*·\s*(.*)$/.exec(ch.title); return m ? { tag: m[1], name: m[2] } : { tag: "", name: ch.title }; };
+const loading = {};
+function loadChapter(id) {
+  if (LES[id]) return Promise.resolve(LES[id]);
+  if (loading[id]) return loading[id];
+  loading[id] = new Promise((res, rej) => {
+    const s = document.createElement("script"); s.src = "course/ch/" + encodeURIComponent(id) + ".js";
+    s.onload = () => (LES[id] ? res(LES[id]) : rej(new Error("chapter file is empty")));
+    s.onerror = () => { delete loading[id]; rej(new Error("course/ch/" + id + ".js could not be loaded")); };
+    document.head.append(s);
   });
-  return { qT, qC, eT, eP };
+  return loading[id];
 }
-function nextLessonId() { const first = ORDER.find(id => !lessonDone(id)); return (P.last && ORDER.indexOf(P.last) >= 0 && !lessonDone(P.last)) ? P.last : first; }
-function celebrate(count) {
+window.__courseChapter = (id, lessons) => { LES[id] = lessons; };
+function celebrate() {
   if (reduceMotion() || !document.body.animate) return;
-  const emojis = ["🎉", "✨", "⭐", "🎊", "💡"];
-  for (let i = 0; i < (count || 22); i++) {
-    const el = h("span", { class: "confetti" }, emojis[i % emojis.length]);
-    document.body.append(el);
-    const x = innerWidth / 2 + (Math.random() - .5) * 160, y = innerHeight * .55;
-    const dx = (Math.random() - .5) * 520, dy = -180 - Math.random() * 280;
-    el.animate([{ transform: "translate(" + x + "px," + y + "px) scale(.6)", opacity: 1 }, { transform: "translate(" + (x + dx) + "px," + (y + dy) + "px) rotate(" + (Math.random() * 540) + "deg) scale(1.2)", opacity: 1, offset: .55 }, { transform: "translate(" + (x + dx * 1.1) + "px," + (y + dy + 420) + "px) rotate(720deg) scale(.8)", opacity: 0 }], { duration: 1500 + Math.random() * 700, easing: "cubic-bezier(.2,.7,.4,1)" }).onfinish = () => el.remove();
-  }
+  const seam = h("div", { class: "seam-flash", "aria-hidden": "true" }); document.body.append(seam);
+  seam.animate([{ transform: "scaleX(0)", opacity: 1 }, { transform: "scaleX(1)", opacity: 1, offset: .6 }, { transform: "scaleX(1)", opacity: 0 }], { duration: 1100, easing: "cubic-bezier(.16,1,.3,1)" }).onfinish = () => seam.remove();
+}
+
+/* ───────────── margin helpers ───────────── */
+/* a row pairs a block in the reading column with its margin cell */
+function row(mainEl, sideKids, cls) {
+  const side = h("aside", { class: "side" }, sideKids);
+  return h("div", { class: "mrow" + (cls ? " " + cls : "") }, h("div", { class: "main" }, mainEl), side);
+}
+function note(label, body, state) {
+  return h("div", { class: "mnote" + (state ? " is-" + state : "") }, label ? h("div", { class: "mlabel" }, label) : null, body);
+}
+const termsSeen = new Set();
+function termNotes(b, les) {
+  if (!les.terms || !les.terms.length) return [];
+  const text = JSON.stringify([b.md, b.title, b.steps, b.nodes, b.prompt]).toLowerCase();
+  const out = [];
+  les.terms.forEach(tm => {
+    const k = tm.term.toLowerCase();
+    if (!termsSeen.has(k) && text.indexOf(k) >= 0) { termsSeen.add(k); out.push(note("Term", h("div", null, h("strong", null, tm.term), " ", h("span", { html: inline(tm.def) })))); }
+  });
+  return out;
+}
+function formulaNotes(b) {
+  if (b.type !== "text" && b.type !== "callout") return [];
+  const out = [], seen = new Set();
+  String(b.md || "").replace(/\$\$([\s\S]+?)\$\$/g, (m, f) => { if (!seen.has(f)) { seen.add(f); out.push(f); } return m; });
+  return out.slice(0, 2).map(f => note("Formula", h("div", { class: "mformula", html: tex2mml(f.trim(), true) })));
 }
 
 /* ───────────── blocks ───────────── */
-const CALLOUT_ICON = { tip: "💡", note: "📝", warning: "⚠️", analogy: "🧩", key: "🔑", example: "🔍" };
+const CALLOUT_LABEL = { tip: "Tip", note: "Note", warning: "Watch out", analogy: "Analogy", key: "Remember", example: "Example" };
+function blockTitle(text, ic, extra) { return h("h3", { class: "block-title" }, ic ? icon(ic) : null, h("span", null, text), extra || null); }
 
 function renderBlock(b, les) {
   switch (b.type) {
     case "text": return h("div", { class: "block text" }, b.title ? h("h3", null, b.title) : null, h("div", { html: md(b.md) }));
-    case "callout": { const kind = CALLOUT_ICON[b.kind] ? b.kind : "note"; const nm = t("callout_" + kind);
-      return h("aside", { class: "block callout " + kind }, h("div", { class: "c-title" }, CALLOUT_ICON[kind], " ", b.title || nm), h("div", { html: md(b.md) })); }
+    case "callout": { const kind = CALLOUT_LABEL[b.kind] ? b.kind : "note";
+      return h("aside", { class: "block callout is-" + kind }, h("div", { class: "c-title" }, b.title || CALLOUT_LABEL[kind]), h("div", { html: md(b.md) })); }
     case "code": return h("div", { class: "block" }, b.title ? h("h4", null, b.title) : null, codeBlock(b),
-      b.output ? [h("div", { class: "out-label" }, "▶ " + (b.output_label || t("output"))), h("pre", { class: "term" }, b.output)] : null, b.explain ? h("div", { class: "text", html: md(b.explain) }) : null);
+      b.output ? [h("div", { class: "out-label" }, b.output_label || "Output"), h("pre", { class: "term" }, b.output)] : null, b.explain ? h("div", { class: "text", html: md(b.explain) }) : null);
     case "stepper": return stepperBlock(b);
     case "derivation": return derivationBlock(b);
     case "reveal": return revealBlock(b);
-    case "from_book": return h("figure", { class: "block frombook", style: "margin-left:auto;margin-right:auto" }, h("div", { class: "fb-label" }, "📖 " + t("frombook") + (b.source ? " · " + b.source : "")), h("div", { html: md(b.md) }), b.code ? codeBlock({ code: b.code, lang: b.lang }) : null);
+    case "from_book": return h("figure", { class: "block frombook" }, h("blockquote", { html: md(b.md) }), b.code ? codeBlock({ code: b.code, lang: b.lang }) : null);
     case "table": return h("div", { class: "block tablewrap" }, h("table", null, h("thead", null, h("tr", null, b.headers.map(x => h("th", { html: inline(x) })))), h("tbody", null, b.rows.map(r => h("tr", null, r.map(c => h("td", { html: inline(c) })))))));
     case "flow": return flowBlock(b);
-    case "svg": return h("figure", { class: "block svgfig", style: "margin-left:auto;margin-right:auto" }, h("div", { html: sanitizeSvg(b.svg) }), b.caption ? h("figcaption", { html: inline(b.caption) }) : null);
+    case "svg": return h("figure", { class: "block svgfig" }, h("div", { html: sanitizeSvg(b.svg) }), b.caption ? h("figcaption", { html: inline(b.caption) }) : null);
     case "quiz": return quizBlock(b, les);
     case "exercise": return exerciseBlock(b, les);
     case "flashcards": return flashBlock(b);
-    case "summary": return h("div", { class: "block summary" }, h("h3", { class: "block-title" }, "🧾 " + (b.title || t("summary"))), h("ul", null, b.points.map((p, i) => h("li", { style: "animation-delay:" + (i * 120) + "ms", html: inline(p) }))));
+    case "playground": return playgroundBlock(b, les);
+    case "widget": return widgetBlock(b, les);
+    case "summary": return h("div", { class: "block summary" }, h("h3", { class: "block-title" }, b.title || "What to take away"), h("ul", null, b.points.map(p => h("li", { html: inline(p) }))));
     default: return h("div", { class: "block" }, "[" + b.type + "]");
   }
 }
+/* the margin cell for a block: citation, terms, formulas, and live state for practice */
+function sideFor(b, les, live) {
+  const out = [];
+  if (b.type === "from_book") out.push(note("From the book", h("div", null, b.source || "MLSysBook")));
+  if (b.type === "code" && (b.caption || b.file)) out.push(note(b.file ? "File" : "Listing", h("div", { html: inline(b.caption || b.file) })));
+  if (b.note) out.push(note("Note", h("div", { html: md(b.note) })));
+  out.push(...formulaNotes(b), ...termNotes(b, les));
+  if (live) out.push(live);
+  return out;
+}
 
-/* shared by stepperBlock and derivationBlock: dots + prev/next + "Step X of N", driven by
-   an external onStep(idx, dir) callback that each block uses to render its own content */
 function stepControls(n, onStep) {
   let idx = 0;
   const dots = h("div", { class: "dots" }), meta = h("div", { class: "note-small" });
-  const prev = h("button", { class: "btn ghost sm", type: "button", onclick: () => go(idx - 1, "prev") }, "← " + t("prev"));
-  const next = h("button", { class: "btn sm", type: "button", onclick: () => go(idx + 1, "next") }, t("next") + " →");
+  const prev = h("button", { class: "btn ghost sm", type: "button", onclick: () => go(idx - 1, "prev") }, icon("back"), "Back");
+  const next = h("button", { class: "btn sm", type: "button", onclick: () => go(idx + 1, "next") }, "Next", icon("arrow"));
   function go(i, dir) {
     idx = Math.max(0, Math.min(n - 1, i));
-    dots.replaceChildren(...Array.from({ length: n }, (_, j) => h("button", { class: "dot" + (j === idx ? " on" : j < idx ? " past" : ""), type: "button", "aria-label": t("step", j + 1, n), onclick: () => go(j, j > idx ? "next" : "prev") })));
-    meta.textContent = t("step", idx + 1, n); prev.disabled = idx === 0; next.disabled = idx === n - 1;
+    dots.replaceChildren(...Array.from({ length: n }, (_, j) => h("button", { class: "dot" + (j === idx ? " on" : j < idx ? " past" : ""), type: "button", "aria-label": "Step " + (j + 1) + " of " + n, onclick: () => go(j, j > idx ? "next" : "prev") })));
+    meta.textContent = "Step " + (idx + 1) + " of " + n; prev.disabled = idx === 0; next.disabled = idx === n - 1;
     onStep(idx, dir);
   }
-  const row = h("div", { class: "row" }, prev, next, meta);
-  return { row, dots, go, get idx() { return idx; } };
+  return { row: h("div", { class: "row" }, prev, next, meta), dots, go, get idx() { return idx; } };
 }
 function stepperBlock(b) {
-  const stage = h("div", { class: "stepper-stage" });
+  const stage = h("div", { class: "stepper-stage", "aria-live": "polite" });
   const ctl = stepControls(b.steps.length, (idx, dir) => {
     const s = b.steps[idx];
     stage.className = "stepper-stage"; void stage.offsetWidth; if (dir) stage.classList.add("anim-" + dir);
-    fill(stage, h("div", { class: "step-title" }, (idx + 1) + ". " + (s.title || "")), s.md ? h("div", { html: md(s.md) }) : null, s.code ? codeBlock({ code: s.code, lang: s.lang || b.lang, highlight: s.highlight, file: s.file }) : null, s.output ? [h("div", { class: "out-label" }, "▶ " + t("output")), h("pre", { class: "term" }, s.output)] : null);
+    fill(stage, h("div", { class: "step-title" }, s.title || ""), s.md ? h("div", { html: md(s.md) }) : null, s.code ? codeBlock({ code: s.code, lang: s.lang || b.lang, highlight: s.highlight, file: s.file }) : null, s.output ? [h("div", { class: "out-label" }, "Output"), h("pre", { class: "term" }, s.output)] : null);
   });
-  const root = h("div", { class: "block stepper" }, h("h3", { class: "block-title" }, "🪜 " + (b.title || "")), stage, ctl.dots, ctl.row);
+  const root = h("div", { class: "block stepper" }, blockTitle(b.title || "Walkthrough"), ctl.dots, stage, ctl.row);
   ctl.go(0); return root;
 }
 function derivationBlock(b) {
-  const rel0 = b.rel || "=";
-  let showAll = false;
-  const rows = b.steps.map(s => {
-    const lhs = h("span", { class: "dv-lhs", html: s.lhs ? tex2mml(s.lhs, false) : "" });
-    const rel = h("span", { class: "dv-rel", html: tex2mml(s.rel || rel0, false) });
-    const rhs = h("span", { class: "dv-rhs", html: tex2mml(s.rhs, false) });
-    const why = h("div", { class: "dv-why", html: s.why ? md(s.why) : "" });
-    return { el: h("div", { class: "dv-row" }, lhs, rel, rhs, why) };
-  });
-  function sync(idx) {
-    rows.forEach((r, i) => {
-      r.el.classList.toggle("hidden", !showAll && i > idx);
-      r.el.classList.toggle("cur", !showAll && i === idx);
-      r.el.classList.toggle("past", showAll ? i !== idx : i < idx);
-    });
-  }
+  const rel0 = b.rel || "="; let showAll = false;
+  const rows = b.steps.map(s => h("div", { class: "dv-row" }, h("span", { class: "dv-lhs", html: s.lhs ? tex2mml(String(s.lhs), false) : "" }), h("span", { class: "dv-rel", html: tex2mml(s.rel || rel0, false) }), h("span", { class: "dv-rhs", html: tex2mml(String(s.rhs), false) }), h("div", { class: "dv-why", html: s.why ? md(s.why) : "" })));
+  const sync = idx => rows.forEach((r, i) => { r.classList.toggle("hidden", !showAll && i > idx); r.classList.toggle("cur", !showAll && i === idx); r.classList.toggle("past", showAll ? i !== idx : i < idx); });
   const ctl = stepControls(b.steps.length, idx => sync(idx));
-  const allBtn = h("button", { class: "btn ghost sm", type: "button", onclick: () => {
-    showAll = !showAll; allBtn.textContent = showAll ? t("stepByStep") : t("showAll"); sync(ctl.idx);
-  } }, t("showAll"));
+  const allBtn = h("button", { class: "btn ghost sm", type: "button", onclick: () => { showAll = !showAll; allBtn.textContent = showAll ? "Step by step" : "Show all"; sync(ctl.idx); } }, "Show all");
   ctl.row.append(allBtn);
-  const rowsEl = h("div", { class: "dv-rows" }, rows.map(r => r.el));
-  const root = h("div", { class: "block derivation" },
-    h("h3", { class: "block-title" }, "🧮 " + (b.title || t("derivation"))),
-    b.intro ? h("div", { html: md(b.intro) }) : null,
-    rowsEl, ctl.dots, ctl.row,
-    b.result ? h("div", { class: "dv-result" }, h("strong", null, t("result") + ": "), h("span", { html: tex2mml(String(b.result), false) })) : null,
-    b.note ? h("div", { class: "text", html: md(b.note) }) : null);
+  const root = h("div", { class: "block derivation" }, blockTitle(b.title || "Derivation"), b.intro ? h("div", { html: md(b.intro) }) : null, h("div", { class: "dv-rows" }, rows), ctl.dots, ctl.row,
+    b.result ? h("div", { class: "dv-result" }, h("strong", null, "Result: "), h("span", { html: tex2mml(String(b.result), false) })) : null, b.note ? h("div", { class: "text", html: md(b.note) }) : null);
   ctl.go(0); return root;
 }
 function revealBlock(b) {
   const ans = h("div", { class: "answer", html: md(b.md) });
-  const btn = h("button", { class: "btn ghost sm", type: "button", onclick: () => { const open = !ans.isConnected; if (open) { root.append(ans); btn.textContent = "▲"; } else { ans.remove(); btn.textContent = t("reveal"); } } }, t("reveal"));
-  const root = h("div", { class: "block reveal" }, h("div", { class: "prompt", html: md(b.prompt) }), h("div", { class: "note-small" }, t("thinkFirst")), h("div", { style: "margin-top:8px" }, btn));
+  const btn = h("button", { class: "btn ghost sm", type: "button", "aria-expanded": "false", onclick: () => {
+    const open = !ans.isConnected; if (open) root.append(ans); else ans.remove();
+    btn.setAttribute("aria-expanded", String(open)); btn.lastChild.textContent = open ? "Hide the answer" : "Show the answer";
+  } }, icon("eye"), h("span", null, "Show the answer"));
+  const root = h("div", { class: "block reveal" }, h("div", { class: "prompt", html: md(b.prompt) }), h("div", { class: "note-small" }, "Answer in your head or on paper first, then compare."), h("div", { class: "row" }, btn));
   return root;
 }
 function flowBlock(b) {
-  let cur = -1;
-  const track = h("div", { class: "flow-track" }), detail = h("div", { class: "flow-detail" }), nodes = [], arrows = [];
-  b.nodes.forEach((n, i) => {
-    const el = h("div", { class: "flow-node", tabindex: "0", role: "button", onclick: () => show(i), onkeydown: e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); show(i); } } }, n.label);
-    nodes.push(el); track.append(el); if (i < b.nodes.length - 1) { const a = h("span", { class: "flow-arrow" }, "→"); arrows.push(a); track.append(a); }
-  });
-  function show(i) {
-    cur = i; nodes.forEach((n, j) => { n.classList.toggle("on", j <= i); n.classList.remove("cur"); }); void nodes[i].offsetWidth; nodes[i].classList.add("cur");
-    arrows.forEach((a, j) => a.classList.toggle("on", j < i)); detail.innerHTML = md(b.nodes[i].detail || ""); nxt.disabled = i >= b.nodes.length - 1;
-  }
-  const nxt = h("button", { class: "btn sm", type: "button", onclick: () => show(cur + 1) }, t("next") + " ▶");
-  const rst = h("button", { class: "btn ghost sm", type: "button", onclick: () => { cur = -1; nodes.forEach(n => n.classList.remove("on", "cur")); arrows.forEach(a => a.classList.remove("on")); detail.textContent = ""; nxt.disabled = false; } }, t("again"));
-  return h("div", { class: "block flow" }, h("h3", { class: "block-title" }, "🔀 " + (b.title || "")), track, detail, h("div", { class: "row", style: "margin-top:10px" }, nxt, rst));
+  let cur = -1; const track = h("div", { class: "flow-track" }), detail = h("div", { class: "flow-detail", "aria-live": "polite" }), nodes = [];
+  b.nodes.forEach((n, i) => { const el = h("button", { class: "flow-node", type: "button", onclick: () => show(i) }, h("span", { class: "fn-i" }, String(i + 1)), h("span", null, n.label)); nodes.push(el); track.append(el); });
+  function show(i) { cur = i; nodes.forEach((n, j) => { n.classList.toggle("on", j <= i); n.classList.toggle("cur", j === i); }); detail.innerHTML = md(b.nodes[i].detail || ""); nxt.disabled = i >= b.nodes.length - 1; }
+  const nxt = h("button", { class: "btn sm", type: "button", onclick: () => show(cur + 1) }, "Next stage", icon("arrow"));
+  return h("div", { class: "block flow" }, blockTitle(b.title || "Process"), track, detail, h("div", { class: "row" }, nxt));
 }
-
 /* ───────────── quiz engine ───────────── */
 function rng(seedStr) { let a = 0; for (let i = 0; i < seedStr.length; i++) a = (a * 31 + seedStr.charCodeAt(i)) >>> 0; return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let x = Math.imul(a ^ (a >>> 15), 1 | a); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) / 4294967296; }; }
 const normTxt = (s, ci) => { s = String(s == null ? "" : s).trim().replace(/\s+/g, " "); return ci === false ? s : s.toLowerCase(); };
@@ -735,7 +792,7 @@ function qMulti(q, uid) {
     reset: () => { sel.clear(); inputs.forEach(i => (i.checked = false)); labels.forEach(l => l.classList.remove("sel", "good", "bad")); } };
 }
 function qFill(q, uid) {
-  const inp = h("input", { type: "text", autocomplete: "off", spellcheck: "false", placeholder: q.placeholder || "…", "aria-label": t("yourAnswer") });
+  const inp = h("input", { type: "text", autocomplete: "off", spellcheck: "false", placeholder: q.placeholder || "Type your answer", "aria-label": "Your answer" });
   const el = h("div", { class: "fill-in" }, inp);
   const accepted = [].concat(q.answer).map(a => normTxt(a, q.ignore_case));
   return { el, answered: () => inp.value.trim() !== "", correct: () => accepted.indexOf(normTxt(inp.value, q.ignore_case)) >= 0, lock: v => (inp.disabled = v),
@@ -759,7 +816,7 @@ function numericMatches(input, answer, tol) {
   return candidates.some(v => Math.abs(v - answer) <= tol);
 }
 function qNumeric(q, uid) {
-  const inp = h("input", { type: "text", inputmode: "decimal", autocomplete: "off", spellcheck: "false", placeholder: q.placeholder || "…", "aria-label": t("yourAnswer") });
+  const inp = h("input", { type: "text", inputmode: "decimal", autocomplete: "off", spellcheck: "false", placeholder: q.placeholder || "Type your answer", "aria-label": "Your answer" });
   const el = h("div", { class: "fill-in" }, inp, q.unit ? h("span", { class: "note-small" }, " " + q.unit) : null);
   const tol = Math.abs(q.tolerance || 0);
   return { el, answered: () => inp.value.trim() !== "", correct: () => numericMatches(inp.value, q.answer, tol), lock: v => (inp.disabled = v),
@@ -774,8 +831,8 @@ function qOrder(q, uid) {
   const ul = h("ol", { class: "order-list" }); let locked = false;
   function draw() {
     ul.replaceChildren(...order.map((idx, pos) => h("li", null, h("span", { class: "txt", html: inline(q.items[idx]) }),
-      h("button", { class: "btn ghost sm", type: "button", disabled: locked || pos === 0, "aria-label": t("moveUp"), onclick: () => { [order[pos - 1], order[pos]] = [order[pos], order[pos - 1]]; draw(); } }, "↑"),
-      h("button", { class: "btn ghost sm", type: "button", disabled: locked || pos === n - 1, "aria-label": t("moveDown"), onclick: () => { [order[pos + 1], order[pos]] = [order[pos], order[pos + 1]]; draw(); } }, "↓"))));
+      h("button", { class: "btn ghost sm", type: "button", disabled: locked || pos === 0, "aria-label": "Move up", onclick: () => { [order[pos - 1], order[pos]] = [order[pos], order[pos - 1]]; draw(); } }, h("span",{class:"arr up"},icon("down"))),
+      h("button", { class: "btn ghost sm", type: "button", disabled: locked || pos === n - 1, "aria-label": "Move down", onclick: () => { [order[pos + 1], order[pos]] = [order[pos], order[pos + 1]]; draw(); } }, icon("down")))));
   }
   draw();
   return { el: ul, answered: () => true, correct: () => order.every((v, i) => v === i), lock: v => { locked = v; draw(); },
@@ -783,148 +840,283 @@ function qOrder(q, uid) {
     reveal: () => { order = [...Array(n).keys()]; ul.classList.remove("bad"); ul.classList.add("good"); draw(); },
     reset: () => { order = [...Array(n).keys()]; shuffle(); ul.classList.remove("good", "bad"); draw(); } };
 }
+
+/* every practice block owns one live margin note; setLive() repaints it and the lesson record */
+function liveNote(b, label) { b._live = note(label, h("div"), "open"); return b._live; }
+function setLive(b, state, text) {
+  if (!b._live) return;
+  b._live.className = "mnote is-" + state;
+  b._live.lastChild.replaceChildren(...[state === "done" ? icon("check") : null, document.createTextNode(text)].filter(Boolean));
+  if (window.__drawRecord) window.__drawRecord();
+}
+
 function makeQuestion(q0, qi, quizId) {
-  const q = q0.type === "truefalse" ? Object.assign({}, q0, { type: "single", options: [t("tTrue"), t("tFalse")], answer: q0.answer ? 0 : 1 }) : q0;
+  const q = q0.type === "truefalse" ? Object.assign({}, q0, { type: "single", options: ["True", "False"], answer: q0.answer ? 0 : 1 }) : q0;
   const uid = quizId + "-" + qi;
   const impl = q.type === "multi" ? qMulti(q, uid) : q.type === "fill" ? qFill(q, uid) : q.type === "numeric" ? qNumeric(q, uid) : q.type === "order" ? qOrder(q, uid) : qSingle(q, uid);
   const fb = h("div", { class: "q-feedback", role: "status" });
   const root = h("div", { class: "question" }, h("div", { class: "q-head" }, h("span", { class: "q-num" }, String(qi + 1)), h("div", { class: "q-text", html: md(q.q) })), q.code ? codeBlock({ code: q.code, lang: q.lang }) : null, impl.el);
-  const hints = q.hints || []; let used = 0;
+  const hints = q.hints || (q.hint ? [q.hint] : []); let used = 0;
   const hintBox = h("div", { class: "hints" });
   let hintBtn = null;
   if (hints.length) {
-    hintBtn = h("button", { class: "btn ghost sm", type: "button", onclick: () => { hintBox.append(h("div", { class: "hint pop", html: "💡 " + inline(hints[used]) })); used++; label(); } });
-    const label = () => { hintBtn.textContent = "💡 " + t("hint") + " (" + used + "/" + hints.length + ")"; hintBtn.disabled = used >= hints.length; }; label();
+    const label = () => { hintBtn.lastChild.textContent = hints.length > 1 ? "Hint " + used + "/" + hints.length : "Hint"; hintBtn.disabled = used >= hints.length; };
+    hintBtn = h("button", { class: "btn ghost sm", type: "button", onclick: () => { hintBox.append(h("div", { class: "hint", html: inline(hints[used]) })); used++; label(); } }, icon("hint"), h("span"));
+    label();
   }
   const actions = h("div", { class: "q-actions" });
-  const api = { el: root, impl, actions, hintBtn, answered: impl.answered, hintsUsed: () => used };
+  if (hintBtn) actions.append(hintBtn);
+  const api = { el: root, impl, actions, answered: impl.answered };
   api.show = (ok, reveal) => {
     impl.mark(ok); if (reveal && !ok) impl.reveal();
-    fb.replaceChildren(h("div", { class: "fb " + (ok ? "good" : "bad") }, h("strong", null, ok ? "✓ " + t("correct") : "✗ " + t("wrong")), (ok || reveal) && q.explanation ? h("div", { html: md(q.explanation) }) : null));
+    fb.replaceChildren(h("div", { class: "fb " + (ok ? "good" : "bad") }, h("strong", null, ok ? "Correct." : reveal ? "Not this time. The answer is shown above." : "Not quite. Try again or use a hint."), (ok || reveal) && q.explanation ? h("div", { html: md(q.explanation) }) : null));
   };
   api.clear = () => { fb.replaceChildren(); impl.reset(); impl.lock(false); };
-  add(root, hintBtn ? h("div", { class: "q-actions" }, hintBtn) : null, hintBox, actions, fb);
+  add(root, hintBox, actions, fb);
   return api;
 }
 function quizBlock(b, les) {
   const isTest = b.mode === "test" || les.kind === "test";
   const need = b.pass_score != null ? b.pass_score : 0.7;
   const st = P.quizzes[b.id] || (P.quizzes[b.id] = { attempts: 0, best: 0, correct: [], passed: false });
-  const root = h("section", { class: "block quiz" + (isTest ? " is-test" : "") });
-  const badge = h("span", { class: "chip" });
-  const showBadge = () => {
-    if (isTest) { badge.className = "chip " + (st.passed ? "ok" : st.attempts ? "bad" : ""); badge.textContent = st.attempts ? (st.passed ? "✓ " : "") + t("best") + ": " + Math.round(st.best * 100) + "%" : t("needScore", Math.round(need * 100)); }
-    else { badge.className = "chip " + (st.correct.length === b.questions.length ? "ok" : ""); badge.textContent = st.correct.length + "/" + b.questions.length; }
+  const n = b.questions.length;
+  const live = liveNote(b, isTest ? "Chapter test" : "Quiz");
+  const paint = () => {
+    if (isTest) setLive(b, st.passed ? "done" : st.attempts ? "miss" : "open", st.attempts ? "Best " + Math.round(st.best * 100) + "%" + (st.passed ? ", passed" : ", " + Math.round(need * 100) + "% to pass") : "Pass mark " + Math.round(need * 100) + "%, " + n + " questions");
+    else setLive(b, st.correct.length === n ? "done" : "open", st.correct.length + " of " + n + " correct");
   };
-  showBadge();
-  root.append(h("h3", { class: "block-title" }, (isTest ? "🏁 " : "❓ ") + (b.title || (isTest ? t("test") : t("quiz"))), " ", badge));
+  const root = h("section", { class: "block quiz" + (isTest ? " is-test" : ""), id: "b-" + b.id }, blockTitle(b.title || (isTest ? "Chapter test" : "Check your understanding"), isTest ? "flag" : null));
   if (b.intro) root.append(h("div", { class: "text", html: md(b.intro) }));
+  if (isTest) root.append(h("p", { class: "note-small" }, "Answer every question, then submit. You need " + Math.round(need * 100) + "% to pass; you can retake it and your best score is kept."));
   const body = h("div"); root.append(body);
   let qs = [];
   function build() {
     qs = b.questions.map((q, i) => makeQuestion(q, i, b.id)); body.replaceChildren(...qs.map(x => x.el));
     if (!isTest) qs.forEach((x, i) => {
-      const q = b.questions[i]; let solved = false;
-      const chk = h("button", { class: "btn sm", type: "button" }, t("check")), retry = h("button", { class: "btn ghost sm", type: "button", style: "display:none" }, t("retry")), rev = h("button", { class: "btn ghost sm", type: "button", style: "display:none" }, t("showAnswer"));
+      const chk = h("button", { class: "btn sm", type: "button" }, "Check"), retry = h("button", { class: "btn ghost sm", type: "button", hidden: true }, "Try again"), rev = h("button", { class: "btn ghost sm", type: "button", hidden: true }, "Show answer");
       chk.onclick = () => {
-        if (!x.answered()) return; const ok = x.impl.correct(); st.attempts++;
-        if (ok) { x.impl.lock(true); x.show(true); chk.disabled = true; retry.style.display = "none"; rev.style.display = "none"; if (st.correct.indexOf(i) < 0) st.correct.push(i); if (!solved) { solved = true; } }
-        else { x.show(false); retry.style.display = ""; rev.style.display = ""; }
-        showBadge(); save();
+        if (!x.answered()) { x.show(false); x.el.querySelector(".q-feedback").replaceChildren(h("div", { class: "fb" }, "Choose or type an answer first.")); return; }
+        const ok = x.impl.correct(); st.attempts++;
+        if (ok) { x.impl.lock(true); x.show(true); chk.disabled = true; retry.hidden = rev.hidden = true; if (st.correct.indexOf(i) < 0) st.correct.push(i); if (st.correct.length === n) logEvent("quiz", b.id, "Quiz complete: " + les.title); }
+        else { x.show(false); retry.hidden = rev.hidden = false; }
+        paint(); save();
       };
-      retry.onclick = () => { x.clear(); chk.disabled = false; retry.style.display = "none"; rev.style.display = "none"; };
-      rev.onclick = () => { x.impl.lock(true); x.show(false, true); chk.disabled = true; rev.style.display = "none"; retry.style.display = ""; };
-      x.actions.append(chk, retry, rev);
+      retry.onclick = () => { x.clear(); chk.disabled = false; retry.hidden = rev.hidden = true; };
+      rev.onclick = () => { x.impl.lock(true); x.show(false, true); chk.disabled = true; rev.hidden = true; retry.hidden = false; };
+      x.actions.prepend(chk, retry, rev);
     });
   }
   build();
   if (isTest) {
-    const res = h("div"), go = h("button", { class: "btn", type: "button" }, t("checkTest")), again = h("button", { class: "btn ghost", type: "button", style: "display:none" }, t("retry"));
-    go.onclick = () => { const miss = qs.filter(x => !x.answered()).length; if (miss) ask(t("unanswered", miss), grade); else grade(); };
+    const res = h("div", { "aria-live": "polite" }), go = h("button", { class: "btn", type: "button" }, icon("flag"), "Submit the test"), again = h("button", { class: "btn ghost", type: "button", hidden: true }, icon("reset"), "Retake");
     const grade = () => {
       let right = 0; qs.forEach(x => { const ok = x.answered() && x.impl.correct(); if (ok) right++; x.impl.lock(true); x.show(ok, true); });
       const frac = right / qs.length; st.attempts++; st.best = Math.max(st.best, frac); st.last = frac; const pass = frac >= need;
-      if (pass) { st.passed = true; P.lessons[les.id] = Object.assign(P.lessons[les.id] || {}, { completed: true, completedAt: new Date().toISOString() }); celebrate(); }
-      res.replaceChildren(h("div", { class: "scorebar " + (pass ? "pass" : "fail") }, h("div", { class: "big" }, t("score") + ": " + right + "/" + qs.length + " (" + Math.round(frac * 100) + "%) — " + (pass ? t("passed") + " ✓" : t("failed"))), h("div", { class: "note-small" }, t("needScore", Math.round(need * 100)))));
-      go.style.display = "none"; again.style.display = ""; showBadge(); save();
+      if (pass) { if (!st.passed) celebrate(); st.passed = true; P.lessons[les.id] = Object.assign(P.lessons[les.id] || {}, { completed: true, completedAt: new Date().toISOString() }); }
+      logEvent("test", b.id, (pass ? "Passed" : "Took") + " the test for " + (CH_BY_ID[les.chapter] ? chLabel(CH_BY_ID[les.chapter]).name : les.title) + ": " + Math.round(frac * 100) + "%");
+      res.replaceChildren(h("div", { class: "scorebar " + (pass ? "pass" : "fail") }, h("div", { class: "big" }, right + " of " + qs.length + " (" + Math.round(frac * 100) + "%)"), h("div", null, pass ? "Passed. The chapter is marked complete." : "Not passed yet. Read the explanations below, then retake it.")));
+      go.hidden = true; again.hidden = false; paint(); save(); res.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "center" });
     };
-    again.onclick = () => { build(); res.replaceChildren(); go.style.display = ""; again.style.display = "none"; };
+    go.onclick = () => { const miss = qs.filter(x => !x.answered()).length; if (miss) ask(miss + " question" + (miss > 1 ? "s are" : " is") + " still unanswered. Submit anyway?", grade); else grade(); };
+    again.onclick = () => { build(); res.replaceChildren(); go.hidden = false; again.hidden = true; };
     root.append(h("div", { class: "quiz-foot" }, go, again), res);
+  }
+  paint();
+  return root;
+}
+
+/* ───────────── code editor (textarea with gutter; Tab indents, Ctrl/Cmd+Enter runs) ───────────── */
+function codeEditor(initial, onRun, opts) {
+  const ta = h("textarea", { class: "ed-ta", spellcheck: "false", autocomplete: "off", autocapitalize: "off", "aria-label": (opts && opts.label) || "Code editor", wrap: "off" });
+  ta.value = initial || "";
+  const gutter = h("div", { class: "ed-gutter", "aria-hidden": "true" });
+  const paintGutter = () => { const n = ta.value.split("\n").length; if (gutter.childElementCount !== n) gutter.replaceChildren(...Array.from({ length: n }, (_, i) => h("span", null, String(i + 1)))); };
+  ta.addEventListener("input", () => { paintGutter(); if (opts && opts.onChange) opts.onChange(ta.value); });
+  ta.addEventListener("scroll", () => { gutter.scrollTop = ta.scrollTop; });
+  ta.addEventListener("keydown", e => {
+    if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); const s = ta.selectionStart, en = ta.selectionEnd; ta.setRangeText("    ", s, en, "end"); ta.dispatchEvent(new Event("input")); }
+    else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (onRun) onRun(); }
+    else if (e.key === "Enter") { const s = ta.selectionStart; const line = ta.value.slice(ta.value.lastIndexOf("\n", s - 1) + 1, s); let ind = (/^\s*/.exec(line) || [""])[0]; if (/:\s*$/.test(line)) ind += "    "; e.preventDefault(); ta.setRangeText("\n" + ind, s, ta.selectionEnd, "end"); ta.dispatchEvent(new Event("input")); }
+  });
+  paintGutter();
+  const lines = Math.min(Math.max((initial || "").split("\n").length + 1, (opts && opts.minLines) || 8), (opts && opts.maxLines) || 26);
+  const el = h("div", { class: "editor", style: "--ed-lines:" + lines }, gutter, ta);
+  return { el, get value() { return ta.value; }, set value(v) { ta.value = v; paintGutter(); }, focus: () => ta.focus() };
+}
+
+/* ───────────── running Python: local helper first, Pyodide when vendored ───────────── */
+let pyodideP = null;
+function loadPyodide_() {
+  if (pyodideP) return pyodideP;
+  pyodideP = new Promise((res, rej) => {
+    const s = document.createElement("script"); s.src = "assets/vendor/pyodide/pyodide.js";
+    s.onload = () => window.loadPyodide({ indexURL: "assets/vendor/pyodide/" }).then(res, rej);
+    s.onerror = () => { pyodideP = null; rej(new Error("no-pyodide")); };
+    document.head.append(s);
+  });
+  return pyodideP;
+}
+async function runPython(code) {
+  if (serverMode) {
+    const r = await fetch("api/run-python", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || "The course helper refused to run the code.");
+    return { ok: j.ok, output: j.output || "", timedOut: j.timed_out, where: "python3 on this computer" };
+  }
+  let py;
+  try { py = await loadPyodide_(); } catch (e) {
+    throw new Error("Running code needs the course helper. Start the course with ./start.sh (or start.bat) and reload this page.");
+  }
+  let out = "";
+  py.setStdout({ batched: s => { out += s + "\n"; } }); py.setStderr({ batched: s => { out += s + "\n"; } });
+  try { await py.loadPackagesFromImports(code); } catch (e) { /* offline: imports fail loudly below */ }
+  try { await py.runPythonAsync(code); return { ok: true, output: out, where: "Python in the browser" }; }
+  catch (e) { return { ok: false, output: out + String(e.message || e), where: "Python in the browser" }; }
+}
+
+/* ───────────── playground block: edit, run, check ───────────── */
+function playgroundBlock(b, les) {
+  const st = P.playgrounds[b.id] || (P.playgrounds[b.id] = { status: "todo", runs: 0 });
+  const DKEY = "course-draft:" + b.id; let draft = null; try { draft = localStorage.getItem(DKEY); } catch (e) { /* ignore */ }
+  liveNote(b, "Playground");
+  const paint = () => setLive(b, st.status === "passed" ? "done" : st.status === "failed" ? "miss" : "open", st.status === "passed" ? "Check passed" : st.status === "failed" ? "Check not passing yet" : b.check ? "Run it, then pass the check" : "Run it and experiment");
+  const out = h("pre", { class: "term", hidden: true, "aria-live": "polite" }), status = h("div", { class: "run-status" });
+  const ed = codeEditor(draft || b.code, () => run(!!b.check), { label: b.title || "Python playground", onChange: v => { try { localStorage.setItem(DKEY, v); } catch (e) { /* ignore */ } } });
+  async function run(withCheck) {
+    status.className = "run-status"; status.textContent = "Running…"; runBtn.disabled = chkBtn && (chkBtn.disabled = true);
+    const code = ed.value + (withCheck && b.check ? "\n\n# ---- check ----\n" + b.check + "\nprint('\\nAll checks passed.')\n" : "");
+    try {
+      const r = await runPython(code); st.runs++;
+      out.hidden = false; out.textContent = r.output.trim() || "(no output)";
+      if (withCheck) {
+        st.status = r.ok ? "passed" : "failed";
+        if (r.ok) { celebrate(); logEvent("playground", b.id, "Playground solved: " + (b.title || les.title)); }
+      }
+      status.className = "run-status " + (r.ok ? "good" : "bad");
+      status.textContent = r.timedOut ? "Stopped: it ran longer than the time limit." : r.ok ? (withCheck ? "Check passed." : "Ran without errors") + " (" + r.where + ")" : (withCheck ? "The check failed: read the last lines of the output." : "The code raised an error: the last line of the output says which.");
+      paint(); save();
+    } catch (e) { status.className = "run-status bad"; status.textContent = e.message; }
+    runBtn.disabled = false; if (chkBtn) chkBtn.disabled = false;
+  }
+  const runBtn = h("button", { class: "btn", type: "button", onclick: () => run(false) }, icon("play"), "Run");
+  const chkBtn = b.check ? h("button", { class: "btn ghost", type: "button", onclick: () => run(true) }, icon("check"), "Run and check") : null;
+  const resetBtn = h("button", { class: "btn ghost sm", type: "button", onclick: () => ask("Replace your code with the starting code?", () => { ed.value = b.code; try { localStorage.removeItem(DKEY); } catch (e) { /* ignore */ } }) }, icon("reset"), "Start over");
+  const extras = h("div", { class: "row" });
+  if (b.hint) { const hb = h("button", { class: "btn ghost sm", type: "button", onclick: () => { extras.after(h("div", { class: "hint", html: md(b.hint) })); hb.disabled = true; } }, icon("hint"), "Hint"); extras.append(hb); }
+  if (b.solution) { const sb = h("button", { class: "btn ghost sm", type: "button", onclick: () => ask("Show a worked solution? Trying first is how this sticks.", () => { extras.after(codeBlock({ code: b.solution, lang: "python", file: "solution.py" })); sb.disabled = true; }) }, icon("eye"), "Solution"); extras.append(sb); }
+  extras.append(resetBtn);
+  paint();
+  return h("section", { class: "block playground", id: "b-" + b.id }, blockTitle(b.title || "Try it in Python", "flask"), b.md ? h("div", { class: "text", html: md(b.md) }) : null, ed.el,
+    h("div", { class: "row" }, runBtn, chkBtn, h("span", { class: "kbd-hint" }, "Ctrl+Enter runs")), status, out, extras);
+}
+
+/* ───────────── calculator widget block (definitions in assets/widgets.js) ───────────── */
+function widgetBlock(b, les) {
+  const W = window.WIDGETS && window.WIDGETS[b.widget];
+  if (!W) return h("div", { class: "block" }, "Calculator '" + b.widget + "' is missing from assets/widgets.js.");
+  const root = h("section", { class: "block widget", id: "b-" + b.id }, blockTitle(b.title || W.title, "calc"));
+  if (b.md) root.append(h("div", { class: "text", html: md(b.md) }));
+  root.append(W.mount(Object.assign({}, W.defaults, b.params || {}), { h, icon, inline, tex2mml }));
+  if (b.challenge) {
+    const c = b.challenge, st = P.widgets[b.id] || (P.widgets[b.id] = { status: "todo", tries: 0 });
+    liveNote(b, "Calculator task");
+    const paint = () => setLive(b, st.status === "passed" ? "done" : "open", st.status === "passed" ? "Solved" : "Use the calculator, then answer");
+    const inp = h("input", { type: "text", inputmode: "decimal", placeholder: "Your answer", "aria-label": "Your answer" });
+    const fb = h("div", { class: "q-feedback", role: "status" });
+    const go = () => {
+      if (!inp.value.trim()) return; st.tries++;
+      const ok = numericMatches(inp.value, c.answer, Math.abs(c.tolerance || 0));
+      if (ok) { st.status = "passed"; logEvent("widget", b.id, "Calculator task solved: " + (b.title || W.title)); }
+      fb.replaceChildren(h("div", { class: "fb " + (ok ? "good" : "bad") }, h("strong", null, ok ? "Correct." : "Not quite."), ok && c.explanation ? h("div", { html: md(c.explanation) }) : !ok && c.hint ? h("div", { html: md(c.hint) }) : null));
+      paint(); save();
+    };
+    inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    root.append(h("div", { class: "challenge" }, h("div", { class: "q-text", html: md(c.md) }), h("div", { class: "fill-in" }, inp, c.unit ? h("span", { class: "unit" }, c.unit) : null, h("button", { class: "btn sm", type: "button", onclick: go }, "Check")), fb));
+    paint();
   }
   return root;
 }
 
-/* ───────────── exercises ───────────── */
+/* ───────────── exercises: in-page editor + local test run ───────────── */
+function parseUnittest(out) {
+  const res = []; const re = /^(test_\w+) \([^)]*\)[^\n]*?\.\.\. (ok|FAIL|ERROR|skipped)/gm; let m;
+  while ((m = re.exec(out))) res.push({ name: m[1].replace(/^test_unit_|^test_/, "").replace(/_/g, " "), ok: m[2] === "ok" });
+  return res;
+}
 function exerciseBlock(b, les) {
   const st = P.exercises[b.id] || (P.exercises[b.id] = { status: "todo", attempts: 0, hints: 0, checked: [] });
-  const mode = b.mode === "tests" ? "tests" : "selfcheck";
-  const statusChip = h("span", { class: "chip" });
-  const setChip = () => { statusChip.className = "chip " + (st.status === "passed" ? "ok" : st.status === "failed" ? "bad" : ""); statusChip.textContent = st.status === "passed" ? "✓ " + t("stPassed") : st.status === "failed" ? t("stFailed") : t("stTodo"); };
-  setChip();
-  const root = h("section", { class: "block exercise" }, h("h3", { class: "block-title" }, "🛠️ " + t("exercise") + ": " + b.title, " ", b.difficulty ? h("span", { class: "chip accent" }, t(b.difficulty)) : null, " ", statusChip));
-  root.append(h("h4", null, t("goal")), h("div", { class: "text", html: md(b.goal) }));
-  if (b.behavior) root.append(h("h4", null, t("behavior")), h("div", { class: "text", html: md(b.behavior) }));
-  if (b.examples && b.examples.length) {
-    const hasIn = b.examples.some(e => e.input != null);
-    root.append(h("h4", null, t("examples")), h("div", { class: "tablewrap", style: "box-shadow:none" }, h("table", null,
-      h("thead", null, h("tr", null, hasIn ? h("th", null, t("input")) : null, h("th", null, t("output")), b.examples.some(e => e.note) ? h("th", null, "") : null)),
-      h("tbody", null, b.examples.map(e => h("tr", null, hasIn ? h("td", null, h("code", null, e.input == null ? "" : e.input)) : null, h("td", null, h("code", null, e.output == null ? "" : e.output)), b.examples.some(x => x.note) ? h("td", { html: inline(e.note || "") }) : null))))));
-  }
-  const out = h("div"), runStatus = h("div", { class: "run-status" });
-  function mark(status) { st.status = status; setChip(); save(); if (status === "passed") celebrate(14); }
-  const doneBtn = h("button", { class: "btn ghost sm", type: "button" });
-  const setDoneLabel = () => { doneBtn.textContent = st.status === "passed" ? t("markUndone") : t("markDone"); };
-  doneBtn.onclick = () => { mark(st.status === "passed" ? "todo" : "passed"); setDoneLabel(); };
-  setDoneLabel();
-  const actions = h("div", { class: "row", style: "margin-top:12px" });
-  if (mode === "tests") {
-    const f = b.files || {};
-    if (f.starter && f.starter.length) root.append(h("details", { open: true }, h("summary", null, t("startFiles")), f.starter.map(x => codeBlock({ code: x.content, file: x.path, lang: langOf(x.path) }))));
-    if (f.tests && f.tests.length) root.append(h("details", null, h("summary", null, t("testFiles")), f.tests.map(x => codeBlock({ code: x.content, file: x.path, lang: langOf(x.path) }))));
-    const cmd = b.command_display || "";
-    const copy = h("button", { class: "copy-btn", style: "color:var(--text);border-color:var(--border)", type: "button", onclick: () => copyText("cd exercises/" + b.dir + " && " + cmd, copy) }, t("copy"));
-    root.append(h("h4", null, t("whereToWork")), h("div", { class: "note-small" }, "📁 ", h("code", null, "exercises/" + b.dir + "/")), h("div", { class: "note-small", style: "margin-top:8px" }, t("runCmd") + ":"), h("div", { class: "cmdline" }, h("code", null, "cd exercises/" + b.dir + "\n" + cmd), copy));
-    const run = h("button", { class: "btn", type: "button", disabled: !serverMode }, "▶ " + t("runTests"));
-    run.onclick = async () => {
-      run.disabled = true; run.textContent = t("running"); runStatus.className = "run-status"; runStatus.textContent = ""; out.replaceChildren(); st.attempts++;
+  const tests = b.mode === "tests";
+  liveNote(b, "Build exercise");
+  const paint = () => setLive(b, st.status === "passed" ? "done" : st.status === "failed" ? "miss" : "open", st.status === "passed" ? "All tests pass" : st.status === "failed" ? (st.lastPassed != null ? st.lastPassed + " of " + st.lastTotal + " tests pass" : "Tests failing") : tests ? "Not run yet" : "To do");
+  const mark = s => { const was = st.status; st.status = s; if (s === "passed" && was !== "passed") { celebrate(); logEvent("exercise", b.id, "Exercise passed: " + b.title); } paint(); save(); };
+  const root = h("section", { class: "block exercise", id: "b-" + b.id }, blockTitle(b.title, "hammer", b.difficulty ? h("span", { class: "tag" }, b.difficulty) : null));
+  root.append(h("div", { class: "text", html: md(b.goal) }));
+  if (b.behavior) root.append(h("h4", null, "What it must do"), h("div", { class: "text", html: md(b.behavior) }));
+  if (b.examples && b.examples.length) root.append(h("div", { class: "tablewrap" }, h("table", null, h("thead", null, h("tr", null, h("th", null, "Input"), h("th", null, "Expected"))), h("tbody", null, b.examples.map(e => h("tr", null, h("td", null, h("code", null, e.input == null ? "" : String(e.input))), h("td", null, h("code", null, e.output == null ? "" : String(e.output)))))))));
+  const out = h("pre", { class: "term", hidden: true }), runStatus = h("div", { class: "run-status", "aria-live": "polite" }), board = h("ul", { class: "testboard" });
+  const actions = h("div", { class: "row" });
+  if (tests) {
+    const f = b.files || {}, starter = (f.starter || [])[0];
+    const DKEY = "course-draft:" + b.id; let draft = null; try { draft = localStorage.getItem(DKEY); } catch (e) { /* ignore */ }
+    const where = "exercises/" + b.dir + "/";
+    root.append(h("h4", null, "Your file: ", h("code", null, where + (starter ? starter.path : ""))));
+    let ed = null;
+    if (starter) {
+      ed = codeEditor(draft || starter.content, () => runTests(), { label: starter.path, maxLines: 30, onChange: v => { try { localStorage.setItem(DKEY, v); } catch (e) { /* ignore */ } } });
+      const todos = (starter.content.match(/# TODO\(\d+\)/g) || []).length;
+      root.append(h("p", { class: "note-small" }, todos ? "Search the file for TODO: " + todos + " place" + (todos > 1 ? "s" : "") + " to fill in. Your edits are kept in this browser; Save writes them to the exercise folder." : "Edit the file, then run the tests."), ed.el);
+    }
+    async function saveFile() {
+      const r = await fetch("api/save-exercise", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dir: b.dir, path: starter.path, content: ed.value }) });
+      const j = await r.json(); if (!r.ok || !j.ok) throw new Error(j.error || "could not save the file");
+    }
+    async function runTests() {
+      if (!serverMode) { runStatus.className = "run-status bad"; runStatus.textContent = "Tests run through the course helper. Start the course with ./start.sh, or run the command below in a terminal."; return; }
+      runBtn.disabled = true; runStatus.className = "run-status"; runStatus.textContent = "Saving and running the tests…"; st.attempts++;
       try {
+        if (ed) await saveFile();
         const r = await fetch("api/run-tests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dir: b.dir }) });
-        const j = await r.json();
-        if (!r.ok) throw new Error(j.error || "error");
+        const j = await r.json(); if (!r.ok) throw new Error(j.error || "error");
+        const parsed = parseUnittest(j.output || "");
+        st.lastPassed = parsed.filter(x => x.ok).length; st.lastTotal = parsed.length;
+        board.replaceChildren(...parsed.map(x => h("li", { class: x.ok ? "ok" : "bad" }, icon(x.ok ? "check" : "x"), x.name)));
         runStatus.className = "run-status " + (j.ok ? "good" : "bad");
-        runStatus.textContent = j.timed_out ? "⏱ " + t("timedOut") : j.ok ? t("testsOk") : "✗ " + t("testsFail") + " (" + t("exitCode") + " " + j.exit_code + ")";
-        out.replaceChildren(h("pre", { class: "term" }, j.output || ""));
-        mark(j.ok ? "passed" : "failed"); setDoneLabel();
-      } catch (e) { runStatus.className = "run-status bad"; runStatus.textContent = t("serverErr") + " " + (e.message || ""); }
-      run.disabled = false; run.textContent = "▶ " + t("runTests");
-    };
-    actions.append(run);
-    if (!serverMode) root.append(h("div", { class: "note-small", style: "margin-top:8px" }, "ℹ️ " + t("noServer")));
-  } else if (b.checklist && b.checklist.length) {
-    root.append(h("h4", null, t("checklist")), h("ul", { class: "checklist" }, b.checklist.map((c, i) => h("li", null, h("label", null,
+        runStatus.textContent = j.timed_out ? "Stopped: the tests ran longer than the time limit." : j.ok ? "All " + parsed.length + " tests pass." : (parsed.length ? st.lastPassed + " of " + parsed.length + " tests pass. The first failure is at the top of the output." : "The tests did not run: read the output.");
+        out.hidden = false; out.textContent = j.output || "";
+        mark(j.ok ? "passed" : "failed");
+      } catch (e) { runStatus.className = "run-status bad"; runStatus.textContent = "The course helper did not answer: " + (e.message || ""); }
+      runBtn.disabled = false;
+    }
+    const runBtn = h("button", { class: "btn", type: "button", onclick: runTests }, icon("play"), "Save and run tests");
+    actions.append(runBtn);
+    if (ed) actions.append(h("button", { class: "btn ghost sm", type: "button", onclick: () => ask("Replace your code with the starting file?", () => { ed.value = starter.content; try { localStorage.removeItem(DKEY); } catch (e) { /* ignore */ } }) }, icon("reset"), "Start over"));
+    const cmd = "cd " + where + " && " + (b.command_display || "");
+    const copy = h("button", { class: "btn ghost sm", type: "button", onclick: () => copyText(cmd, copy) }, "Copy");
+    root.append(h("details", { class: "fold" }, h("summary", null, "Run it from a terminal instead"), h("div", { class: "cmdline" }, h("code", null, cmd), copy)));
+    if (f.tests && f.tests.length) root.append(h("details", { class: "fold" }, h("summary", null, "Read the tests"), f.tests.map(x => codeBlock({ code: x.content, file: x.path, lang: langOf(x.path) }))));
+  } else {
+    if (b.checklist && b.checklist.length) root.append(h("h4", null, "Check your work"), h("ul", { class: "checklist" }, b.checklist.map((c, i) => h("li", null, h("label", null,
       h("input", Object.assign({ type: "checkbox", onchange: e => { const k = st.checked.indexOf(i); if (e.target.checked && k < 0) st.checked.push(i); if (!e.target.checked && k >= 0) st.checked.splice(k, 1); save(); } }, st.checked.indexOf(i) >= 0 ? { checked: true } : {})), h("span", { html: inline(c) }))))));
+    const doneBtn = h("button", { class: "btn", type: "button", onclick: () => { mark(st.status === "passed" ? "todo" : "passed"); doneBtn.lastChild.textContent = st.status === "passed" ? "Mark as not done" : "Mark as done"; } }, icon("check"), h("span", null, st.status === "passed" ? "Mark as not done" : "Mark as done"));
+    actions.append(doneBtn);
   }
-  actions.append(doneBtn);
-  const hints = b.hints || []; const hintBox = h("div", { class: "hints", style: "margin-left:0" });
-  for (let i = 0; i < Math.min(st.hints || 0, hints.length); i++) hintBox.append(h("div", { class: "hint", html: "💡 " + inline(hints[i]) }));
+  const hints = b.hints || []; const hintBox = h("div", { class: "hints" });
+  for (let i = 0; i < Math.min(st.hints || 0, hints.length); i++) hintBox.append(h("div", { class: "hint", html: inline(hints[i]) }));
   if (hints.length) {
-    const hb = h("button", { class: "btn ghost sm", type: "button", onclick: () => { hintBox.append(h("div", { class: "hint pop", html: "💡 " + inline(hints[st.hints]) })); st.hints++; lab(); save(); } });
-    const lab = () => { hb.textContent = "💡 " + t("hint") + " (" + st.hints + "/" + hints.length + ")"; hb.disabled = st.hints >= hints.length; }; lab(); actions.append(hb);
+    const hb = h("button", { class: "btn ghost sm", type: "button", onclick: () => { hintBox.append(h("div", { class: "hint", html: inline(hints[st.hints]) })); st.hints++; lab(); save(); } }, icon("hint"), h("span"));
+    const lab = () => { hb.lastChild.textContent = "Hint " + st.hints + "/" + hints.length; hb.disabled = st.hints >= hints.length; }; lab(); actions.append(hb);
   }
   const solBox = h("div");
-  const sol = mode === "tests" ? ((b.files && b.files.solution) || []) : (typeof b.solution === "string" ? [{ path: b.solution_file || "", content: b.solution, lang: b.solution_lang || b.language }] : (b.solution || []));
+  const sol = tests ? ((b.files && b.files.solution) || []) : (typeof b.solution === "string" ? [{ path: b.solution_file || "", content: b.solution, lang: b.solution_lang || b.language }] : (b.solution || []));
   if (sol.length || b.solution_explain) {
-    const sb = h("button", { class: "btn ghost sm", type: "button" }, "👁 " + t("showSolution"));
+    const sb = h("button", { class: "btn ghost sm", type: "button" }, icon("eye"), h("span", null, "Solution"));
     sb.onclick = () => {
-      if (solBox.childNodes.length) { solBox.replaceChildren(); sb.textContent = "👁 " + t("showSolution"); return; }
-      ask(t("confirmSolution"), () => {
-        fill(solBox, h("h4", null, t("solution")), sol.map(x => codeBlock({ code: x.content, file: x.path, lang: x.lang || langOf(x.path) })), b.solution_explain ? h("div", { class: "text", html: md(b.solution_explain) }) : null);
-        sb.textContent = "🙈 " + t("hideSolution");
-      });
+      if (solBox.childNodes.length) { solBox.replaceChildren(); sb.lastChild.textContent = "Solution"; return; }
+      ask("Show the reference solution? Working through a failing test teaches more.", () => { fill(solBox, h("h4", null, "Reference solution"), sol.map(x => codeBlock({ code: x.content, file: x.path, lang: x.lang || langOf(x.path) })), b.solution_explain ? h("div", { class: "text", html: md(b.solution_explain) }) : null); sb.lastChild.textContent = "Hide solution"; });
     };
     actions.append(sb);
   }
-  root.append(actions, runStatus, out, hintBox, solBox);
+  root.append(actions, runStatus, board, out, hintBox, solBox);
+  paint();
   return root;
 }
 
@@ -932,124 +1124,228 @@ function exerciseBlock(b, les) {
 function flashBlock(b) {
   const st = P.cards[b.id] || (P.cards[b.id] = { known: [] });
   let queue = b.cards.map((_, i) => i).filter(i => st.known.indexOf(i) < 0), flipped = false;
-  const root = h("div", { class: "block flash" }), meta = h("div", { class: "flash-meta" }), stage = h("div", { class: "flash-stage" }), ctr = h("div", { class: "row" });
+  liveNote(b, "Flashcards");
+  const paint = () => setLive(b, st.known.length >= b.cards.length ? "done" : "open", st.known.length + " of " + b.cards.length + " known");
+  const meta = h("div", { class: "note-small" }), stage = h("div", { class: "flash-stage" }), ctr = h("div", { class: "row" });
   function draw() {
-    stage.replaceChildren(); ctr.replaceChildren(); flipped = false;
-    if (!queue.length) { stage.append(h("div", { class: "scorebar pass" }, h("div", { class: "big" }, t("allKnown")))); ctr.append(h("button", { class: "btn ghost sm", type: "button", onclick: () => { st.known = []; queue = b.cards.map((_, i) => i); save(); draw(); } }, t("again"))); meta.textContent = ""; return; }
+    stage.replaceChildren(); ctr.replaceChildren(); flipped = false; paint();
+    if (!queue.length) { stage.append(h("div", { class: "scorebar pass" }, h("div", { class: "big" }, "You know every card in this set."))); ctr.append(h("button", { class: "btn ghost sm", type: "button", onclick: () => { st.known = []; queue = b.cards.map((_, i) => i); save(); draw(); } }, icon("reset"), "Study again")); meta.textContent = ""; return; }
     const c = b.cards[queue[0]];
-    const card = h("div", { class: "card", tabindex: "0", role: "button", onclick: () => { flipped = !flipped; card.classList.toggle("flipped", flipped); }, onkeydown: e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); card.click(); } } }, h("div", { class: "face front", html: inline(c.front) }), h("div", { class: "face back", html: inline(c.back) }));
-    stage.append(card); meta.textContent = t("cardsLeft", queue.length) + " · " + t("flipHint");
-    ctr.append(h("button", { class: "btn ok sm", type: "button", onclick: () => { st.known.push(queue.shift()); save(); draw(); } }, "✓ " + t("know")), h("button", { class: "btn ghost sm", type: "button", onclick: () => { queue.push(queue.shift()); draw(); } }, "↻ " + t("notYet")));
+    const card = h("button", { class: "card", type: "button", "aria-label": "Flip the card", onclick: () => { flipped = !flipped; card.classList.toggle("flipped", flipped); } }, h("div", { class: "face front", html: inline(c.front) }), h("div", { class: "face back", html: inline(c.back) }));
+    stage.append(card); meta.textContent = queue.length + " left. Click the card to flip it.";
+    ctr.append(h("button", { class: "btn sm", type: "button", onclick: () => { st.known.push(queue.shift()); save(); draw(); } }, icon("check"), "I knew it"), h("button", { class: "btn ghost sm", type: "button", onclick: () => { queue.push(queue.shift()); draw(); } }, "Not yet"));
   }
-  root.append(h("h3", { class: "block-title" }, "🗂️ " + (b.title || t("flashcards"))), meta, stage, ctr); draw(); return root;
+  const root = h("div", { class: "block flash", id: "b-" + b.id }, blockTitle(b.title || "Flashcards", "cards"), meta, stage, ctr); draw(); return root;
 }
 
 /* ───────────── pages ───────────── */
 const content = () => $("#content");
-let observer = null;
-function armReveal(container) {
-  const blocks = container.querySelectorAll(".block, .finish, .pager");
-  if (!("IntersectionObserver" in window) || reduceMotion()) { blocks.forEach(b => b.classList.add("in")); return; }
-  if (observer) observer.disconnect();
-  observer = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); observer.unobserve(e.target); } }), { threshold: .08 });
-  blocks.forEach(b => { b.classList.add("rv"); observer.observe(b); });
-}
-function ring(pct) {
-  const r = 52, c = 2 * Math.PI * r; const ns = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(ns, "svg"); svg.setAttribute("width", 132); svg.setAttribute("height", 132); svg.setAttribute("viewBox", "0 0 132 132");
-  const mk = cls => { const e = document.createElementNS(ns, "circle"); e.setAttribute("cx", 66); e.setAttribute("cy", 66); e.setAttribute("r", r); e.setAttribute("fill", "none"); e.setAttribute("stroke-width", 12); e.setAttribute("class", cls); return e; };
-  const fg = mk("fg"); fg.style.strokeDasharray = c; fg.style.strokeDashoffset = c; svg.append(mk("bg"), fg);
-  requestAnimationFrame(() => requestAnimationFrame(() => { fg.style.strokeDashoffset = c * (1 - pct / 100); }));
-  return h("div", { class: "ring" }, svg, h("div", { class: "pct" }, pct + "%"));
+let currentRoute = { kind: "home" };
+const tagEl = layer => h("span", { class: "depth is-" + layer, title: layer === "deep" ? "Hand-written lessons with walkthroughs, calculators and playgrounds" : "Lessons built from the book's own quiz bank and concept map; deep lessons are on the way" }, layer === "deep" ? "Deep" : "Imported");
+function bar(frac, state) { return h("div", { class: "hbar" + (state ? " is-" + state : "") }, h("div", { class: "hbar-fill", style: "width:" + Math.round(100 * Math.min(1, frac)) + "%" })); }
+function chapterRecord(ch) {
+  const done = chDone(ch), n = ch.stubs.length, tq = testOf(ch), ts = tq && P.quizzes[tq], ex = exOf(ch);
+  const exPassed = ex.filter(id => P.exercises[id] && P.exercises[id].status === "passed").length;
+  return [
+    note("Lessons", h("div", null, h("div", { class: "mnum" }, done + " / " + n), bar(done / n, done === n ? "done" : done ? "open" : "")), done === n ? "done" : null),
+    tq ? note("Chapter test", h("div", null, ts && ts.attempts ? (ts.passed ? "Passed, best " : "Best ") + Math.round(ts.best * 100) + "%" : "Not taken"), ts && ts.passed ? "done" : ts && ts.attempts ? "miss" : null) : null,
+    ex.length ? note("Build", h("div", null, exPassed + " of " + ex.length + " exercise" + (ex.length > 1 ? "s" : "") + " passing"), exPassed === ex.length ? "done" : null) : null,
+  ];
 }
 function renderHome() {
-  const el = content(); const pct = overallPct(); const nid = nextLessonId(); const doneAll = pct === 100;
-  const ex = { t: 0, p: 0 }, qz = { t: 0, c: 0 }; let minLeft = 0;
-  ORDER.forEach(id => { const les = C.lessons[id]; const pr = practiceOf(les); ex.t += pr.eT; ex.p += pr.eP; qz.t += pr.qT; qz.c += pr.qC; if (!lessonDone(id)) minLeft += les.minutes || 10; });
-  const cta = nid ? h("a", { class: "btn", href: "#/lesson/" + nid, style: "text-decoration:none;display:inline-block;margin-top:10px" }, (P.last ? t("cont") : t("startCourse")) + " →") : null;
-  fill(el,
-    h("div", { class: "hero block" }, h("div", { class: "hero-text" }, h("h1", null, C.meta.title), C.meta.subtitle ? h("p", { class: "lead", style: "margin:0 0 6px" }, C.meta.subtitle) : null, C.meta.description ? h("div", { class: "text", html: md(C.meta.description) }) : null, doneAll ? h("p", null, h("strong", null, t("courseDone"))) : cta), ring(pct)),
-    h("div", { class: "stats block" }, h("div", { class: "stat" }, h("b", null, ORDER.filter(lessonDone).length + "/" + ORDER.length), h("span", null, t("lessonsDone"))), h("div", { class: "stat" }, h("b", null, ex.p + "/" + ex.t), h("span", null, t("exercisesDone"))), h("div", { class: "stat" }, h("b", null, qz.c + "/" + qz.t), h("span", null, t("quizScore"))), h("div", { class: "stat" }, h("b", null, "~" + minLeft + " " + t("min")), h("span", null, t("minLeft") + "…"))),
-    C.chapters.map((ch, ci) => h("section", { class: "ch-card block" }, h("h3", null, h("span", { class: "ch-num" }, ci + 1), ch.title, h("span", { class: "chip", style: "margin-left:auto" }, chapterPct(ch) + "%")), ch.summary ? h("div", { class: "note-small", html: inline(ch.summary) }) : null, h("div", { class: "bar", style: "margin-top:10px" }, h("div", { class: "bar-fill", style: "width:" + chapterPct(ch) + "%" })),
-      h("ul", null, ch.lessons.map(id => h("li", null, h("a", { href: "#/lesson/" + id }, h("span", { class: "st" }, lessonDone(id) ? "✓" : lessonStarted(id) ? "◐" : "○"), C.lessons[id].title + (C.lessons[id].kind === "test" ? " 🏁" : ""))))))),
-    h("div", { class: "footer-tools" }, h("span", null, serverMode ? t("progressFile") : t("savedBrowser")), h("button", { class: "btn ghost sm", type: "button", onclick: () => ask(t("resetConfirm"), () => { P = { version: 1, lessons: {}, quizzes: {}, exercises: {}, cards: {}, last: null, updated: null }; save(true); route(); }) }, t("reset"))));
-  armReveal(el);
+  const el = content(); const nid = nextLessonId(); const pct = overallPct();
+  const doneN = ORDER.filter(lessonDone).length;
+  const tests = C.chapters.map(testOf).filter(Boolean), testsPassed = tests.filter(id => P.quizzes[id] && P.quizzes[id].passed).length;
+  const exAll = [].concat(...C.chapters.map(exOf)), exPassed = exAll.filter(id => P.exercises[id] && P.exercises[id].status === "passed").length;
+  const lastLog = (P.log || [])[P.log.length - 1];
+  const resume = nid ? h("div", { class: "resume" },
+    h("p", null, P.last ? "Pick up where you left off: " : "Start at the beginning: ", h("strong", null, STUB[nid].title), ", in ", h("a", { href: "#/ch/" + C.chapters[CH_OF[nid]].id }, chLabel(C.chapters[CH_OF[nid]]).name), "."),
+    h("a", { class: "btn primary", href: "#/lesson/" + nid }, P.last ? "Continue" : "Start the course", icon("arrow"))) : h("p", { class: "resume" }, h("strong", null, "Every lesson is complete."));
+  const frag = [row([h("h1", { class: "display" }, "Machine Learning Systems"),
+    h("p", { class: "lead" }, "One course through all four volumes of the MLSysBook and the TinyTorch build-it-yourself framework: read a lesson, run the numbers in a calculator or a Python playground, then prove it with a quiz, a unit test or a chapter test."),
+    resume], [
+    note("Your record", h("div", null, h("div", { class: "mnum big" }, pct + "%"), bar(pct / 100, pct === 100 ? "done" : "open"), h("div", { class: "note-small" }, fmtInt(doneN) + " of " + fmtInt(ORDER.length) + " lessons"))),
+    note("Chapter tests", h("div", null, testsPassed + " of " + tests.length + " passed")),
+    note("TinyTorch builds", h("div", null, exPassed + " of " + exAll.length + " passing")),
+    lastLog ? note("Last session", h("div", null, h("a", { href: "#/log" }, new Date(lastLog.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + ": " + lastLog.text))) : note("Progress", h("div", null, serverMode ? "Saved to progress/progress.json as you go." : "Saved in this browser. Start with ./start.sh to keep it in a file.")),
+  ], "masthead")];
+  (C.parts || []).forEach(p => {
+    const chs = C.chapters.filter(c => c.part === p.id); if (!chs.length) return;
+    const pd = chs.reduce((a, c) => a + chDone(c), 0), pn = chs.reduce((a, c) => a + c.stubs.length, 0);
+    frag.push(row([h("h2", { class: "part-title", id: "part-" + p.id }, p.label + ": " + p.title)], [note(null, h("div", null, h("div", { class: "mnum" }, pd + " / " + fmtInt(pn) + " lessons"), bar(pn ? pd / pn : 0, pd === pn ? "done" : pd ? "open" : "")))], "part-head"));
+    chs.forEach(ch => {
+      const lab = chLabel(ch), isNext = nid && C.chapters[CH_OF[nid]] === ch;
+      frag.push(row(h("a", { class: "chrow-link" + (isNext ? " is-current" : ""), href: "#/ch/" + ch.id },
+        h("span", { class: "ch-tag" }, lab.tag.replace("TinyTorch", "TT")), h("span", { class: "ch-name" }, lab.name), tagEl(ch.layer), ch.summary ? h("span", { class: "ch-sum", html: inline(ch.summary.replace(/^Vol [IV]+:\s*/, "")) }) : null),
+        chapterRecord(ch), "chrow"));
+    });
+  });
+  fill(el, h("div", { class: "page home" }, frag));
+}
+async function renderChapter(id) {
+  const ch = CH_BY_ID[id]; const el = content();
+  if (!ch) return renderMissing();
+  const lab = chLabel(ch), firstOpen = ch.stubs.find(s => !lessonDone(s.id)) || ch.stubs[0];
+  const frag = [row([h("div", { class: "crumb" }, h("a", { href: "#/home" }, "Contents"), " / ", lab.tag), h("h1", { class: "headline" }, lab.name), ch.summary ? h("p", { class: "lead", html: inline(ch.summary) }) : null,
+    ch.goals && ch.goals.length ? h("div", { class: "goals" }, h("h3", null, "Key ideas"), h("ul", null, ch.goals.map(g => h("li", { html: inline(g) })))) : null,
+    h("div", { class: "row" }, h("a", { class: "btn primary", href: "#/lesson/" + firstOpen.id }, chDone(ch) ? "Continue the chapter" : "Start the chapter", icon("arrow")), tagEl(ch.layer))],
+    chapterRecord(ch), "masthead")];
+  ch.stubs.forEach((s, i) => {
+    const pr = [];
+    s.quizzes.forEach(q => { const st = P.quizzes[q.id]; pr.push(q.test ? (st && st.attempts ? "test " + Math.round(st.best * 100) + "%" : "test") : "quiz " + (st ? st.correct.length : 0) + "/" + q.n); });
+    if (s.exercises.length) pr.push("build");
+    if (s.playgrounds.length) pr.push(s.playgrounds.length + " playground" + (s.playgrounds.length > 1 ? "s" : ""));
+    if (s.widgets.length) pr.push("calculator task");
+    const state = lessonDone(s.id) ? "done" : lessonStarted(s.id) ? "open" : null;
+    frag.push(row(h("a", { class: "lrow-link" + (P.last === s.id ? " is-current" : ""), href: "#/lesson/" + s.id }, h("span", { class: "l-num" }, s.kind === "test" ? "T" : String(i)), h("span", { class: "l-title" }, s.title), s.summary ? h("span", { class: "l-sum", html: inline(s.summary) }) : null),
+      [note(null, h("div", null, state === "done" ? icon("check") : null, (state === "done" ? "Done" : state === "open" ? "Started" : "Not started") + " · " + s.minutes + " min" + (pr.length ? " · " + pr.join(", ") : "")), state)], "lrow"));
+  });
+  fill(el, h("div", { class: "page chapter" }, frag));
+}
+function recordItems(les) {
+  return (les.blocks || []).filter(b => b._live).map(b => {
+    const state = (b._live.className.match(/is-(\w+)/) || [])[1] || "open";
+    return h("li", { class: "is-" + state }, h("a", { href: "#b-" + b.id, onclick: e => { e.preventDefault(); const t = document.getElementById("b-" + b.id); if (t) t.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "start" }); } },
+      icon(state === "done" ? "check" : b.type === "quiz" ? (les.kind === "test" ? "flag" : "search") : b.type === "exercise" ? "hammer" : b.type === "playground" ? "flask" : b.type === "widget" ? "calc" : "cards"),
+      h("span", null, b._live.firstChild.textContent + ": " + b._live.lastChild.textContent)));
+  });
+}
+async function renderLesson(id) {
+  const el = content(); const stub = STUB[id];
+  if (!stub) return renderMissing();
+  const ch = C.chapters[CH_OF[id]];
+  el.replaceChildren(h("div", { class: "page" }, h("div", { class: "skeleton-col" }, h("div", { class: "sk" }), h("div", { class: "sk" }), h("div", { class: "sk short" }))));
+  let lessons;
+  try { lessons = await loadChapter(ch.id); } catch (e) { fill(el, h("div", { class: "page" }, h("h1", null, "This chapter could not be loaded"), h("p", null, e.message + ". Rebuild the course with mlsys-course-tools/build.py, then reload."))); return; }
+  if (currentRoute.arg !== id) return;
+  const les = lessons[id]; const lab = chLabel(ch); const pos = ORDER.indexOf(id);
+  P.last = id; const lp = (P.lessons[id] = P.lessons[id] || {}); if (!lp.visited) { lp.visited = new Date().toISOString(); logEvent("visit", id, "Opened " + les.title + " (" + lab.name + ")"); } save();
+  termsSeen.clear();
+  const isTest = les.kind === "test";
+  const record = h("ol", { class: "record" });
+  const finish = h("div", { class: "finish" });
+  const drawFinish = () => {
+    finish.replaceChildren();
+    if (isTest) { finish.append(h("p", null, lessonDone(id) ? "Test passed: this chapter is complete." : "Pass the test to complete the chapter.")); }
+    else if (!lessonDone(id)) finish.append(h("button", { class: "btn primary", type: "button", onclick: () => { P.lessons[id] = Object.assign(P.lessons[id] || {}, { completed: true, completedAt: new Date().toISOString() }); logEvent("lesson", id, "Completed " + les.title + " (" + lab.name + ")"); celebrate(); save(true); drawFinish(); } }, icon("check"), "Mark this lesson complete"));
+    else finish.append(h("p", { class: "done-line" }, icon("check"), "Lesson complete."));
+    const nxt = pos < ORDER.length - 1 ? ORDER[pos + 1] : null;
+    if (nxt && (lessonDone(id) || isTest)) finish.append(h("a", { class: "btn" + (lessonDone(id) ? " primary" : ""), href: "#/lesson/" + nxt }, "Next: " + STUB[nxt].title, icon("arrow")));
+  };
+  window.__drawRecord = () => {
+    const items = recordItems(les); record.replaceChildren(...items);
+    const open = items.filter(li => !li.classList.contains("is-done")).length;
+    recNote.className = "mnote record-note" + (items.length && !open ? " is-done" : "");
+    recLabel.textContent = items.length ? (open ? open + " of " + items.length + " still open" : "All practice done") : "Reading lesson";
+  };
+  const recLabel = h("div", { class: "mlabel" }), recNote = h("div", { class: "mnote record-note" }, recLabel, record);
+  const rows = [row([h("div", { class: "crumb" }, h("a", { href: "#/home" }, "Contents"), " / ", h("a", { href: "#/ch/" + ch.id }, lab.tag + " · " + lab.name)),
+    h("h1", { class: "headline" }, les.title), les.summary ? h("p", { class: "lead", html: inline(les.summary) }) : null,
+    h("div", { class: "meta" }, h("span", null, (les.minutes || 10) + " min"), h("span", null, isTest ? "Chapter test" : "Lesson " + (ch.stubs.findIndex(s => s.id === id)) + " of " + (ch.stubs.length - 1)), tagEl(ch.layer), lessonDone(id) ? h("span", { class: "is-done" }, icon("check"), "Complete") : null)],
+    [recNote], "masthead")];
+  (les.blocks || []).forEach(b => {
+    const main = renderBlock(b, les);
+    rows.push(row(main, sideFor(b, les, b._live), "b-" + b.type));
+  });
+  if (les.terms && les.terms.length) rows.push(row(h("dl", { class: "block terms" }, h("h3", { class: "block-title" }, "Terms from this lesson"), les.terms.map(x => [h("dt", null, x.term), h("dd", { html: inline(x.def) })])), []));
+  rows.push(row(finish, []));
+  const prev = pos > 0 ? ORDER[pos - 1] : null, nxt = pos < ORDER.length - 1 ? ORDER[pos + 1] : null;
+  rows.push(row(h("nav", { class: "pager", "aria-label": "Lesson navigation" }, prev ? h("a", { href: "#/lesson/" + prev }, h("small", null, "Previous"), STUB[prev].title) : h("span"), nxt ? h("a", { class: "nx", href: "#/lesson/" + nxt }, h("small", null, "Next"), STUB[nxt].title) : null), []));
+  fill(el, h("article", { class: "page lesson" }, rows));
+  drawFinish(); window.__drawRecord();
+  if (location.hash.indexOf("#b-") > 0) { /* deep link to a block is not used by the router */ }
+}
+function renderLog() {
+  const el = content(); const log = (P.log || []).slice().reverse();
+  const byDay = {}; log.forEach(e => { const d = e.at.slice(0, 10); (byDay[d] = byDay[d] || []).push(e); });
+  const days = Object.keys(byDay);
+  const doneN = ORDER.filter(lessonDone).length;
+  const exp = h("button", { class: "btn ghost sm", type: "button", onclick: () => {
+    const blob = new Blob([JSON.stringify(P, null, 2)], { type: "application/json" }); const a = h("a", { href: URL.createObjectURL(blob), download: "mlsys-course-progress-" + new Date().toISOString().slice(0, 10) + ".json" }); document.body.append(a); a.click(); a.remove();
+  } }, icon("save"), "Export progress");
+  const file = h("input", { type: "file", accept: "application/json", hidden: true, onchange: e => {
+    const f = e.target.files[0]; if (!f) return; f.text().then(txt => { const j = JSON.parse(txt); if (!j || typeof j !== "object" || !j.lessons) throw new Error(); ask("Replace your current progress with this file?", () => { P = Object.assign(BLANK(), j); save(true); route(); }); }).catch(() => ask("That file is not a progress export from this course.", () => {}));
+  } });
+  const imp = h("button", { class: "btn ghost sm", type: "button", onclick: () => file.click() }, "Import progress");
+  const rows = [row([h("h1", { class: "headline" }, "Logbook"), h("p", { class: "lead" }, "Everything you have finished, newest first, so you never lose track between sessions. It is saved with your progress; export it to move it to another computer."), h("div", { class: "row" }, exp, imp, file)],
+    [note("Lessons", h("div", { class: "mnum" }, fmtInt(doneN) + " / " + fmtInt(ORDER.length))), note("Days with activity", h("div", { class: "mnum" }, String(days.length))), note("Entries", h("div", { class: "mnum" }, fmtInt(log.length)))], "masthead")];
+  if (!log.length) rows.push(row(h("div", { class: "empty" }, h("p", null, "Nothing logged yet. Every lesson you complete, quiz you finish, test you take and exercise you pass is written here with its date."), h("a", { class: "btn primary", href: "#/lesson/" + nextLessonId() }, "Open your next lesson", icon("arrow"))), []));
+  days.forEach(d => rows.push(row([h("h2", { class: "day" }, new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })),
+    h("ul", { class: "loglist" }, byDay[d].map(e => h("li", { class: "k-" + e.kind }, h("time", null, e.at.slice(11, 16)), h("span", null, e.ref && STUB[e.ref] ? h("a", { href: "#/lesson/" + e.ref }, e.text) : e.text))))], [note(null, h("div", null, byDay[d].length + " entr" + (byDay[d].length > 1 ? "ies" : "y")))])));
+  fill(el, h("div", { class: "page log" }, rows));
+}
+function renderPlayground() {
+  const el = content(); const KEY = "course-scratch";
+  let saved = null; try { saved = localStorage.getItem(KEY); } catch (e) { /* ignore */ }
+  const start = "# Scratchpad: anything you type here is kept in this browser.\n# Ctrl+Enter runs it. With ./start.sh it runs with the python3 (and NumPy) on your computer.\nimport math\n\nparams = 7e9          # a 7B-parameter model\nbytes_per_param = 2   # fp16\nprint(f\"weights: {params * bytes_per_param / 1e9:.1f} GB\")\n";
+  const out = h("pre", { class: "term", hidden: true }), status = h("div", { class: "run-status", "aria-live": "polite" });
+  const ed = codeEditor(saved || start, () => run(), { label: "Python scratchpad", minLines: 14, maxLines: 30, onChange: v => { try { localStorage.setItem(KEY, v); } catch (e) { /* ignore */ } } });
+  async function run() { status.className = "run-status"; status.textContent = "Running…"; try { const r = await runPython(ed.value); out.hidden = false; out.textContent = r.output.trim() || "(no output)"; status.className = "run-status " + (r.ok ? "good" : "bad"); status.textContent = r.ok ? "Ran without errors (" + r.where + ")" : "Error: see the last line of the output."; } catch (e) { status.className = "run-status bad"; status.textContent = e.message; } }
+  const rows = [row([h("h1", { class: "headline" }, "Playground"), h("p", { class: "lead" }, "A free Python scratchpad and every systems calculator from the course in one place. Use it to check a number from a lesson, or to try an idea before the quiz asks for it."),
+    h("section", { class: "block playground" }, blockTitle("Python scratchpad", "flask"), ed.el, h("div", { class: "row" }, h("button", { class: "btn primary", type: "button", onclick: run }, icon("play"), "Run"), h("span", { class: "kbd-hint" }, "Ctrl+Enter runs")), status, out)],
+    [note("Where code runs", h("div", null, serverMode ? "On this computer, through the course helper, with a 20 second limit." : "Start the course with ./start.sh to run code. Opened as a file, the page cannot start Python."), serverMode ? "done" : "miss")], "masthead")];
+  Object.keys(window.WIDGETS || {}).forEach(k => { const W = window.WIDGETS[k];
+    rows.push(row(h("section", { class: "block widget", id: "w-" + k }, blockTitle(W.title, "calc"), W.blurb ? h("p", { class: "note-small" }, W.blurb) : null, W.mount(Object.assign({}, W.defaults), { h, icon, inline, tex2mml })), W.formula ? [note("Formula", h("div", { class: "mformula", html: tex2mml(W.formula, true) }))] : []));
+  });
+  fill(el, h("div", { class: "page playground-page" }, rows));
 }
 function renderGlossary() {
-  const el = content(); const list = h("div");
+  const el = content(); const list = h("div", { class: "gloss" });
+  const items = (C.glossary || []).slice().sort((a, b) => a.term.localeCompare(b.term, "en"));
   const draw = q => {
-    const items = (C.glossary || []).filter(g => !q || (g.term + " " + g.def).toLowerCase().indexOf(q.toLowerCase()) >= 0).sort((a, b) => a.term.localeCompare(b.term, C.meta.language || undefined));
-    list.replaceChildren(...(items.length ? items.map(g => h("div", { class: "gloss-item" }, h("b", null, g.term), g.lesson ? h("a", { href: "#/lesson/" + g.lesson }, "→ " + (C.lessons[g.lesson] ? C.lessons[g.lesson].title : "")) : null, h("div", { html: inline(g.def) }))) : [h("p", { class: "note-small" }, t("none"))]));
+    const f = items.filter(g => !q || (g.term + " " + g.def).toLowerCase().indexOf(q.toLowerCase()) >= 0);
+    list.replaceChildren(...(f.length ? f.map(g => h("div", { class: "gloss-item" }, h("dt", null, g.term), h("dd", null, h("span", { html: inline(g.def) }), g.lesson && STUB[g.lesson] ? h("a", { href: "#/lesson/" + g.lesson }, " " + STUB[g.lesson].title) : null))) : [h("p", { class: "empty" }, items.length ? "No term matches “" + q + "”." : "Terms appear here as deep lessons define them.")]));
   };
-  const inp = h("input", { class: "gloss-search", type: "search", placeholder: t("search"), oninput: e => draw(e.target.value) });
-  el.replaceChildren(h("h1", null, "📚 " + t("glossary")), inp, list); draw("");
+  const inp = h("input", { class: "search", type: "search", placeholder: "Search terms", "aria-label": "Search terms", oninput: e => draw(e.target.value) });
+  fill(el, h("div", { class: "page" }, row([h("h1", { class: "headline" }, "Glossary"), inp, list], [note(null, h("div", null, items.length + " terms"))], "masthead"))); draw("");
 }
-function renderLesson(id) {
-  const les = C.lessons[id]; const el = content();
-  if (!les) { el.replaceChildren(h("p", null, "?")); return; }
-  const ci = CH_OF[id], ch = C.chapters[ci]; const pos = ORDER.indexOf(id);
-  P.last = id; const lp = (P.lessons[id] = P.lessons[id] || {}); if (!lp.visited) lp.visited = new Date().toISOString(); save();
-  const isTest = les.kind === "test";
-  const frag = [h("div", { class: "crumb" }, t("chOf", ci + 1) + " · " + ch.title), h("h1", null, les.title),
-    h("div", { class: "chips" }, h("span", { class: "chip" }, "⏱ ~" + (les.minutes || 10) + " " + t("min")), h("span", { class: "chip accent" }, isTest ? t("test") : t("lesson")), lessonDone(id) ? h("span", { class: "chip ok" }, "✓ " + t("lessonDone")) : null),
-    les.summary ? h("p", { class: "lead" }, les.summary) : null];
-  allBlocks(les).forEach(b => frag.push(renderBlock(b, les)));
-  if (les.terms && les.terms.length) frag.push(h("dl", { class: "terms block" }, h("h3", null, "📚 " + t("terms")), les.terms.map(x => [h("dt", null, x.term), h("dd", { html: inline(x.def) })])));
-  const pr = practiceOf(les);
-  const fin = h("div", { class: "finish" });
-  const drawFinish = () => {
-    const p2 = practiceOf(les); fin.replaceChildren();
-    if (isTest) { fin.append(h("h3", null, lessonDone(id) ? t("lessonDone") : "🏁 " + t("test")), h("div", { class: "note-small" }, lessonDone(id) ? "" : t("passTest"))); return; }
-    add(fin, h("h3", null, lessonDone(id) ? t("lessonDone") : t("yourPractice")),
-      h("div", { class: "chips" }, p2.qT ? h("span", { class: "chip " + (p2.qC === p2.qT ? "ok" : "") }, t("quizzes") + ": " + p2.qC + "/" + p2.qT) : null, p2.eT ? h("span", { class: "chip " + (p2.eP === p2.eT ? "ok" : "") }, t("exercises") + ": " + p2.eP + "/" + p2.eT) : null),
-      (!lessonDone(id) && (p2.qC < p2.qT || p2.eP < p2.eT)) ? h("div", { class: "note-small" }, t("later")) : null,
-      lessonDone(id) ? null : h("button", { class: "btn", type: "button", style: "margin-top:10px", onclick: () => { P.lessons[id] = Object.assign(P.lessons[id] || {}, { completed: true, completedAt: new Date().toISOString() }); save(); celebrate(); drawFinish(); } }, "✓ " + t("finishLesson")));
-    if (lessonDone(id) && pos < ORDER.length - 1) fin.append(h("a", { class: "btn", href: "#/lesson/" + ORDER[pos + 1], style: "text-decoration:none;display:inline-block;margin-top:10px" }, t("nextLesson") + " →"));
-    if (lessonDone(id) && overallPct() === 100) fin.append(h("p", null, h("strong", null, t("courseDone"))));
-  };
-  drawFinish(); window.__drawFinish = drawFinish; void pr;
-  frag.push(fin);
-  const prev = pos > 0 ? ORDER[pos - 1] : null, nxt = pos < ORDER.length - 1 ? ORDER[pos + 1] : null;
-  frag.push(h("nav", { class: "pager" }, prev ? h("a", { href: "#/lesson/" + prev }, h("small", null, "← " + t("prev")), C.lessons[prev].title) : h("span"), nxt ? h("a", { class: "nx", href: "#/lesson/" + nxt }, h("small", null, t("next") + " →"), C.lessons[nxt].title) : null));
-  fill(el, ...frag); armReveal(el);
-}
+function renderMissing() { fill(content(), h("div", { class: "page" }, row([h("h1", { class: "headline" }, "Nothing here"), h("p", null, "That address does not match a lesson or chapter."), h("a", { class: "btn", href: "#/home" }, "Back to the contents")], []))); }
 
-/* ───────────── chrome: sidebar, progress, theme, routing ───────────── */
-function renderSidebar(current) {
-  const sb = $("#sidebar"); const openChs = new Set([...sb.querySelectorAll("details[open]")].map(d => d.dataset.ch));
-  const firstRender = !sb.children.length; const curCh = current && CH_OF[current] != null ? C.chapters[CH_OF[current]].id : null;
-  fill(sb, h("a", { class: "nav-home" + (current === "home" ? " active" : ""), href: "#/home" }, "🏠 " + t("home")), h("a", { class: "nav-gloss" + (current === "glossary" ? " active" : ""), href: "#/glossary" }, "📚 " + t("glossary")),
-    C.chapters.map((ch, ci) => {
-      const d = h("details", { class: "nav-ch", "data-ch": ch.id }, h("summary", null, h("span", null, (ci + 1) + ". " + ch.title), h("span", { class: "ch-pct" }, chapterPct(ch) + "%")),
-        ch.lessons.map(id => h("a", { class: "nav-lesson" + (lessonDone(id) ? " done" : lessonStarted(id) ? " started" : "") + (current === id ? " active" : "") + (C.lessons[id].kind === "test" ? " is-test" : ""), href: "#/lesson/" + id }, h("span", { class: "st" }, lessonDone(id) ? "✓" : ""), h("span", { class: "t" }, C.lessons[id].title))));
-      if (firstRender ? ch.id === curCh || ci === 0 && !curCh : openChs.has(ch.id) || ch.id === curCh) d.setAttribute("open", ""); return d;
-    }));
+/* ───────────── chrome ───────────── */
+function renderRail() {
+  const rail = $("#rail"); const r = currentRoute;
+  let chId = r.kind === "ch" ? r.arg : r.kind === "lesson" && STUB[r.arg] ? C.chapters[CH_OF[r.arg]].id : null;
+  if (!chId) {
+    fill(rail, h("div", { class: "rail-head" }, "Volumes"), h("ul", null, (C.parts || []).map(p => h("li", null, h("a", { href: "#/home", onclick: e => { e.preventDefault(); location.hash = "#/home"; setTimeout(() => { const t = document.getElementById("part-" + p.id); if (t) t.scrollIntoView(); }, 30); } }, p.label, h("small", null, p.title))))));
+    return;
+  }
+  const ch = CH_BY_ID[chId], lab = chLabel(ch);
+  fill(rail, h("a", { class: "rail-back", href: "#/home" }, icon("back"), "All chapters"), h("a", { class: "rail-head" + (r.kind === "ch" ? " is-current" : ""), href: "#/ch/" + ch.id }, h("small", null, lab.tag), lab.name),
+    h("ol", { class: "rail-lessons" }, ch.stubs.map(s => h("li", { class: (lessonDone(s.id) ? "is-done" : lessonStarted(s.id) ? "is-open" : "") + (r.arg === s.id ? " is-current" : "") },
+      h("a", { href: "#/lesson/" + s.id, "aria-current": r.arg === s.id ? "page" : null }, h("span", { class: "rmark" }, lessonDone(s.id) ? icon("check") : null), h("span", null, s.title))))));
 }
-let currentRoute = "home";
 function refreshChrome() {
-  const pct = overallPct(); const gb = $("#globalBar"); if (gb) gb.style.width = pct + "%"; const gp = $("#globalPct"); if (gp) gp.textContent = pct + "%";
-  renderSidebar(currentRoute);
+  const pct = overallPct(); const gf = $("#gaugeFill"); if (gf) gf.style.width = pct + "%"; const gp = $("#gaugePct"); if (gp) gp.textContent = pct + "%";
+  renderRail();
+  document.querySelectorAll(".topnav a").forEach(a => a.classList.toggle("is-current", a.getAttribute("href") === "#/" + (currentRoute.kind === "lesson" || currentRoute.kind === "ch" ? "home" : currentRoute.kind)));
 }
 function route() {
-  const hash = location.hash.replace(/^#\/?/, "") || "home"; const [kind, ...rest] = hash.split("/"); const arg = rest.join("/");
-  document.body.classList.remove("nav-open");
-  if (kind === "lesson" && C.lessons[arg]) { currentRoute = arg; renderLesson(arg); }
-  else if (kind === "glossary") { currentRoute = "glossary"; renderGlossary(); }
-  else { currentRoute = "home"; renderHome(); }
-  refreshChrome(); content().scrollTop = 0; window.scrollTo(0, 0);
+  const hash = location.hash.replace(/^#\/?/, "") || "home"; const [kind, ...rest] = hash.split("/"); const arg = decodeURIComponent(rest.join("/"));
+  document.body.classList.remove("nav-open"); window.__drawRecord = null;
+  currentRoute = { kind, arg };
+  if (kind === "lesson") renderLesson(arg);
+  else if (kind === "ch") renderChapter(arg);
+  else if (kind === "log") renderLog();
+  else if (kind === "playground") renderPlayground();
+  else if (kind === "glossary") renderGlossary();
+  else { currentRoute = { kind: "home" }; renderHome(); }
+  refreshChrome(); window.scrollTo(0, 0);
+  const m = content(); if (m) m.focus({ preventScroll: true });
 }
 function initChrome() {
-  document.documentElement.lang = C.meta.language || C.meta.ui_lang || "pl"; document.title = C.meta.title;
-  $("#brand").textContent = C.meta.title;
+  document.documentElement.lang = "en"; document.title = "Machine Learning Systems · Interactive course";
   let theme = null; try { theme = localStorage.getItem("course-theme"); } catch (e) { /* ignore */ }
-  if (!theme) theme = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  document.documentElement.dataset.theme = theme;
-  $("#themeBtn").onclick = () => { const n = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = n; try { localStorage.setItem("course-theme", n); } catch (e) { /* ignore */ } };
+  if (!theme) theme = window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  const setTheme = th => { document.documentElement.dataset.theme = th; const b = $("#themeBtn"); b.replaceChildren(icon(th === "dark" ? "sun" : "moon")); b.setAttribute("aria-label", th === "dark" ? "Switch to the light theme" : "Switch to the dark theme"); };
+  setTheme(theme);
+  $("#themeBtn").onclick = () => { const n = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; setTheme(n); try { localStorage.setItem("course-theme", n); } catch (e) { /* ignore */ } };
+  $("#menuBtn").replaceChildren(icon("menu"));
   $("#menuBtn").onclick = () => document.body.classList.toggle("nav-open"); $("#scrim").onclick = () => document.body.classList.remove("nav-open");
+  document.addEventListener("keydown", e => { if (e.key === "Escape") document.body.classList.remove("nav-open"); });
 }
 (async function boot() {
   initChrome(); await loadProgress(); setSaveState();
   window.addEventListener("hashchange", route); route();
-  window.__course = { get progress() { return P; }, route, save, tex2mml };
+  window.__course = { get progress() { return P; }, route, save, tex2mml, loadChapter };
 })();
 })();
