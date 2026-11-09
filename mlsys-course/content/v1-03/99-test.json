@@ -1,0 +1,151 @@
+{
+ "title": "Test: ML Lifecycle",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-03-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "In production ML monitoring, lightweight statistical tests such as the Population Stability Index (PSI) and Kolmogorov-Smirnov (KS) test can detect shifts in input feature distributions, but an alert from these tests does not by itself prove that model classification accuracy has degraded until ground-truth outcome evidence is evaluated.",
+     "explanation": "True. PSI and KS tests detect distribution divergence mathcalD(P_t parallel P_0) between current inference traffic and baseline training data. An input shift indicates that incoming data has drifted, which raises the probability of accuracy loss and triggers investigation; however, it does not prove that accuracy has degraded (the model might be robust to the specific feature shift). Confirming accuracy degradation requires evaluating labeled outcomes or verified clinical feedback.",
+     "hint": "Think about: evaluate the diagnostic scope of statistical drift tests (PSI, KS) and distinguish input distribution shifts from confirmed accuracy loss.",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Validation as the release decision**?",
+     "options": [
+      "An ML system moves through problem definition, data, training, evaluation, deployment, and monitoring, each handing the next a concrete artifact, and because learned behavior changes when the world changes, monitoring evidence must flow back to earlier stages, so deployment starts an operational phase rather than ending the project.",
+      "Evaluation measures and validation decides: a release needs evidence on latency, subgroup performance, calibration, robustness across sites and time, and operational readiness, recorded in an immutable manifest, and a failed threshold routes the fix to the stage that owns it.",
+      "Cycle time bounds how many hypotheses a team can test in a fixed calendar, so iteration velocity buys search breadth rather than guaranteed accuracy, and late discoveries multiply the tax.",
+      "Accuracy on a curated test set is not deployment readiness, because field captures differ from curated research images (the Thai screening deployment's ungradable images), so validation must sample the conditions the system will meet."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Validation as the release decision itself, not a neighbouring idea.",
+     "explanation": "**Validation as the release decision:** Evaluation measures and validation decides: a release needs evidence on latency, subgroup performance, calibration, robustness across sites and time, and operational readiness, recorded in an immutable manifest, and a failed threshold routes the fix to the stage that owns it."
+    },
+    {
+     "q": "What is the primary conceptual distinction between Model Evaluation and Model Validation as defined in this chapter?",
+     "explanation": "The correct answer is C. The chapter defines Model Evaluation as characterizing algorithmic performance using selected datasets, loss metrics, and test benchmarks. Model Validation is an evidence-based decision on deployment readiness, verifying that the integrated model and system satisfy all physical constraints (latency, memory, power), subgroup safety floors (demographic fairness, comorbidity performance), robustness under distribution shift (blur, lighting, camera variation), and cost budgets. Confining validation to external regulators misses its internal engineering function, splitting evaluation/validation by hardware architecture is incorrect, and online vs. offline execution is handled within staged validation rather than defining the conceptual boundary.",
+     "hint": "Think about: compare Model Evaluation and Model Validation to classify their distinct roles in deciding deployment readiness.",
+     "type": "single",
+     "options": [
+      "A. Evaluation is conducted by internal software engineers, whereas validation is conducted exclusively by government regulatory agencies.",
+      "B. Evaluation tests software execution speed on accelerators, whereas validation tests algorithm mathematical convergence on CPUs.",
+      "C. Evaluation measures model behavior on chosen datasets and metrics; validation is a multi-dimensional evidence check confirming the model satisfies all operational, latency, subgroup fairness, robustness, and cost constraints under production-representative conditions.",
+      "D. Evaluation is performed on live production traffic, whereas validation is performed exclusively on synthetic offline data."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A team skips shadow-mode validation and canary deployment, relying entirely on strong test-set accuracy, although its release plan requires evidence of integration behavior, live-input latency, and limited-exposure operation. Why does skipping these unmet evidence obligations increase deployment risk and possible rework?",
+     "explanation": "The correct answer is D. The omitted stages supply complementary evidence about serving integration and controlled live exposure that model accuracy alone does not establish. Skipping them without meeting those obligations another way leaves unresolved risk in the release decision. If a failure then appears in production, the team may need containment, rollback, diagnosis, and revalidation under operating constraints. The chapter does not establish a universal increase in calendar time from omitting any named stage; removal can be justified when its evidence obligation is met another way. Canary deployment does not determine compiler optimization, offline tests can measure accuracy, and orchestrators do not universally enforce shadow evaluation.",
+     "hint": "Think about: analyze the deployment risk and possible rework from skipping unmet validation evidence obligations.",
+     "type": "single",
+     "options": [
+      "A. Because skipping canary deployment causes compilers to emit unoptimized serving binaries.",
+      "B. Because offline test sets are mathematically incapable of computing classification accuracy.",
+      "C. Because modern cloud orchestrators refuse to route traffic to containers that have not completed shadow mode.",
+      "D. Because strong test-set accuracy does not meet those integration and exposure obligations; unresolved failures may reach production and require investigation, containment, artifact repair, and renewed validation."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In the chapter's Iteration Tax scenario, a team compares Model L (large ensemble, starts at 95% accuracy, 1-week training cycle, +0.15% gain/iter) with Model S (lightweight model, starts at 90% accuracy, 1-hour training cycle, +0.1% gain/iter, 100 effective iters) over a 26-week window with a 99% ceiling. What is the modeled outcome after 26 weeks, and what systems lesson does it demonstrate?",
+     "explanation": "The correct answer is B. As modeled in the Iteration Tax notebook: over 26 weeks, Model L runs 26 iterations at 1 week each, reaching \\$95.0\\% + (26 × 0.15\\%) = 98.9\\%. Model S runs 100 effective iterations (capped by hypothesis generation), reaching an uncapped \\$90.0\\% + (100 × 0.1\\%) = 100.0\\%, which hits the \\$99.0\\% ceiling. The 0.1-point gap between them is an artifact of the assumed gains, not a finding. The systems lesson is that *iteration velocity is a feature* because it buys search breadth: 100 effective iterations against 26 means the fast-cycle team tests about four times as many architectures, data augmentations, and preprocessing choices. The claim that starting accuracy dominates contradicts the worked math, and the saturation/non-convergence claims contradict the chapter's scenario parameters.",
+     "hint": "Think about: calculate the cumulative accuracy trajectory under the Iteration Tax model and explain how experimentation velocity acts as a systems optimization lever.",
+     "type": "single",
+     "options": [
+      "A. Model L reaches 99.0% while Model S reaches 92.6%, proving that starting accuracy dominates iteration speed over six months.",
+      "B. Model S reaches the 99.0% ceiling while Model L reaches 98.9%, so both end near the ceiling; the lasting difference is that the fast-cycle team tests about four times as many ideas.",
+      "C. Both models reach exactly 95.0% accuracy because human hypothesis generation saturates at 26 experiments regardless of training speed.",
+      "D. Model L fails to converge due to training instability, while Model S converges to 90.0% without improvement."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Why does the statement 'Build a computer vision model that detects diabetic retinopathy' fail as a complete problem definition for an ML system?",
+     "explanation": "The correct answer is A. An ML problem definition is not a one-sentence task label; it is a multi-constraint optimization problem spanning statistical layers (>90% sensitivity and >80% specificity across diverse populations), physical layers (inference on edge hardware within seconds of capture and under a 500 MB memory budget), and operational layers (FDA regulatory compliance, HIS workflow integration, patient privacy). Omitting these layers leaves downstream teams without the constraints needed to bound the design space. Specifying model backbones upfront inverts the workflow order, unsupervised anomaly detection is not mandatory for medical classification, and establishing quantifiable targets upfront is an essential requirement of the Problem Definition output contract.",
+     "hint": "Think about: explain why complete ML problem definitions require layered statistical, physical, and operational constraints.",
+     "type": "single",
+     "options": [
+      "A. It specifies only a high-level task while omitting the statistical constraint layers (sensitivity/specificity floors across subgroups), physical constraints (edge device memory/latency budgets), and operational constraints (regulatory compliance, clinical workflow integration).",
+      "B. It fails to specify which exact deep neural network backbone and learning rate schedule must be used during training.",
+      "C. It defines an image classification problem when medical AI systems must always be framed as unsupervised anomaly detection tasks.",
+      "D. It defines quantifiable objectives before data collection has occurred, which violates standard ML agile practices."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "To prevent defect propagation across lifecycle boundaries, the chapter formalizes each stage boundary using a(n) ____ contract, which defines required inputs, output deliverables, and non-negotiable quality invariants.",
+     "explanation": "stage interface. Stage interface contracts establish formal quality checks at each transition boundary in the ML lifecycle, ensuring that prerequisites (such as deployment paradigm selection or schema validation) are met before downstream engineering begins.",
+     "hint": "Think about: explain the role of stage interface contracts as control-plane quality checks in ML workflows.",
+     "type": "fill",
+     "answer": [
+      "stage interface"
+     ]
+    },
+    {
+     "q": "A deployment model processes ~760,000 screening images per month across 500 rural clinics. Cloud inference costs \\$0.01/image plus \\$45,000/year for connectivity/network operations (\\$136,200/year total). Edge deployment requires a \\$500 device per clinic (\\$250,000 CapEx), \\$25,000/year maintenance, and \\$0.001/image (\\$34,120/year total OpEx). Treat cloud as a counterfactual cost benchmark because it fails the stated connectivity and latency requirements. Using these rounded annual-cost givens, what is the annual operating savings of edge deployment and its payback period?",
+     "explanation": "The correct answer is A. Using the question's rounded annual-cost givens: Total Cloud Annual OpEx = \\$136,200. Total Edge Annual OpEx = \\$25,000 (maintenance) + \\$9,120 (variable inference) = \\$34,120. Annual Savings = \\$136,200 - \\$34,120 = \\$102,080. Edge Hardware CapEx = 500 clinics $\\times$ \\$500/device = \\$250,000. Payback Period = \\$250,000 / \\$102,080 $\\approx$ 2.45 years (~2.5 years). Beyond cost recovery, edge deployment provides the critical operational advantage of functioning without internet connectivity during network outages. The alternative payback periods contradict the stated capital expense divided by annual savings.",
+     "hint": "Think about: calculate total cost of ownership, annual operating savings, and payback period for cloud versus edge ML deployment.",
+     "type": "single",
+     "options": [
+      "A. Approximately \\$102,080 annual savings with a payback period of approximately 2.4 to 2.5 years, while enabling offline operation during connectivity outages.",
+      "B. The same annual savings with a payback period of ten years, making cloud deployment far more economical.",
+      "C. The same annual savings with an immediate three-month payback period.",
+      "D. Zero annual savings, because edge hardware maintenance costs exactly equal cloud inference fees at 500 clinics."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Order the stages of progressive online validation from lowest initial user risk to broadest comparative evaluation:",
+     "explanation": "The correct order is: (2) Offline evaluation on held-out and stratified test sets, (4) Shadow mode running in parallel on live requests without serving predictions to users, (1) Canary deployment exposing 1–5% of live traffic, (3) A/B testing comparing outcomes against the production baseline. Progressive validation begins offline with static benchmark testing; next, shadow mode tests end-to-end serving integration and performance under live production load with zero user exposure; canary deployment routes a small, controlled fraction of traffic to verify stability under real user interactions; and finally, A/B testing establishes statistically significant comparative efficacy against the incumbent baseline.",
+     "hint": "Think about: design the sequence of progressive online validation stages from zero-exposure integration testing to live comparative evaluation.",
+     "type": "order",
+     "items": [
+      "Offline evaluation on held-out and stratified test sets",
+      "Shadow mode running in parallel on live requests without serving predictions to users.",
+      "Canary deployment exposing 1–5% of live traffic",
+      "A/B testing comparing outcomes against the production baseline"
+     ]
+    },
+    {
+     "q": "Order the following lifecycle phases in the canonical sequence established in the chapter for a new ML system project:",
+     "explanation": "The correct order is: (2) Problem Definition, (4) Data Collection and Preparation, (5) Model Development and Training, (6) Evaluation and Validation, (1) Deployment and Integration, (3) Monitoring and Maintenance. Each stage consumes artifacts and contracts produced by preceding stages: Problem Definition sets measurable objectives and physical constraints; Data Collection acquires and curates versioned datasets satisfying those constraints; Model Development trains candidate models within the computational budget; Evaluation and Validation checks models against stratified safety thresholds; Deployment and Integration delivers serving infrastructure meeting latency SLAs; and Monitoring and Maintenance tracks live operational telemetry and feeds drift evidence back into upstream stages.",
+     "hint": "Think about: classify and sequence the six core ML lifecycle stages and justify the prerequisite artifact dependencies across stage boundaries.",
+     "type": "order",
+     "items": [
+      "Problem Definition",
+      "Data Collection and Preparation",
+      "Model Development and Training",
+      "Evaluation and Validation.",
+      "Deployment and Integration",
+      "Monitoring and Maintenance"
+     ]
+    },
+    {
+     "q": "A deployment policy that automatically routes low-confidence or high-uncertainty model predictions to an expert specialist for manual review, while allowing high-confidence predictions to proceed automatically, is known as ____ routing.",
+     "explanation": "human-in-the-loop. Human-in-the-loop routing uses calibrated model uncertainty to triage decisions, ensuring that ambiguous or borderline cases receive expert human oversight while automating routine, high-confidence cases.",
+     "hint": "Think about: explain human-in-the-loop routing as an operational mechanism for managing model uncertainty in high-stakes deployments.",
+     "type": "fill",
+     "answer": [
+      "human in the loop",
+      "human-in-the-loop"
+     ]
+    },
+    {
+     "q": "Deferring deployment paradigm selection (Cloud, Edge, Mobile, or TinyML) until after model architecture design and training are complete is an effective engineering strategy because modern model compression techniques can universally fit any trained model onto any target hardware without compromising accuracy.",
+     "explanation": "False. Deployment paradigm is a day-one constraint that bounds feasible model and preprocessing choices. Compression cannot universally make an arbitrary trained model fit a target while preserving required quality. Late discovery requires tracing which artifacts depend on the missed limit: preprocessing choices, weights, evaluation evidence, and the deployment package may need revision, while some collected data may remain usable. Correction effort and delay follow the affected tasks and their dependencies; the discovery stage alone does not determine them or require every stage to restart.",
+     "hint": "Think about: evaluate how a deferred deployment decision creates dependency-sensitive rework.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  }
+ ]
+}

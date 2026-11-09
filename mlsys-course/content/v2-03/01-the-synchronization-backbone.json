@@ -1,0 +1,77 @@
+{
+ "title": "The Synchronization Backbone",
+ "summary": "Compare intra-node and inter-node interconnect bandwidths across GPU generations.",
+ "source": {
+  "chapter": "v2-03",
+  "sections": [
+   "The Synchronization Backbone"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare intra-node and inter-node interconnect bandwidths across GPU generations\n- Explain how synchronous collective communication creates a bulk-synchronous bottleneck in multi-GPU training\n- Analyze the communication demands of AllToAll versus AllReduce collective patterns\n- Identify the conceptual role of the network fabric in distributed machine learning architectures"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Network Fabrics, § The Synchronization Backbone",
+   "md": "At the node boundary, each GPU's NVLink bandwidth narrows to a single external network port, the bottom of the bandwidth hierarchy traced in a later section. How much that narrowing costs depends on what the training job must push through the port, and how often. Consider the running instance of Archetype A (GPT-4/Llama-3), a …-parameter GPT-3-class dense transformer partitioned across the … of the reference cluster. Each training step must combine gradient contributions so that corresponding model replicas apply the same update."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Network fabric as the gradient bus in distributed training; Bandwidth cliff between intra-node NVLink and inter-node InfiniBand; Impact of synchronization latency on GPU compute utilization; Demands of AllReduce, AllGather, and AllToAll collectives."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In a 1,024-GPU synchronous training job on a 175B-parameter model, a degraded inter-node link carries a required collective transfer. Explain when its delay can leave the other participating GPUs waiting, and why the link fault alone does not establish a job-wide slowdown.",
+   "md": "If the degraded link delays the last required collective completion on the job's critical path, workers that finish their dependent work earlier wait at the synchronization boundary. The exposed delay depends on the participating group, routing, collective schedule, and overlap with independent computation; a fault on an unused path or a transfer whose delay remains hidden need not lengthen the step. The relevant evidence is a matched step and transfer timeline, not the existence of a degraded link elsewhere in the fleet."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-03-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "On an H100 GPU server, why does moving gradient synchronization across node boundaries create a severe 'bandwidth cliff,' and by what factor does per-direction bandwidth drop when transitioning from local NVLink to a single NDR InfiniBand port?",
+     "explanation": "The correct answer is C. On an H100 system, per-direction NVLink bandwidth is \\$450\\text{ GB/s}$ (half of its \\$900\\text{ GB/s}$ bidirectional total), whereas a single NDR InfiniBand port delivers \\$50\\text{ GB/s}$ (\\$400\\text{ Gb/s}$), representing an approximate \\$9\\times$ bandwidth cliff. The assertion of a \\$2\\times$ drop significantly underestimates the physical disparity between on-chassis copper traces and multi-meter inter-node cabling. The claim of a \\$50\\times$ drop mistakenly assumes inter-node traffic uses kernel TCP/IP rather than RDMA. The assertion of a \\$100\\times$ drop confuses GPUDirect RDMA transfers with legacy CPU bounce buffering.",
+     "hint": "Think about: compare intra-node and inter-node interconnect bandwidths across GPU generations.",
+     "type": "single",
+     "options": [
+      "Bandwidth drops by roughly \\$2× because optical conversion adds latency while maintaining similar wire transfer rates",
+      "Bandwidth drops by roughly \\$50× because inter-node links must encapsulate packets in kernel TCP/IP stacks",
+      "Bandwidth drops by roughly \\$9× (from \\$450 GB/s per direction to \\$50 GB/s per port) due to the physical distance and switching constraints of inter-node cables",
+      "Bandwidth drops by roughly \\$100× because inter-node communication requires staging all gradients through CPU system RAM"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "AllToAll collective communication is less demanding on network fabric bisection bandwidth than AllReduce because each GPU only sends data to a single designated peer.",
+     "explanation": "False. In AllToAll, each participant sends a distinct portion to every other participant, creating many simultaneous source-destination pairs. This can stress bisection bandwidth and path diversity. Ring AllReduce exchanges with logical neighbors at each step, but its physical cross-sectional traffic still depends on rank placement and routing.",
+     "hint": "Think about: analyze the communication demands of AllToAll versus AllReduce collective patterns.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In a distributed training cluster, the network fabric functions as the global ______, analogous to the internal memory bus in a single workstation, moving parameter updates and activation tensors between accelerators.",
+     "explanation": "gradient bus. The fabric carries parameter updates between workers, making its bandwidth and synchronization delays central constraints on distributed training throughput.",
+     "hint": "Think about: identify the conceptual role of the network fabric in distributed machine learning architectures.",
+     "type": "fill",
+     "answer": [
+      "gradient bus"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare intra-node and inter-node interconnect bandwidths across GPU generations.",
+    "You can now explain how synchronous collective communication creates a bulk-synchronous bottleneck in multi-GPU training.",
+    "You can now analyze the communication demands of AllToAll versus AllReduce collective patterns.",
+    "You can now identify the conceptual role of the network fabric in distributed machine learning architectures."
+   ]
+  }
+ ]
+}

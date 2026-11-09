@@ -1,0 +1,131 @@
+{
+ "title": "Test: Responsible AI",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-16-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "Why do resource-constrained TinyML deployments emphasize validated local safety envelopes and lightweight checks rather than continuous on-device SHAP explanations or large rolling fairness analyses?",
+     "explanation": "The correct answer is A. TinyML limits the cost and availability of runtime analysis, but does not universally prohibit storage, monitoring, or firmware updates. Bounded event records, input checks, and watchdogs may fit locally; heavier subgroup analysis can occur during fleet synchronization or servicing. The assurance case must state actual connectivity and update limits. Cloud TPUs and register-width claims confuse implementation constraints with the mathematical definitions.",
+     "hint": "Think about: compare responsible AI capabilities and architectural constraints across Cloud, Edge, Mobile, and TinyML environments.",
+     "type": "single",
+     "options": [
+      "Tight compute, memory, power, and connectivity budgets limit heavy runtime analysis; local checks must be paired with fleet or servicing evidence and a defined update or retirement path.",
+      "Because TinyML devices execute exclusively on cloud tensor processing units where telemetry logging is prohibited by law",
+      "Because embedded C++ compilers automatically convert nonlinear deep neural networks into linear decision trees",
+      "Because differential privacy guarantees are mathematically impossible on 32-bit microcontroller registers"
+     ],
+     "answer": 0
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Assurance case**?",
+     "options": [
+      "Explanation method and placement are fixed by audience, deadline, and attribution cost (saliency, exact tree attribution, sampled Shapley values), and attribution is not causation.",
+      "Continuous fairness telemetry costs streaming counters per group and metric, runs mostly off the request path, updates prediction-only metrics at once while label-dependent metrics wait for outcomes, and reports under-supported groups as insufficient, not zero.",
+      "A registry proves which weights shipped, not that shipping was justified, so deployment is justified by a versioned assurance case (claim for a stated use, argument, evidence, assumptions, an owner who can block, an invalidation rule) that expires on material change and maps the applicable legal obligations onto the lifecycle.",
+      "Every responsible-AI control consumes budgeted training, serving, memory, storage, or human-review capacity on a specific path, and where it is placed decides who is protected."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Assurance case itself, not a neighbouring idea.",
+     "explanation": "**Assurance case:** A registry proves which weights shipped, not that shipping was justified, so deployment is justified by a versioned assurance case (claim for a stated use, argument, evidence, assumptions, an owner who can block, an invalidation rule) that expires on material change and maps the applicable legal obligations onto the lifecycle."
+    },
+    {
+     "q": "A global ML platform serves inference traffic across the European Union (EU AI Act), the United States, and Asia. How does this fragmented regulatory landscape reshape the serving control plane of the ML fleet?",
+     "explanation": "The correct answer is D. The fleet must preserve the identity and version of the policies approved for each deployment and enforce them at the relevant components. Jurisdiction is one input alongside intended use and organizational role, not merely server location. Regional gateways can apply distinct policies while sharing weights, but that is a design option rather than a universal requirement. Neither closing every cloud site nor retraining separately for every country follows from differing obligations; routing alone does not determine which obligations apply.",
+     "hint": "Think about: design a distributed ML serving control plane capable of enforcing geo-specific regulatory and safety policies.",
+     "type": "single",
+     "options": [
+      "The platform must shut down all cloud datacenters and operate exclusively on local microcontrollers",
+      "The platform must completely retrain its foundation models with new random seeds for each country",
+      "The platform can ignore regional regulations by routing all traffic through international satellite links",
+      "The control plane must bind approved policies to the applicable use, organizational role, and jurisdiction; regional gateways and shared model weights are one possible implementation."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In medical imaging ML pipelines, what is the 'representation cost' and why does the cost of acquiring representative training data scale with subgroup coverage rather than total image volume?",
+     "explanation": "The correct answer is C. The representation cost captures the reality that underrepresented patient populations (rural clinics, minority demographics, uncommon imaging equipment) are expensive to source, annotate, and harmonize (\\$50–\\$200/image plus 30%–50% harmonization overhead across 50+ hospital systems). Improving performance for marginalized groups requires budgeting specifically for demographic coverage gaps rather than simply acquiring more majority-class data. Government licensing fees are legal charges, not data engineering costs, network bandwidth cost is negligible by comparison, and GPU memory overhead is a hardware constraint.",
+     "hint": "Think about: calculate and analyze the representation cost in medical imaging and subgroup data acquisition.",
+     "type": "single",
+     "options": [
+      "It is an annual government licensing fee levied on deep learning medical devices",
+      "It represents the network bandwidth consumed when downloading public datasets from cloud buckets",
+      "It reflects the substantial financial and logistical cost (\\$125M+ in the chapter's sizing scenario) of acquiring, curating, and harmonizing clinical data from diverse geographic hospitals, specialized scanners, and underrepresented patient demographics",
+      "It is the GPU memory overhead required to store floating-point feature embeddings during distributed backpropagation"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A company builds a customer-facing assistant on a third-party foundation model whose vendor publishes safety evaluations and contractual controls. How does this dependency change the deploying organization's accountability?",
+     "explanation": "The correct answer is C. Third-party and foundation-model dependencies do not transfer accountability to the supplier. The deploying organization may inherit weights, safety evaluations, documentation, or contractual controls, but it still decides how the model is used and monitored. Procurement therefore records intended and prohibited uses, evaluation scope, version and change notification, incident disclosure, audit access, data handling, fallback behavior, and an exit plan. A vendor's evaluation covers its stated scope, not every downstream use.",
+     "hint": "Think about: explain why inherited model components leave accountability with the deploying organization.",
+     "type": "single",
+     "options": [
+      "Accountability transfers to the vendor, because the vendor trained the weights and evaluated their safety",
+      "Accountability is shared equally by contract, so the deploying organization need only monitor uptime",
+      "Accountability stays with the deploying organization, which still chooses the use, interface, retrieved context, user population, monitoring, and response process, so procurement needs the same rigor as an internal model gate",
+      "Accountability disappears for inherited components, because the vendor's evaluations already cover every downstream use"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "For an appeal workflow that retrieves decision evidence before explanation, then sends both to a reviewer and records the outcome, order these actions:",
+     "explanation": "The order in this specified workflow is (2), (4), (1), (3). The reviewer receives traceable decision and explanation evidence, and outcome tracking records and propagates an authorized remedy. This is one workflow arrangement, not a requirement to deploy four serial services; counterfactual generation alone does not establish recourse.",
+     "hint": "Think about: apply and sequence the workflow of the Contestability Stack for contested automated decisions.",
+     "type": "order",
+     "items": [
+      "Retrieve the decision record and governing model and policy versions",
+      "Generate explanation evidence, checking any proposed recourse for feasibility and policy validity.",
+      "Route the case and explanation to an authorized credit reviewer",
+      "Record the review outcome and propagate any authorized remedy"
+     ]
+    },
+    {
+     "q": "Responsible AI is primarily an ethical review process applied to a finished model artifact at the end of the deployment pipeline.",
+     "explanation": "False. Responsible AI requires technical mechanisms (representative data curation, differential privacy, bias-aware training objectives, and audit trails) designed directly into every stage of the ML lifecycle. Post-hoc interventions cannot easily correct representations learned from biased data without fundamental retraining.",
+     "hint": "Think about: evaluate why Responsible AI must be integrated throughout the ML lifecycle rather than treated as a post-hoc compliance gate.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Any decision tree or linear model is inherently interpretable, so choosing one of those model families removes the need for explanation evidence.",
+     "explanation": "False. Interpretability depends on structure, feature meaning, and audience, not the model-family label. A very large tree or a high-dimensional linear model can be as hard to inspect as a neural network. High-stakes model selection should test whether a sufficiently accurate, inspectable model meets the task for its intended audience.",
+     "hint": "Think about: evaluate when a model is inherently interpretable for its intended audience.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A robustness report for a deployed model includes a randomized-smoothing certificate and an empirical attack evaluation. What must the assurance case record about each before a launch authority relies on it?",
+     "explanation": "The correct answer is D. A certificate proves a property only for its stated norm, radius, confidence, and model configuration, and an empirical evaluation reports resistance only under the tested attack protocol. Neither establishes safety for the complete workflow, so governance records those boundaries to keep a narrow result from being promoted into a general safety claim.",
+     "hint": "Think about: specify the boundaries an assurance case must record for certified and empirical robustness evidence.",
+     "type": "single",
+     "options": [
+      "Nothing beyond the headline accuracy, because both results already establish that the end-to-end workflow is safe",
+      "Only the empirical result, because a certificate is a mathematical proof and needs no stated scope",
+      "Only the certificate, because empirical attack results guarantee immunity against all unseen attacks",
+      "The certificate's norm, radius, confidence, and model configuration, and the empirical evaluation's attack protocol, since each supports a claim only within those stated boundaries"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Order the following engineering actions for embedding responsible AI constraints across the ML lifecycle from earliest to latest development phase:",
+     "explanation": "The correct order is (2) Representative sampling and consent collection protocols [Data Collection], (1) In-processing bias-aware loss constraints and DP-SGD noise injection [Model Training], (5) Group-level disaggregated metric evaluation and stress testing [Evaluation], (3) Decision threshold policy calibration and human override routing [Deployment], (4) Subgroup drift telemetry and rolling metric alerting [Monitoring]. Responsible AI begins at data ingestion, guides training optimization, verifies constraints during evaluation, configures serving policies at deployment, and tracks behavioral drift in continuous production monitoring.",
+     "hint": "Think about: classify and sequence responsible AI interventions across the ML lifecycle.",
+     "type": "order",
+     "items": [
+      "Representative sampling and consent collection protocols",
+      "In-processing bias-aware loss constraints and DP-SGD noise injection",
+      "Group-level disaggregated metric evaluation and stress testing.",
+      "Decision threshold policy calibration and human override routing",
+      "Subgroup drift telemetry and rolling metric alerting"
+     ]
+    }
+   ]
+  }
+ ]
+}

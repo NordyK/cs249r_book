@@ -1,0 +1,71 @@
+{
+ "title": "The Model Call Boundary",
+ "summary": "Work through The Model Call Boundary.",
+ "source": {
+  "chapter": "v3-02",
+  "sections": [
+   "The Model Call Boundary",
+   "Messages and tool definitions",
+   "Proposals and observations"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **The Model Call Boundary**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Foundation Model, § The Model Call Boundary",
+   "md": "If a runtime treats a model's output string `read_file(\"src/pool.py\")` as an already-authorized file read, a single hallucinated path can read outside the workspace before any check runs. Keeping a proposed action separate from an executed one requires splitting each call across three components: the foundation model, the inference service, and the agent runtime. The foundation model computes conditional probability distributions over token sequences given a prompt context."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Messages and tool definitions\n- Proposals and observations"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Output-bound call latency matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-02-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Model Call Boundary** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever.",
+      "Likelihood is not truth, schema conformance is not permission, a passing test covers only exercised behavior, and self-review re-samples the same distribution, so each gate is chosen for the one property it certifies and a fallible checker leaves a residual defect share given by Bayes.",
+      "Re-sending an append-only history submits H*S0 + Delta*H(H-1)/2 prompt tokens, compatible prefix reuse cuts fresh prefill to S0 + (H-1)*Delta, and latency, work, and billed dollars remain separate accounts.",
+      "Model output is a proposal with zero ambient authority: the runtime validates, authorizes, executes, and returns the observation, so a tool request is never an effect and a model claim is never an observation."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Output-bound call latency**: Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Model proposal**: A generated response or tool request is a candidate whose structure, permission, and state preconditions require external checks.",
+    "**Tool observation**: A recorded tool result reports an actual execution outcome, including errors and truncation, and becomes input to a later model call."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Model proposal",
+   "def": "A generated response or tool request is a candidate whose structure, permission, and state preconditions require external checks."
+  },
+  {
+   "term": "Tool observation",
+   "def": "A recorded tool result reports an actual execution outcome, including errors and truncation, and becomes input to a later model call."
+  }
+ ]
+}

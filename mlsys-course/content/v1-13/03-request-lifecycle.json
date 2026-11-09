@@ -1,0 +1,108 @@
+{
+ "title": "Request Lifecycle",
+ "summary": "Calculate end-to-end latency improvements using Amdahl's Law across multi-stage serving pipelines.",
+ "source": {
+  "chapter": "v1-13",
+  "sections": [
+   "Request Lifecycle",
+   "The latency budget",
+   "Stage-by-stage latency breakdown",
+   "Resolution and input size trade-offs",
+   "Postprocessing",
+   "Hardware utilization and request pipelining"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate end-to-end latency improvements using Amdahl's Law across multi-stage serving pipelines\n- Analyze the system trade-offs underlying the killer microseconds problem in low-latency inference runtimes\n- Evaluate computational complexity and latency scaling across varying input resolutions in vision serving systems\n- Analyze how GPU-side postprocessing can reduce transfer overhead while still requiring host-side synchronization in the serving path\n- Apply request pipelining and double-buffering techniques to maximize accelerator duty cycle"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Serving, § Request Lifecycle",
+   "md": "When a single HTTP request carrying a \\$224×224 JPEG image arrives at an inference server, the clock starts on the client's deadline as soon as the first byte enters the network stack and stops only when the classification payload departs. Between those two boundaries, the request must be decoded on the host, copied across the interconnect, evaluated on the accelerator, and formatted into a response, with every stage drawing from the same millisecond allowance."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The latency budget\n- Stage-by-stage latency breakdown\n- Resolution and input size trade-offs\n- Postprocessing\n- Hardware utilization and request pipelining\n\nPay attention to: Latency budget breakdown across stages (T_net + T_pre + T_queue + T_infer + T_post); Amdahl's law in serving systems; The killer microseconds problem (\\$1--100\\,mus); Resolution and input dimension trade-offs (H × W scaling)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: What is the 'killer microseconds' problem in low-latency ML serving systems, and why do standard operating system scheduling and hardware primitives struggle to handle it efficiently?",
+   "md": "The 'killer microseconds' problem refers to operations that take between \\$1\\,\\mu\\text{s}$ and \\$100\\,\\mu\\text{s}$ (such as fast tensor copies, micro-batch inference, or inter-process IPC). This timescale falls into an architectural gap: it is too long to waste CPU cycles in busy-wait polling/spinlocks, but too short to amortize the overhead of operating system thread context switches, interrupts, and kernel transitions (which cost several microseconds), resulting in high CPU overhead or significant latency jitter."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-13-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An image classification service has an end-to-end SLA of 30 ms. Assume the request path is a serial pipeline with unchanged non-GPU stages, no introduced overhead from the optimization itself, and no queueing feedback effects. The request path consists of: network ingress/egress (8 ms), CPU image decoding and normalization (10 ms), GPU forward pass (8 ms), and postprocessing/top-k filtering (2 ms). If an engineer optimizes the GPU model forward pass to run in 4 ms (a \\$2× speedup), what is the new total latency and what architectural principle explains the resulting overall speedup?",
+     "explanation": "The correct answer is A. The original serial path is \\$8 + 10 + 8 + 2 = 28\\text{ ms}$. Cutting only the GPU stage from 8 ms to 4 ms yields \\$8 + 10 + 4 + 2 = 24\\text{ ms}$, which is a \\$14.3\\%$ latency reduction and about a \\$1.17\\times$ end-to-end speedup. This is the serving form of Amdahl's law: if the other stages are unchanged and no new queueing or overhead is introduced, they bound the total gain.",
+     "hint": "Think about: calculate end-to-end latency improvements using Amdahl's Law across multi-stage serving pipelines.",
+     "type": "single",
+     "options": [
+      "Total latency decreases from 28 ms to 24 ms (a 14.3% latency reduction, about a \\$1.17× speedup), demonstrating Amdahl's law where unchanged serial stages bound the system gains.",
+      "Total latency decreases from 28 ms to 14 ms (a 50% overall improvement), because GPU acceleration propagates linearly across all pipeline stages.",
+      "Total latency remains 28 ms because dynamic batching automatically inserts artificial delay to fill GPU occupancy.",
+      "Total latency increases to 32 ms due to host-device synchronization overhead incurred by faster kernel launches."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "For computer vision models utilizing standard 2D convolutions or self-attention mechanisms, increasing the input image resolution from \\$224 × 224 to \\$448 × 448 quadruples the number of input pixels (\\$4×), which results in an approximately \\$4× increase in FLOPs for standard convolutional layers and up to a \\$16× increase for unwindowed full self-attention layers, assuming fixed channels, patch size, and architecture.",
+     "explanation": "True. Doubling height and width multiplies the pixel or token grid by \\$4×. With fixed channels, kernel sizes, patching, and no architecture changes, standard convolution arithmetic scales roughly with the number of spatial positions, giving about \\$4× more work, while the pairwise attention term in full unwindowed self-attention scales with the square of token count, giving up to \\$16× more work. That statement is about arithmetic scaling, not a guarantee that total latency rises by exactly the same factor.",
+     "hint": "Think about: evaluate computational complexity and latency scaling across varying input resolutions in vision serving systems.",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "A classification serving pipeline returns only the top-5 predictions to the client. Why is it often better to run top-$k$ selection on the GPU before copying results back to the host?",
+     "explanation": "The correct answer is C. Performing top-$k$ on the device can shrink the result that crosses PCIe from a large logit tensor to a small set of scores and class indices, which often helps when transfer size matters. The trade-off is that materializing those results on the host still requires synchronization and a device-to-host copy, so the optimization reduces one serving cost rather than removing postprocessing entirely. A claim that GPUs are always faster for every such reduction ignores workload and runtime details, and top-$k$ does not retrain the model.",
+     "hint": "Think about: analyze how GPU-side postprocessing can reduce transfer overhead while still requiring host-side synchronization in the serving path.",
+     "type": "single",
+     "options": [
+      "It retrains the model online so fewer logits must be stored in GPU memory.",
+      "It guarantees lower latency in every deployment because GPUs always execute small reductions faster than CPUs.",
+      "It reduces the payload that crosses PCIe from the full logit vector to just a few scores and indices, though the host must still budget the synchronization and copy needed to materialize those results.",
+      "It avoids the need for any host-side postprocessing or response formatting after inference finishes."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In a high-throughput vision serving pipeline, engineers overlap CPU image preprocessing of request $N+1$ with GPU inference of request $N$ using multiple CUDA streams and pinned host memory buffers, thereby increasing accelerator ____ without modifying the underlying model architecture.",
+     "explanation": "duty cycle. Overlapping host preprocessing with device execution can raise the fraction of wall-clock time during which the accelerator has active kernels running, improving throughput without changing the model itself. That is a statement about active time, not achieved FLOP/s rate, and it does not guarantee the GPU stays fully busy all the time because the benefit still depends on whether upstream stages can keep feeding it.",
+     "hint": "Think about: apply request pipelining and double-buffering techniques to maximize accelerator duty cycle.",
+     "type": "fill",
+     "answer": [
+      "duty cycle"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Request latency**: The elapsed time from arrival to response includes waiting, host work, and model execution. The target applies to the complete request.",
+    "**Model execution time**: Execution includes arithmetic and moving operands. A resource bound gives a lower limit; profiling explains additional overhead.",
+    "**Host-path overhead**: Serialization, preprocessing, transfers, and runtime dispatch can dominate the request path even when accelerator kernels are fast."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Request latency",
+   "def": "The elapsed time from arrival to response includes waiting, host work, and model execution. The target applies to the complete request."
+  },
+  {
+   "term": "Model execution time",
+   "def": "Execution includes arithmetic and moving operands. A resource bound gives a lower limit; profiling explains additional overhead."
+  },
+  {
+   "term": "Host-path overhead",
+   "def": "Serialization, preprocessing, transfers, and runtime dispatch can dominate the request path even when accelerator kernels are fast."
+  }
+ ]
+}

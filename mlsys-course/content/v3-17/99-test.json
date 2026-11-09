@@ -1,0 +1,106 @@
+{
+ "title": "Test: Reinforcement Learning from Verifiable Rewards",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v3-17-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Fallacies and Pitfalls** develops one of the chapter's claims. Which one?",
+     "options": [
+      "GRPO replaces the learned critic with G rollouts per task and broadcasts one standardized coefficient to every sampled token of a rollout, and its clipping and KL estimator choices change how that signal is weighted.",
+      "A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost.",
+      "Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup.",
+      "RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Rollout loop sizing**: Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Sampled reward contrast* learns only distinctions supplied by *Task acceptance contract*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Sampled reward contrast* learns only distinctions supplied by *Reward as measurement*."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Reward as measurement**?",
+     "options": [
+      "Grader isolation placed on the reward path protects the verdict from both the acting policy and the candidate code it submits, so a reward reflects executed tests rather than tampering.",
+      "Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup.",
+      "Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability.",
+      "The false-accept share of rewarded rollouts moves with the policy's current pass rate rather than being a fixed verifier property, so reward shaping must preserve the priority of correct outcomes."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Reward as measurement itself, not a neighbouring idea.",
+     "explanation": "**Reward as measurement:** The false-accept share of rewarded rollouts moves with the policy's current pass rate rather than being a fixed verifier property, so reward shaping must preserve the priority of correct outcomes."
+    },
+    {
+     "type": "single",
+     "q": "The section **Multi-Turn Agentic RL** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A group whose rewards all tie carries no reward gradient, occurring with probability p^G + (1-p)^G, so the rollout cost of one informative group is G/C and difficulty targeting toward p near 0.5 lowers it.",
+      "A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost.",
+      "Ratios and gradients are valid only on per-invocation records of the delivered prefix token IDs, sampled token IDs, and behavior log probabilities under the actual sampling transforms.",
+      "Symmetric ratio clipping is asymmetric in probability space, so early successes sharpen the policy until groups converge and contrast vanishes, which outcome statistics can diagnose."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Faithful rollout records**: Ratios and gradients are valid only on per-invocation records of the delivered prefix token IDs, sampled token IDs, and behavior log probabilities under the actual sampling transforms."
+    },
+    {
+     "type": "single",
+     "q": "The section **Verifier Isolation** develops one of the chapter's claims. Which one?",
+     "options": [
+      "GRPO replaces the learned critic with G rollouts per task and broadcasts one standardized coefficient to every sampled token of a rollout, and its clipping and KL estimator choices change how that signal is weighted.",
+      "Symmetric ratio clipping is asymmetric in probability space, so early successes sharpen the policy until groups converge and contrast vanishes, which outcome statistics can diagnose.",
+      "Grader isolation placed on the reward path protects the verdict from both the acting policy and the candidate code it submits, so a reward reflects executed tests rather than tampering.",
+      "Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Reward hacking**: Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Reward hacking* exploits errors in *Reward as measurement*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Reward hacking exploits errors in Reward as measurement."
+    },
+    {
+     "type": "single",
+     "q": "The section **Group Relative Policy Optimization** develops one of the chapter's claims. Which one?",
+     "options": [
+      "The false-accept share of rewarded rollouts moves with the policy's current pass rate rather than being a fixed verifier property, so reward shaping must preserve the priority of correct outcomes.",
+      "Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup.",
+      "Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability.",
+      "RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Sampled reward contrast**: RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Sampled reward contrast**?",
+     "options": [
+      "RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal.",
+      "A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost.",
+      "Symmetric ratio clipping is asymmetric in probability space, so early successes sharpen the policy until groups converge and contrast vanishes, which outcome statistics can diagnose.",
+      "Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Sampled reward contrast itself, not a neighbouring idea.",
+     "explanation": "**Sampled reward contrast:** RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal."
+    }
+   ]
+  }
+ ]
+}

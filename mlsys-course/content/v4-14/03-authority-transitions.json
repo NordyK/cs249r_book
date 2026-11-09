@@ -1,0 +1,68 @@
+{
+ "title": "Authority Transitions",
+ "summary": "Work through Authority Transitions.",
+ "source": {
+  "chapter": "v4-14",
+  "sections": [
+   "Authority Transitions",
+   "Execution leases and three-position enabling hardware",
+   "Authority states and single-writer actuator ownership",
+   "The four-phase takeover handshake",
+   "Arbiter execution and manual-lease heartbeats"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Authority Transitions**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Supervisory Intervention, § Authority Transitions",
+   "md": "When a remote assistant takes manual control of the arm after the mobile base has slowed or stopped for a blocked aisle, authority must move between proposers on a single permission tick without two of them ever commanding the same channel, and it must not outlive a proposer that falls silent. The transfer names each actuator channel and assigns it to a single owner; linear blending of two competing proposers is no substitute for choosing who is in charge."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Execution leases and three-position enabling hardware\n- Authority states and single-writer actuator ownership\n- The four-phase takeover handshake\n- Arbiter execution and manual-lease heartbeats"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Authority record matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: The authority record binds a sealed static authority manifest to a per-tick evidence tuple of time, authority state, measured state, proposed and admitted commands, so every handover is reconstructable and attributable."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-14-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Authority Transitions** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Autonomous chunks and manual sessions hold separate leases on the safety MCU's clock, so a silent policy, a dropped link, or an incapacitated operator loses authority to a state-matched local fallback.",
+      "The authority record binds a sealed static authority manifest to a per-tick evidence tuple of time, authority state, measured state, proposed and admitted commands, so every handover is reconstructable and attributable.",
+      "Blending human and policy commands works only when goals are unimodal and every intermediate blend is admissible; across modes a convex combination is a new, unchecked command.",
+      "A remote assistant is admitted only if reaction budget, handshake latency, manual lease, and blend window fit the remaining clearance, and remote assistance is never a safety layer."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Authority record**: The authority record binds a sealed static authority manifest to a per-tick evidence tuple of time, authority state, measured state, proposed and admitted commands, so every handover is reconstructable and attributable."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Single-writer handoff**: An authority-transfer protocol that prevents concurrent writers and requires fresh admission before the new proposer controls motion."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Single-writer handoff",
+   "def": "An authority-transfer protocol that prevents concurrent writers and requires fresh admission before the new proposer controls motion."
+  }
+ ]
+}

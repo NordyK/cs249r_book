@@ -1,0 +1,61 @@
+{
+ "title": "Skip Connections and Normalization",
+ "summary": "Analyze how identity skip connections change the block Jacobian to improve gradient conditioning in deep networks without guaranteeing perfect unit gain.",
+ "source": {
+  "chapter": "v1-06",
+  "sections": [
+   "Skip Connections and Normalization",
+   "Skip connections and gradient flow",
+   "Normalization and activation stability"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze how identity skip connections change the block Jacobian to improve gradient conditioning in deep networks without guaranteeing perfect unit gain\n- Compare BatchNorm and LayerNorm in terms of reduction axes, batch-size sensitivity, and training-versus-inference behavior"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Network Architectures, § Skip Connections and Normalization",
+   "md": "When plain convolutional networks are stacked beyond roughly 20 layers, adding more layers can make *training* error worse rather than better. Gradients vanish or explode on the way back through the stack, and the scale of intermediate activations drifts on the way forward. Convolution made deep vision networks affordable in parameter count, and two building blocks made them trainable. Skip connections keep gradients alive through dozens of layers, and normalization keeps the activations those layers produce within a stable numerical range."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Skip connections and gradient flow\n- Normalization and activation stability\n\nPay attention to: Residual identity paths and gradient flow; Memory and bandwidth cost of skip connections and normalization."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Compare Batch Normalization (BatchNorm) and Layer Normalization (LayerNorm) along two critical systems dimensions: (a) sensitivity to mini-batch size during training, and (b) operational differences between training and inference (including training-serving skew).",
+   "md": "BatchNorm depends on batch statistics during training, so small batches can make those estimates noisy; for CNN activations it reduces over batch and spatial positions, not just batch alone. LayerNorm instead normalizes each sample independently across its feature dimension, so its behavior does not depend on mini-batch size. The practical consequence is that BatchNorm also changes behavior between training and inference by switching to running statistics, which can create training-serving mismatch, whereas LayerNorm uses the same per-sample computation in both modes."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-06-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In a residual block implementing $\\mathbf{y} = \\mathcal{F}(\\mathbf{x}) + \\mathbf{x}$, how does the additive identity shortcut mathematically improve gradient conditioning through the layer Jacobian $\\mathbf{J} = \\frac{\\partial \\mathbf{y}}{\\partial \\mathbf{x}}$ during backpropagation in very deep networks?",
+     "explanation": "The correct answer is B. Residual addition changes the block Jacobian from an arbitrary transformation to an identity-plus-residual form. When the residual branch stays small, that factor remains near the identity, so gradient propagation is better conditioned than in a plain deep stack. The shortcut does not force zero weights or remove backpropagation; it provides a direct path that improves conditioning, although those near-identity factors can still compound across depth rather than guaranteeing perfect unit gain.",
+     "hint": "Think about: analyze how identity skip connections change the block Jacobian to improve gradient conditioning in deep networks without guaranteeing perfect unit gain.",
+     "type": "single",
+     "options": [
+      "The shortcut forces the residual function $\\mathcal{F}(\\mathbf{x})$ to have zero weights, turning the network into an immutable linear identity operator.",
+      "The Jacobian takes the form $\\mathbf{J} = \\mathbf{I} + \\frac{\\partial \\mathcal{F}}{\\partial \\mathbf{x}}$, so when residual-branch derivatives are small the block stays near identity and gradients have a direct additive path, improving conditioning without guaranteeing exact unit gain at arbitrary depth.",
+      "The shortcut doubles the singular values of the weight matrix at every layer, ensuring gradients explode exponentially rather than vanish.",
+      "The shortcut eliminates the backpropagation chain rule by replacing gradient updates with forward-only finite differences."
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze how identity skip connections change the block Jacobian to improve gradient conditioning in deep networks without guaranteeing perfect unit gain.",
+    "You can now compare BatchNorm and LayerNorm in terms of reduction axes, batch-size sensitivity, and training-versus-inference behavior."
+   ]
+  }
+ ]
+}

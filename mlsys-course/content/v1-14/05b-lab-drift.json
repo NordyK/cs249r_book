@@ -1,0 +1,85 @@
+{
+ "title": "Lab: measure drift before accuracy drops",
+ "summary": "Quantify distribution shift with the population stability index and turn an accuracy floor into a drift budget.",
+ "minutes": 20,
+ "blocks": [
+  {
+   "type": "text",
+   "md": "A model can lose accuracy while every dashboard stays green: latency fine, no errors, just worse answers. Monitoring therefore watches the **inputs**. One common score is the population stability index (PSI), comparing today's histogram of a feature with the training histogram:\n\n$$\\text{PSI} = \\sum_i (a_i - e_i)\\,\\ln\\frac{a_i}{e_i}$$\n\nwhere $e_i$ and $a_i$ are the expected (training) and actual (today) shares of bin $i$. A common rule of thumb reads below 0.1 as stable and above 0.25 as a significant shift."
+  },
+  {
+   "type": "widget",
+   "id": "v1-14-lab-drift-widget",
+   "widget": "degradation",
+   "title": "Try it: how much drift can you afford?",
+   "md": "A simple linear model of decay: accuracy falls by λ for each unit of divergence.",
+   "params": {
+    "acc0": 0.95,
+    "lambda": 0.4,
+    "d": 0.1,
+    "floor": 0.9
+   },
+   "challenge": {
+    "md": "Launch accuracy 95%, sensitivity λ = 0.4, floor 90%. How much divergence can the model absorb before it crosses the floor?",
+    "answer": 0.125,
+    "tolerance": 0.001,
+    "unit": "",
+    "hint": "(acc₀ - floor) / λ.",
+    "explanation": "0.05 / 0.4 = 0.125. Set the drift alert below that so you retrain before users notice."
+   }
+  },
+  {
+   "type": "playground",
+   "id": "v1-14-lab-psi-play",
+   "title": "Compute the PSI",
+   "md": "Complete `psi`. Both arguments are lists of bin shares that sum to 1. Add a tiny `eps` to every share so an empty bin does not divide by zero.",
+   "code": "import math\n\n\ndef psi(expected, actual, eps=1e-6):\n    total = 0.0\n    for e, a in zip(expected, actual):\n        e, a = e + eps, a + eps\n        # TODO: add this bin's contribution\n    return total\n\n\ntrain = [0.25, 0.25, 0.25, 0.25]\ntoday = [0.10, 0.20, 0.30, 0.40]\nprint(round(psi(train, today), 4))\n",
+   "check": "assert abs(psi([0.25] * 4, [0.25] * 4)) < 1e-9, 'identical histograms give 0'\nassert abs(psi([0.25] * 4, [0.10, 0.20, 0.30, 0.40]) - 0.2282) < 1e-3, 'expected PSI about 0.228'\nassert psi([0.5, 0.5], [0.9, 0.1]) > 0.25",
+   "hint": "`total += (a - e) * math.log(a / e)`.",
+   "solution": "import math\n\n\ndef psi(expected, actual, eps=1e-6):\n    total = 0.0\n    for e, a in zip(expected, actual):\n        e, a = e + eps, a + eps\n        total += (a - e) * math.log(a / e)\n    return total\n\n\nprint(round(psi([0.25] * 4, [0.10, 0.20, 0.30, 0.40]), 4))\n"
+  },
+  {
+   "type": "quiz",
+   "id": "v1-14-lab-drift-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "numeric",
+     "q": "Training shares are [0.25, 0.25, 0.25, 0.25] and today's are [0.10, 0.20, 0.30, 0.40]. What is the PSI (2 decimals)?",
+     "answer": 0.23,
+     "tolerance": 0.01,
+     "unit": "",
+     "hint": "Sum (a - e) ln(a / e) over the four bins.",
+     "explanation": "0.1374 + 0.0112 + 0.0091 + 0.0705 ≈ 0.228: a moderate shift, close to the 0.25 alarm line."
+    },
+    {
+     "type": "single",
+     "q": "Why monitor input distributions instead of waiting for accuracy to drop?",
+     "options": [
+      "Labels for production data usually arrive late or never",
+      "Input monitoring is more accurate than accuracy",
+      "Accuracy cannot be computed in production by law",
+      "Drift never affects accuracy"
+     ],
+     "answer": 0,
+     "hint": "What do you need to compute accuracy?",
+     "explanation": "Accuracy needs ground-truth labels, which often arrive days later or not at all. Input drift is visible immediately and serves as an early warning."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Silent failures show up in the data before they show up in errors.",
+    "PSI compares binned distributions; around 0.25 signals a significant shift.",
+    "Turn an accuracy floor into a drift budget and alert before it is spent."
+   ]
+  }
+ ],
+ "source": {
+  "chapter": "v1-14",
+  "sections": [
+   "hands-on lab"
+  ]
+ }
+}

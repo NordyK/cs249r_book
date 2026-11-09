@@ -1,0 +1,93 @@
+{
+ "title": "DataLoader: The Batch Factory",
+ "summary": "TinyTorch dataloader: DataLoader: The Batch Factory",
+ "source": {
+  "chapter": "tt-05",
+  "sections": [
+   "DataLoader: The Batch Factory"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ DataLoader: The Batch Factory\n\nNow we build the DataLoader, the component that transforms individual dataset samples into the batches that neural networks crave. This is where data loading becomes a systems challenge.\n\n### Understanding Batching: From Samples to Tensors\n\nDataLoader performs a crucial transformation. It collects individual samples and stacks them into batch tensors:\n\n\\$\\$\\begin{aligned}\n\\text{Dataset Samples:} \\quad & (\\mathbf{x}_i, y_i) = \\text{dataset}[i] \\\\\n\\text{Batch Tensors }(B=2): \\quad & \\mathbf{X}_{\\text{batch}} = \\begin{bmatrix} \\mathbf{x}_0 \\\\ \\mathbf{x}_1 \\end{bmatrix} \\in \\mathbb{R}^{2 \\times 3}, \\quad \\mathbf{y}_{\\text{batch}} = \\begin{bmatrix} y_0 \\\\ y_1 \\end{bmatrix} \\in \\mathbb{R}^{2}\n\\end{aligned}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Processing Step",
+    "Operation",
+    "Input Shape",
+    "Output Shape",
+    "Memory Layout"
+   ],
+   "rows": [
+    [
+     "**1. Sample Retrieval**",
+     "`[dataset[i] for i in chunk]`",
+     "\\$B \\times \\text{scalar indices}\\$",
+     "List of \\$B\\$ tuples",
+     "Fragmented sample allocations"
+    ],
+    [
+     "**2. Collation / Stack**",
+     "`np.stack([s[j].data for s in b])`",
+     "\\$B \\times (D_1, \\dots, D_k)\\$",
+     "\\$(B, D_1, \\dots, D_k)\\$",
+     "Contiguous row-major buffer"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### The Shuffling Process\n\nShuffling randomizes which samples appear in which batches, crucial for stochastic gradient descent:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Training Mode",
+    "Epoch 1 Batch Sequence",
+    "Epoch 2 Batch Sequence",
+    "Gradient Variance & Bias"
+   ],
+   "rows": [
+    [
+     "**Sequential** (`shuffle=False`)",
+     "\\$[s_0, s_1], [s_2, s_3], [s_4, s_5]\\$",
+     "\\$[s_0, s_1], [s_2, s_3], [s_4, s_5]\\$",
+     "Static batch trajectory; high risk of cyclic limit cycles"
+    ],
+    [
+     "**Permuted** (`shuffle=True`)",
+     "\\$[s_2, s_0], [s_3, s_1], [s_5, s_4]\\$",
+     "\\$[s_1, s_4], [s_0, s_5], [s_2, s_3]\\$",
+     "Independent stochastic mini-batches; uniform state coverage"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### DataLoader as a Systems Component\n\n**Memory Management**: DataLoader only holds one batch in memory at a time, not the entire dataset.\n\n**Iteration Interface**: Provides Python iterator protocol so training loops can use `for batch in dataloader:`.\n\n**Collation Strategy**: Automatically stacks tensors from individual samples into batch tensors.\n\n**Performance Critical**: This is often the bottleneck in training pipelines, because loading and preparing data can be slower than the forward pass!\n\n### The DataLoader Algorithm\n\n1. **Initialize Permutation**: Allocate index buffer \\$\\pi = [0, 1, \\dots, N-1] \\in \\mathbb{Z}^N\\$.\n2. **Epoch Shuffle**: If \\$\\text{shuffle}=\\text{True}\\$, shuffle \\$\\pi\\$ in place with the Fisher-Yates algorithm, which walks the list once and swaps each position with a randomly chosen earlier one. This is what `random.shuffle` does.\n3. **Chunk Windows**: Partition \\$\\pi\\$ into contiguous slices \\$\\mathcal{B}_k = \\{\\pi_{k B}, \\dots, \\pi_{(k+1)B - 1}\\}\\$.\n4. **Collate & Yield**: For each batch chunk \\$\\mathcal{B}_k\\$:\n   - Gather sample records: \\$\\{(\\mathbf{x}_i, y_i) \\mid i \\in \\mathcal{B}_k\\}\\$\n   - Collate along axis 0: \\$\\mathbf{X}_k = \\text{stack}(\\mathbf{x}_i)\\$, \\$\\mathbf{y}_k = \\text{stack}(y_i)\\$\n   - Yield \\$(\\mathbf{X}_k, \\mathbf{y}_k)\\$ as contiguous tensors."
+  },
+  {
+   "type": "text",
+   "md": "This transforms the dataset from \"access one sample\" to \"iterate through batches\", exactly what training loops need."
+  },
+  {
+   "type": "text",
+   "md": "### DataLoader Implementation\n\nNow we implement the DataLoader class with batching and shuffling support."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 147 lines of code (starting with `class DataLoader:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: DataLoader: The Batch Factory."
+   ]
+  }
+ ]
+}

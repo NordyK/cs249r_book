@@ -1,0 +1,35 @@
+{
+ "title": "⭐ Aha Moment: Training Just Works",
+ "summary": "TinyTorch training: ⭐ Aha Moment: Training Just Works",
+ "source": {
+  "chapter": "tt-08",
+  "sections": [
+   "⭐ Aha Moment: Training Just Works"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: Training Just Works\n\n**What you built:** A complete training infrastructure with Trainer, schedulers, and checkpoints.\n\n**Why it matters:** You've assembled all the pieces: tensors → layers → losses → autograd →\noptimizers → training loop. This is the complete ML training pipeline! The Trainer orchestrates\nforward pass, loss computation, backward pass, and weight updates, just like PyTorch Lightning.\n\nIn the milestones, you'll use this training infrastructure to train real models on real data!"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_training():\n    \"\"\"🎯 See the training loop in action.\"\"\"\n    print(\"🎯 AHA MOMENT: Training Just Works\")\n    print(\"=\" * 45)\n\n    # Its own generator, so this demo prints the same numbers whether you run\n    # the whole module top to bottom or just this one cell.\n    demo_rng = np.random.default_rng(0)\n\n    # Simple linear regression: learn y = 2x + 1\n    X = Tensor(demo_rng.standard_normal((20, 1)))\n    y = Tensor(X.data * 2 + 1)  # True relationship\n\n    # Smallest possible model: one weight, one bias, both starting at zero.\n    class LineFitter:\n        def __init__(self):\n            self.w = Tensor(np.array([[0.0]]), requires_grad=True)\n            self.b = Tensor(np.array([0.0]), requires_grad=True)\n            self.training = True\n\n        def forward(self, x):\n            return x.matmul(self.w) + self.b\n\n        def parameters(self):\n            return [self.w, self.b]\n\n    model = LineFitter()\n\n    # The Trainer you just built drives the whole thing. One batch per epoch,\n    # so `train_epoch` runs exactly one forward, backward, and step.\n    trainer = Trainer(model, SGD(model.parameters(), lr=0.2), MSELoss())\n    dataloader = [(X, y)]\n\n    print(\"Learning y = 2x + 1:\")\n    total_epochs = 60\n    for epoch in range(total_epochs):\n        loss = trainer.train_epoch(dataloader)\n        if epoch + 1 in (1, 10, 20, 30, 45, total_epochs):\n            print(f\"  Epoch {epoch+1:2d}: w={model.w.data[0,0]:.4f}, \"\n                  f\"b={model.b.data[0]:.4f}, loss={loss:.6f}\")\n\n    print(f\"\\nLearned: y = {model.w.data[0,0]:.2f}x + {model.b.data[0]:.2f}\")\n    print(\"Target:  y = 2.00x + 1.00\")\n    print(f\"Final loss: {loss:.2e}\")\n\n    print(\"\\n✨ Your training loop learned the pattern!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Training\n\nCongratulations! You've built the complete training infrastructure that orchestrates neural network learning!\n\n### Key Accomplishments\n- **Built a complete Trainer class** with training/evaluation loops and gradient management\n- **Implemented CosineSchedule** for adaptive learning rate management\n- **Created clip_grad_norm** for training stability via global norm clipping\n- **Added checkpointing** for training persistence and resumption\n- **All tests pass** (validated by `test_module()`)\n\n### Systems Insights Discovered\n- **Memory scaling**: Training costs 3x the model in bytes with SGD plus momentum and 4x with Adam (params + grads + optimizer state), which is the 16 bytes per parameter the budget table names for FP32\n- **Gradient accumulation**: Trades time for memory, enabling larger effective batch sizes\n- **Checkpoint overhead**: Pickle's framing and metadata cost a fixed ~440 bytes, so the same overhead reads as 99.8% on a 440-byte model and 1.1% on a 39.5 KB one. Adam's two moment buffers, when the run has them, triple the parameter bytes on disk\n- **Scheduling behavior**: Cosine annealing balances aggressive initial learning with fine-tuning\n\n### Ready for Next Steps\nYour training loop closes the circle: data in, gradients out, parameters\nupdated, repeat. Everything from here on is about making that loop faster,\nsmaller, or applicable to a new kind of data.\n\nExport with: `tito module complete 08`"
+  },
+  {
+   "type": "text",
+   "md": "**Next**: Module 09 will add convolution operations for spatial neural network processing!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: Training Just Works."
+   ]
+  }
+ ]
+}

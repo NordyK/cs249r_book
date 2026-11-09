@@ -1,0 +1,72 @@
+{
+ "title": "Estimating State from Dated Measurements",
+ "summary": "Work through Estimating State from Dated Measurements.",
+ "source": {
+  "chapter": "v4-09",
+  "sections": [
+   "Estimating State from Dated Measurements",
+   "Testing whether the covariance is honest",
+   "Multi-object tracking and data association",
+   "Applying a delayed observation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Estimating State from Dated Measurements**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Spatial Memory, § Estimating State from Dated Measurements",
+   "md": "A single LiDAR return or stereo match localizes the rack-end upright at one isolated instant. A physical safety permission path, however, requires a continuous range estimate that stays current between sweeps, fuses observations across heterogeneous sensors, and produces an uncertainty metric whose statistical confidence matches physical reality. A recursive **state estimator** satisfies all three demands by alternating two complementary operations: a prediction step that projects the state forward through a dynamic motion model, and an update step that incorporates each newly arrived, dated measurement."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Testing whether the covariance is honest\n- Multi-object tracking and data association\n- Applying a delayed observation"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Covariance is a claim matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A filter's reported covariance is a hypothesis tested offline by NEES against ground truth and online by NIS on innovations, and an above-band mean flags the safety-critical overconfident filter."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-09-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Estimating State from Dated Measurements** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Tracking adds identity and velocity for planners, but a tentative track's occupied region must reach clearance consumers before confirmation and stays occupied while it coasts.",
+      "A transform is a belief with its own epoch, so composing a stale camera-to-slot edge with current kinematics yields a pose the arm never occupied, and the lever arm, not clock resolution, sets the error.",
+      "A filter's reported covariance is a hypothesis tested offline by NEES against ground truth and online by NIS on innovations, and an above-band mean flags the safety-critical overconfident filter.",
+      "A belief stops supporting motion when its validated error bound, growing from the evidence epoch, first reaches the task tolerance, and free space erodes inward from the unobserved boundary at a hidden agent's speed bound."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Covariance is a claim**: A filter's reported covariance is a hypothesis tested offline by NEES against ground truth and online by NIS on innovations, and an above-band mean flags the safety-critical overconfident filter."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Belief state**: A dated estimate of physical state formed from prior dynamics and measurements, rather than a replacement for current observation.",
+    "**Estimator covariance**: The estimator's stated uncertainty under its model and noise assumptions; consistency must be tested against physical residuals."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Belief state",
+   "def": "A dated estimate of physical state formed from prior dynamics and measurements, rather than a replacement for current observation."
+  },
+  {
+   "term": "Estimator covariance",
+   "def": "The estimator's stated uncertainty under its model and noise assumptions; consistency must be tested against physical residuals."
+  }
+ ]
+}

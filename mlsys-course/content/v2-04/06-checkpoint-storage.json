@@ -1,0 +1,99 @@
+{
+ "title": "Checkpoint Storage",
+ "summary": "Explain how tiered checkpoint staging minimizes the exposed training pause time by decoupling local NVMe writes from asynchronous durable replication.",
+ "source": {
+  "chapter": "v2-04",
+  "sections": [
+   "Checkpoint Storage",
+   "Synchronous and asynchronous checkpoint writes",
+   "Checkpoint retention and restore"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain how tiered checkpoint staging minimizes the exposed training pause time by decoupling local NVMe writes from asynchronous durable replication\n- Evaluate the difference between write-completion acknowledgments and end-to-end restore validation in checkpoint reliability\n- Analyze how ZeRO-3 state sharding reduces cluster checkpoint write volume and eliminates multi-hour checkpoint storm stalls\n- Design a tiered checkpoint retention policy that balances rapid crash recovery against long-term storage capacity costs\n- Analyze the multi-stage execution workflow of tiered asynchronous checkpointing"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Data Storage, § Checkpoint Storage",
+   "md": "After the … accelerators of the running cluster have been training for six hours, a power supply failure turns checkpoint storage into the difference between resuming within minutes and repeating hours or days of lost computation. Whether the job recovers cleanly depends on three storage questions: how quickly the most recent checkpoint was saved, where its shards reside, and whether they can be read back intact."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Synchronous and asynchronous checkpoint writes\n- Checkpoint retention and restore\n\nPay attention to: checkpoint volume calculations (175B resumable Adam state = 2.45 TB); tiered checkpoint staging mechanics (local NVMe write vs async PFS copy); ZeRO-3 sharded checkpointing vs naive full-replica checkpoint storms; checkpoint retention policies and restore verification imperatives."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A cluster of 1,024 accelerators trains a 70B-parameter model whose resumable checkpoint contains \\$140 GB of FP16 weights, \\$280 GB of FP32 master weights, and \\$560 GB of Adam moments, or \\$980 GB per full replica. Contrast naive full-replica checkpointing with ZeRO-3 sharded checkpointing across a \\$100 GB/s shared storage fabric.",
+   "md": "Naive full-replica checkpointing makes all 1,024 replicas write the same \\$980 GB state, generating \\$1,003.52 TB of traffic and taking roughly \\$10,035 s, or \\$167.3 minutes, across a \\$100 GB/s fabric. ZeRO-3 writes one logical copy partitioned across the workers, collapsing total write volume to \\$980 GB and shared-fabric time to roughly \\$9.8 s. Gradients are absent from both totals because the restored job recomputes them."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-04-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A 256-node cluster saves a 175B-parameter resumable checkpoint (\\$2.45 TB total: \\$350 GB FP16 weights, \\$700 GB FP32 master weights, and \\$1.4 TB of Adam moments) every 10 minutes. Under tiered staging, each node writes its \\$9.57 GB ZeRO-3 shard to local NVMe (\\$28 GB/s local array) in approx 0.34 s, followed by an asynchronous background copy to a \\$1 TB/s parallel file system taking approx 2.45 s. What is the exposed training pause time (T_write) per checkpoint?",
+     "explanation": "The correct answer is B. Roughly \\$0.34 s, because the training barrier releases immediately after the fast local NVMe write completes, while PFS replication proceeds asynchronously. The synchronous phase is \\$9.57 GB / 28 GB/s approx 0.342 s, about \\$0.057\\% of a 10-minute interval. The 2.8-second and 2.45-second options incorrectly block training on the shared-tier transfer. Zero seconds is impossible because the job must still capture and persist a consistent local snapshot. This is a local-write estimate excluding snapshot and coordination overhead. The checkpoint remains vulnerable to node loss until it reaches its durability boundary; retain the previous committed generation during background replication.",
+     "hint": "Think about: explain how tiered checkpoint staging minimizes the exposed training pause time by decoupling local NVMe writes from asynchronous durable replication",
+     "type": "single",
+     "options": [
+      "Roughly \\$2.8 s, because training must remain paused until both the local write and the durable PFS copy complete.",
+      "Roughly \\$0.34 s, because the training barrier releases immediately after the fast local NVMe write completes, while the PFS replication proceeds asynchronously in the background.",
+      "Zero seconds, because modern storage drivers execute zero-copy writes without interrupting GPU tensor execution.",
+      "Roughly \\$2.45 s, because parallel file system latency determines the minimum barrier synchronization time across nodes."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In distributed ML infrastructure, storage reliability is defined primarily as a write-completion property: once all nodes successfully execute and acknowledge their checkpoint write calls, the checkpoint can be guaranteed reliable for cluster recovery.",
+     "explanation": "False. Storage reliability is a restore property, not a write property. A checkpoint is only reliable if the infrastructure continuously and automatically validates that saved shards can be located, reconstructed, schema-validated, and restored under realistic preemption and recovery conditions; unvalidated backups frequently fail during real incidents due to silent corruption, missing metadata, or software version mismatches.",
+     "hint": "Think about: evaluate the difference between write-completion acknowledgments and end-to-end restore validation in checkpoint reliability",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A 30-day training run of a 175B model generates 4,320 resumable checkpoints totaling roughly \\$10.6 PB of state data. Which retention policy balances rapid failure recovery, long-term auditability, and storage cost without exhausting the parallel file system budget?",
+     "explanation": "The correct answer is C. Keeping the 3 most recent checkpoints on the parallel file system bounds active high-performance storage to \\$7.35 TB (\\$3 × 2.45 TB), while archiving every 100th checkpoint preserves 43 historical snapshots in object storage. Retaining all \\$10.6 PB on the PFS wastes high-cost capacity; deleting all checkpoints eliminates restart protection; and tape-only retention imposes excessive recovery latency.",
+     "hint": "Think about: design a tiered checkpoint retention policy that balances rapid crash recovery against long-term storage capacity costs",
+     "type": "single",
+     "options": [
+      "Retain all 4,320 checkpoints on the parallel file system to provide granular step-by-step rollback capabilities throughout the entire 30-day run.",
+      "Delete all intermediate checkpoints immediately after each step and rely exclusively on live memory replication across peer nodes for fault tolerance.",
+      "Retain the 3 most recent checkpoints on the parallel file system for fast local recovery, copy every 100th checkpoint to cloud object storage for long-term lineage, and purge older intermediate snapshots.",
+      "Compress all checkpoints with gzip and write them directly to cold tape archive without maintaining any copies on NVMe or parallel file systems."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Order the sequence of steps executed during a tiered asynchronous checkpointing operation:",
+     "explanation": "The correct order is: (2) The training orchestrator initiates a synchronized step barrier across all worker ranks, (3) Each rank snapshots its model weights and optimizer state shard into a local pinned DRAM buffer, (4) The training barrier releases and accelerators immediately resume forward-backward computation for the next step, (5) Each node flushes its pinned memory snapshot to local NVMe at full drive bandwidth, (1) Background daemons asynchronously transfer the local checkpoint shards from NVMe to the shared parallel file system. The process begins with a coordinated barrier (2), creates a fast in-memory snapshot (3), releases the compute barrier to resume training (4), writes the snapshot to local NVMe in the background (5), and asynchronously replicates the shard to shared storage in the background (1).",
+     "hint": "Think about: analyze the multi-stage execution workflow of tiered asynchronous checkpointing",
+     "type": "order",
+     "items": [
+      "The training orchestrator initiates a synchronized step barrier across all worker ranks",
+      "Each rank snapshots its model weights and optimizer state shard into a local pinned DRAM buffer",
+      "The training barrier releases and accelerators immediately resume forward-backward computation for the next step",
+      "Each node flushes its pinned memory snapshot to local NVMe at full drive bandwidth.",
+      "Background daemons asynchronously transfer the local checkpoint shards from NVMe to the shared parallel file system"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Durable checkpoint**: A completed recoverable state version persisted beyond the failure domain it is meant to survive."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Durable checkpoint",
+   "def": "A completed recoverable state version persisted beyond the failure domain it is meant to survive."
+  }
+ ]
+}

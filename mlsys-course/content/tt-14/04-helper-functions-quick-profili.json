@@ -1,0 +1,36 @@
+{
+ "title": "Helper Functions: Quick Profiling Utilities",
+ "summary": "TinyTorch profiling: Helper Functions: Quick Profiling Utilities",
+ "source": {
+  "chapter": "tt-14",
+  "sections": [
+   "Helper Functions: Quick Profiling Utilities"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Helper Functions: Quick Profiling Utilities\n\nThese helper functions provide simplified interfaces for common profiling tasks. They make it easy to quickly profile models and analyze characteristics without manually calling multiple profiler methods.\n\n### Why Helper Functions Matter\n\nIn production ML engineering, you often need quick insights without setting up full profiling workflows. These utilities provide:\n- **Quick profiling**: One-line model analysis with formatted output\n- **Weight analysis**: Understanding parameter distributions for compression\n- **Student-friendly output**: Clear, formatted results for learning\n\nThese functions wrap our core Profiler class with convenience interfaces used in real ML workflows for rapid iteration and debugging."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def quick_profile(model, input_tensor, profiler=None):\n    \"\"\"\n    Quick profiling function for immediate insights.\n\n    Provides a simplified interface for profiling that displays key metrics\n    in a student-friendly format.\n\n    Args:\n        model: Model to profile\n        input_tensor: Input data for profiling\n        profiler: Optional Profiler instance (creates new one if None)\n\n    Returns:\n        dict: Profile results with key metrics\n\n    Example:\n        >>> model = Linear(128, 64)\n        >>> input_data = Tensor(rng.standard_normal((16, 128)))\n        >>> results = quick_profile(model, input_data)\n        >>> # Displays formatted output automatically\n    \"\"\"\n    if profiler is None:\n        profiler = Profiler()\n\n    profile = profiler.profile_forward_pass(model, input_tensor)\n\n    # Display formatted results\n    print(\"🧪 Quick Profile Results:\")\n    print(f\"   Parameters: {profile['parameters']:,}\")\n    print(f\"   FLOPs: {profile['flops']:,}\")\n    print(f\"   Latency: {profile['latency_ms']:.2f} ms\")\n    print(f\"   Memory: {profile['peak_memory_mb']:.2f} MB\")\n    print(f\"   Heuristic bottleneck (not hardware measured): {profile['bottleneck']}\")\n    print(f\"   Efficiency: {profile['computational_efficiency']*100:.1f}%\")\n\n    return profile"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_weight_distribution(model, percentiles=[10, 25, 50, 75, 90]):\n    \"\"\"\n    Analyze weight distribution across layers.\n\n    Helps understand how weights are distributed across layers.\n    Useful for identifying patterns in parameter magnitudes.\n\n    Args:\n        model: Model to analyze\n        percentiles: List of percentiles to compute\n\n    Returns:\n        dict: Weight distribution statistics\n\n    Example:\n        >>> model = Linear(512, 512)\n        >>> stats = analyze_weight_distribution(model)\n        >>> print(f\"Weights < 0.01: {stats['below_threshold_001']:.1f}%\")\n    \"\"\"\n    # Collect all weights\n    weights = []\n    if hasattr(model, 'parameters'):\n        for param in model.parameters():\n            weights.extend(param.data.flatten().tolist())\n    elif hasattr(model, 'weight'):\n        weights.extend(model.weight.data.flatten().tolist())\n    else:\n        return {'error': 'No weights found'}\n\n    if not weights:\n        return {'error': 'No weights found'}\n\n    weights = np.array(weights)\n    abs_weights = np.abs(weights)\n\n    # Calculate statistics\n    stats = {\n        'total_weights': len(weights),\n        'mean': float(np.mean(abs_weights)),\n        'std': float(np.std(abs_weights)),\n        'min': float(np.min(abs_weights)),\n        'max': float(np.max(abs_weights)),\n    }\n\n    # Percentile analysis\n    for p in percentiles:\n        stats[f'percentile_{p}'] = float(np.percentile(abs_weights, p))\n\n    # Threshold analysis (useful for pruning)\n    for threshold in [0.001, 0.01, 0.1]:\n        below = np.sum(abs_weights < threshold) / len(weights) * 100\n        stats[f'below_threshold_{str(threshold).replace(\".\", \"\")}'] = below\n\n    return stats"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Helper Functions\n\nThis test validates our helper utilities work correctly and provide useful output.\n\n**What we're testing**: Quick profiling and weight distribution analysis\n**Why it matters**: These utilities are used daily in production ML workflows\n**Expected**: Correct profiles with formatted output"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Helper Functions: Quick Profiling Utilities."
+   ]
+  }
+ ]
+}

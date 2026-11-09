@@ -1,0 +1,129 @@
+{
+ "title": "Introduction: Why Quantization Matters",
+ "summary": "TinyTorch quantization: Introduction: Why Quantization Matters",
+ "source": {
+  "chapter": "tt-15",
+  "sections": [
+   "Introduction: Why Quantization Matters"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: Why Quantization Matters\n\nBefore we learn quantization, let's profile a model to see how much memory\nFP32 weights actually consume. This will show us why reduced precision matters."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 68 lines of code (starting with `def explore_motivation_profiling():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### The Memory Wall Problem\n\nModern deep neural networks run into a hardware reality that shapes every deployment decision. **Compute capacity has outpaced memory bandwidth and memory capacity by orders of magnitude.** While accelerators can perform trillions of arithmetic operations per second (teraFLOPs), streaming weights from high-bandwidth memory (HBM) or system DRAM to on-chip arithmetic logic units (ALUs) creates a severe latency and energy bottleneck.\n\n### The Precision Paradox\n\nStandard neural network training takes place in 32-bit single-precision floating point (`float32`), defined by IEEE 754:\n\n\\$\\$\\text{FP32 Value} = (-1)^s \\times 2^{e - 127} \\times (1 + m), \\quad s \\in \\{0, 1\\}, \\, e \\in [0, 255], \\, m \\in [0, 1)\\$\\$\n\n\\$\\$\\underbrace{1 \\text{ sign bit}}_{s} \\quad + \\quad \\underbrace{8 \\text{ exponent bits}}_{e} \\quad + \\quad \\underbrace{23 \\text{ mantissa bits}}_{m} \\quad = \\quad 32 \\text{ bits } (4 \\text{ bytes per parameter})\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "While full 32-bit dynamic range (\\$\\approx 10^{-38}\\$ to \\$10^{38}\\$) is critical for gradient accumulation during backpropagation, **trained inference weights cluster tightly within narrow, bounded intervals** (typically \\$[-1.0, 1.0]\\$ or \\$[-3.0, 3.0]\\$). Maintaining \\$4.3 \\times 10^9\\$ discrete representable numbers per parameter during inference represents massive over-provisioning of memory bandwidth and capacity.\n\n### The Growing Memory Crisis\n\nWhen moving modern architectures to mobile devices, embedded systems, or edge robotics, memory footprint dictates deployment feasibility:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Model Architecture",
+    "Parameters",
+    "FP32 Footprint (4B)",
+    "INT8 Modeled Footprint (1B)",
+    "Mobile RAM Budget (4–8 GB)",
+    "Edge Deployment Feasibility"
+   ],
+   "rows": [
+    [
+     "**BERT-Base**",
+     "110M",
+     "440 MB",
+     "110 MB",
+     "4–8 GB",
+     "Fits comfortably"
+    ],
+    [
+     "**GPT-2 (1.5B)**",
+     "1.5B",
+     "6.0 GB",
+     "1.5 GB",
+     "4–8 GB",
+     "Feasible in INT8 only"
+    ],
+    [
+     "**LLaMA-7B**",
+     "7.0B",
+     "28.0 GB",
+     "7.0 GB",
+     "4–8 GB",
+     "Needs 4-bit or an 8 GB+ device"
+    ],
+    [
+     "**GPT-3 (175B)**",
+     "175B",
+     "700.0 GB",
+     "175.0 GB",
+     "Multi-GPU Node",
+     "Requires cluster parallelism"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### The Quantization Solution\n\nQuantization maps continuous 32-bit floating point parameters to discrete 8-bit integer coordinates:\n\n\\$\\$\\text{FP32} \\xrightarrow{\\text{Quantization}} \\text{INT8} \\quad \\implies \\quad 4 \\text{ bytes} \\to 1 \\text{ byte } (4\\times \\text{ memory compression})\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Precision Format",
+    "Bits / Parameter",
+    "Dynamic Range",
+    "Relative Memory Footprint",
+    "Hardware Acceleration Primitives"
+   ],
+   "rows": [
+    [
+     "**FP32**",
+     "32 bits (4 B)",
+     "\\$\\approx \\pm 3.4 \\times 10^{38}\\$",
+     "100% (Baseline)",
+     "Standard IEEE 754 FPU"
+    ],
+    [
+     "**FP16 / BF16**",
+     "16 bits (2 B)",
+     "\\$\\approx \\pm 6.5 \\times 10^{4} \\text{ / } \\pm 3.4 \\times 10^{38}\\$",
+     "50% (\\$2\\times\\$ compression)",
+     "Half-precision Tensor Cores"
+    ],
+    [
+     "**INT8**",
+     "8 bits (1 B)",
+     "\\$[-128, 127]\\$ (256 discrete levels)",
+     "25% (\\$4\\times\\$ compression)",
+     "Intel VNNI, ARM NEON, NVIDIA DP4A / Tensor Cores"
+    ],
+    [
+     "**INT4**",
+     "4 bits (0.5 B)",
+     "\\$[-8, 7]\\$ (16 discrete levels)",
+     "12.5% (\\$8\\times\\$ compression)",
+     "Sub-byte Packed Integer ALU"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Real-World Systems Impact\n\n1. **Memory Footprint**: Reduces parameter storage by \\$4\\times\\$, allowing multi-gigabyte models to reside in resource-constrained on-device memory.\n2. **Bandwidth Savings**: Cuts memory bus traffic by \\$75\\%\\$, directly lowering memory latency and power consumption during autoregressive decoding.\n3. **Hardware Throughput**: Supported architectures execute SIMD integer dot products (e.g., AVX-512 VNNI `VPDPBUSD`) at \\$2\\times\\$ to \\$4\\times\\$ the throughput of floating-point operations.\n4. **Energy Efficiency**: Accessing off-chip DRAM consumes \\$100\\times\\$ to \\$1000\\times\\$ more energy than executing an arithmetic instruction; reducing transferred bytes yields proportional battery life gains."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Introduction: Why Quantization Matters."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,108 @@
+{
+ "title": "Foundations: Vectorization, From Loops to Lightning",
+ "summary": "TinyTorch acceleration: Foundations: Vectorization, From Loops to Lightning",
+ "source": {
+  "chapter": "tt-17",
+  "sections": [
+   "Foundations: Vectorization, From Loops to Lightning"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: Vectorization, From Loops to Lightning\n\nHardware vectorization transforms sequential, scalar instruction streams into wide parallel data-path executions across processor ALUs.\n\n### Vector Execution Paradigms"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Execution Model",
+    "Hardware Primitive",
+    "Vector Width",
+    "Operational Mechanism"
+   ],
+   "rows": [
+    [
+     "**Scalar (SISD)**",
+     "Standard CPU core ALU",
+     "1 element (\\$32\\text{-bit}\\$)",
+     "Single scalar register operand per clock cycle; high branch and loop counter overhead"
+    ],
+    [
+     "**SIMD Vectorization**",
+     "Intel AVX-512 / ARM NEON",
+     "4–16 elements (\\$128\\text{--}512\\text{ bits}\\$)",
+     "Single instruction broadcasts across multiple parallel ALU lanes in lockstep"
+    ],
+    [
+     "**GPU Warp (SIMT)**",
+     "NVIDIA Streaming Multiprocessor",
+     "32 threads (\\$1024\\text{ bits}\\$)",
+     "32 parallel execution threads execute the same instruction over independent data lanes"
+    ],
+    [
+     "**Tensor Cores**",
+     "Systolic Array Matrix Units",
+     "\\$16 \\times 16\\$ tile per instruction",
+     "Hardware \\$4 \\times 4 \\times 4\\$ matrix multiply-accumulate (\\$D = A \\cdot B + C\\$) per clock; a \\$16 \\times 16 \\times 16\\$ warp-level `mma` issues as one instruction and decomposes over several cycles"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Memory Access Patterns: Cache-Line Utilization\n\nModern DRAM controllers fetch data in discrete 64-byte burst lines (16 contiguous FP32 floats):"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Access Pattern",
+    "Memory Layout",
+    "Cache Line Efficiency",
+    "Hardware Behavior"
+   ],
+   "rows": [
+    [
+     "**Contiguous Sequential**",
+     "`[A0, A1, A2, A3, ...]`",
+     "\\$100\\%\\$ (\\$16 / 16\\$ elements used)",
+     "Hardware prefetcher anticipates reads; near-zero memory stall cycles"
+    ],
+    [
+     "**Strided Access**",
+     "`[A0, _, _, _, A4, ...]`",
+     "\\$25\\%\\$ (\\$4 / 16\\$ elements used)",
+     "Cache polluted with unreferenced elements; memory bandwidth throttled"
+    ],
+    [
+     "**Random / Indirect**",
+     "`[A_idx[0], A_idx[1], ...]`",
+     "\\$\\le 6.25\\%\\$ (\\$1 / 16\\$ elements used)",
+     "Constant cache misses; memory bus stalls; TLB thrashing"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Vectorized GEMM\n\nThe first component turns a matrix multiply into a single BLAS call.\n\n### Matrix Multiplication: The Pinnacle of Vectorized Arithmetic\n\nGeneral Matrix Multiply (GEMM) is the fundamental computational engine of deep learning:\n\n\\$\\$C_{i, j} = \\sum_{k=1}^K A_{i, k} B_{k, j}, \\quad A \\in \\mathbb{R}^{M \\times K}, \\quad B \\in \\mathbb{R}^{K \\times N}, \\quad C \\in \\mathbb{R}^{M \\times N}\\$\\$\n\n\\$\\$\\text{Total Floating-Point Operations (FLOPs)} = 2 \\cdot M \\cdot N \\cdot K\\$\\$\n\n\\$\\$\\text{Data Volume Transferred} = (M \\cdot K + K \\cdot N + M \\cdot N) \\times 4\\text{ bytes (FP32)}\\$\\$\n\nFor square matrices where \\$M = N = K\\$:\n\n\\$\\$\\mathcal{I}_{\\text{GEMM}} = \\frac{2 N^3}{12 N^2} = \\frac{N}{6} \\quad \\left[\\frac{\\text{FLOP}}{\\text{Byte}}\\right]\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "When \\$N = 1024\\$, arithmetic intensity is \\$\\mathcal{I} \\approx 170.7\\text{ FLOP/Byte}\\$. Because the operational work scales with \\$\\mathcal{O}(N^3)\\$ while data volume scales with \\$\\mathcal{O}(N^2)\\$, GEMMs heavily reuse cached data and saturate modern processor compute roofs."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 67 lines of code (starting with `def vectorized_matmul(a: Tensor, b: Tensor) -> Tensor:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Vectorized Matrix Multiplication\n\nThis test validates that replacing explicit loops with a single vectorized call\nproduces identical results.\n\n**What we're testing**: Correctness of batched matmul and its shape validation\n**Why it matters**: Vectorization is only a win if the answer is unchanged. A\nfaster wrong answer is worthless\n**Expected**: Matches hand-computed products, rejects mismatched inner dimensions"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Foundations: Vectorization, From Loops to Lightning."
+   ]
+  }
+ ]
+}

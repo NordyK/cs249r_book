@@ -1,0 +1,74 @@
+{
+ "title": "The Retrieval Contract",
+ "summary": "Work through The Retrieval Contract.",
+ "source": {
+  "chapter": "v3-06",
+  "sections": [
+   "The Retrieval Contract",
+   "The bounded request",
+   "The result envelope",
+   "Evidence staging"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **The Retrieval Contract**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Long-Term Memory, § The Retrieval Contract",
+   "md": "Diagnosing the connection pool's stalled waiter requires both the current implementation in `src/pool.py` and the test telemetry associated with `test_waiter_notified_on_return`. A search across repository history can easily return both an r17 test failure and an r18 reproducer pass. While both records are genuine, they answer distinct questions: one documents the defect that triggered the investigation, whereas the other evaluates a candidate patch. Before choosing an index structure or a similarity metric, a system must specify what the agent's next decision demands and what guarantees a returned record actually establishes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The bounded request\n- The result envelope\n- Evidence staging"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Retrieval contract matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Every read is a bounded request answered by an envelope that reports scope, snapshot, completeness status, and per-item provenance, and an empty result proves nonexistence only for a complete search of the declared scope."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-06-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Retrieval Contract** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Every read is a bounded request answered by an envelope that reports scope, snapshot, completeness status, and per-item provenance, and an empty result proves nonexistence only for a complete search of the declared scope.",
+      "An exact vector scan is bandwidth-bound with floor N*d*b/BW, which screens it against the search budget, while approximate indexes trade recall for bytes touched.",
+      "The unit of evaluation is the whole memory policy run through isolated multi-session trials with lifecycle fixtures, scored by task acceptance and cost per accepted task including background maintenance.",
+      "Persistent records are roles in an evidence chain (source of record, observation log, agent-written memory, retrieval index), not storage tiers, and any claim is validated against its source of record."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Retrieval contract**: Every read is a bounded request answered by an envelope that reports scope, snapshot, completeness status, and per-item provenance, and an empty result proves nonexistence only for a complete search of the declared scope."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Retrieval contract* returns bounded evidence into *Critical-path acceleration ceiling*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Retrieval contract* returns bounded evidence into *Working-set partition*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Source provenance**: A record carries the source and generation needed to determine whether retrieved evidence remains valid and permitted."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Source provenance",
+   "def": "A record carries the source and generation needed to determine whether retrieved evidence remains valid and permitted."
+  }
+ ]
+}

@@ -1,0 +1,74 @@
+{
+ "title": "Data Center Energy and Resource Consumption",
+ "summary": "Explain how power delivery infrastructure and utility interconnect lead times constrain large-scale AI cluster deployments.",
+ "source": {
+  "chapter": "v2-15",
+  "sections": [
+   "Data Center Energy and Resource Consumption",
+   "Data center energy and AI workloads",
+   "Power delivery",
+   "Cooling energy, heat rejection, and water"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain how power delivery infrastructure and utility interconnect lead times constrain large-scale AI cluster deployments\n- Assign power-delivery losses to the correct side of the PUE accounting boundary\n- Calculate facility power draw and carbon emissions using PUE and grid carbon intensity to evaluate environmental impact\n- Evaluate the water-energy trade-off between evaporative and dry heat rejection"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Sustainable AI, § Data Center Energy and Resource Consumption",
+   "md": "A training cluster can fit its accelerator power budget yet exceed its facility budget once support systems and cooling enter the account. Whether a facility can host the cluster at all is a feasibility question; the sustainability question is whether a change in power delivery or cooling reduces lifecycle cost while preserving that feasible operating envelope. The relevant comparison includes annual energy, local water use, equipment lifetime, and the energy wasted when cooling failures interrupt useful work."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Data center energy and AI workloads\n- Power delivery\n- Cooling energy, heat rejection, and water\n\nPay attention to: power delivery bottlenecks and substation lead times; which conversion losses fall inside the PUE boundary; PUE versus grid carbon intensity; heat rejection water versus fan energy."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A cloud provider can procure and install 10,000 GPUs within six months, but building the required electrical substation and securing utility interconnect approval takes 24 months. Explain why electrical power delivery represents the binding bottleneck for data center expansion, and state the systems consequence of this lead-time disparity.",
+   "md": "In this scenario, the 24-month power-delivery path is four times the six-month GPU-procurement path and gates operation at the intended scale. Delivered accelerators can remain electrically stranded until the connection is ready. Actual lead times and alternatives are site-specific, so procurement must follow a qualified supply schedule rather than assume this ratio applies everywhere."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-15-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A facility audit lists conversion losses in five places: the utility transformer, the online UPS, the facility power distribution units, the server power supplies, and the baseboard voltage regulators. Which losses raise the facility's PUE?",
+     "explanation": "The correct answer is A. PUE divides facility energy by IT energy, so only losses outside the IT boundary add to the overhead: the transformer, UPS, and facility distribution. Server power supplies and baseboard regulators are part of the measured IT load and appear in both numerator and denominator, although their heat still loads the cooling system. Counting every loss as overhead double counts the IT-side terms, and PUE covers all non-IT facility load, not only cooling.",
+     "hint": "Think about: assign power-delivery losses to the correct side of the PUE accounting boundary",
+     "type": "single",
+     "options": [
+      "The transformer, UPS, and facility distribution losses, because they lie upstream of the IT boundary; server power supplies and voltage regulators sit inside the measured IT load.",
+      "All five, because every conversion loss turns delivered power into heat that the cooling system must remove.",
+      "Only the server power supplies and voltage regulators, because they sit closest to the accelerators that do the useful work.",
+      "None of them, because PUE measures cooling overhead and conversion losses are electrical rather than thermal."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Facility A reports a Power Usage Effectiveness (PUE) of 1.08 on an electrical grid with carbon intensity of \\$450 g CO_2/kWh. Facility B reports PUE 1.35 on a grid with \\$50 g CO_2/kWh. For a \\$10 MW IT compute load, calculate the total hourly electrical power drawn and carbon emissions for both facilities, and explain the limitation of using PUE as a sole environmental metric.",
+   "md": "At \\$10 MW IT load: Facility A draws \\$10 MW × 1.08 = 10.8 MW (\\$10,800 kW) total power, emitting \\$10,800 kW × 450 g CO_2/kWh = 4,860 kg CO_2/hr (\\$4.86 tonnes/hr). Facility B draws \\$10 MW × 1.35 = 13.5 MW (\\$13,500 kW) total power, emitting \\$13,500 kW × 50 g CO_2/kWh = 675 kg CO_2/hr (\\$0.675 tonnes/hr). Facility B emits approx 7.2× less carbon than Facility A despite having a significantly worse PUE (1.35 vs. 1.08). PUE measures only facility power relative to IT-equipment power, not the cleanliness of the electricity source, so optimizing PUE in isolation can mislead teams into high-carbon grid locations."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A 10 MW facility in a water-stressed region can reject heat through evaporative cooling towers or through dry coolers. Explain the water and energy trade-off between the two, and why the operator might accept higher fan energy.",
+   "md": "Evaporation carries large amounts of heat with a small water flow because each kilogram evaporated removes its latent heat, but the evaporated water is consumed and must be replaced, which shows up as WUE. Dry coolers avoid that direct water consumption, but their capacity depends on the coolant-to-ambient temperature difference, so hot weather reduces capacity or requires more fan power. In a water-stressed watershed the local water burden can outweigh the added electricity, so the operator may choose dry or hybrid rejection while still counting the upstream water of the electricity it buys."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain how power delivery infrastructure and utility interconnect lead times constrain large-scale AI cluster deployments.",
+    "You can now assign power-delivery losses to the correct side of the PUE accounting boundary.",
+    "You can now calculate facility power draw and carbon emissions using PUE and grid carbon intensity to evaluate environmental impact.",
+    "You can now evaluate the water-energy trade-off between evaporative and dry heat rejection."
+   ]
+  }
+ ]
+}

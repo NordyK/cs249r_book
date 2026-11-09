@@ -1,0 +1,79 @@
+{
+ "title": "Cross-Layer Interactions",
+ "summary": "Calculate ideal multiplicative speedup across data, algorithm, and machine levers under the chapter's fixed-assumption scenario.",
+ "source": {
+  "chapter": "v1-09",
+  "sections": [
+   "Cross-Layer Interactions"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate ideal multiplicative speedup across data, algorithm, and machine levers under the chapter's fixed-assumption scenario\n- Compare how workload reduction and model compression target different cost terms in the optimization stack\n- Distinguish the training-work reduction that data selection delivers from the deployment savings that require model compression and measurement\n- Explain how representational deficits introduced by data selection propagate into compression and deployment costs"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Selection, § Cross-Layer Interactions",
+   "md": "Halving a training corpus halves the forward and backward passes, yet the resulting model may be no cheaper to compress or serve. Real ML systems combine data selection with model compression and hardware acceleration, and these cross-layer interactions amplify or undermine each other in ways no single layer reveals."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Multiplicative compounding in the Iron Law; Data selection versus model compression; Training savings versus deployment savings; Downstream inheritance of upstream deficits."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A team curates its training corpus to half its original size and reports that the resulting model will be cheaper to deploy. What does the reduction actually change, and what evidence would support the deployment claim?",
+   "md": "Halving the corpus halves the forward and backward passes of training, but the trained model keeps the same architecture and parameter count, so its serving cost is unchanged by the reduction itself. A curated corpus may yield more compact representations that later compression can exploit, but that is a hypothesis to verify, not a property of every selected dataset. Supporting the deployment claim requires compressing the model and measuring serving latency and task accuracy on the target hardware, rather than inferring deployment savings from the upstream dataset reduction."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-09-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In an idealized compute-bound training scenario with fixed target quality and negligible new overheads, a team halves the number of processed examples, halves the operations per processed example on the same compute-critical path, and doubles realized arithmetic throughput. What total speedup follows from the chapter's multiplicative D·A·M reasoning?",
+     "explanation": "The correct answer is A. Under the chapter's ideal multiplicative setup, halving examples gives a \\$2\\times$ workload reduction, halving compute on the same path gives another \\$2\\times$, and doubling realized throughput gives a final \\$2\\times$, for \\$2\\times2\\times2=8\\times$. This reasoning assumes fixed target quality, fixed effective batch/schedule assumptions, negligible new overheads, and that the saved work lies on the compute-critical path. Measured end-to-end speedup can be smaller once other bottlenecks appear.",
+     "hint": "Think about: calculate ideal multiplicative speedup across data, algorithm, and machine levers under the chapter's fixed-assumption scenario.",
+     "type": "single",
+     "options": [
+      "An \\$8× speedup, because halving workload, halving per-sample work, and doubling throughput multiply on the same critical path",
+      "A \\$6× speedup, because the factors add across layers",
+      "A \\$2× speedup, because only the hardware improvement matters once arithmetic throughput doubles",
+      "A \\$4× speedup, because reducing training examples and reducing per-sample work are the same effect"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Why are upstream data selection and downstream model compression complementary rather than interchangeable?",
+     "explanation": "The correct answer is D. The chapter separates two different levers: data selection changes how much workload is processed during training, while model compression changes properties of the trained model artifact and can reduce execution cost per example when the deployment hardware and software stack can exploit it. Post-training compression can help serving, but it does not retroactively remove past training work. The two are therefore complementary rather than interchangeable, and their gains are not guaranteed to multiply cleanly in every pipeline.",
+     "hint": "Think about: compare how workload reduction and model compression target different cost terms in the optimization stack.",
+     "type": "single",
+     "options": [
+      "Model compression can only be applied to computer vision models, whereas data selection is restricted to NLP",
+      "Data selection eliminates backward passes entirely, whereas model compression eliminates forward passes",
+      "Data selection optimizes only inference latency on edge devices, whereas model compression only affects training time",
+      "Data selection reduces how many examples are processed, whereas model compression reduces the artifact size and can lower execution cost per example on compatible hardware"
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain how an aggressive data filter that discards rare but critical edge cases can raise costs in the compression and deployment stages of the optimization stack.",
+   "md": "Each downstream stage inherits both the computational savings and any representational deficits created upstream. If the filter removes rare edge cases, the trained model may already sit close to its accuracy threshold on those cases, leaving little headroom for compression. Engineers may then have to train longer or abandon aggressive quantization to preserve task accuracy, which gives back part of the saving. The practical implication is that a selection policy must be evaluated on the deployed model's accuracy and latency, not only on training FLOPs saved."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate ideal multiplicative speedup across data, algorithm, and machine levers under the chapter's fixed-assumption scenario.",
+    "You can now compare how workload reduction and model compression target different cost terms in the optimization stack.",
+    "You can now distinguish the training-work reduction that data selection delivers from the deployment savings that require model compression and measurement.",
+    "You can now explain how representational deficits introduced by data selection propagate into compression and deployment costs."
+   ]
+  }
+ ]
+}

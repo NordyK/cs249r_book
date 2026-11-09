@@ -1,0 +1,60 @@
+{
+ "title": "Trajectory Planning Failure Modes and Infeasible Seams",
+ "summary": "Work through Trajectory Planning Failure Modes and Infeasible Seams.",
+ "source": {
+  "chapter": "v4-11",
+  "sections": [
+   "Trajectory Planning Failure Modes and Infeasible Seams",
+   "Checking limits and boundaries before execution",
+   "Runtime tracking monitors and unexpected contact"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Trajectory Planning Failure Modes and Infeasible Seams**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Trajectory Planning, § Trajectory Planning Failure Modes and Infeasible Seams",
+   "md": "On the mug reach, a replacement trajectory can fail in three distinct regimes: within the candidate itself, along the boundary where it joins the executing motion, or during execution when the environment changes. The point where a failure first manifests dictates which subsystem has the sensory evidence to reject the trajectory, as well as how much time and clearance remain to bring the machine to a safe stop."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Checking limits and boundaries before execution\n- Runtime tracking monitors and unexpected contact"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why C2 seam matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Splicing chunks that match only position or velocity leaves an acceleration step that reflected inertia turns into a torque step, so seams must be C2 and the replacement is planned from the projected seam state."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-11-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Trajectory Planning Failure Modes and Infeasible Seams** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Clearance and tool limits live in tool space but drives enforce joint limits, so tool-space quantities pass through the configuration-dependent Jacobian, whose weak direction near a singularity demands unbounded joint rates unless damped least squares trades accuracy for bounded rates.",
+      "Because the arm keeps moving during inference, a replacement is planned from the state projected to the seam and admitted against the measured state.",
+      "Splicing chunks that match only position or velocity leaves an acceleration step that reflected inertia turns into a torque step, so seams must be C2 and the replacement is planned from the projected seam state.",
+      "The planner hands over an immutable record naming frame, evidence epoch, seam state, parent intent-lease digest, and four MCU-clock deadlines in two tiers (high-rate chunk lease, hardware commitment cutoff) together with its latched stop."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **C2 seam**: Splicing chunks that match only position or velocity leaves an acceleration step that reflected inertia turns into a torque step, so seams must be C2 and the replacement is planned from the projected seam state."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Trajectory Planning Failure Modes and Infeasible Seams."
+   ]
+  }
+ ]
+}

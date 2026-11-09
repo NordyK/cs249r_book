@@ -1,0 +1,102 @@
+{
+ "title": "Fleet Economics and Utilization",
+ "summary": "Analyze the cost breakdown of capital and operational expenditures in large-scale ML infrastructure.",
+ "source": {
+  "chapter": "v2-12",
+  "sections": [
+   "Fleet Economics and Utilization",
+   "Cost centers as operating constraints",
+   "Utilization as the economic invariant",
+   "Depreciation and lifecycle",
+   "Cloud capacity as an operations constraint",
+   "Capacity planning as a reliability control",
+   "ML systems TCO framework",
+   "FinOps for ML platforms"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the cost breakdown of capital and operational expenditures in large-scale ML infrastructure\n- Evaluate the build-versus-buy decision boundary for ML accelerator fleets as a function of sustained hardware utilization\n- Explain the architectural and thermodynamic drivers behind rapid ML accelerator depreciation\n- Analyze the operational and scheduling trade-offs of staggered accelerator hardware refresh cycles\n- Evaluate how workload duty cycle and utilization dictate the economics of cloud rental versus on-premises ownership"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, ML Operations at Scale, § Fleet Economics and Utilization",
+   "md": "A provisioned GPU incurs capacity costs whether it serves predictions, waits between training bursts, or remains reserved for rollback. Those idle periods have different meanings: a scheduling bottleneck strands capacity, while a justified reserve buys recovery capability. The operational machinery developed so far decides how models change safely; it does not decide whether the capacity underneath them is worth what it costs. Fleet economics therefore distinguishes productive use, deliberate headroom, and avoidable waste before treating higher utilization as an improvement."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Cost centers as operating constraints\n- Utilization as the economic invariant\n- Depreciation and lifecycle\n- Cloud capacity as an operations constraint\n- Capacity planning as a reliability control\n- ML systems TCO framework\n- FinOps for ML platforms\n\nPay attention to: CapEx vs. OpEx cost stack in AI supercomputing clusters; Build vs. buy break-even utilization analysis; Rapid accelerator depreciation and power efficiency trajectories."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why can a newer accelerator generation make an older fleet economically less attractive even while its hardware remains functional, and what evidence is needed before replacing it?",
+   "md": "Newer accelerators may deliver more useful work per unit of energy or capacity, reducing operating cost. Peak throughput-per-watt ratios must use matched numerical precision and power boundaries; they do not establish realized workload speedup or a universal depreciation rate. Compare measured useful work, power, utilization, migration costs, and remaining asset value before deciding whether replacement pays back."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-12-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In the chapter's illustrative on-premises AI cluster cost stack, which cost center represents the largest ongoing Operational Expenditure (OpEx) component over the 3-year lifecycle?",
+     "explanation": "The correct answer is D. The illustrative planning stack assigns electricity 60--70% of OpEx. This share depends on power prices, utilization, staffing, maintenance, and the accounting boundary; it is not a universal cluster cost ratio. Accelerator and server procurement belong to CapEx.",
+     "hint": "Think about: analyze the cost breakdown of capital and operational expenditures in large-scale ML infrastructure.",
+     "type": "single",
+     "options": [
+      "InfiniBand optical transceiver replacements and network switch warranty contracts.",
+      "Commercial software licenses and distributed file system support subscriptions.",
+      "Hardware technician salaries and baseboard management controller maintenance.",
+      "Electricity for powering compute accelerators, host servers, and facility cooling plants (60--70% of OpEx)."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In a build-versus-buy TCO evaluation for a 1,024-GPU cluster comparing on-premises ownership against a cloud rental rate of \\$4.00 per GPU-hour, what operational invariant determines whether on-premises ownership achieves lower cumulative cost over a 30-month horizon?",
+     "explanation": "The correct answer is A. The plotted ownership boundary includes acquisition and operating costs; cloud cost follows the allocated GPU-hours at the stated rental rate. Lower allocation can favor rental when unused capacity can be released. Changing accounting depreciation alone does not remove acquisition cost, and utilization does not establish a universal owned GPU-hour price.",
+     "hint": "Think about: evaluate the build-versus-buy decision boundary for ML accelerator fleets as a function of sustained hardware utilization.",
+     "type": "single",
+     "options": [
+      "Sustained useful demand relative to full ownership cost; under the plotted assumptions, an 80% cloud allocation crosses the owned-capacity cost near month 26.",
+      "Completely eliminating power usage effectiveness (PUE) overhead by operating servers without cooling.",
+      "Depreciating GPU accelerators over a 10-year accounting window instead of a standard 3-year window.",
+      "Restricting cluster execution exclusively to single-GPU batch inference jobs."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An organization with highly sporadic training needs (e.g., training a single frontier model once per year and idling the cluster otherwise) achieves lower total cost of ownership by building an on-premises GPU cluster.",
+     "explanation": "False. Sporadic demand alone does not justify ownership: an idle cluster still incurs capital and facility costs. Cloud rental may be cheaper when demand is bursty, but the decision requires actual rental prices, utilization, ownership costs, and availability requirements; no universal resale-loss percentage determines it.",
+     "hint": "Think about: evaluate how workload duty cycle and utilization dictate the economics of cloud rental versus on-premises ownership.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In datacenter energy efficiency modeling, the ratio of total facility power to the power consumed by IT equipment is known as ____.",
+     "explanation": "power usage effectiveness. Power Usage Effectiveness (PUE) measures facility energy overhead (cooling, power distribution), where modern liquid-cooled AI supercomputing clusters typically achieve a PUE of 1.1.",
+     "hint": "Think about: identify the key datacenter power efficiency metric governing operational expenditure.",
+     "type": "fill",
+     "answer": [
+      "power usage effectiveness"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Analyze how adopting a 'staggered refresh' policy for an enterprise GPU cluster impacts cluster scheduling and distributed training workloads compared to a wholesale one-time replacement.",
+   "md": "Staggered refresh smooths capital expenditure by replacing fractions of the fleet periodically, but forces the scheduler to manage heterogeneous accelerator generations with disparate memory capacities, compute throughputs, and interconnect bandwidths, complicating node placement for synchronous distributed training."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the cost breakdown of capital and operational expenditures in large-scale ML infrastructure.",
+    "You can now evaluate the build-versus-buy decision boundary for ML accelerator fleets as a function of sustained hardware utilization.",
+    "You can now explain the architectural and thermodynamic drivers behind rapid ML accelerator depreciation.",
+    "You can now analyze the operational and scheduling trade-offs of staggered accelerator hardware refresh cycles."
+   ]
+  }
+ ]
+}

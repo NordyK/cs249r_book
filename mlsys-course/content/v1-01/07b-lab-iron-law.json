@@ -1,0 +1,140 @@
+{
+ "title": "Lab: put numbers into the iron law",
+ "summary": "Compute the three iron-law terms for one workload, find the dominant one and predict what an upgrade buys.",
+ "minutes": 25,
+ "blocks": [
+  {
+   "type": "text",
+   "md": "The previous lesson gave the iron law in words. Here you use it the way an engineer does: plug in a workload, see which term is largest, and predict what a faster part would actually buy you.\n\nThe workload for the whole lab: one accelerator step that **moves 8 GB** of weights and activations over a **2,000 GB/s** memory bus, performs **$10^{11}$ FLOPs** at an effective **100 TFLOP/s** (peak 250 TFLOP/s at 40% utilisation), and pays **0.5 ms** of fixed overhead."
+  },
+  {
+   "type": "derivation",
+   "title": "Sequential time, term by term",
+   "rel": "=",
+   "steps": [
+    {
+     "lhs": "T",
+     "rhs": "\\frac{D_{vol}}{BW} + \\frac{O}{R_{peak}\\,\\eta_{hw}} + L_{lat}",
+     "why": "The iron law with the three costs paid one after the other."
+    },
+    {
+     "lhs": "\\frac{D_{vol}}{BW}",
+     "rhs": "\\frac{8\\times10^{9}\\ \\text{B}}{2\\times10^{12}\\ \\text{B/s}} = 4\\ \\text{ms}",
+     "why": "Bytes divided by bytes per second leaves seconds."
+    },
+    {
+     "lhs": "\\frac{O}{R_{peak}\\,\\eta_{hw}}",
+     "rhs": "\\frac{10^{11}}{250\\times10^{12}\\times0.4} = 1\\ \\text{ms}",
+     "why": "The effective rate already includes utilisation; do not multiply by it twice."
+    },
+    {
+     "lhs": "T",
+     "rhs": "4 + 1 + 0.5 = 5.5\\ \\text{ms}",
+     "why": "Movement is the largest term, so this step is memory-bound."
+    }
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "md": "Doubling peak compute would shrink only the 1 ms term. Doubling bandwidth shrinks the 4 ms term. The iron law tells you which upgrade to buy **before** you buy it."
+  },
+  {
+   "type": "widget",
+   "id": "v1-01-lab-iron-widget",
+   "widget": "iron-law",
+   "title": "Try it: the same workload in the calculator",
+   "md": "The calculator starts at the workload above, with the stages run one after the other. Move the bandwidth slider and watch which term leads.",
+   "params": {
+    "ops": 100000000000.0,
+    "peak": 250,
+    "eta": 0.4,
+    "dvol": 8000000000.0,
+    "bw": 2000,
+    "lat": 0.0005,
+    "pipelined": 0
+   },
+   "challenge": {
+    "md": "Set bandwidth to **4,000 GB/s** (twice as fast). What is the new total time, in milliseconds?",
+    "answer": 3.5,
+    "tolerance": 0.05,
+    "unit": "ms",
+    "hint": "Only the movement term changes: 8 GB at 4,000 GB/s.",
+    "explanation": "Movement drops from 4 ms to 2 ms; compute (1 ms) and overhead (0.5 ms) stay. 2 + 1 + 0.5 = 3.5 ms. Twice the bandwidth gave 1.57x, not 2x."
+   }
+  },
+  {
+   "type": "reveal",
+   "prompt": "If movement and compute overlap perfectly (the pipelined bound), what is the best possible time before and after the bandwidth upgrade?",
+   "md": "Before: max(4, 1) + 0.5 = **4.5 ms**. After: max(2, 1) + 0.5 = **2.5 ms**. After the upgrade movement is still the slower stage; once it falls below 1 ms, more bandwidth stops helping and compute becomes the wall."
+  },
+  {
+   "type": "playground",
+   "id": "v1-01-lab-iron-play",
+   "title": "Write the iron law as a function",
+   "md": "Complete `iron_law`. With `overlap=False` it returns the sum of the three terms; with `overlap=True` it returns the pipelined bound `max(movement, compute) + overhead`. Units: bytes, bytes/s, FLOPs, FLOP/s, seconds. **Run and check** tests it on the lab's workload.",
+   "code": "def iron_law(d_vol, bw, ops, peak, eta, lat, overlap=False):\n    movement = d_vol / bw\n    compute = None  # TODO: operations divided by the effective rate\n    # TODO: return the sequential sum or the pipelined bound\n    return None\n\n\nt = iron_law(8e9, 2e12, 1e11, 250e12, 0.4, 0.5e-3)\nprint(\"sequential:\", t)\n",
+   "check": "assert abs(iron_law(8e9, 2e12, 1e11, 250e12, 0.4, 0.5e-3) - 5.5e-3) < 1e-9, 'sequential time should be 5.5 ms'\nassert abs(iron_law(8e9, 2e12, 1e11, 250e12, 0.4, 0.5e-3, overlap=True) - 4.5e-3) < 1e-9, 'pipelined bound should be 4.5 ms'\nassert abs(iron_law(8e9, 4e12, 1e11, 250e12, 0.4, 0.5e-3) - 3.5e-3) < 1e-9, 'with 4 TB/s the sum is 3.5 ms'",
+   "hint": "`compute = ops / (peak * eta)`; then `return (max(movement, compute) if overlap else movement + compute) + lat`.",
+   "solution": "def iron_law(d_vol, bw, ops, peak, eta, lat, overlap=False):\n    movement = d_vol / bw\n    compute = ops / (peak * eta)\n    core = max(movement, compute) if overlap else movement + compute\n    return core + lat\n\n\nprint(\"sequential:\", iron_law(8e9, 2e12, 1e11, 250e12, 0.4, 0.5e-3))\nprint(\"pipelined: \", iron_law(8e9, 2e12, 1e11, 250e12, 0.4, 0.5e-3, overlap=True))\n"
+  },
+  {
+   "type": "quiz",
+   "id": "v1-01-lab-iron-quiz",
+   "title": "Check your numbers",
+   "questions": [
+    {
+     "type": "numeric",
+     "q": "A dense language model with $N = 10^9$ parameters trains on $D = 2\\times10^{10}$ tokens. Using $O \\approx 6ND$, how many FLOPs is that, in units of $10^{20}$?",
+     "answer": 1.2,
+     "tolerance": 0.01,
+     "unit": "× 10²⁰ FLOP",
+     "hint": "6 × 10⁹ × 2 × 10¹⁰.",
+     "explanation": "6 × 1 × 2 = 12, and 10⁹ × 10¹⁰ = 10¹⁹, so 12 × 10¹⁹ = 1.2 × 10²⁰ FLOP."
+    },
+    {
+     "type": "numeric",
+     "q": "Generating one token with a 7-billion-parameter model costs about $2N$ FLOPs. How many GFLOPs per token?",
+     "answer": 14,
+     "tolerance": 0.1,
+     "unit": "GFLOP",
+     "hint": "2 × 7 × 10⁹.",
+     "explanation": "2N = 1.4 × 10¹⁰ FLOP = 14 GFLOP per token, forward pass only."
+    },
+    {
+     "type": "single",
+     "q": "In the lab's workload, which change shortens the sequential time the most?",
+     "options": [
+      "Doubling peak compute",
+      "Doubling memory bandwidth",
+      "Halving the fixed overhead",
+      "All three save the same time"
+     ],
+     "answer": 1,
+     "hint": "Compare how many milliseconds each change removes.",
+     "explanation": "Doubling bandwidth removes 2 ms, doubling compute removes 0.5 ms, halving overhead removes 0.25 ms. Fix the largest term first."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "The iron law adds movement, compute and overhead; the largest term sets the pace.",
+    "An upgrade only helps through the term it shrinks, so it never speeds up the whole by its own factor.",
+    "With perfect overlap the bound is max(movement, compute) + overhead."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "pipelined bound",
+   "def": "max(movement time, compute time) + overhead: the best case when data movement and computation overlap perfectly"
+  }
+ ],
+ "source": {
+  "chapter": "v1-01",
+  "sections": [
+   "hands-on lab"
+  ]
+ }
+}

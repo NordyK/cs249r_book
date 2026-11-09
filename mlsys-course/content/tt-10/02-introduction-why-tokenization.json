@@ -1,0 +1,200 @@
+{
+ "title": "Introduction: Why Tokenization?",
+ "summary": "TinyTorch tokenization: Introduction: Why Tokenization?",
+ "source": {
+  "chapter": "tt-10",
+  "sections": [
+   "Introduction: Why Tokenization?",
+   "Implementation: Building Tokenization Systems"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: Why Tokenization?\n\nNeural networks operate on continuous floating-point tensors, but human communication is rooted in discrete, variable-length text. Tokenization is the foundational systems bridge that converts unstructured strings into bounded sequences of discrete integer IDs suitable for downstream tensor operations.\n\n### The Text-to-Numbers Challenge\n\nConsider the sentence `\"Hello, world!\"`. How does a neural network ingest and compute over these characters?\n\n### Comparing Text and Numerical Representations"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dimension",
+    "Raw Text Domain",
+    "Neural Network Domain",
+    "MLSys Adaptation Strategy"
+   ],
+   "rows": [
+    [
+     "**Data Primitive**",
+     "UTF-8 byte stream / characters",
+     "Floating-point tensors (\\$\\mathbb{R}^D\\$)",
+     "Tokenizer maps string slice \\$\\to\\$ integer ID \\$\\to\\$ dense vector"
+    ],
+    [
+     "**Vocabulary Bound**",
+     "Infinite (new words, typos, slang)",
+     "Fixed memory table of size \\$V\\$",
+     "Subword BPE splits rare words into known subword units"
+    ],
+    [
+     "**Sequence Topology**",
+     "Variable character length",
+     "Fixed or batched sequence length \\$T\\$",
+     "Padding and truncation ensure static tensor shapes \\$(B, T)\\$"
+    ],
+    [
+     "**Computational Cost**",
+     "\\$\\mathcal{O}(1)\\$ string indexing",
+     "Quadratic in sequence length, \\$\\mathcal{O}(T^2)\\$",
+     "Shorter subword sequences cut \\$T\\$ by \\$>3\\times\\$, so attention compute by \\$>10\\times\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### The Four-Step Ingestion Pipeline\n\n1. **Token Segmentation**: Partition text into discrete semantic or subword pieces (characters, subwords, words).\n2. **Vocabulary Lookup**: Map each token string to a unique integer index \\$t_i \\in \\{0, 1, \\dots, V - 1\\}\\$.\n3. **Out-of-Vocabulary (OOV) Handling**: Map unseen characters or corrupted inputs to a reserved `` token (ID \\$0\\$).\n4. **Reconstructive Decoding**: Invert the vocabulary map to recover human-readable text for generation and inspection."
+  },
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: Tokenization Strategies\n\nDifferent tokenization paradigms navigate the fundamental trade-off between **vocabulary size (\\$V\\$)** and **sequence length (\\$T\\$)**.\n\n### Character-Level Tokenization\n\nEach observed character receives an individual vocabulary index. Given training corpus \\$\\mathcal{C} = \\{\\text{\"hello\"}, \\text{\"world\"}\\}\\$:\n\n\\$\\$\\Sigma = \\{\\text{'d'}, \\text{'e'}, \\text{'h'}, \\text{'l'}, \\text{'o'}, \\text{'r'}, \\text{'w'}\\}, \\qquad \\mathcal{V} = [\\text{}] \\cup \\operatorname{sorted}(\\Sigma)\\$\\$\n\nThe bidirectional mappings operate deterministically:\n\n\\$\\$\\operatorname{encode}(c) = \\begin{cases} \\operatorname{index}(c) & \\text{if } c \\in \\mathcal{V} \\\\ 0 & (\\text{}) \\end{cases}, \\qquad \\operatorname{decode}(i) = \\mathcal{V}[i]\\$\\$\n\n\\$\\$\\text{\"hello\"} \\quad \\xrightarrow{\\text{encode}} \\quad [3, 2, 4, 4, 5] \\quad \\xrightarrow{\\text{decode}} \\quad \\text{\"hello\"}\\$\\$\n\n### Strategy Comparison: Character vs Subword vs Word"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Metric / Property",
+    "Character-Level",
+    "Subword (BPE)",
+    "Word-Level"
+   ],
+   "rows": [
+    [
+     "**Vocabulary Size (\\$V\\$)**",
+     "Small (\\$\\approx 100 - 256\\$)",
+     "Balanced (\\$\\approx 10{,}000 - 50{,}000\\$)",
+     "Enormous (\\$>100{,}000\\$)"
+    ],
+    [
+     "**Sequence Length (\\$T\\$) for 1k words**",
+     "Very Long (\\$\\approx 5{,}000\\$ tokens)",
+     "Compact (\\$\\approx 1{,}300\\$ tokens)",
+     "Minimal (\\$1{,}000\\$ tokens)"
+    ],
+    [
+     "**Out-of-Vocabulary (OOV) Risk**",
+     "Minimal (covers alphabet)",
+     "Zero with byte fallback",
+     "High (plurals, names trigger `<UNK>`)"
+    ],
+    [
+     "**Embedding Table Memory (\\$D=4096\\$)**",
+     "\\$\\approx 1.6\\text{ MB}\\$ (cache-resident)",
+     "\\$\\approx 160\\text{ MB} - 800\\text{ MB}\\$",
+     "\\$>1.6\\text{ GB}\\$ (spills to DRAM)"
+    ],
+    [
+     "**Attention Matrix (\\$T \\times T\\$)**",
+     "\\$25\\text{M}\\$ entries per head",
+     "\\$\\approx 1.7\\text{M}\\$ entries per head",
+     "\\$1\\text{M}\\$ entries per head"
+    ],
+    [
+     "**Relative Attention Compute**",
+     "**\\$25.0\\times\\$ baseline**",
+     "**\\$1.7\\times\\$ baseline**",
+     "**\\$1.0\\times\\$ (fastest attention)**"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "BPE achieves the sweet spot: by spending a modest memory budget on a subword vocabulary, it shrinks sequence length by \\$\\approx 3.8\\times\\$, slashing quadratic attention compute while retaining universal coverage."
+  },
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Building Tokenization Systems\n\nLet's construct our tokenization architecture step by step, enforcing consistent interfaces and verifying numerical integrity at every stage.\n\n### Tokenization System Architecture"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Component",
+    "Class / Method",
+    "Systems Responsibility",
+    "State & Data Structures"
+   ],
+   "rows": [
+    [
+     "**Base Contract**",
+     "`Tokenizer`",
+     "Defines abstract `encode` / `decode` API",
+     "`TOK_UNKNOWN = '<UNK>'`, `TOK_EOW = ' '`"
+    ],
+    [
+     "**Character Tokenizer**",
+     "`CharTokenizer`",
+     "Alphabet-level encoding & decoding",
+     "`vocab: list[str]`, `char_to_id: dict`, `id_to_char: dict`"
+    ],
+    [
+     "**Subword BPE**",
+     "`BPETokenizer`",
+     "Greedy frequency merge training & replay",
+     "`merges: list[tuple]`, `token_to_id: dict`, `id_to_token: dict`"
+    ],
+    [
+     "**Batch Pipeline**",
+     "`tokenize_dataset`",
+     "Truncates text to a length ceiling \\$T_{\\max}\\$",
+     "Ragged `list[list[int]]`, every row \\$\\le T_{\\max}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Base Tokenizer Interface\n\nAll tokenizers implement a common abstract contract, guaranteeing that downstream components (data loaders, embedding layers, evaluators) interact with identical method signatures:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Operation",
+    "Method Signature",
+    "Expected Input",
+    "Return Value",
+    "Invariant Contract"
+   ],
+   "rows": [
+    [
+     "**Encoding**",
+     "`encode(text: str)`",
+     "Raw UTF-8 string",
+     "`list[int]`",
+     "Every element \\$t \\in [0, V-1]\\$; unseen \\$\\to 0\\$"
+    ],
+    [
+     "**Decoding**",
+     "`decode(tokens: list[int])`",
+     "Sequence of token IDs",
+     "`str`",
+     "Known tokens round-trip deterministically"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "This ensures consistent behavior across different tokenization strategies."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 62 lines of code (starting with `class Tokenizer:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Base Tokenizer Interface\n\nThis test validates our base tokenizer defines the correct interface for all implementations.\n\n**What we're testing**: Abstract interface definition with NotImplementedError\n**Why it matters**: Ensures consistent API across all tokenizer types\n**Expected**: Base class raises NotImplementedError for both encode and decode"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Introduction: Why Tokenization?, Implementation: Building Tokenization Systems."
+   ]
+  }
+ ]
+}

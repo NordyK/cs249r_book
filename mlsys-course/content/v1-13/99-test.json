@@ -1,0 +1,147 @@
+{
+ "title": "Test: Model Serving",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-13-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "A video-analytics node receives frames from 6 synchronized cameras that capture simultaneously at 30 Hz. Because these camera frames arrive in synchronized periodic bursts, this represents a ____ arrival process in the traffic taxonomy.",
+     "explanation": "streaming. Streaming traffic refers to correlated, synchronized arrivals such as multi-camera sensor frames. Those bursts can make co-batching natural when frames fit together in time, but any additional waiting still depends on worker availability and scheduling rather than disappearing automatically.",
+     "hint": "Think about: classify synchronized sensor traffic using the chapter's serving arrival-pattern categories.",
+     "type": "fill",
+     "answer": [
+      "streaming"
+     ]
+    },
+    {
+     "q": "Evaluating an online serving system using mean (average) latency is sufficient for capacity planning, because if the average latency is well below the SLA target, user-facing requests are guaranteed to experience good performance.",
+     "explanation": "False. Average latency conceals extreme tail outliers (p95, p99, p99.9) where requests experience severe queueing delays. In modern microservice architectures where a user query fans out to dozens of downstream models in parallel, the slowest component determines overall user latency, meaning a low average latency can co-exist with a large fraction of users experiencing SLA violations.",
+     "hint": "Think about: justify why tail-latency metrics (p99/p99.9) must be used over mean latency for evaluating online serving systems.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An online recommendation service handles an arrival rate of lambda = 500 queries per second. Instrumented telemetry reveals an average residency time (waiting time in queue + inference service time) of W = 40 ms (\\$0.04 s). According to Little's Law, what is the average number of concurrent requests (L) present in the serving system?",
+     "explanation": "The correct answer is D. Little's Law gives average in-system population as $L = \\lambda W$ for a stable system under a matched measurement boundary. Substituting \\$500\\,\\text{requests/s}$ and \\$0.04\\,\\text{s}$ yields $L = 500 \\times 0.04 = 20\\text{ requests}$. The other answers come from mismatched units or arithmetic errors, such as treating milliseconds as seconds or using the wrong operation entirely.",
+     "hint": "Think about: calculate average in-system request population using Little's Law.",
+     "type": "single",
+     "options": [
+      "$L = 12.5\\text{ requests}$",
+      "$L = 200\\text{ requests}$",
+      "$L = 2\\text{,}000\\text{ requests}$",
+      "$L = 20\\text{ requests}$"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A computer vision team trains a ResNet-50 model in PyTorch using torchvision's PIL-based bilinear image resizing. In production, high-throughput C++ inference servers use OpenCV's `cv::resize` with default bilinear interpolation. On matched input images, the team observes different preprocessed tensors; when they rerun evaluation with the training preprocessing path, the original accuracy returns. What phenomenon is causing this degradation, and what is the proper engineering solution?",
+     "explanation": "The correct answer is A. The matched-input rerun shows the weights are not the root cause by themselves; the problem is that training and serving are producing different tensors from the same image. That is training-serving skew caused by inconsistent preprocessing. The fix is to make preprocessing shared or parity-verified across environments, whether through a common implementation or an exported graph when the required operations are supported. Numerical differences can matter in some pipelines, but the evidence here points specifically to preprocessing mismatch rather than thermal behavior or weight changes.",
+     "hint": "Think about: analyze the root causes of training-serving skew and design unified preprocessing pipelines to maintain inference accuracy.",
+     "type": "single",
+     "options": [
+      "Training-serving skew caused by subtle implementation differences in resize anti-aliasing and pixel coordinate rounding between PIL and OpenCV; the solution is using shared or parity-verified preprocessing across training and serving, such as a common library or exportable graph when supported.",
+      "Accelerator thermal throttling caused by high frame rates; the solution is downclocking the GPU Tensor Cores.",
+      "Floating-point precision drift between Python and C++; the solution is switching all production inference to 64-bit double precision.",
+      "Catastrophic forgetting in the weights caused by static batching; the solution is retraining the model with dynamic dropout."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "When calibrating an INT8 quantized model using Post-Training Quantization (PTQ), what is the primary danger of using a synthetic or unrepresentative calibration dataset (e.g., ImageNet validation images for a medical endoscopy model)?",
+     "explanation": "The correct answer is A. PTQ calibration sets ranges or related quantization parameters from observed activations on the calibration set. If that data does not resemble real production inputs, live activations may fall outside the calibrated ranges or be represented too coarsely, causing silent accuracy loss. The risk is degraded quality, not a forced compiler failure, doubled power draw from integer registers, or any direct change to dynamic batching behavior.",
+     "hint": "Think about: evaluate how unrepresentative calibration data can harm post-training quantized serving quality.",
+     "type": "single",
+     "options": [
+      "The activation dynamic ranges and outlier distributions in production may be misrepresented by the calibration dataset, causing clipping of real-world features or overly coarse quantization scales that degrade serving accuracy.",
+      "The model compiler will fail to generate valid GPU assembly code and reject the weights.",
+      "The server's physical power consumption will double due to misaligned integer registers.",
+      "The dynamic batcher will permanently lock its batch size to 1."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An engineer serves an 8-billion parameter LLM on a GPU with 2 TB/s of High-Bandwidth Memory (HBM) bandwidth. Assume the model weights are 16 GB in FP16, the decode step effectively streams those 16 GB of weights from HBM each token at batch size $B = 1$, and ignore KV-cache traffic and compute time. What is the theoretical hardware-bandwidth lower bound on Time Per Output Token (TPOT)?",
+     "explanation": "The correct answer is A. Under the stated assumption that one decode step streams 16 GB of weights from HBM and the device provides an idealized 2 TB/s = 2,000 GB/s of bandwidth, the transfer-time floor is \\$16 GB / 2,000 GB/s = 0.008 s = 8.0 ms. That makes 8 ms a lower bound from weight movement alone in this simplified case. The smaller and larger numbers come from unit or arithmetic mistakes, and the setup intentionally ignores KV-cache traffic, compute, and other overheads.",
+     "hint": "Think about: calculate a bandwidth-only lower bound on LLM decode TPOT from model size and HBM bandwidth.",
+     "type": "single",
+     "options": [
+      "\\$8.0 ms (TPOT = 16 GB / 2,000 GB/s)",
+      "\\$0.8 ms (TPOT = 1.6 GB / 2,000 GB/s)",
+      "\\$80.0 ms (TPOT = 160 GB / 2,000 GB/s)",
+      "\\$0.08 ms (TPOT = 16 MB / 2,000 GB/s)"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In an inference server architecture, what is the primary role of decoupling the request queue from the dynamic batcher?",
+     "explanation": "The correct answer is B. Separating the request queue from the batcher gives the system a bounded buffer between arrival and execution, so short bursts can be absorbed and the batcher can choose when to dispatch based on queue depth and timeout. That does not guarantee no drops under overload, and it does not guarantee an optimal batch every time. Queueing also does not eliminate compilation work or imply a specific zero-copy network path to the GPU.",
+     "hint": "Think about: explain the function of queue decoupling and dynamic batching in inference server design.",
+     "type": "single",
+     "options": [
+      "It allows the server to permanently cache all intermediate GPU activations across independent client requests.",
+      "It allows the system to buffer irregular arrivals and present the batcher with pending work so it can form batches within a timeout budget.",
+      "It eliminates the need for GPU kernel compilation by converting dynamic input shapes into fixed static tensors in the queue.",
+      "It bypasses host RAM by streaming network packets directly from the NIC into the accelerator's L2 cache via PCIe peer-to-peer transfers."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In multi-model serving on a shared GPU, Volta-era NVIDIA Multi-Process Service (MPS) provides hard physical hardware partitioning of high-bandwidth memory (HBM) channels and compute cores, completely preventing memory out-of-memory (OOM) faults caused by co-located tenant models.",
+     "explanation": "False. Volta-era MPS gives clients separate GPU address spaces and contexts, but they still share the same underlying compute and memory hardware. That is not MIG-style physical partitioning, and a fatal GPU fault can still affect other clients on the affected GPU even though one tenant's OOM does not guarantee every colocated client will crash.",
+     "hint": "Think about: compare GPU multi-tenant isolation mechanisms (MPS vs. MIG) regarding memory safety and compute partitioning.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the step-by-step execution cycle of Speculative Decoding for accelerating LLM inference:",
+     "explanation": "The correct order is: (2) Draft model (a lightweight autoregressive model) generates $K$ candidate tokens sequentially, (1) Target model runs a single parallel forward pass over the draft candidate tokens to compute verification logits, (4) Verification logic compares the draft tokens with the target model's verification results and accepts a prefix of them, (3) Engine appends the accepted tokens to the KV cache and advances the generation context. The sequence matters because the target model cannot verify tokens before the draft proposes them, and the engine should not advance the live context until verification decides which proposed tokens are accepted. Swapping verification and context advancement would commit unverified state and break correctness.",
+     "hint": "Think about: sequence the high-level workflow of speculative decoding from draft generation through verification and context update.",
+     "type": "order",
+     "items": [
+      "Target model runs a single parallel forward pass over the draft candidate tokens to compute verification logits",
+      "Verification logic compares the draft tokens with the target model's verification results and accepts a prefix of them",
+      "Engine appends the accepted tokens to the KV cache and advances the generation context"
+     ]
+    },
+    {
+     "q": "In a high-throughput vision serving pipeline, engineers overlap CPU image preprocessing of request $N+1$ with GPU inference of request $N$ using multiple CUDA streams and pinned host memory buffers, thereby increasing accelerator ____ without modifying the underlying model architecture.",
+     "explanation": "duty cycle. Overlapping host preprocessing with device execution can raise the fraction of wall-clock time during which the accelerator has active kernels running, improving throughput without changing the model itself. That is a statement about active time, not achieved FLOP/s rate, and it does not guarantee the GPU stays fully busy all the time because the benefit still depends on whether upstream stages can keep feeding it.",
+     "hint": "Think about: apply request pipelining and double-buffering techniques to maximize accelerator duty cycle.",
+     "type": "fill",
+     "answer": [
+      "duty cycle"
+     ]
+    },
+    {
+     "q": "Order the following overload-handling workflow for a serving system from first diagnosis to final verification:",
+     "explanation": "The correct order is: (2) measure arrival rate, service time, queue depth, and observed tail latency, (3) identify the limiting constraint from those measurements, such as overload, queue growth, or service-time inflation, (1) choose a mitigation that fits the current bottleneck and SLO trade-off, such as admission control, graceful degradation, or a batching change, (4) validate the chosen policy under representative load and confirm it improves SLO compliance. This sequence is necessary because overload defenses are not universally ordered by aggressiveness: shortening a batching window, shedding load, or degrading quality can help or hurt depending on what is actually the bottleneck. Acting before measuring risks choosing a mitigation that lowers capacity or burns quality without protecting latency.",
+     "hint": "Think about: design a measurement-driven workflow for selecting and validating overload mitigations in serving systems.",
+     "type": "order",
+     "items": [
+      "measure arrival rate, service time, queue depth, and observed tail latency",
+      "identify the limiting constraint from those measurements, such as overload, queue growth, or service-time inflation",
+      "choose a mitigation that fits the current bottleneck and SLO trade-off, such as admission control, graceful degradation, or a batching change",
+      "validate the chosen policy under representative load and confirm it improves SLO compliance."
+     ]
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Latency budget**?",
+     "options": [
+      "A small draft model proposes several tokens that the target model verifies in one pass, yielding more than one token per target weight stream at batch one when the acceptance rate is high.",
+      "Between socket and silicon a request crosses graph-to-kernel, host-to-accelerator, CPU, and storage boundaries, and timeline profiling locates which one limits the request (idle bubbles, launch trains, synchronous copies, OS noise).",
+      "Batching amortizes fixed per-batch costs so saturated capacity grows almost linearly while fixed cost dominates, but every request pays formation delay, dynamic batching bounds it with a size-or-timeout trigger, and latency, memory, or the engine cap, not throughput, sets the largest useful batch.",
+      "End-to-end latency is a zero-sum budget spent serially on ingress, deserialization, preprocessing, transfer, queueing, inference, postprocessing, and egress and met at a stated quantile, so a faster model yields far less end-to-end gain when host stages dominate."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Latency budget itself, not a neighbouring idea.",
+     "explanation": "**Latency budget:** End-to-end latency is a zero-sum budget spent serially on ingress, deserialization, preprocessing, transfer, queueing, inference, postprocessing, and egress and met at a stated quantile, so a faster model yields far less end-to-end gain when host stages dominate."
+    }
+   ]
+  }
+ ]
+}

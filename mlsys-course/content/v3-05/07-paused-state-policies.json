@@ -1,0 +1,69 @@
+{
+ "title": "Paused-State Policies",
+ "summary": "Work through Paused-State Policies.",
+ "source": {
+  "chapter": "v3-05",
+  "sections": [
+   "Paused-State Policies",
+   "Reclaimable state",
+   "Keep, move, and drop policies",
+   "Comparing reload and recompute during the test wait",
+   "Uncertain returns and competing transfers",
+   "Reclamation vs. approximation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Paused-State Policies**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, KV Cache Management, § Paused-State Policies",
+   "md": "While the r18 repair request waits 45 seconds for its integration test suite (or whenever an agent blocks on an external tool or remote database), the model generates no tokens, yet retaining its KV cache in accelerator memory ties up scarce HBM. To prevent idle requests from starving active generation, the serving engine must execute a **paused-state policy**: retain the state in device memory, offload it to host memory or secondary storage, or drop it entirely and reconstruct it when the tool output arrives."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Reclaimable state\n- Keep, move, and drop policies\n- Comparing reload and recompute during the test wait\n- Uncertain returns and competing transfers\n- Reclamation vs. approximation"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Paused-state policy matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: During a tool wait the engine keeps, moves, or drops only uniquely reclaimable blocks, and offloading pays only when the wait exceeds the transfer round trip and memory is contested."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-05-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Paused-State Policies** develops one of the chapter's claims. Which one?",
+     "options": [
+      "By Little's law a fixed pool of slots sustains a turn rate inversely proportional to residence, so holding state through a synchronous tool wait divides the memory-bound turn rate by 1 + T_tool/T_model.",
+      "During a tool wait the engine keeps, moves, or drops only uniquely reclaimable blocks, and offloading pays only when the wait exceeds the transfer round trip and memory is contested.",
+      "Splitting an uncached prompt into chunks under a per-iteration token budget bounds the inter-token gap of ongoing streams to one iteration at a modest delay to the new request's first token.",
+      "A reusable prefix must be compatible, available, and permitted, and none of the three says whether the evidence is current, so freshness is enforced by the harness rewriting the prompt."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Paused-state policy**: During a tool wait the engine keeps, moves, or drops only uniquely reclaimable blocks, and offloading pays only when the wait exceeds the transfer round trip and memory is contested."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Paused-state residency**: Retaining, moving, or dropping cached attention state during a tool wait trades memory residence against transfer or recomputation cost."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Paused-state residency",
+   "def": "Retaining, moving, or dropping cached attention state during a tool wait trades memory residence against transfer or recomputation cost."
+  }
+ ]
+}

@@ -1,0 +1,52 @@
+{
+ "title": "The Tool Boundary",
+ "summary": "Work through The Tool Boundary.",
+ "source": {
+  "chapter": "v3-07",
+  "sections": [
+   "The Tool Boundary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **The Tool Boundary**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Tool Calling, § The Tool Boundary",
+   "md": "An agent asked to restart a container on a staging server, the kind of infrastructure change the remediation agent (a later section) makes, emits a short tool call. The host runtime checks the call against the tool's schema, confirms that this session may restart that container, and sends `POST /containers/srv-stage-04/restart`. Two seconds later the socket times out. The request may be lost, delayed, still executing, or completed without a delivered reply. A retry could restart healthy workers, and the first attempt can still take effect after the timeout."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Computer-use tool calls matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A click keeps every tool-boundary invariant while losing atomicity, so each observation carries capture, window, and coordinate mapping and target identity is rechecked before dispatch."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-07-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Tool Boundary** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A schema settles only structure, so any precondition that depends on current state (an expected version, a canonical path) must be enforced atomically with the effect at the endpoint.",
+      "A program that acts with its own legitimate authority on behalf of a less privileged requester can be steered to misuse that authority, so authority must follow the request, not the program.",
+      "A click keeps every tool-boundary invariant while losing atomicity, so each observation carries capture, window, and coordinate mapping and target identity is rechecked before dispatch.",
+      "Which descriptors the model sees each turn and how much work each tool does are design variables priced in context tokens and in cost per accepted task."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Computer-use tool calls**: A click keeps every tool-boundary invariant while losing atomicity, so each observation carries capture, window, and coordinate mapping and target identity is rechecked before dispatch."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through The Tool Boundary."
+   ]
+  }
+ ]
+}

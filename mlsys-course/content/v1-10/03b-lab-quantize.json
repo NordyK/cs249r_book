@@ -1,0 +1,120 @@
+{
+ "title": "Lab: quantize a number by hand",
+ "summary": "Compute scale, zero point and integer codes for 8-bit and 4-bit quantization and measure the error.",
+ "minutes": 20,
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Uniform (affine) quantization maps a real range $[x_{min}, x_{max}]$ onto the integers $0 \\dots 2^b - 1$. Two numbers describe the mapping: the **scale** $s$, the real width of one integer step, and the **zero point** $z$, the integer that stands for real 0."
+  },
+  {
+   "type": "derivation",
+   "title": "8-bit code for x = 0.337 in the range [-1, 1]",
+   "rel": "=",
+   "steps": [
+    {
+     "lhs": "s",
+     "rhs": "\\frac{1 - (-1)}{2^{8} - 1} = \\frac{2}{255} \\approx 0.007843",
+     "why": "255 steps cover the whole range."
+    },
+    {
+     "lhs": "z",
+     "rhs": "\\operatorname{round}\\left(\\frac{1}{0.007843}\\right) = 128",
+     "why": "The integer that represents 0 (127.5 rounds up)."
+    },
+    {
+     "lhs": "q",
+     "rhs": "\\operatorname{round}\\left(\\frac{0.337}{0.007843}\\right) + 128 = 43 + 128 = 171",
+     "why": "Divide by the step, round, shift by the zero point."
+    },
+    {
+     "lhs": "\\hat{x}",
+     "rhs": "(171 - 128)\\times 0.007843 \\approx 0.33725",
+     "why": "Dequantize: the error is 0.00025, well under half a step."
+    }
+   ]
+  },
+  {
+   "type": "widget",
+   "id": "v1-10-lab-q-widget",
+   "widget": "quantize",
+   "title": "Try it: fewer bits",
+   "params": {
+    "bits": 8,
+    "xmin": -1,
+    "xmax": 1,
+    "x": 0.337
+   },
+   "challenge": {
+    "md": "Drop to **4 bits**. What integer code q does 0.337 get now?",
+    "answer": 11,
+    "tolerance": 0,
+    "unit": "",
+    "hint": "s = 2/15, z = round(7.5) = 8.",
+    "explanation": "s = 0.1333, 0.337/0.1333 = 2.53 rounds to 3, plus z = 8 gives 11. It dequantizes to 0.4, an error of 0.063: 250 times worse than 8 bits."
+   }
+  },
+  {
+   "type": "playground",
+   "id": "v1-10-lab-q-play",
+   "title": "Quantize and dequantize in Python",
+   "md": "Write `quantize` and `dequantize`. Round half up with `math.floor(v + 0.5)` so your answers match the calculator, and clip `x` into the range first.",
+   "code": "import math\n\n\ndef params(xmin, xmax, bits):\n    s = (xmax - xmin) / (2 ** bits - 1)\n    z = math.floor(-xmin / s + 0.5)\n    return s, z\n\n\ndef quantize(x, xmin, xmax, bits):\n    s, z = params(xmin, xmax, bits)\n    # TODO: clip x into [xmin, xmax], then return the integer code\n    return None\n\n\ndef dequantize(q, xmin, xmax, bits):\n    s, z = params(xmin, xmax, bits)\n    # TODO\n    return None\n\n\nprint(quantize(0.337, -1, 1, 8))\n",
+   "check": "assert quantize(0.337, -1, 1, 8) == 171\nassert quantize(0.337, -1, 1, 4) == 11\nassert abs(dequantize(171, -1, 1, 8) - 0.33725490) < 1e-6\nassert quantize(5.0, -1, 1, 8) == quantize(1.0, -1, 1, 8), 'values outside the range must be clipped'",
+   "hint": "`x = min(max(x, xmin), xmax)`; `return math.floor(x / s + 0.5) + z`; dequantize is `(q - z) * s`.",
+   "solution": "import math\n\n\ndef params(xmin, xmax, bits):\n    s = (xmax - xmin) / (2 ** bits - 1)\n    z = math.floor(-xmin / s + 0.5)\n    return s, z\n\n\ndef quantize(x, xmin, xmax, bits):\n    s, z = params(xmin, xmax, bits)\n    x = min(max(x, xmin), xmax)\n    return math.floor(x / s + 0.5) + z\n\n\ndef dequantize(q, xmin, xmax, bits):\n    s, z = params(xmin, xmax, bits)\n    return (q - z) * s\n\n\nfor b in (8, 4):\n    q = quantize(0.337, -1, 1, b)\n    print(b, 'bits:', q, dequantize(q, -1, 1, b))\n"
+  },
+  {
+   "type": "quiz",
+   "id": "v1-10-lab-q-quiz",
+   "title": "Check your numbers",
+   "questions": [
+    {
+     "type": "numeric",
+     "q": "How many GB do the weights of a 7-billion-parameter model take in int4?",
+     "answer": 3.5,
+     "tolerance": 0.01,
+     "unit": "GB",
+     "hint": "Half a byte per weight.",
+     "explanation": "7 × 10⁹ × 0.5 B = 3.5 GB, down from 14 GB in bf16 and 28 GB in fp32."
+    },
+    {
+     "type": "numeric",
+     "q": "Going from fp32 to int8 shrinks weight memory by what factor?",
+     "answer": 4,
+     "tolerance": 0,
+     "unit": "×",
+     "hint": "Bytes before over bytes after.",
+     "explanation": "4 bytes to 1 byte: 4x smaller, and 4x less data to move per inference step."
+    },
+    {
+     "type": "single",
+     "q": "A value outside $[x_{min}, x_{max}]$ is clipped. Why is a range set by one huge outlier a bad idea?",
+     "options": [
+      "It makes every step wider, so all typical values lose precision",
+      "It causes overflow in the integers",
+      "It changes the zero point to a negative number",
+      "It has no effect on accuracy"
+     ],
+     "answer": 0,
+     "hint": "The scale is range divided by the number of steps.",
+     "explanation": "A wider range means a bigger step for every value. Calibration usually clips rare outliers to keep the common values precise."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Scale = range / (2^b - 1); zero point = the integer that stands for 0.",
+    "Each bit removed doubles the step size and roughly doubles the rounding error.",
+    "Pick the range with calibration: clipping a few outliers usually beats a huge step for everyone."
+   ]
+  }
+ ],
+ "source": {
+  "chapter": "v1-10",
+  "sections": [
+   "hands-on lab"
+  ]
+ }
+}

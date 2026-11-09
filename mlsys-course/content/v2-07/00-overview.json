@@ -1,0 +1,305 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Fault Tolerance** (Vol II). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, Purpose",
+   "md": "A single accelerator can run for years between hardware failures. A thousand accelerators turn that same component risk into failures every couple of days, and ten thousand see failures every few hours, while shared power and network faults can interrupt many workers at once. Individual devices need not become less reliable for the fleet to experience failures routinely."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Failure Analysis at Scale",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "The Mathematics of Inevitable Failure",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Failure Taxonomy",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Hardware Faults at Fleet Scale",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Check-and-Verify Defenses Against Silent",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Software Faults",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "The Cost of Failure",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Fleet failure rate**",
+     "Independent constant-rate failures compose in series, so system MTBF = MTTF/N turns a 50,000-hour GPU into an interruption every few hours on a 10,000-GPU cluster, and correlated hazards over shared power, switches, and cooling come on top."
+    ],
+    [
+     "**Fault classification by persistence, manifestation, and scope**",
+     "A fault is placed on three axes that each select part of the response: persistence decides retry, quarantine, or replace-and-restore, manifestation decides whether liveness checks can see it, and scope decides the blast radius."
+    ],
+    [
+     "**Silent data corruption verification**",
+     "ECC and link CRCs protect stored and transmitted bits but never arithmetic, so a live worker can feed a wrong gradient into a correct AllReduce, and because full redundancy costs 100 to 200 percent of compute, fleets use selective check-and-verify."
+    ],
+    [
+     "**Young-Daly checkpoint interval**",
+     "Expected waste delta/tau + tau/(2M) is minimized at tau* = sqrt(2 delta M), a shallow optimum that tightens only by sqrt(2) when MTBF halves, while the optimized overhead sqrt(2 delta/M) grows as sqrt(N) because M falls as 1/N."
+    ],
+    [
+     "**Consistent checkpoint cut**",
+     "A distributed checkpoint is recoverable only when its shards form a consistent cut and a manifest naming every shard is published last, so training uses coordinated checkpoints whose stage-then-publish protocol is a two-phase commit."
+    ],
+    [
+     "**Recovery-time budget and fencing**",
+     "Each failure pays T_detect + T_restart + T_load + T_warmup on top of lost rework, which comes to dominate as clusters grow, and epochs, leases, and write fencing stop a stale worker from corrupting the recovered state."
+    ],
+    [
+     "**Gray failure detection**",
+     "A gray failure keeps passing liveness checks while the synchronous step runs at the slowest rank's pace, so stragglers call for mitigation (rebalance, backup workers, proactive replacement) rather than checkpoint recovery, with progress metrics beside heartbeats."
+    ],
+    [
+     "**Elastic recovery invariants**",
+     "Elastic recovery turns a permanent capacity loss into a pause plus reduced throughput only if the resize preserves effective batch size or a validated learning-rate policy, exactly-once data coverage, and reconstructable state for every lost shard."
+    ],
+    [
+     "**Serving replication sized to state**",
+     "Serving buys availability with parallel replicas, A = 1 - (1 - a)^r when failures are independent, and failover is a retry for stateless workers but a reconstruction for stateful ones, so design starts from which state is authoritative."
+    ],
+    [
+     "**Graceful degradation ladder**",
+     "When redundancy cannot meet the latency budget the service descends a ladder validated before the incident (model fallback, feature fallback, load shedding, admission control) with hysteresis and monitoring of the quality it trades."
+    ],
+    [
+     "**Fault injection at the decision level**",
+     "A recovery path is trustworthy only for the fault model it has been exercised against, so tests inject faults where recovery decisions are made and assert the invariant each decision depends on."
+    ],
+    [
+     "**Fault-tolerance investment criterion**",
+     "A protection is worth buying while it removes more expected failure cost than it adds, so the same hot spare that pays for itself beside a 10,000-GPU job is waste beside an 8-GPU one."
+    ],
+    [
+     "**Observability for one distributed job**",
+     "Metrics, logs, and traces joined on shared identifiers localize a failure in one job or service, and a training-loss signature or serving symptom becomes evidence only when it maps to a first recovery action."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$R_{\\text{single}}(t) = e^{-\\lambda t}$$\n\n$$R_{\\text{system}}(t) = \\prod_{i=1}^{N} R_i(t) = \\prod_{i=1}^{N} e^{-\\lambda_i t}$$\n\n$$R_{\\text{system}}(t) = e^{-N\\lambda t}$$\n\n$$\\text{MTBF}_{\\text{system}} = \\frac{1}{N\\lambda} = \\frac{\\text{MTBF}_{\\text{component}}}{N}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v2-07-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Fleet failure rate",
+     "back": "Independent constant-rate failures compose in series, so system MTBF = MTTF/N turns a 50,000-hour GPU into an interruption every few hours on a 10,000-GPU cluster, and correlated hazards over shared power, switches, and cooling come on top."
+    },
+    {
+     "front": "Fault classification by persistence, manifestation, and scope",
+     "back": "A fault is placed on three axes that each select part of the response: persistence decides retry, quarantine, or replace-and-restore, manifestation decides whether liveness checks can see it, and scope decides the blast radius."
+    },
+    {
+     "front": "Silent data corruption verification",
+     "back": "ECC and link CRCs protect stored and transmitted bits but never arithmetic, so a live worker can feed a wrong gradient into a correct AllReduce, and because full redundancy costs 100 to 200 percent of compute, fleets use selective check-and-verify."
+    },
+    {
+     "front": "Young-Daly checkpoint interval",
+     "back": "Expected waste delta/tau + tau/(2M) is minimized at tau* = sqrt(2 delta M), a shallow optimum that tightens only by sqrt(2) when MTBF halves, while the optimized overhead sqrt(2 delta/M) grows as sqrt(N) because M falls as 1/N."
+    },
+    {
+     "front": "Consistent checkpoint cut",
+     "back": "A distributed checkpoint is recoverable only when its shards form a consistent cut and a manifest naming every shard is published last, so training uses coordinated checkpoints whose stage-then-publish protocol is a two-phase commit."
+    },
+    {
+     "front": "Recovery-time budget and fencing",
+     "back": "Each failure pays T_detect + T_restart + T_load + T_warmup on top of lost rework, which comes to dominate as clusters grow, and epochs, leases, and write fencing stop a stale worker from corrupting the recovered state."
+    },
+    {
+     "front": "Gray failure detection",
+     "back": "A gray failure keeps passing liveness checks while the synchronous step runs at the slowest rank's pace, so stragglers call for mitigation (rebalance, backup workers, proactive replacement) rather than checkpoint recovery, with progress metrics beside heartbeats."
+    },
+    {
+     "front": "Elastic recovery invariants",
+     "back": "Elastic recovery turns a permanent capacity loss into a pause plus reduced throughput only if the resize preserves effective batch size or a validated learning-rate policy, exactly-once data coverage, and reconstructable state for every lost shard."
+    },
+    {
+     "front": "Serving replication sized to state",
+     "back": "Serving buys availability with parallel replicas, A = 1 - (1 - a)^r when failures are independent, and failover is a retry for stateless workers but a reconstruction for stateful ones, so design starts from which state is authoritative."
+    },
+    {
+     "front": "Graceful degradation ladder",
+     "back": "When redundancy cannot meet the latency budget the service descends a ladder validated before the incident (model fallback, feature fallback, load shedding, admission control) with hysteresis and monitoring of the quality it trades."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Fleet failure rate**?",
+     "options": [
+      "A protection is worth buying while it removes more expected failure cost than it adds, so the same hot spare that pays for itself beside a 10,000-GPU job is waste beside an 8-GPU one.",
+      "ECC and link CRCs protect stored and transmitted bits but never arithmetic, so a live worker can feed a wrong gradient into a correct AllReduce, and because full redundancy costs 100 to 200 percent of compute, fleets use selective check-and-verify.",
+      "A distributed checkpoint is recoverable only when its shards form a consistent cut and a manifest naming every shard is published last, so training uses coordinated checkpoints whose stage-then-publish protocol is a two-phase commit.",
+      "Independent constant-rate failures compose in series, so system MTBF = MTTF/N turns a 50,000-hour GPU into an interruption every few hours on a 10,000-GPU cluster, and correlated hazards over shared power, switches, and cooling come on top."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Fleet failure rate itself, not a neighbouring idea.",
+     "explanation": "**Fleet failure rate:** Independent constant-rate failures compose in series, so system MTBF = MTTF/N turns a 50,000-hour GPU into an interruption every few hours on a 10,000-GPU cluster, and correlated hazards over shared power, switches, and cooling come on top."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Fault classification by persistence, manifestation, and scope**?",
+     "options": [
+      "A fault is placed on three axes that each select part of the response: persistence decides retry, quarantine, or replace-and-restore, manifestation decides whether liveness checks can see it, and scope decides the blast radius.",
+      "Metrics, logs, and traces joined on shared identifiers localize a failure in one job or service, and a training-loss signature or serving symptom becomes evidence only when it maps to a first recovery action.",
+      "ECC and link CRCs protect stored and transmitted bits but never arithmetic, so a live worker can feed a wrong gradient into a correct AllReduce, and because full redundancy costs 100 to 200 percent of compute, fleets use selective check-and-verify.",
+      "Expected waste delta/tau + tau/(2M) is minimized at tau* = sqrt(2 delta M), a shallow optimum that tightens only by sqrt(2) when MTBF halves, while the optimized overhead sqrt(2 delta/M) grows as sqrt(N) because M falls as 1/N."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Fault classification by persistence, manifestation, and scope itself, not a neighbouring idea.",
+     "explanation": "**Fault classification by persistence, manifestation, and scope:** A fault is placed on three axes that each select part of the response: persistence decides retry, quarantine, or replace-and-restore, manifestation decides whether liveness checks can see it, and scope decides the blast radius."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Silent data corruption verification**?",
+     "options": [
+      "Each failure pays T_detect + T_restart + T_load + T_warmup on top of lost rework, which comes to dominate as clusters grow, and epochs, leases, and write fencing stop a stale worker from corrupting the recovered state.",
+      "ECC and link CRCs protect stored and transmitted bits but never arithmetic, so a live worker can feed a wrong gradient into a correct AllReduce, and because full redundancy costs 100 to 200 percent of compute, fleets use selective check-and-verify.",
+      "A gray failure keeps passing liveness checks while the synchronous step runs at the slowest rank's pace, so stragglers call for mitigation (rebalance, backup workers, proactive replacement) rather than checkpoint recovery, with progress metrics beside heartbeats.",
+      "Expected waste delta/tau + tau/(2M) is minimized at tau* = sqrt(2 delta M), a shallow optimum that tightens only by sqrt(2) when MTBF halves, while the optimized overhead sqrt(2 delta/M) grows as sqrt(N) because M falls as 1/N."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Silent data corruption verification itself, not a neighbouring idea.",
+     "explanation": "**Silent data corruption verification:** ECC and link CRCs protect stored and transmitted bits but never arithmetic, so a live worker can feed a wrong gradient into a correct AllReduce, and because full redundancy costs 100 to 200 percent of compute, fleets use selective check-and-verify."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Young-Daly checkpoint interval**?",
+     "options": [
+      "A recovery path is trustworthy only for the fault model it has been exercised against, so tests inject faults where recovery decisions are made and assert the invariant each decision depends on.",
+      "When redundancy cannot meet the latency budget the service descends a ladder validated before the incident (model fallback, feature fallback, load shedding, admission control) with hysteresis and monitoring of the quality it trades.",
+      "Elastic recovery turns a permanent capacity loss into a pause plus reduced throughput only if the resize preserves effective batch size or a validated learning-rate policy, exactly-once data coverage, and reconstructable state for every lost shard.",
+      "Expected waste delta/tau + tau/(2M) is minimized at tau* = sqrt(2 delta M), a shallow optimum that tightens only by sqrt(2) when MTBF halves, while the optimized overhead sqrt(2 delta/M) grows as sqrt(N) because M falls as 1/N."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Young-Daly checkpoint interval itself, not a neighbouring idea.",
+     "explanation": "**Young-Daly checkpoint interval:** Expected waste delta/tau + tau/(2M) is minimized at tau* = sqrt(2 delta M), a shallow optimum that tightens only by sqrt(2) when MTBF halves, while the optimized overhead sqrt(2 delta/M) grows as sqrt(N) because M falls as 1/N."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Consistent checkpoint cut**?",
+     "options": [
+      "A distributed checkpoint is recoverable only when its shards form a consistent cut and a manifest naming every shard is published last, so training uses coordinated checkpoints whose stage-then-publish protocol is a two-phase commit.",
+      "Expected waste delta/tau + tau/(2M) is minimized at tau* = sqrt(2 delta M), a shallow optimum that tightens only by sqrt(2) when MTBF halves, while the optimized overhead sqrt(2 delta/M) grows as sqrt(N) because M falls as 1/N.",
+      "When redundancy cannot meet the latency budget the service descends a ladder validated before the incident (model fallback, feature fallback, load shedding, admission control) with hysteresis and monitoring of the quality it trades.",
+      "Each failure pays T_detect + T_restart + T_load + T_warmup on top of lost rework, which comes to dominate as clusters grow, and epochs, leases, and write fencing stop a stale worker from corrupting the recovered state."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Consistent checkpoint cut itself, not a neighbouring idea.",
+     "explanation": "**Consistent checkpoint cut:** A distributed checkpoint is recoverable only when its shards form a consistent cut and a manifest naming every shard is published last, so training uses coordinated checkpoints whose stage-then-publish protocol is a two-phase commit."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Fleet failure rate: Independent constant-rate failures compose in series, so system MTBF = MTTF/N turns a 50,000-hour GPU into an interruption every few hours on a 10,000-GPU cluster, and correlated hazards over shared power, switches, and cooling come on top.",
+    "Fault classification by persistence, manifestation, and scope: A fault is placed on three axes that each select part of the response: persistence decides retry, quarantine, or replace-and-restore, manifestation decides whether liveness checks can see it, and scope decides the blast radius.",
+    "Silent data corruption verification: ECC and link CRCs protect stored and transmitted bits but never arithmetic, so a live worker can feed a wrong gradient into a correct AllReduce, and because full redundancy costs 100 to 200 percent of compute, fleets use selective check-and-verify.",
+    "Young-Daly checkpoint interval: Expected waste delta/tau + tau/(2M) is minimized at tau* = sqrt(2 delta M), a shallow optimum that tightens only by sqrt(2) when MTBF halves, while the optimized overhead sqrt(2 delta/M) grows as sqrt(N) because M falls as 1/N."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Fleet failure rate",
+   "def": "Independent constant-rate failures compose in series, so system MTBF = MTTF/N turns a 50,000-hour GPU into an interruption every few hours on a 10,000-GPU cluster, and correlated hazards over shared power, switches, and cooling come on top."
+  },
+  {
+   "term": "Fault classification by persistence, manifestation, and scope",
+   "def": "A fault is placed on three axes that each select part of the response: persistence decides retry, quarantine, or replace-and-restore, manifestation decides whether liveness checks can see it, and scope decides the blast radius."
+  },
+  {
+   "term": "Silent data corruption verification",
+   "def": "ECC and link CRCs protect stored and transmitted bits but never arithmetic, so a live worker can feed a wrong gradient into a correct AllReduce, and because full redundancy costs 100 to 200 percent of compute, fleets use selective check-and-verify."
+  },
+  {
+   "term": "Young-Daly checkpoint interval",
+   "def": "Expected waste delta/tau + tau/(2M) is minimized at tau* = sqrt(2 delta M), a shallow optimum that tightens only by sqrt(2) when MTBF halves, while the optimized overhead sqrt(2 delta/M) grows as sqrt(N) because M falls as 1/N."
+  },
+  {
+   "term": "Consistent checkpoint cut",
+   "def": "A distributed checkpoint is recoverable only when its shards form a consistent cut and a manifest naming every shard is published last, so training uses coordinated checkpoints whose stage-then-publish protocol is a two-phase commit."
+  },
+  {
+   "term": "Recovery-time budget and fencing",
+   "def": "Each failure pays T_detect + T_restart + T_load + T_warmup on top of lost rework, which comes to dominate as clusters grow, and epochs, leases, and write fencing stop a stale worker from corrupting the recovered state."
+  },
+  {
+   "term": "Gray failure detection",
+   "def": "A gray failure keeps passing liveness checks while the synchronous step runs at the slowest rank's pace, so stragglers call for mitigation (rebalance, backup workers, proactive replacement) rather than checkpoint recovery, with progress metrics beside heartbeats."
+  },
+  {
+   "term": "Elastic recovery invariants",
+   "def": "Elastic recovery turns a permanent capacity loss into a pause plus reduced throughput only if the resize preserves effective batch size or a validated learning-rate policy, exactly-once data coverage, and reconstructable state for every lost shard."
+  },
+  {
+   "term": "Serving replication sized to state",
+   "def": "Serving buys availability with parallel replicas, A = 1 - (1 - a)^r when failures are independent, and failover is a retry for stateless workers but a reconstruction for stateful ones, so design starts from which state is authoritative."
+  },
+  {
+   "term": "Graceful degradation ladder",
+   "def": "When redundancy cannot meet the latency budget the service descends a ladder validated before the incident (model fallback, feature fallback, load shedding, admission control) with hysteresis and monitoring of the quality it trades."
+  },
+  {
+   "term": "Fault injection at the decision level",
+   "def": "A recovery path is trustworthy only for the fault model it has been exercised against, so tests inject faults where recovery decisions are made and assert the invariant each decision depends on."
+  },
+  {
+   "term": "Fault-tolerance investment criterion",
+   "def": "A protection is worth buying while it removes more expected failure cost than it adds, so the same hot spare that pays for itself beside a 10,000-GPU job is waste beside an 8-GPU one."
+  },
+  {
+   "term": "Observability for one distributed job",
+   "def": "Metrics, logs, and traces joined on shared identifiers localize a failure in one job or service, and a training-loss signature or serving symptom becomes evidence only when it maps to a first recovery action."
+  }
+ ]
+}

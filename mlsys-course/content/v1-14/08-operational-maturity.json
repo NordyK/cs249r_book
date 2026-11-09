@@ -1,0 +1,103 @@
+{
+ "title": "Operational Maturity",
+ "summary": "Explain why service uptime is an insufficient measure of ML system health using the Uptime Iceberg model.",
+ "source": {
+  "chapter": "v1-14",
+  "sections": [
+   "Operational Maturity",
+   "ML test score",
+   "Maturity levels",
+   "System design implications",
+   "Design patterns and anti-patterns",
+   "MLOps investment economics"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain why service uptime is an insufficient measure of ML system health using the Uptime Iceberg model\n- Prioritize staged MLOps infrastructure investments based on ROI and operational risk\n- Analyze how weak cross-team handoffs create MLOps failure modes and how shared ownership structures mitigate them\n- Classify organizational ML system practices across the three levels of operational maturity\n- Use the min-bounded ML Test Score to identify which category limits the reported readiness score and how that affects investment priority"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Operations, § Operational Maturity",
+   "md": "An organization deploying its initial ML model might rely on a hand-run Jupyter notebook, a scheduled cron job, and minimal monitoring. A mature enterprise runs thousands of models through automated pipelines with drift detection, canary deployments, and continuous validation. Both are doing \"MLOps,\" yet they differ greatly in reliability, cost efficiency, and deployment velocity."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- ML test score\n- Maturity levels\n- System design implications\n- Design patterns and anti-patterns\n- MLOps investment economics\n\nPay attention to: operational maturity levels (Ad Hoc, Repeatable, Scalable); the Uptime Iceberg (Service Health vs Data Health vs Model Health); organizational design patterns and anti-patterns; staged MLOps investment economics."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Describe the organizational failure in which one team develops a model and hands it to another team for deployment without shared operational ownership, and explain how a cross-functional or federated MLOps structure resolves it.",
+   "md": "This handoff failure occurs when one group develops a model and hands off code, weights, or notebook outputs to another group without shared operational context, ownership, or release discipline. This can leave teams misaligned on feature semantics, latency budgets, runtime dependencies, drift monitoring, and rollback expectations. A cross-functional or federated MLOps structure helps by creating shared ownership across development, deployment, monitoring, and incident response, with clearer interfaces and handoffs. It reduces the coordination gap, though it does not automatically resolve every organizational or technical failure mode."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-14-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "What fundamental reliability concept is illustrated by the 'Uptime Iceberg' metaphor in production machine learning systems?",
+     "explanation": "The correct answer is A. Traditional service availability (uptime and low latency) is only the visible tip; hidden failures like feature drift, concept drift, schema corruption, and subpopulation degradation lurk beneath the surface. The Uptime Iceberg illustrates that an ML service can maintain 99.99% uptime and green infrastructure dashboards while serving completely invalid or degraded predictions due to data outages, schema changes, or drift. Comprehensive MLOps must monitor all three tiers: Service Health, Data Health, and Model Health. The alternative choices introduce unrelated network latency, thermodynamic cooling, or memory storage claims.",
+     "hint": "Think about: explain why service uptime is an insufficient measure of ML system health using the Uptime Iceberg model",
+     "type": "single",
+     "options": [
+      "Traditional service availability (uptime and low latency) is only the visible tip; hidden failures like feature drift, concept drift, schema corruption, and subpopulation degradation lurk beneath the surface",
+      "Distributed feature retrieval latency over wide-area networks always exceeds local GPU inference execution time",
+      "Data center cooling overhead exceeds the total electrical power consumed by GPU inference accelerators",
+      "Deep neural network weight storage in DRAM requires larger memory allocations than raw training dataset storage"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An organization with limited engineering resources is deploying its first production ML model. Based on the chapter's investment economics framework, which staging sequence provides the most cost-effective path to reliability?",
+     "explanation": "The correct answer is B. Invest first in statistical monitoring and basic CI/CD deployment pipelines, then add centralized feature stores and automated retraining as model scale and drift warrant. Monitoring provides immediate visibility into silent statistical failure, and CI/CD ensures safe, reproducible releases. Complex infrastructure like enterprise feature stores and closed-loop continuous retraining should be added incrementally as traffic volume, training-serving skew, and model criticality justify the capital investment. Building heavy enterprise infrastructure upfront over-engineers before validating value, while purchasing platforms to avoid on-call rotations represents a tool-first anti-pattern.",
+     "hint": "Think about: prioritize staged MLOps infrastructure investments based on ROI and operational risk",
+     "type": "single",
+     "options": [
+      "Construct an enterprise-wide multi-region distributed feature store and autonomous retraining cluster before deploying the initial model",
+      "Invest first in statistical monitoring and basic CI/CD deployment pipelines, then add centralized feature stores and automated retraining as model scale and drift warrant",
+      "Procure an all-in-one commercial MLOps platform suite to eliminate cross-functional on-call rotations",
+      "Defer all monitoring and automation investments until multiple major production outages have occurred"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "An engineering team is assessing the operational maturity of an ML deployment. Place the three operational maturity stages in order from least mature to most mature:",
+     "explanation": "The correct sequence is: (3) Ad Hoc -> (1) Repeatable -> (2) Scalable.\nAn organization begins with (3) Ad Hoc manual workflows, matures into (1) Repeatable structured pipelines with centralized storage, and reaches (2) Scalable operations with automated closed-loop validation and shared feature infrastructure. The feature store at the scalable stage supports shared feature definitions, but consistency still has to be verified rather than assumed guaranteed.",
+     "hint": "Think about: classify organizational ML system practices across the three levels of operational maturity",
+     "type": "order",
+     "items": [
+      "Ad Hoc: Hand-crafted Jupyter notebooks, local training on developer machines, manual pickle file deployment, and absence of formal versioning.",
+      "Repeatable: Version-controlled training scripts, scheduled batch retraining jobs, centralized model registry, and basic performance monitoring.",
+      "Scalable: Shared feature definitions with verified training-serving parity, closed-loop drift detection with automated canary validation, and infrastructure-as-code."
+     ]
+    },
+    {
+     "q": "A team's ML Test Score audit yields category scores of data 6, model 7, infrastructure 5, and monitoring 1 (each out of 7). Leadership proposes adding two new model tests next quarter. What does the rubric imply about that plan?",
+     "explanation": "The correct answer is B. It yields no gain in the rubric's overall score, because the composite score is the minimum category and monitoring bounds it at 1. The ML Test Score uses the minimum across categories, so improving model tests alone does not raise the reported aggregate when monitoring remains the bottleneck. That does not mean extra tests are useless in every broader safety sense, but under this rubric the priority for raising the score is clearly the weakest category.",
+     "hint": "Think about: use the min-bounded ML Test Score to identify which category limits the reported readiness score and how that affects investment priority",
+     "type": "single",
+     "options": [
+      "It raises the overall score, because every added test increases the composite total",
+      "It yields no gain in the rubric's overall score, because the composite score is the minimum category and monitoring bounds it at 1",
+      "It is the right priority, because model tests catch the largest share of production failures",
+      "It lowers the overall score, because an unbalanced rubric penalizes over-investment in one category"
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain why service uptime is an insufficient measure of ML system health using the Uptime Iceberg model.",
+    "You can now prioritize staged MLOps infrastructure investments based on ROI and operational risk.",
+    "You can now analyze how weak cross-team handoffs create MLOps failure modes and how shared ownership structures mitigate them.",
+    "You can now classify organizational ML system practices across the three levels of operational maturity."
+   ]
+  }
+ ]
+}

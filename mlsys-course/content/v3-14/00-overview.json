@@ -1,0 +1,239 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v3-14",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Operating Agents** (Vol III). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Operating Agents, Purpose",
+   "md": "An offline evaluation picks its tasks, fixtures, and graders in advance, and live traffic honors none of those choices. Production brings inputs no fixture anticipated, dependencies that slow down under load, and tool results cut short without warning, while every admitted task acts with real authority. When the rate of accepted tasks drops, the count says that something failed but not where, because one trial spreads its model calls, tool executions, and checks across processes and hosts."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "From Offline Verdict to Live Operation",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Distributed Trajectory Tracing",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Trace Retention and Privacy",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Incident Postmortems",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Staged Releases",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "The Release Decision",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Exercises",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Trajectory traces**",
+     "Spans bind every model call, mediated tool execution, and check to their trial and artifact, but a diagnostic trace may sample or drop and never replaces the durable recovery log or the verdict record."
+    ],
+    [
+     "**Trace retention**",
+     "Sampling may thin diagnostic detail but never the accounting record of admitted trials, verdicts, spend, and drops, and retention is chosen per verdict under storage and privacy budgets."
+    ],
+    [
+     "**Postmortem by intervention**",
+     "An agent incident is diagnosed by keeping findings separated by boundary and testing each with a controlled intervention on the recorded trajectory, not by naming one culprit."
+    ],
+    [
+     "**Staged release**",
+     "Release exposure is staged so each stage answers its own question (offline gate, shadow execution, bounded canary), with sequential monitoring and hard tripwires that stop admission."
+    ],
+    [
+     "**Release gate**",
+     "A release decision is a declared conjunctive rule written before data and applied to an evidence record that keeps verdicts, paired cohorts, and diagnostics."
+    ],
+    [
+     "**Critical path**",
+     "The longest chain of dependent operations recorded in the trace is measured from span timing, and only work on it can shorten the trajectory."
+    ],
+    [
+     "**Empirical safety case**",
+     "Release is justified by a scoped, inspectable safety case of claim, argument, evidence, assumptions, and residual uncertainty, and evidence for one claim does not establish the others."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v3-14-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Trajectory traces",
+     "back": "Spans bind every model call, mediated tool execution, and check to their trial and artifact, but a diagnostic trace may sample or drop and never replaces the durable recovery log or the verdict record."
+    },
+    {
+     "front": "Trace retention",
+     "back": "Sampling may thin diagnostic detail but never the accounting record of admitted trials, verdicts, spend, and drops, and retention is chosen per verdict under storage and privacy budgets."
+    },
+    {
+     "front": "Postmortem by intervention",
+     "back": "An agent incident is diagnosed by keeping findings separated by boundary and testing each with a controlled intervention on the recorded trajectory, not by naming one culprit."
+    },
+    {
+     "front": "Staged release",
+     "back": "Release exposure is staged so each stage answers its own question (offline gate, shadow execution, bounded canary), with sequential monitoring and hard tripwires that stop admission."
+    },
+    {
+     "front": "Release gate",
+     "back": "A release decision is a declared conjunctive rule written before data and applied to an evidence record that keeps verdicts, paired cohorts, and diagnostics."
+    },
+    {
+     "front": "Critical path",
+     "back": "The longest chain of dependent operations recorded in the trace is measured from span timing, and only work on it can shorten the trajectory."
+    },
+    {
+     "front": "Empirical safety case",
+     "back": "Release is justified by a scoped, inspectable safety case of claim, argument, evidence, assumptions, and residual uncertainty, and evidence for one claim does not establish the others."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v3-14-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Trajectory traces**?",
+     "options": [
+      "Release is justified by a scoped, inspectable safety case of claim, argument, evidence, assumptions, and residual uncertainty, and evidence for one claim does not establish the others.",
+      "Sampling may thin diagnostic detail but never the accounting record of admitted trials, verdicts, spend, and drops, and retention is chosen per verdict under storage and privacy budgets.",
+      "Spans bind every model call, mediated tool execution, and check to their trial and artifact, but a diagnostic trace may sample or drop and never replaces the durable recovery log or the verdict record.",
+      "Release exposure is staged so each stage answers its own question (offline gate, shadow execution, bounded canary), with sequential monitoring and hard tripwires that stop admission."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Trajectory traces itself, not a neighbouring idea.",
+     "explanation": "**Trajectory traces:** Spans bind every model call, mediated tool execution, and check to their trial and artifact, but a diagnostic trace may sample or drop and never replaces the durable recovery log or the verdict record."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Trace retention**?",
+     "options": [
+      "A release decision is a declared conjunctive rule written before data and applied to an evidence record that keeps verdicts, paired cohorts, and diagnostics.",
+      "Sampling may thin diagnostic detail but never the accounting record of admitted trials, verdicts, spend, and drops, and retention is chosen per verdict under storage and privacy budgets.",
+      "An agent incident is diagnosed by keeping findings separated by boundary and testing each with a controlled intervention on the recorded trajectory, not by naming one culprit.",
+      "The longest chain of dependent operations recorded in the trace is measured from span timing, and only work on it can shorten the trajectory."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Trace retention itself, not a neighbouring idea.",
+     "explanation": "**Trace retention:** Sampling may thin diagnostic detail but never the accounting record of admitted trials, verdicts, spend, and drops, and retention is chosen per verdict under storage and privacy budgets."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Postmortem by intervention**?",
+     "options": [
+      "An agent incident is diagnosed by keeping findings separated by boundary and testing each with a controlled intervention on the recorded trajectory, not by naming one culprit.",
+      "A release decision is a declared conjunctive rule written before data and applied to an evidence record that keeps verdicts, paired cohorts, and diagnostics.",
+      "Release exposure is staged so each stage answers its own question (offline gate, shadow execution, bounded canary), with sequential monitoring and hard tripwires that stop admission.",
+      "Spans bind every model call, mediated tool execution, and check to their trial and artifact, but a diagnostic trace may sample or drop and never replaces the durable recovery log or the verdict record."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Postmortem by intervention itself, not a neighbouring idea.",
+     "explanation": "**Postmortem by intervention:** An agent incident is diagnosed by keeping findings separated by boundary and testing each with a controlled intervention on the recorded trajectory, not by naming one culprit."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Staged release**?",
+     "options": [
+      "Release exposure is staged so each stage answers its own question (offline gate, shadow execution, bounded canary), with sequential monitoring and hard tripwires that stop admission.",
+      "A release decision is a declared conjunctive rule written before data and applied to an evidence record that keeps verdicts, paired cohorts, and diagnostics.",
+      "An agent incident is diagnosed by keeping findings separated by boundary and testing each with a controlled intervention on the recorded trajectory, not by naming one culprit.",
+      "The longest chain of dependent operations recorded in the trace is measured from span timing, and only work on it can shorten the trajectory."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Staged release itself, not a neighbouring idea.",
+     "explanation": "**Staged release:** Release exposure is staged so each stage answers its own question (offline gate, shadow execution, bounded canary), with sequential monitoring and hard tripwires that stop admission."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Release gate**?",
+     "options": [
+      "An agent incident is diagnosed by keeping findings separated by boundary and testing each with a controlled intervention on the recorded trajectory, not by naming one culprit.",
+      "Sampling may thin diagnostic detail but never the accounting record of admitted trials, verdicts, spend, and drops, and retention is chosen per verdict under storage and privacy budgets.",
+      "Release exposure is staged so each stage answers its own question (offline gate, shadow execution, bounded canary), with sequential monitoring and hard tripwires that stop admission.",
+      "A release decision is a declared conjunctive rule written before data and applied to an evidence record that keeps verdicts, paired cohorts, and diagnostics."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Release gate itself, not a neighbouring idea.",
+     "explanation": "**Release gate:** A release decision is a declared conjunctive rule written before data and applied to an evidence record that keeps verdicts, paired cohorts, and diagnostics."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Trajectory traces: Spans bind every model call, mediated tool execution, and check to their trial and artifact, but a diagnostic trace may sample or drop and never replaces the durable recovery log or the verdict record.",
+    "Trace retention: Sampling may thin diagnostic detail but never the accounting record of admitted trials, verdicts, spend, and drops, and retention is chosen per verdict under storage and privacy budgets.",
+    "Postmortem by intervention: An agent incident is diagnosed by keeping findings separated by boundary and testing each with a controlled intervention on the recorded trajectory, not by naming one culprit.",
+    "Staged release: Release exposure is staged so each stage answers its own question (offline gate, shadow execution, bounded canary), with sequential monitoring and hard tripwires that stop admission."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Trajectory traces",
+   "def": "Spans bind every model call, mediated tool execution, and check to their trial and artifact, but a diagnostic trace may sample or drop and never replaces the durable recovery log or the verdict record."
+  },
+  {
+   "term": "Trace retention",
+   "def": "Sampling may thin diagnostic detail but never the accounting record of admitted trials, verdicts, spend, and drops, and retention is chosen per verdict under storage and privacy budgets."
+  },
+  {
+   "term": "Postmortem by intervention",
+   "def": "An agent incident is diagnosed by keeping findings separated by boundary and testing each with a controlled intervention on the recorded trajectory, not by naming one culprit."
+  },
+  {
+   "term": "Staged release",
+   "def": "Release exposure is staged so each stage answers its own question (offline gate, shadow execution, bounded canary), with sequential monitoring and hard tripwires that stop admission."
+  },
+  {
+   "term": "Release gate",
+   "def": "A release decision is a declared conjunctive rule written before data and applied to an evidence record that keeps verdicts, paired cohorts, and diagnostics."
+  },
+  {
+   "term": "Critical path",
+   "def": "The longest chain of dependent operations recorded in the trace is measured from span timing, and only work on it can shorten the trajectory."
+  },
+  {
+   "term": "Empirical safety case",
+   "def": "Release is justified by a scoped, inspectable safety case of claim, argument, evidence, assumptions, and residual uncertainty, and evidence for one claim does not establish the others."
+  }
+ ]
+}

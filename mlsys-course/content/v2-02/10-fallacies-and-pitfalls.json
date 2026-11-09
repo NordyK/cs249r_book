@@ -1,0 +1,81 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Calculate the scaling efficiency of a distributed training cluster to quantify diminishing returns caused by communication bottlenecks.",
+ "source": {
+  "chapter": "v2-02",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate the scaling efficiency of a distributed training cluster to quantify diminishing returns caused by communication bottlenecks\n- Analyze how facility-readiness and commissioning failures create hidden delays in ML infrastructure deployment and identify concrete critical-path failure modes\n- Analyze when peak-performance specifications mislead infrastructure procurement for memory-bandwidth-bound inference\n- Compare accelerator total cost of ownership using throughput-normalized cost per useful TFLOP-hour rather than nominal hourly GPU rental rates"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Compute Infrastructure, § Fallacies and Pitfalls",
+   "md": "Because the bottlenecks move rather than disappear, compute infrastructure teams often optimize the visible specification while missing the binding physical constraint. Each fallacy and pitfall below turns a node, rack, pod, or facility lesson into an operational warning."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Diminishing returns and sub-linear scaling when scaling out GPU counts; The peak-FLOP/s fallacy in memory-bound inference accelerator procurement; Critical-path delays from facility readiness, power grid interconnection, and burn-in commissioning; Hourly GPU rental rates vs throughput-normalized cost per token."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how neglecting facility readiness and commissioning can delay an ML training program by months even after GPUs have been delivered to the loading dock. Identify two concrete critical-path failure modes.",
+   "md": "Power, cooling, cabling, firmware qualification, and integrated burn-in belong on the deployment critical path. First, unresolved utility or transformer readiness can leave delivered accelerators unpowered. Second, compressing cable validation, thermal soak, and collective stress checks can move installation defects into production, where diagnosis idles an active job or shared infrastructure. Commissioning duration must be planned from the actual acceptance work; the chapter does not establish a universal percentage of project time."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-02-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "The modeled optimizer step of the 175B reference job (TP8 $\\times$ PP8 $\\times$ DP16, a global batch of 1,536 sequences) takes \\$8.71\\text{ s}$ on 1,024 GPUs. Doubling the cluster to 2,048 GPUs with the same layout and global batch gives 32 data-parallel replicas, and the modeled step falls to \\$4.64\\text{ s}$. What scaling efficiency does the doubling achieve?",
+     "explanation": "The correct answer is B. The realized speedup is \\$8.71 / 4.64 \\approx 1.88\\times$, so scaling efficiency is $\\ScalingEfficiency \\approx 1.88 / 2 \\approx 94\\%$. Each replica now runs 48 microbatches instead of 96, so its computation (about \\$7.25\\text{ s}$ to \\$3.62\\text{ s}$) and tensor-parallel communication (\\$0.90\\text{ s}$ to \\$0.45\\text{ s}$) halve, but the pipeline bubble (about \\$0.53\\text{ s}$) and the data-parallel gradient reduction do not shrink. The team pays for \\$2\\times$ the hardware to achieve a \\$1.88\\times$ speedup, illustrating the fallacy that doubling GPUs halves training duration when part of the step does not scale. The choice predicting 100% efficiency ignores the terms that do not shrink (Amdahl's law). The choice predicting 50% efficiency assumes zero compute speedup. The choice predicting superlinear speedup invents unphysical scaling. All step times here are modeled, not measured.",
+     "hint": "Think about: calculate the scaling efficiency of a distributed training cluster to quantify diminishing returns caused by communication bottlenecks.",
+     "type": "single",
+     "options": [
+      "100% (ideal linear speedup, halving step time to \\$4.36 s).",
+      "$\\approx 94\\%$ (speedup of $\\approx 1.88\\times$ from \\$8.71\\text{ s}$ to \\$4.64\\text{ s}$, because part of the step does not shrink as replicas are added).",
+      "50% (step time remains completely unchanged at \\$8.71 s).",
+      "$\\approx 125\\%$ (superlinear speedup due to increased aggregate L2 cache capacity)."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A team serving a 70B-parameter LLM at batch size 1 on H100s observes poor token generation latency and proposes upgrading to a B200 (\\$4,500 FP8 TFLOP/s peak, approx 8 TB/s HBM3e) primarily to capture the approx 2.3× boost in peak arithmetic throughput. Which hidden assumption in their reasoning is fundamentally flawed?",
+     "explanation": "The correct answer is D. Under the stated weight-streaming model, token throughput is bounded by HBM bandwidth divided by bytes per token. Holding precision, payload, and partition fixed, the bandwidth ratio changes that bound; it does not guarantee the measured token-rate gain. Low arithmetic intensity limits the usable fraction of peak without measuring how much time arithmetic units are idle. Procurement must compare sustained serving throughput at the required quality and latency, rather than pay for a larger arithmetic peak alone.",
+     "hint": "Think about: analyze when peak-performance specifications mislead infrastructure procurement for memory-bandwidth-bound inference.",
+     "type": "single",
+     "options": [
+      "Assuming liquid-cooled racks are capable of hosting high-density B200 servers.",
+      "Assuming checkpoint storage bandwidth is necessary during inference serving.",
+      "Assuming InfiniBand switches are required for single-node inference deployments.",
+      "Assuming that peak arithmetic throughput governs performance when the modeled batch-1 decode workload is limited by weight bandwidth; the HBM bandwidth ratio is the relevant first estimate."
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A cost analyst evaluates cloud GPU pricing by comparing hourly rates: H100 at \\$4.00/GPU-hour vs. V100 at \\$0.80/GPU-hour, concluding that V100 is \\$5× cheaper. Using throughput equivalence (an H100 delivers approx 7.9× the FP16 Tensor throughput of a V100), explain why this hourly rate comparison is a procurement fallacy.",
+   "md": "At dense FP16, the peak ratio is about \\$989/125 approx 7.9. If both devices sustain the same fraction of those peaks on this workload, \\$10,000 V100 GPU-hours become about \\$1,264 H100 GPU-hours: roughly \\$5,056 rather than \\$8,000 at the stated rates. The H100 is then about 1.6 times cheaper per completed workload despite its higher hourly rate. Actual procurement must compare measured useful throughput at consistent precision and quality; mixed FP8/FP16 peaks are not interchangeable."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate the scaling efficiency of a distributed training cluster to quantify diminishing returns caused by communication bottlenecks.",
+    "You can now analyze how facility-readiness and commissioning failures create hidden delays in ML infrastructure deployment and identify concrete critical-path failure modes.",
+    "You can now analyze when peak-performance specifications mislead infrastructure procurement for memory-bandwidth-bound inference.",
+    "You can now compare accelerator total cost of ownership using throughput-normalized cost per useful TFLOP-hour rather than nominal hourly GPU rental rates."
+   ]
+  }
+ ]
+}

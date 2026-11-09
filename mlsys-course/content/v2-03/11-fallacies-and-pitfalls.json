@@ -1,0 +1,83 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Analyze why TCP benchmarks are inadequate for validating RDMA-based ML fabrics.",
+ "source": {
+  "chapter": "v2-03",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze why TCP benchmarks are inadequate for validating RDMA-based ML fabrics\n- Evaluate the complementary roles and limitations of adaptive routing versus topology-aware scheduling\n- Explain the diminishing returns of network bandwidth upgrades in latency-dominated regimes\n- Compare operational risk and failure modes in lossless Ethernet versus InfiniBand"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Network Fabrics, § Fallacies and Pitfalls",
+   "md": "Designing and operating high-performance fabrics for ML requires unlearning assumptions from traditional data-center networking. The following fallacies and pitfalls capture the most common errors that stall training and degrade cluster productivity."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Bandwidth fallacy in the latency-dominated regime; Lossless RoCE versus InfiniBand: comparing complete transport stacks, not link rates; Oversubscription false economy in synchronous training; TCP benchmarking fallacies and adaptive routing limitations."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why upgrading an InfiniBand fabric from HDR (\\$200\\text{ Gb/s}$) to NDR (\\$400\\text{ Gb/s}$) yields less than a \\$15\\%$ reduction in transfer time for a \\$10\\text{ KB}$ control message, and state the condition under which bandwidth upgrades deliver linear performance gains.",
+   "md": "For a \\$10\\text{ KB}$ message, transfer time is governed by the $\\alpha$-$\\beta$ model ($T(n) = \\alpha + n/\\beta$). With the same assumed $\\alpha = 1.5\\,\\mu\\text{s}$ on both paths, HDR takes \\$1.5 + 0.4 = 1.9\\,\\mu\\text{s}$ and NDR takes \\$1.5 + 0.2 = 1.7\\,\\mu\\text{s}$, a reduction of about \\$10.5\\%$. Startup contributes about \\$79\\%$ of the HDR total and \\$88\\%$ of the NDR total. Doubling bandwidth halves the transmission term while leaving startup unchanged. Bandwidth upgrades deliver near-linear speedups only in the bandwidth-dominated regime ($n \\gg n^*$), such as multi-megabyte to gigabyte gradient AllReduce transfers."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-03-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why is using standard TCP benchmark tools like `iperf` to validate an ML cluster network fabric considered a major operational fallacy?",
+     "explanation": "The correct answer is A. TCP and RDMA exercise different transport and host-processing paths, so a TCP benchmark cannot establish RDMA or collective performance. TCP throughput depends on host configuration and has no universal fixed ceiling. RDMA-specific tools such as `ib_write_bw` test the relevant data path; collective benchmarks then test synchronization and topology effects. The wireless-only and automatic InfiniBand flow-control claims are incorrect.",
+     "hint": "Think about: analyze why TCP benchmarks are inadequate for validating RDMA-based ML fabrics.",
+     "type": "single",
+     "options": [
+      "`iperf` measures the TCP path, whose throughput depends on host processing, offloads, and tuning; it does not validate the RDMA path exercised by distributed training",
+      "`iperf` only operates over wireless IEEE 802.11 interfaces and cannot bind to physical QSFP56 ports",
+      "`iperf` automatically enables InfiniBand credit-based flow control on standard Ethernet switches",
+      "`iperf` encrypts all network packets with 4096-bit RSA keys, causing false GPU thermal throttling"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An infrastructure team claims: 'Adaptive routing completely eliminates the need for topology-aware job placement in our GPU cluster.' Why is this assertion a critical pitfall?",
+     "explanation": "The correct answer is D. Adaptive routing can direct packets away from congested queues onto less loaded eligible paths, reducing imbalance from static hash collisions. However, it cannot generate physical bandwidth where none exists. For a tightly coupled 1,024-GPU job spanning two spine pods, a collective is limited by their boundary when its crossing traffic exceeds what the boundary can deliver within the communication budget. Adaptive routing can reduce path imbalance but cannot increase that capacity; topology-aware placement can reduce crossing traffic. Both must be evaluated against the actual collective schedule, and neither guarantees efficient delivery by itself. The choices claiming single-vendor restrictions, CRC disabling, or forced sequential ring execution are factually incorrect.",
+     "hint": "Think about: evaluate the complementary roles and limitations of adaptive routing versus topology-aware scheduling.",
+     "type": "single",
+     "options": [
+      "Adaptive routing only functions when all GPU servers are manufactured by the same vendor",
+      "Adaptive routing disables link-layer CRC error checking on optical switches",
+      "Adaptive routing forces all AllReduce operations to execute sequentially across a single ring",
+      "Adaptive routing balances traffic across existing paths, but it cannot synthesize bisection bandwidth that does not exist if a job is split across an oversubscribed or constrained network boundary"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Lossless RoCEv2 Ethernet fabrics provide the exact same operational simplicity and fault immunity as InfiniBand fabrics because both support zero-packet-loss guarantees.",
+     "explanation": "False. InfiniBand uses native credit-based flow control, while many RoCE deployments use Ethernet PFC with endpoint congestion control and recovery. PFC introduces pause-based storms and cyclic-dependency risks, but credits alone do not make InfiniBand immune to deadlock: routing and resource dependencies still matter. PFC-free RoCE designs make a different recovery trade-off.",
+     "hint": "Think about: compare operational risk and failure modes in lossless Ethernet versus InfiniBand.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze why TCP benchmarks are inadequate for validating RDMA-based ML fabrics.",
+    "You can now evaluate the complementary roles and limitations of adaptive routing versus topology-aware scheduling.",
+    "You can now explain the diminishing returns of network bandwidth upgrades in latency-dominated regimes.",
+    "You can now compare operational risk and failure modes in lossless Ethernet versus InfiniBand."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,100 @@
+{
+ "title": "Model-Specific Attack Vectors",
+ "summary": "Compare the attack surfaces and defensive mechanisms for exact artifact theft versus approximate behavioral theft.",
+ "source": {
+  "chapter": "v2-13",
+  "sections": [
+   "Model-Specific Attack Vectors",
+   "Model theft",
+   "Leakage through authorized outputs",
+   "Data poisoning",
+   "Adversarial attacks",
+   "LLM-specific attack vectors",
+   "Availability abuse and denial of wallet"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare the attack surfaces and defensive mechanisms for exact artifact theft versus approximate behavioral theft\n- Analyze the nested objectives of data poisoning and their evaluation costs\n- Calculate extraction economics and evaluate output shaping controls on public ML APIs\n- Analyze why physical-world adversarial perturbations survive environmental sensing variations\n- Evaluate the stealth characteristics of backdoor poisoning attacks during standard model validation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Security & Privacy, § Model-Specific Attack Vectors",
+   "md": "A stop sign with strategically placed black and white stickers can remain recognizable to a human while an evaluated image classifier labels it as a speed limit sign. The attacker changes the observed input rather than the classifier's code or stored weights. This adversarial example illustrates why the lifecycle entry point matters. Training data, model artifacts, and runtime inputs give an attacker different ways to influence the system and require controls at different boundaries."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Model theft\n- Leakage through authorized outputs\n- Data poisoning\n- Adversarial attacks\n- LLM-specific attack vectors\n- Availability abuse and denial of wallet\n\nPay attention to: Exact artifact theft vs approximate behavioral theft; Data poisoning as bilevel optimization; Empirical model extraction costs and output shaping defenses; Physical-world adversarial perturbations as an inference-time threat."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Data poisoning is formalized as a bilevel optimization problem. State the attacker's untargeted outer objective and the defender's inner training objective, and explain why evaluating a poison's learning effect can be computationally demanding.",
+   "md": "The untargeted outer objective chooses poisoning data to increase the trained model's loss on the target test set; the inner objective trains on the combined clean and poisoned data. Evaluating that learning effect may require repeated training runs, approximations, or surrogate feedback. The nested attack objective does not imply that every poisoning defense must simulate full training to convergence."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-13-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A security architect must deploy defenses against two distinct model theft vectors: (1) an unauthorized party copying serialized model checkpoints from a cloud bucket, and (2) a competitor sending millions of synthetic queries to a public REST endpoint to distill a student model. Which combination of defenses correctly targets each vector?",
+     "explanation": "The correct answer is C. Exact artifact theft (Vector 1) is a storage/registry security failure constrained by encrypting artifacts at rest and enforcing strict IAM/RBAC access controls. Signing supplies artifact-authenticity evidence rather than preventing an observer from copying weights. Approximate behavioral theft (Vector 2) is an API interface leakage failure mitigated by rate limiting, monitoring for systematic query probing (e.g. KL divergence anomalies), truncating confidence scores, and returning only top-$k$ predictions. Applying output truncation to checkpoint theft misplaces API controls on storage assets. Air-gapping an inference server disables public API functionality rather than managing query information leakage. Using Python pickle serialization increases vulnerability by introducing arbitrary code execution risks.",
+     "hint": "Think about: compare the attack surfaces and defensive mechanisms for exact artifact theft versus approximate behavioral theft.",
+     "type": "single",
+     "options": [
+      "Vector (1) requires output rounding and top-$k$ truncation; Vector (2) requires hardware security modules for model weights at rest.",
+      "Vector (1) requires differential privacy during training; Vector (2) requires air-gapping the inference server from the internet.",
+      "Vector (1) requires encrypted storage, signed model artifacts, and strict IAM/RBAC permissions; Vector (2) requires rate limiting, query anomaly monitoring, and confidence-score truncation.",
+      "Both vectors are mitigated exclusively by converting model checkpoints to Python pickle files."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Research on language model APIs (e.g., Carlini et al., 2024) demonstrated that output-projection matrices of models like OpenAI `ada` and `babbage` could be extracted with root-mean-square errors around \\$10^{-4}$ using fewer than \\$4 \\times 10^6$ queries at a cost of under \\$15. In an image API serving a 1,000-class classifier, what is the systems effect of replacing full softmax probability distributions with top-5 class predictions and rounding confidences to 2 decimal places?",
+     "explanation": "The correct answer is D. Returning five of 1,000 scores removes 99.5% of entries per response, and rounding reduces representational precision. Neither count establishes the extractor's query cost or unchanged application utility; measure both under the actual interface and attack. Output shaping alone supplies no DP guarantee and does not change stored model size.",
+     "hint": "Think about: calculate extraction economics and evaluate output shaping controls on public ML APIs.",
+     "type": "single",
+     "options": [
+      "It completely eliminates all adversarial perturbation vectors while increasing inference latency by 100x.",
+      "It introduces a formal $(\\epsilon, \\delta)$ differential privacy guarantee across all subsequent user queries.",
+      "It reduces model parameter size in GPU VRAM by 99.5% during the forward pass.",
+      "It returns 99.5% fewer distribution entries and coarser confidences; extraction resistance and legitimate-client utility require separate measurement."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A model compromised by a backdoor attack (such as BadNets) will exhibit a noticeable drop in validation accuracy on standard, clean test datasets, allowing automated validation pipelines to flag the compromise before deployment.",
+     "explanation": "False. A backdoor can preserve clean validation accuracy while activating only on a particular trigger. Clean-set evaluation therefore cannot establish that a model is free of backdoors. Attack success and detectability depend on the trigger, data, model, and training procedure; targeted testing and provenance controls provide additional evidence.",
+     "hint": "Think about: evaluate the stealth characteristics of backdoor poisoning attacks during standard model validation.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: In the road-sign study, stickers on a stop sign changed only the input a deployed classifier received. Explain why a numerical perturbation norm alone does not establish physical feasibility or human recognizability, and what a physical threat model must state in addition.",
+   "md": "A norm bounds distance in the chosen input representation; it does not specify printable placement, appearance, or survival through camera capture. A physical threat model must also state where the attacker can place a modification and which sensing conditions, such as distance, angle, and lighting, it must survive. Evidence gathered under one set of capture conditions is not a guarantee for every road condition or for the response of a complete autonomous vehicle."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A team runs a shadow-model membership-inference audit against its model and finds attack accuracy barely above chance. Explain what this result establishes, what it does not, and what would supply a bound that holds against any membership test.",
+   "md": "The audit shows that this attack, under its stated access assumptions, found little leakage, so it is a lower bound on what the model reveals: a stronger attack, different access such as released parameters, or auxiliary information could still succeed, and rare or outlier records may be exposed even when average accuracy is near chance. A bound against every test comes from training with an accounted differential privacy mechanism, because a membership test is a computation on the released model and the guarantee limits its verdict directly. The gap between the audit and the accounted bound is the uncertainty in the privacy claim."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Data poisoning**: Adversarial manipulation of training data or updates to alter learned behavior."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Data poisoning",
+   "def": "Adversarial manipulation of training data or updates to alter learned behavior."
+  }
+ ]
+}

@@ -1,0 +1,35 @@
+{
+ "title": "⭐ Aha Moment: DataLoader Batches Your Data",
+ "summary": "TinyTorch dataloader: ⭐ Aha Moment: DataLoader Batches Your Data",
+ "source": {
+  "chapter": "tt-05",
+  "sections": [
+   "⭐ Aha Moment: DataLoader Batches Your Data"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: DataLoader Batches Your Data\n\n**What you built:** A complete data loading pipeline with Dataset abstraction, TensorDataset for tensor-based data, and DataLoader with batching and shuffling.\n\n**Why it matters:** Your DataLoader transforms scattered data into organized learning batches.\nEvery neural network training loop uses this exact pattern to feed data efficiently to the model.\nIts batching and iteration interface follows the same pattern used by production frameworks.\n\nYour DataLoader is ready to power neural network training!"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_dataloader():\n    \"\"\"🎯 See your DataLoader batch data correctly.\"\"\"\n    print(\"🎯 AHA MOMENT: DataLoader Batches Your Data\")\n    print(\"=\" * 45)\n\n    # Create a dataset\n    X = Tensor(rng.standard_normal((100, 64)))\n    y = Tensor(np.arange(100))\n    dataset = TensorDataset(X, y)\n\n    # Create DataLoader with batching\n    loader = DataLoader(dataset, batch_size=32, shuffle=True)\n\n    print(f\"Dataset: {len(dataset)} samples\")\n    print(\"Batch size: 32\")\n    print(f\"Number of batches: {len(loader)}\")\n\n    print(\"\\nBatches:\")\n    for i, (batch_x, batch_y) in enumerate(loader):\n        print(f\"  Batch {i+1}: {batch_x.shape[0]} samples, shape {batch_x.shape}\")\n\n    print(\"\\n✨ Your DataLoader organizes data for efficient training!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: DataLoader\n\nCongratulations! You've built a complete data loading pipeline for ML training!\n\n### Key Accomplishments\n- Built Dataset abstraction and TensorDataset implementation with proper tensor alignment\n- Created DataLoader with batching, shuffling, and memory-efficient iteration\n- Analyzed data pipeline performance and discovered memory/speed trade-offs\n- Learned how to apply DataLoader to real datasets (see examples/milestones)\n- All tests pass ✅ (validated by `test_module()`)\n\n### Systems Insights Discovered\n- **Batch size directly impacts memory usage and training throughput**\n- **Shuffling changes batch composition and reduces ordering effects**\n- **Data loading can become a bottleneck without proper optimization**\n- **Memory usage scales linearly with batch size and feature dimensions**\n\nThe same patterns appear in:\n- **PyTorch's DataLoader**: Same interface design for batching and shuffling\n- **TensorFlow's Dataset API**: Similar abstraction for data pipeline optimization\n- **Production ML**: Essential for handling large-scale training efficiently\n- **Research**: Standard foundation for all deep learning experiments\n\n### Ready for Next Steps\nYour DataLoader implementation enables efficient training of CNNs and larger models with proper data pipeline management.\nYour data pipeline is the input side of every training loop you will write.\n\nApply your knowledge:\n- Milestone 03: Train MLP on TinyDigits\n- Milestone 04: Train CNN on CIFAR-10 images\n\nExport with: `tito module complete 05`"
+  },
+  {
+   "type": "text",
+   "md": "**Next**: Module 06 will add autograd, so the batches you just built can actually drive learning!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: DataLoader Batches Your Data."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,62 @@
+{
+ "title": "Approval Gates",
+ "summary": "Work through Approval Gates.",
+ "source": {
+  "chapter": "v3-10",
+  "sections": [
+   "Approval Gates",
+   "Held proposals",
+   "Approval decisions and duplicate delivery",
+   "Dispatch-time rechecks",
+   "Withdrawal of held requests"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Approval Gates**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Agent Harness, § Approval Gates",
+   "md": "Consider the internal-review workflow: an agent proposes submitting candidate patch `r18` along with selected verification records, but trusted policy permits submission only after an authorized engineer signs off. The proposal is complete, yet the human reviewer is unavailable. Meanwhile, the task's deadline clock continues advancing, an operator can request a pause, and credentials or access grants can expire. The harness cannot simply leave the proposal floating in the model's context window, nor can it allow a retry loop or subsequent model step to dispatch the action prematurely."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Held proposals\n- Approval decisions and duplicate delivery\n- Dispatch-time rechecks\n- Withdrawal of held requests"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Approval escrow matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A proposal that requires review is held undispatched, bound by digest and expiry, and a favorable decision is one precondition rather than an order, so dispatch re-runs the full admission check and silence expires rather than denies."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-10-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Approval Gates** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A proposal that requires review is held undispatched, bound by digest and expiry, and a favorable decision is one precondition rather than an order, so dispatch re-runs the full admission check and silence expires rather than denies.",
+      "Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan.",
+      "The trajectory advances only along legal state-machine edges whose guards pass on a current record version, and admission commits atomically under the record lock before any request leaves the host (register before send).",
+      "Operator control takes effect at turn boundaries, so a harness that checks only when a reply ends lets one call postpone a pause by K_max x t_dec, and pause, interrupt, cancel, kill, and budget stop change admission differently."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Approval escrow**: A proposal that requires review is held undispatched, bound by digest and expiry, and a favorable decision is one precondition rather than an order, so dispatch re-runs the full admission check and silence expires rather than denies."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Approval Gates."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,61 @@
+{
+ "title": "Structured Progress Records",
+ "summary": "Work through Structured Progress Records.",
+ "source": {
+  "chapter": "v3-04",
+  "sections": [
+   "Structured Progress Records",
+   "Recording facts and open questions",
+   "Auditing before replacing active history",
+   "Continuing from the record"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Structured Progress Records**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Context Engineering, § Structured Progress Records",
+   "md": "By the time the candidate patch is tested, the repair has moved through three linked events: at `r17`, the controlled test failed; the agent's patch then wrote `r18`; and the reproducer passed on `r18`. All three events must survive the next compaction with their relationships intact. A naive summary that says only \"fixed the notification bug\" drops the distinctions the agent needs to choose its next step. The `r17` test saw a returned connection leave a waiting thread blocked."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Recording facts and open questions\n- Auditing before replacing active history\n- Continuing from the record"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Context compaction matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Every compaction is a lossy transform that can silently drop evidence a later decision needs, so the runtime pins a protected-field set and keeps handles to raw records."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-04-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Structured Progress Records** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Every compaction is a lossy transform that can silently drop evidence a later decision needs, so the runtime pins a protected-field set and keeps handles to raw records.",
+      "A verified write withdraws current-state authority from bound observations and flags dependent conclusions for reassessment, without erasing their historical truth.",
+      "Before each call the runtime selects a bounded working set and splits the input allowance S_max - K_max among instructions, tool declarations, task state, and observations, and appended observations are the term that grows and displaces task state.",
+      "Context policies are compared as complete policies on accepted outcomes under a fixed model, tools, budget, and fixture, and retention or compression ratios are diagnostics with explicit denominators, not verdicts."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Context compaction**: Every compaction is a lossy transform that can silently drop evidence a later decision needs, so the runtime pins a protected-field set and keeps handles to raw records."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Structured Progress Records."
+   ]
+  }
+ ]
+}

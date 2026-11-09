@@ -1,0 +1,80 @@
+{
+ "title": "⭐ Aha Moment: KV Cache Avoids Recomputation",
+ "summary": "TinyTorch memoization: ⭐ Aha Moment: KV Cache Avoids Recomputation",
+ "source": {
+  "chapter": "tt-18",
+  "sections": [
+   "⭐ Aha Moment: KV Cache Avoids Recomputation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: KV Cache Avoids Recomputation\n\n**What you built:** A KV Cache that stores key-value pairs to avoid redundant attention computation.\n\n**Why it matters:** When generating text token-by-token, naive attention recomputes the same\nK,V values for all previous tokens at each step. With KV caching, you compute once and reuse!\nThis is why ChatGPT responds so fast. It is not recomputing everything every token.\n\nAt context length n, caching reduces attention work per new token from O(n²) to O(n).\nTotal attention work across n generated tokens still grows as O(n²)."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_memoization():\n    \"\"\"🎯 See KV cache store and reuse values.\"\"\"\n    print(\"🎯 AHA MOMENT: KV Cache Avoids Recomputation\")\n    print(\"=\" * 45)\n\n    # Create a cache for 2-layer transformer\n    # (batch=1, max_seq=100, layers=2, heads=4, head_dim=64)\n    cache = KVCache(batch_size=1, max_seq_len=100, num_layers=2,\n                    num_heads=4, head_dim=64)\n\n    # Simulate generating 5 tokens one at a time\n    print(\"Generating tokens and caching K,V pairs...\")\n    for token_idx in range(5):\n        # For each new token, compute K,V (shape: batch, heads, 1, head_dim)\n        new_k = Tensor(rng.standard_normal((1, 4, 1, 64)))\n        new_v = Tensor(rng.standard_normal((1, 4, 1, 64)))\n\n        # Update cache for layer 0\n        cache.update(0, new_k, new_v)\n        cache.advance()  # Move to next position\n\n    print(f\"Cached K,V for {cache.seq_pos} tokens\")\n\n    # Retrieve all cached values\n    k_all, v_all = cache.get(0)\n    print(f\"Retrieved: K{k_all.shape}, V{v_all.shape}\")\n\n    print(\"\\n✨ Compute once, reuse for every later token!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Memoization\n\nCongratulations! You have completed the primary inference optimization that makes production language model serving economically and computationally viable.\n\n### Key Accomplishments"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Architectural Capability",
+    "Concrete Implementation",
+    "Verification Standard",
+    "Systems Impact"
+   ],
+   "rows": [
+    [
+     "**Static Buffer Allocation**",
+     "`KVCache.__init__`",
+     "Contiguous float32 DRAM allocation",
+     "Zero dynamic memory allocation per token"
+    ],
+    [
+     "**\\$\\mathcal{O}(1)\\$ State Update**",
+     "`KVCache.update`",
+     "Direct slice assignment into DRAM",
+     "Eliminates array re-creation overhead"
+    ],
+    [
+     "**Prefix Retrieval**",
+     "`KVCache.get`",
+     "Slices prefix up to write cursor",
+     "Enables single-query vector-matrix attention, at an \\$\\mathcal{O}(t)\\$ copy per call"
+    ],
+    [
+     "**Non-Invasive Stand-In**",
+     "`CachedAttention`",
+     "Wraps block attention transparently",
+     "Original layer restored intact by `disable_kv_cache`"
+    ],
+    [
+     "**Autoregressive Loop**",
+     "`_cached_generate`",
+     "Two-phase prefill & decode loop",
+     "\\$\\frac{S+1}{2}\\times\\$ projection reduction (50.5\\$\\times\\$ at \\$S=100\\$)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Systems Insights Discovered\n- **Recomputation Elimination**: Caching \\$\\mathbf{K}\\$ and \\$\\mathbf{V}\\$ converts quadratic key/value projections from \\$\\frac{S(S+1)}{2} \\in \\mathcal{O}(S^2)\\$ to \\$S \\in \\mathcal{O}(S)\\$, removing \\$4{,}950\\$ of \\$5{,}050\\$ projections at \\$S = 100\\$, which is \\$98\\%\\$ of projection FLOPs.\n- **Memory Capacity Trade-off**: Cache memory scales as \\$\\mathcal{M} = 2 \\cdot L \\cdot B \\cdot H \\cdot S_{\\max} \\cdot d_k \\cdot 4 \\text{ bytes}\\$ in float32. At high batch sizes or long contexts the cache dwarfs the weights: a 12-layer model with a 125M-parameter weight set carries a 1.208 GB cache at \\$B = 8\\$, \\$S_{\\max} = 2{,}048\\$, which is \\$241.6\\%\\$ of its 500 MB of weights.\n- **FLOP Counts Are Not Wall-Clock**: The module's own measurement separates the two. The attention score-pair ratio climbs from \\$8.8\\times\\$ to about \\$69\\times\\$ across generation lengths 10 to 100, while the measured speedup only moves from \\$1.2\\times\\$ to a little over \\$2\\times\\$, because a decode step is bound by the bytes of weights it must read, not by the arithmetic the cache eliminates.\n- **Batching Amortization**: Because single-sequence decoding is memory-bandwidth bound, batching reuses each loaded weight matrix across several concurrent token vectors. At the running model's measured rates (500 tok/s at \\$B = 1\\$, 420 tok/s per sequence at \\$B = 8\\$) aggregate throughput rises \\$6.72\\times\\$ for an \\$8\\times\\$ linear rise in cache memory.\n\n### Ready for Next Steps\nYou now own a working cache, and it is worth being precise about what it does not yet do, because Modules 19 and 20 measure and serve exactly this code:\n- **Batch size is pinned at 1.** `_create_cache_storage` allocates with `batch_size=1`, and `reset()` rewinds the cursor without touching the batch axis, so batched serving needs a cache allocated for it up front.\n- **Prefill is sequential.** A multi-token forward inside `cache.generation()` falls through to the original attention and writes nothing, so the prompt must be fed one token at a time. Production stacks prefill the whole prompt in one parallel pass.\n- **No eviction and no paging.** The buffer is one contiguous allocation per layer for the full context window, so a full cache raises an error rather than evicting, and idle sequences hold their slots. PagedAttention, attention sinks, and tiered offloading all live above this layer.\n- **Float32 only, and no head sharing.** Quantized keys and values (FP8, INT4) and grouped-query attention are the two largest levers on cache size, and neither is implemented here.\n- **Retrieval copies.** `get()` wraps its slice in a `Tensor`, which copies the prefix, so retrieval costs \\$\\mathcal{O}(t)\\$ bytes per layer per token.\n\nExport with: `tito module complete 18`"
+  },
+  {
+   "type": "text",
+   "md": "**Next**: In Module 19 (Benchmarking), you will measure and benchmark end-to-end latency, memory bandwidth utilization, and token throughput across TinyTorch models!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: KV Cache Avoids Recomputation."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,131 @@
+{
+ "title": "Module 16: Compression - Pruning and Model Optimization",
+ "summary": "TinyTorch compression: Module 16: Compression - Pruning and Model Optimization",
+ "source": {
+  "chapter": "tt-16",
+  "sections": [
+   "Module 16: Compression - Pruning and Model Optimization"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 16: Compression - Pruning and Model Optimization\n\nWelcome to Module 16! You are about to build model compression techniques that reduce parameter count and compute footprint: magnitude and structured pruning, low-rank SVD factorization, and knowledge distillation.\n\n\n  \n  \n\n\n\n## 🔗 Prerequisites & Progress\n\n**You've Built**: End-to-end optimization pipeline with profiling (`14_profiling`) and simulated INT8 quantization (`15_quantization`).\n**You'll Build**: Unstructured magnitude pruning, structured channel pruning, truncated SVD low-rank factorization, and teacher-student knowledge distillation with temperature scaling.\n**You'll Enable**: Cascaded model compression workflows, measuring parameter sparsity and output drift across compressed architectures.\n\n### Architectural Roadmap"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Tier",
+    "Subsystem",
+    "Primitives & Capabilities",
+    "Status"
+   ],
+   "rows": [
+    [
+     "**Modules 01–08**",
+     "Foundation Tier",
+     "`Tensor`, `Function`, `Linear`, `GELU`, `SGD`, `Adam`, `Trainer`",
+     "Completed"
+    ],
+    [
+     "**Modules 09–13**",
+     "Architecture Tier",
+     "`Conv2d`, `BPETokenizer`, `EmbeddingLayer`, `MultiHeadAttention`, `GPT`",
+     "Completed"
+    ],
+    [
+     "**Module 14**",
+     "Systems Diagnostics",
+     "`Profiler`, `count_flops`, `measure_memory`, `measure_latency`",
+     "Completed"
+    ],
+    [
+     "**Module 15**",
+     "Precision Reduction",
+     "`quantize_int8`, `dequantize_int8`, `QuantizedLinear`, `quantize_model`",
+     "Completed"
+    ],
+    [
+     "**Module 16**",
+     "**Model Compression**",
+     "`magnitude_prune`, `structured_prune`, `low_rank_approximate`, `KnowledgeDistillation`",
+     "**Active Subsystem**"
+    ],
+    [
+     "**Modules 17–20**",
+     "Advanced Acceleration",
+     "`vectorized_matmul`, `tiled_matmul`, `KVCache`, `BenchmarkSuite`, `BenchmarkReport`",
+     "Downstream Consumers"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 🎯 Learning Objectives\n\nBy the end of this module, you will:\n1. Implement global magnitude-based pruning and track sparsity ratios.\n2. Build structured channel pruning that produces block sparsity a later slicing step can turn into smaller dense matrices.\n3. Compute truncated SVD low-rank factorizations and verify parameter break-even thresholds (\\$r^*\\$).\n4. Implement teacher-student knowledge distillation with temperature-scaled soft targets and KL divergence.\n5. Compose multi-stage compression cascades targeting mobile and edge deployment budgets.\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/16_compression/compression.ipynb`\n**Building Side:** Code exports to `tinytorch.perf.compression`\n\n```python\nfrom tinytorch.perf.compression import (\n    measure_sparsity, magnitude_prune, structured_prune,\n    low_rank_approximate, KnowledgeDistillation, compress_model, Compressor,\n)\n```"
+  },
+  {
+   "type": "text",
+   "md": "## 📋 Module Dependencies\n\n**Prerequisites**: Modules 01, 02, 03, 04, 06, 07, and 14 must be complete\n\n**External Dependencies**:\n- `numpy` (vectorized linear algebra operations)\n- `copy` (model cloning)\n- `typing` (type hints)\n\n**TinyTorch Dependencies**:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Module Dependency",
+    "Component Imported",
+    "Purpose in Compression Engine"
+   ],
+   "rows": [
+    [
+     "**Module 01: Tensors**",
+     "`Tensor`",
+     "Multi-dimensional array container storing weights and gradients"
+    ],
+    [
+     "**Module 02: Activations**",
+     "`ReLU`",
+     "Non-linear activations traversed in model graph"
+    ],
+    [
+     "**Module 03: Layers**",
+     "`Linear`, `Sequential`",
+     "Neural layer abstraction for weight extraction and replacement"
+    ],
+    [
+     "**Module 04: Losses**",
+     "`log_softmax`",
+     "Numerically stable log-probabilities for distillation loss"
+    ],
+    [
+     "**Module 06: Autograd**",
+     "`autograd`",
+     "Automatic differentiation tracking gradients to student parameters"
+    ],
+    [
+     "**Module 07: Optimizers**",
+     "`SGD`",
+     "Parameter update verification during student training (imported inside that test)"
+    ],
+    [
+     "**Module 14: Profiling**",
+     "`Profiler`",
+     "Memory and parameter baseline accounting (imported in the profiling cells)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Dependency Flow**:\n```\nModules 01-04 (Tensor, ReLU, Linear, log_softmax) ──┐\nModules 06-07 (autograd, SGD)                     ──┼──→ Module 16 (Compression)\nModule 14 (Profiler)                              ──┘\n```"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import numpy as np\nrng = np.random.default_rng(7)\nimport copy\nfrom typing import Any, Dict, Tuple\n\n# Import from TinyTorch package (previous modules must be completed and exported)\nfrom tinytorch.core.tensor import Tensor\nfrom tinytorch.core.layers import Linear, Sequential\nfrom tinytorch.core.activations import ReLU\nfrom tinytorch.core.losses import log_softmax\nimport tinytorch.core.autograd  # Module 06: record gradients for student training\n\n# Constants for memory calculations\nBYTES_PER_FLOAT32 = 4  # Standard float32 size in bytes\nMB_TO_BYTES = 1_000_000  # Decimal megabyte (10^6 bytes), the convention used throughout TinyTorch"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 16: Compression - Pruning and Model Optimization."
+   ]
+  }
+ ]
+}

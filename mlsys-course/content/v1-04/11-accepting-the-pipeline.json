@@ -1,0 +1,59 @@
+{
+ "title": "Accepting the Pipeline",
+ "summary": "Compute the listening time needed to support a false-alarm budget when no false alarms are observed.",
+ "source": {
+  "chapter": "v1-04",
+  "sections": [
+   "Accepting the Pipeline"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compute the listening time needed to support a false-alarm budget when no false alarms are observed\n- Apply the slowest-stage bound to predict how removing one bottleneck exposes the storage tier"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Engineering, § Accepting the Pipeline",
+   "md": "A pipeline whose individual stages all run cleanly can still fail deployment if the trained keyword spotter misses its detection target, wakes too often on ordinary speech, or overruns the always-on island's memory when feature buffers and runtime state are added to the model weights."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: listening time needed for a false-wake claim; slowest-stage bound in the ResNet-50 acceptance check."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: The ResNet-50 pipeline passes acceptance on a SATA solid-state drive today. Explain why the chapter still sizes the storage tier for a higher rate, and what change would make the SATA drive the bottleneck.",
+   "md": "Today the accelerator sustains about 3,200 images per second, and a SATA drive supplies about 3,333 images per second of compressed JPEGs, so storage is not the limiting stage. Faster kernels or a faster accelerator push the rate toward the compute ceiling of roughly 12,700 images per second. At that point the same drive caps delivery near 3,333 images per second and the accelerator idles most of the time. Each fix to the slowest stage exposes the next, so the tier is sized for the rate the pipeline is heading toward."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-04-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "During evaluation, a keyword spotter produces zero false wakes over 500 hours of representative non-keyword audio. Does this establish a budget of at most one false wake per month (about 720 hours of listening) at 95 percent confidence?",
+     "explanation": "The correct answer is A. A finite listening period cannot show that the rate is zero; with no events observed, the one-sided 95 percent upper bound on a Poisson rate is about three divided by the listening time. Five hundred hours bounds the rate only at about one per 167 hours, so the monthly claim needs roughly three times 720, about 2,160 hours. Offline evaluation on representative streams is exactly how the claim is established before launch.",
+     "hint": "Think about: compute the listening time needed to support a false-alarm budget when no false alarms are observed.",
+     "type": "single",
+     "options": [
+      "No. With zero observed events, the 95 percent upper bound on the rate is about three events divided by 500 hours, roughly one per 167 hours, far above one per 720 hours; about 2,160 hours with no false wakes would be needed.",
+      "Yes. Zero observed false wakes means the true false-wake rate is zero.",
+      "Yes. Five hundred hours is close enough to a month of listening to support a monthly claim.",
+      "No. False wakes can only be measured on devices after launch, never in offline evaluation."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compute the listening time needed to support a false-alarm budget when no false alarms are observed.",
+    "You can now apply the slowest-stage bound to predict how removing one bottleneck exposes the storage tier."
+   ]
+  }
+ ]
+}

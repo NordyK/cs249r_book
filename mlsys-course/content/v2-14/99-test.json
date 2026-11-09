@@ -1,0 +1,150 @@
+{
+ "title": "Test: Robust AI",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-14-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "Order these stages of a drift investigation that considers a validated model update, while treating urgent containment as a separate response when needed:",
+     "explanation": "The correct order is: (3) Ingest and log production features and outcomes, (1) Compute drift metrics against versioned references, (2) Compare with available predictive and business outcomes, (5) Investigate pipeline faults, environmental changes, and temporary events, (4) Validate and apply an evidence-supported candidate response. Logged traffic supports the statistical comparison; predictive and business outcomes help determine its consequences; root-cause investigation identifies which response might address them; and a candidate must pass validation before deployment. Outcome comparison and investigation can proceed iteratively while labels arrive. Urgent containment need not wait for that entire sequence, and an alert alone does not command retraining.",
+     "hint": "Think about: order the evidence dependencies of a drift investigation and validated update",
+     "type": "order",
+     "items": [
+      "Ingest and log production features and outcomes",
+      "Compute drift metrics against versioned reference distributions",
+      "Compare the signal with available predictive and business outcomes",
+      "Investigate pipeline faults, environmental changes, and temporary events.",
+      "Validate a candidate response and apply it only if the evidence and release gate support it"
+     ]
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Shift taxonomy**?",
+     "options": [
+      "Drift, adversarial inputs, poisoning, and silent faults can keep every service-health signal green while predictions become invalid, and replication does not remove a weakness every copy shares, so robustness is claimed only per stated failure class.",
+      "Covariate shift changes P(x), label shift changes P(y), and concept drift changes P(y|x), so input monitors can be silent under pure concept drift and the type of shift selects the remedy (reweighting, recalibration, or adaptation on fresh labels).",
+      "Because poisoned records can preserve clean aggregate accuracy, defense runs as ordered layers along the data path (ingress controls, anomaly detection and sanitization, robust training, post-training checks), each with a named blind spot, made reversible by lineage.",
+      "Population monitors cannot say whether one request lies inside demonstrated competence, so serving trades coverage against selective risk along a threshold, and conformal prediction adds a coverage guarantee that holds only under exchangeability."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Shift taxonomy itself, not a neighbouring idea.",
+     "explanation": "**Shift taxonomy:** Covariate shift changes P(x), label shift changes P(y), and concept drift changes P(y|x), so input monitors can be silent under pure concept drift and the type of shift selects the remedy (reweighting, recalibration, or adaptation on fresh labels)."
+    },
+    {
+     "q": "An attacker lacking access to a commercial vision API's internal weights or gradients trains a local ResNet surrogate, crafts PGD adversarial images against that surrogate, and successfully fools the target API on 50 percent of queries. Which property of adversarial examples enables this black-box attack?",
+     "explanation": "The correct answer is B. Transferability, where adversarial examples crafted to exploit decision boundaries of one model frequently deceive different models trained on similar tasks. Transferability enables black-box attacks by allowing adversaries to compute gradients against a local surrogate model offline and transfer the resulting adversarial examples to remote, black-box target APIs without direct gradient access. Differential privacy is a training privacy framework, not an attack transfer property. Quantization noise and batch normalization represent compression and training techniques that do not create identical multi-vendor weight matrices.",
+     "hint": "Think about: identify transferability as the enabling mechanism for black-box adversarial attacks via surrogate models",
+     "type": "single",
+     "options": [
+      "Differential privacy, which guarantees perturbation bounds across diverse neural architectures.",
+      "Transferability, where adversarial examples crafted to exploit decision boundaries of one model frequently deceive different models trained on similar tasks.",
+      "Quantization noise, which forces all deployed models into identical weight matrices.",
+      "Batch normalization collapse, which disables activation functions across distributed API servers."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "During a safety-critical embedded maneuver such as autonomous landing, a sensor or software fault can cause irreversible harm before remote intervention, so validation must cover both the fault and the local response within the maneuver’s deadline.",
+     "explanation": "True. A critical control interval can leave too little time for remote repair or human intervention. Maintenance may remain possible between those intervals, and the system may have a local fallback. Cloud retries and rollback likewise restore execution without establishing prediction correctness. Validation must match the application’s hazards and response deadline rather than assume that every embedded system is unrecoverable or every cloud error is harmless.",
+     "hint": "Think about: explain how hazard and response-time constraints determine embedded validation and fallback obligations",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "Which scenario represents a physical-world adversarial attack rather than a digital evasion attack or an environmental covariate shift?",
+     "explanation": "The correct answer is D. An attacker places small, calibrated black-and-white stickers on a roadside stop sign that cause a vehicle camera to classify it as a speed limit sign across varying distances, angles, and lighting. Physical-world attacks must survive the physical sensor loop, including optical capture, distance changes, perspective transformations, and ambient illumination variations, rather than manipulating digital tensors directly. Submitting a perturbed array to a cloud API is a digital evasion attack. Snowfall causing accuracy degradation is a natural environmental covariate shift. Inverting normalization constants is a software pipeline defect.",
+     "hint": "Think about: classify physical-world adversarial attacks by distinguishing them from digital attacks and natural distribution shifts",
+     "type": "single",
+     "options": [
+      "An attacker submits a JSON payload containing an ell_infty-perturbed pixel array directly to a cloud inference API endpoint.",
+      "A sudden heavy snowfall changes ambient lighting and road surface reflections, reducing camera detection accuracy by 15 percent.",
+      "An engineer accidentally inverts the normalization constants in a client-side image preprocessing script.",
+      "An attacker places small, calibrated black-and-white stickers on a roadside stop sign that cause a vehicle camera to classify it as a speed limit sign across varying distances, angles, and lighting."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "When a battery-powered device's full redundancy and verification budget exceeds its thermal envelope, the chapter prescribes a controlled, predictable reduction to a simpler model or reduced-feature mode so core functionality continues safely rather than silently returning invalid predictions. This behavior is known as ____.",
+     "explanation": "graceful degradation. This is a bounded reduction in capability through a validated simpler model or reduced-feature mode. Continuing operation is acceptable only when the degraded path meets the application’s behavioral and timing contract; reducing capability alone does not establish safety.",
+     "hint": "Think about: explain the graceful degradation principle under operational resource stress",
+     "type": "fill",
+     "answer": [
+      "graceful degradation"
+     ]
+    },
+    {
+     "q": "A medical imaging classifier reports 95 percent accuracy on its i.i.d. held-out test set. Applying the chapter's quantitative definition of Robust AI, which finding would indicate the model lacks robustness rather than generalization ability?",
+     "explanation": "The correct answer is B. The reported accuracy collapse under the specified perturbation supplies evidence of vulnerability within that evaluated threat model. A second random split from the same historical population measures i.i.d. generalization, while changed batch latency and a learning-rate schedule concern execution and optimization. This empirical attack result does not establish behavior under every allowed perturbation or under other shifts and attacks.",
+     "hint": "Think about: distinguish worst-case robustness from i.i.d. generalization using the chapter's quantitative definition",
+     "type": "single",
+     "options": [
+      "Accuracy drops to 94.8 percent when tested on a second random split from the same historical training distribution.",
+      "Accuracy drops to 35 percent under an imperceptible ell_infty perturbation of radius epsilon_adv = 8/255 on the same test images.",
+      "Inference latency increases from 50 ms to 120 ms when batch size is doubled on the deployment GPU.",
+      "Training loss fails to reach zero because the learning rate schedule decayed too early in optimization."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "The foundational single-step adversarial attack method that computes the gradient of the loss with respect to the input and perturbs features by $\\epsilon \\cdot \\text{sign}(\\nabla_x \\mathcal{L})$ is called the ____.",
+     "explanation": "Fast Gradient Sign Method (FGSM). The Fast Gradient Sign Method is a single-step gradient-based attack introduced by Goodfellow et al. that chooses coordinate signs that maximize the first-order loss increase within the stated coordinate-wise budget, serving as both a fast evasion baseline and a building block for adversarial training. The step need not maximize the nonlinear loss or cause misclassification.",
+     "hint": "Think about: identify the Fast Gradient Sign Method formula and its role in adversarial generation",
+     "type": "fill",
+     "answer": [
+      "Fast Gradient Sign Method",
+      "Fast Gradient Sign Method (FGSM)"
+     ]
+    },
+    {
+     "q": "Order the stages of a silent data corruption cascade in a distributed ML system from initial hardware fault to final production failure:",
+     "explanation": "The correct order is: (2) An undetected bit flip occurs in the ALU or memory during forward-backward computation on a single worker node, (4) Corrupted gradients are broadcast and aggregated across all workers during AllReduce synchronization, (1) Contaminated parameters persist through optimizer updates and are saved into a checkpoint artifact, (3) The deployed model serves degraded or erratic predictions while standard latency and uptime health checks stay green. In this stipulated cascade, an undetected fault corrupts a gradient (2), synchronization spreads the corrupted contribution (4), the resulting update persists in parameters and a saved checkpoint (1), and the deployed artifact produces degraded predictions (3). A bit flip need not cause every stage; detection, update dynamics, clean-checkpoint recovery, and behavioral validation can interrupt the cascade.",
+     "hint": "Think about: order the propagation stages of silent data corruption in distributed ML pipelines",
+     "type": "order",
+     "items": [
+      "An undetected bit flip occurs in the ALU or memory during forward-backward computation on a single worker node",
+      "Corrupted gradients are broadcast and aggregated across all workers during AllReduce synchronization.",
+      "Contaminated parameters persist through optimizer updates and are saved into a checkpoint artifact",
+      "The deployed model serves degraded or erratic predictions while standard latency and uptime health checks stay green"
+     ]
+    },
+    {
+     "q": "If replaying a fixed set of golden inputs through the current pipeline reproduces the same wrong outputs every time, the failure must be a software or hardware fault rather than distribution shift or an adversarial input.",
+     "explanation": "False. Shifted or adversarial inputs also reproduce the same error under fixed execution conditions, and some faults (race conditions, intermittent hardware) do not reproduce reliably. Replay localizes where outputs first diverge when it compares raw and preprocessed tensors across pinned pipeline and artifact versions; the diagnosis also needs release timing and cross-layer telemetry.",
+     "hint": "Think about: diagnose apparent model failures using input replay, deployment history, and correlated system evidence",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Adversarial robustness for a named threat model**?",
+     "options": [
+      "Because poisoned records can preserve clean aggregate accuracy, defense runs as ordered layers along the data path (ingress controls, anomaly detection and sanitization, robust training, post-training checks), each with a named blind spot, made reversible by lineage.",
+      "Covariate shift changes P(x), label shift changes P(y), and concept drift changes P(y|x), so input monitors can be silent under pure concept drift and the type of shift selects the remedy (reweighting, recalibration, or adaptation on fresh labels).",
+      "Attacker access defines the evaluation a defense must survive (for a physical attack, the full sensor loop rather than saved images), and robustness is bought empirically in training compute (adversarial training multiplies passes per batch) or certifiably in serving samples.",
+      "A preprocessing bug moves feature statistics like covariate shift and a numerical overflow flips decisions like an adversarial example, so operators read system evidence (timing against releases, fixed-input replay, cross-layer correlation) before choosing a defense."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Adversarial robustness for a named threat model itself, not a neighbouring idea.",
+     "explanation": "**Adversarial robustness for a named threat model:** Attacker access defines the evaluation a defense must survive (for a physical attack, the full sensor loop rather than saved images), and robustness is bought empirically in training compute (adversarial training multiplies passes per batch) or certifiably in serving samples."
+    },
+    {
+     "q": "Following an incident where an unauthorized training batch degraded a recommendation model, an audit team must identify the origin of the poisoned records, the pipeline transformation steps applied, and all downstream model artifacts trained on that batch. Which system capability provides this audit trail?",
+     "explanation": "The correct answer is D. Provenance and lineage records connect source batches, transformations, and downstream model artifacts when those dependencies were captured. They support investigation of candidate compromised contributions and targeted recovery after confirmation; the record alone does not prove causal responsibility. Smoothing certifies a perturbation radius, dropout estimates uncertainty, and Huber loss bounds the residual derivative rather than supplying a source audit trail.",
+     "hint": "Think about: identify data provenance and lineage tracking as the forensic pipeline mechanism for data poisoning recovery",
+     "type": "single",
+     "options": [
+      "Randomized smoothing certificates",
+      "Monte Carlo dropout sampling",
+      "Huber loss gradient clipping",
+      "Data provenance and lineage tracking"
+     ],
+     "answer": 3
+    }
+   ]
+  }
+ ]
+}

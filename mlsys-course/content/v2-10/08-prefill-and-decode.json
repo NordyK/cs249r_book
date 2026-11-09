@@ -1,0 +1,80 @@
+{
+ "title": "Prefill and Decode",
+ "summary": "Compare the computational characteristics and primary hardware bottlenecks of the prefill and decode serving phases.",
+ "source": {
+  "chapter": "v2-10",
+  "sections": [
+   "Prefill and Decode",
+   "The phase asymmetry",
+   "Chunked prefill and prompt-decode interleaving",
+   "Prefill-decode disaggregation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare the computational characteristics and primary hardware bottlenecks of the prefill and decode serving phases\n- Explain the operational mechanism of chunked prefill in preventing decode stalls and mitigating tail latency\n- Identify the architectural term for separating prefill and decode workloads across specialized hardware pools\n- Evaluate the KV-cache handoff cost that disaggregated serving adds to time to first token"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Serving at Scale, § Prefill and Decode",
+   "md": "Admitting a 4,096-token prompt onto a worker that is already streaming replies to thirty users saturates the GPU's Tensor Cores for hundreds of milliseconds and freezes every active token stream until the prompt finishes. A language-model request is two workloads in sequence. Prefill reads the whole prompt in one forward pass and writes its keys and values into the cache sized in a later section, while decode extends that cache one token per step until the response ends."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The phase asymmetry\n- Chunked prefill and prompt-decode interleaving\n- Prefill-decode disaggregation\n\nPay attention to: The arithmetic-intensity asymmetry between prefill and decode; Prompt-decode interference and chunked prefill; Disaggregated prefill and decode pools and the KV-cache handoff."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: How can an un-chunked long prompt prefill delay active decode streams on the same worker, and what trade-off does chunked prefill introduce?",
+   "md": "A policy that schedules a full long-prompt prefill before returning to decode can create a conspicuous gap in active streams' time between tokens (TBT). An isolated stall can be diluted in a long response's average time per output token (TPOT). Chunked prefill interleaves bounded prompt-token chunks with decode work, controlling how much prefill work enters each iteration. Smaller chunks can reduce interference while adding overhead and extending the incoming prompt's TTFT. A token budget alone does not guarantee a time bound; both TTFT and TBT tails require measurement."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-10-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why do the prompt prefill phase and the token decode phase of LLM serving exhibit different performance bottlenecks on the same accelerator?",
+     "explanation": "The correct answer is C. Long-prompt prefill GEMMs can reuse weights across many prompt tokens, while single-request decode streams weights for one token. The simplified FP16 estimates place those components above and below the ridge, respectively. Neither estimate proves saturation or classifies every operator: actual traffic, kernel shapes, cache reads, dispatch, and communication require profiling. The phases use compatible arithmetic rather than exclusively different number types.",
+     "hint": "Think about: compare the computational characteristics and primary hardware bottlenecks of the prefill and decode serving phases",
+     "type": "single",
+     "options": [
+      "Prefill generates tokens sequentially one by one, making it memory-bound by weight reads, whereas decode processes all prompt tokens in parallel, making it compute-bound by Tensor Cores",
+      "Prefill relies exclusively on integer arithmetic units, whereas decode requires floating-point matrix multiplication units",
+      "Long-prompt prefill GEMMs reuse weights across prompt tokens and can have a compute ceiling, whereas weight-dominated single-request decode has low intensity and a bandwidth ceiling",
+      "Prefill requires continuous network AllToAll collective exchanges between GPUs, whereas decode requires no inter-GPU communication"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "The architectural pattern that decouples LLM inference by executing the compute-bound prompt prefill phase and the bandwidth-bound autoregressive token decode phase on separate, specialized hardware pools is known as ____ serving.",
+     "explanation": "disaggregated. Separate pools specialize for prompt processing and token generation; transferring the KV cache between them adds a communication cost that the specialization must repay.",
+     "hint": "Think about: identify the architectural term for separating prefill and decode workloads across specialized hardware pools",
+     "type": "fill",
+     "answer": [
+      "disaggregated"
+     ]
+    },
+    {
+     "q": "Because disaggregation removes prefill-decode interference, moving a deployment to separate prefill and decode pools lowers time to first token most for the longest prompts.",
+     "explanation": "False. The prefill pool must hand each request's KV cache to the decode pool, and that handoff costs at least a startup term plus KV bytes divided by link bandwidth. KV bytes grow linearly with prompt length, so the longest prompts pay the largest transfer, and it lands on time to first token. Disaggregation earns its transfer cost only when removing interference and balancing the two pools raises measured SLO goodput.",
+     "hint": "Think about: evaluate the KV-cache handoff cost that disaggregated serving adds to time to first token",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare the computational characteristics and primary hardware bottlenecks of the prefill and decode serving phases.",
+    "You can now explain the operational mechanism of chunked prefill in preventing decode stalls and mitigating tail latency.",
+    "You can now identify the architectural term for separating prefill and decode workloads across specialized hardware pools.",
+    "You can now evaluate the KV-cache handoff cost that disaggregated serving adds to time to first token."
+   ]
+  }
+ ]
+}

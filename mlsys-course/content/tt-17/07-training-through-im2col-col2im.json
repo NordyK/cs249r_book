@@ -1,0 +1,162 @@
+{
+ "title": "Training Through im2col: col2im and the Backward Pass",
+ "summary": "TinyTorch acceleration: Training Through im2col: col2im and the Backward Pass",
+ "source": {
+  "chapter": "tt-17",
+  "sections": [
+   "Training Through im2col: col2im and the Backward Pass",
+   "Integration: Measuring Acceleration Gains with Profiler"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Training Through im2col: col2im and the Backward Pass\n\nWhile `im2col_conv2d` accelerates forward inference by eliminating interpreter loop overhead, training convolutional models requires propagating loss gradients backward to update weights and upstream feature maps.\n\n### Three Gradients From One Matrix Multiply\n\nIn matrix form, the forward pass computes:\n\n\\$\\$Y_{\\text{row}} = X_{\\text{col}} W + b \\quad \\in \\mathbb{R}^{R \\times C_{\\text{out}}}, \\quad R = N \\cdot H_{\\text{out}} \\cdot W_{\\text{out}}\\$\\$\n\nLet \\$G = \\frac{\\partial \\mathcal{L}}{\\partial Y_{\\text{row}}} \\in \\mathbb{R}^{R \\times C_{\\text{out}}}\\$ denote the incoming upstream gradient tensor. Applying reverse-mode automatic differentiation yields three exact gradient tensors:\n\n\\$\\$\\begin{aligned}\n\\frac{\\partial \\mathcal{L}}{\\partial W} &= X_{\\text{col}}^T G \\quad \\in \\mathbb{R}^{(C_{\\text{in}} \\cdot K_h \\cdot K_w) \\times C_{\\text{out}}} \\quad &(\\text{GEMM: Matmul with Patch Transpose}) \\\\\n\\frac{\\partial \\mathcal{L}}{\\partial b} &= \\sum_{r=1}^R G_{r, :} \\quad \\in \\mathbb{R}^{C_{\\text{out}}} \\quad &(\\text{Column Sum Reduction}) \\\\\n\\frac{\\partial \\mathcal{L}}{\\partial X_{\\text{col}}} &= G W^T \\quad \\in \\mathbb{R}^{R \\times (C_{\\text{in}} \\cdot K_h \\cdot K_w)} \\quad &(\\text{GEMM: Matmul with Weight Transpose})\n\\end{aligned}\\$\\$\n\nNotice that weight and patch gradients are standard dense GEMMs, so they execute at the same high FLOP/s as the forward pass.\n\n### col2im: Dual Scatter-Accumulation Back to Spatial Layout\n\n\\$\\frac{\\partial \\mathcal{L}}{\\partial X_{\\text{col}}}\\$ represents gradients with respect to the *unrolled patches*. Because overlapping receptive fields replicate individual spatial pixels across multiple rows of \\$X_{\\text{col}}\\$, the true spatial gradient \\$\\frac{\\partial \\mathcal{L}}{\\partial X}\\$ is the **sum** of all patch gradients touching each pixel:\n\n\\$\\$\\text{im2col (Forward Gathering):} \\quad X_{\\text{col}}[\\dots, i, j, \\dots] = X_{\\text{padded}}[\\text{slice}(i, j)]\\$\\$\n\n\\$\\$\\text{col2im (Backward Scatter-Add):} \\quad \\frac{\\partial \\mathcal{L}}{\\partial X_{\\text{padded}}}[\\text{slice}(i, j)] \\mathrel{+}= \\frac{\\partial \\mathcal{L}}{\\partial X_{\\text{col}}}[\\dots, i, j, \\dots]\\$\\$\n\nThe in-place accumulation operator (\\$\\mathrel{+}=\\$) is mathematically essential. Simple assignment (\\$=\\$) would overwrite previous contributions, retaining only the final patch's gradient.\n\n### Receptive Field Gradient Overlap (3×3 Image with 2×2 Kernel, Stride 1)\n\nTransmitting a unit gradient (\\$1.0\\$) from each patch back through `col2im` reveals the physical accumulation pattern across spatial coordinates:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Image Region",
+    "Pixel Coordinates",
+    "Overlapping Receptive Fields",
+    "Accumulated Gradient Weight"
+   ],
+   "rows": [
+    [
+     "**Corner Pixels**",
+     "\\$(0, 0), (0, 2), (2, 0), (2, 2)\\$",
+     "Covered by exactly 1 patch",
+     "\\$1.0\\times\\$"
+    ],
+    [
+     "**Edge Pixels**",
+     "\\$(0, 1), (1, 0), (1, 2), (2, 1)\\$",
+     "Covered by 2 overlapping patches",
+     "\\$2.0\\times\\$"
+    ],
+    [
+     "**Center Pixel**",
+     "\\$(1, 1)\\$",
+     "Covered by all 4 overlapping patches",
+     "\\$4.0\\times\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Memory Footprint of the Backward Pass\n\nComputing \\$\\frac{\\partial \\mathcal{L}}{\\partial W} = X_{\\text{col}}^T G\\$ requires keeping the unrolled patch matrix \\$X_{\\text{col}}\\$ resident in memory throughout the forward pass until the backward pass runs. For deep networks, retaining \\$K^2 \\times\\$ expanded buffers across all layers can exhaust GPU VRAM.\n\nIn production memory-constrained training, frameworks employ **Activation Checkpointing**, which discards \\$X_{\\text{col}}\\$ during forward and re-runs `im2col` on the fly during backward. That trades roughly \\$20\\$ to \\$30\\%\\$ extra forward computation for an order-of-magnitude reduction in peak memory residency."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 71 lines of code (starting with `def col2im(cols: Tensor, x_shape: Tuple[int, int, int, int], kernel_size: int,`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: col2im\n\nThis test validates col2im as the exact reverse of im2col.\n\n**What we're testing**: Patch-count accumulation on the 3×3 example, the\nadjoint identity ` = `, and padding removal\n**Why it matters**: A col2im that copies instead of adds produces gradients of\nthe right shape and the wrong size, and training silently goes wrong\n**Expected**: The 1-2-1 / 2-4-2 coverage counts, equal inner products, and an\noutput with the input's shape"
+  },
+  {
+   "type": "text",
+   "md": "### A Differentiable im2col Convolutional Graph\n\nCombining `im2col` (forward gathering) and `col2im` (backward scatter-accumulation) encapsulates spatial convolution into a standard autograd `Function` node:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Execution Phase",
+    "Operational Step",
+    "Mathematical Transformation",
+    "Saved State",
+    "Output Shape"
+   ],
+   "rows": [
+    [
+     "**Forward Pass**",
+     "1. Patch Unroll",
+     "\\$X_{\\text{col}} = \\text{im2col}(X, K, s, p)\\$",
+     "Saved on `self` for backward",
+     "\\$(R, C_{\\text{in}} K^2)\\$"
+    ],
+    [
+     "",
+     "2. Filter Reshape",
+     "\\$W_{\\text{row}} = W.\\text{reshape}(C_{\\text{out}}, -1)^T\\$",
+     "Saved on `self` for backward",
+     "\\$(C_{\\text{in}} K^2, C_{\\text{out}})\\$"
+    ],
+    [
+     "",
+     "3. Dense GEMM",
+     "\\$Y_{\\text{col}} = X_{\\text{col}} W_{\\text{row}} + b\\$",
+     "—",
+     "\\$(R, C_{\\text{out}})\\$"
+    ],
+    [
+     "",
+     "4. Spatial Reshape",
+     "\\$Y = Y_{\\text{col}}.\\text{reshape}(N, H_{\\text{out}}, W_{\\text{out}}, C_{\\text{out}})^T\\$",
+     "Returned tensor",
+     "\\$(N, C_{\\text{out}}, H_{\\text{out}}, W_{\\text{out}})\\$"
+    ],
+    [
+     "**Backward Pass**",
+     "1. Gradient Reshape",
+     "\\$G = \\text{grad\\_output}.\\text{transpose}.\\text{reshape}(R, C_{\\text{out}})\\$",
+     "—",
+     "\\$(R, C_{\\text{out}})\\$"
+    ],
+    [
+     "",
+     "2. Filter Gradient",
+     "\\$\\nabla_W = X_{\\text{col}}^T G\\$",
+     "Returned gradient",
+     "\\$(C_{\\text{out}}, C_{\\text{in}}, K, K)\\$"
+    ],
+    [
+     "",
+     "3. Bias Gradient",
+     "\\$\\nabla_b = \\sum_{r} G_r\\$",
+     "Returned gradient",
+     "\\$(C_{\\text{out}},)\\$"
+    ],
+    [
+     "",
+     "4. Input Gradient",
+     "\\$\\nabla_X = \\text{col2im}(G W_{\\text{row}}^T, \\text{shape}(X), K, s, p)\\$",
+     "Returned gradient",
+     "\\$(N, C_{\\text{in}}, H, W)\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "`stride` and `padding` arrive as keyword arguments during `apply`. The gradient semantics match Module 09's `Conv2dFunction` exactly, and the unit test below checks that against it. The call signature does not match. Module 09's version is `Conv2dFunction.apply(x, weight, bias, layer=self)`, whose only keyword is `layer`, and it reads its stride and padding off that layer object rather than taking them as keywords of its own."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 84 lines of code (starting with `class Im2colConv2dFunction(Function):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: im2col Convolution Gradients\n\nThis test validates the im2col backward pass against Module 09's loops.\n\n**What we're testing**: Output, input gradient, weight gradient, and bias\ngradient all match `Conv2d` on the same weights, with and without stride\n**Why it matters**: A convolution that computes the right output with the wrong\ngradients trains a different model; only a gradient check catches it\n**Expected**: Every gradient agrees with Conv2d's backward within float tolerance"
+  },
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Measuring Acceleration Gains with Profiler\n\nNow let's use the **Profiler** tool you built in Module 14 to measure the actual performance improvements from vectorization. This demonstrates the full workflow: build profiling tools (M14), apply optimizations (M15-M17), measure gains.\n\nThis is how professional ML engineers work: profile → optimize → measure → repeat."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 136 lines of code (starting with `# Import Profiler from Module 14 (Module 17 comes after Module 14)`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Training Through im2col: col2im and the Backward Pass, Integration: Measuring Acceleration Gains with Profiler."
+   ]
+  }
+ ]
+}

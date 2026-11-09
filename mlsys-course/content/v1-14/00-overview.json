@@ -1,0 +1,291 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v1-14",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **ML Operations** (Vol I). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Operations, Purpose",
+   "md": "Conventional monitoring often detects crashes, latency regressions, and availability failures quickly, but semantic errors can remain silent in any software system. ML systems add another silent failure mode. A model experiencing data drift can continue serving ordinary-looking predictions while accuracy degrades, triggering no alerts because every health check (latency, throughput, uptime) remains green. A fraud model can keep answering in milliseconds for months after the patterns it learned have moved elsewhere, and the first alarm may be the losses themselves."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Silent Failure in Production",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Technical Debt",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Development Infrastructure",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Releasing Models",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Production Monitoring",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Retraining Decisions",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Incident Response and Governance",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Operations loop**",
+     "Every production model runs detect, diagnose, decide, release, and recover, each step a control with a concrete machine cost, across three interfaces (data-model consistency, model-infrastructure parity, production feedback) where debt accumulates when a boundary erodes."
+    ],
+    [
+     "**Layered monitoring and detection delay**",
+     "Silent failure is made visible only by layered monitoring (infrastructure telemetry, input checks, label-free drift statistics, outcome metrics joined to matured labels), and confirmation speed is bounded by labeled-outcome arrival, so drift signals must route to an owner with a deadline."
+    ],
+    [
+     "**Safe release and tested rollback**",
+     "A validated checkpoint is not yet a safe release: exposure is staged (shadow, canary, blue-green), every node is verified to run the intended version, and rollback is tiered, tested, and state-aware, because cached state survives a weights-only revert."
+    ],
+    [
+     "**Release safety costs resident memory**",
+     "Every shadow, canary, A/B arm, or standby keeps a second full model copy resident regardless of its traffic share, so release strategy is a memory decision for capacity-bound models and must be scheduled together with retraining on one node."
+    ],
+    [
+     "**Request-keyed parity testing**",
+     "Training-serving skew is caught by replaying recorded inputs through the versioned training and serving transformations and comparing values per request ID, because marginal distribution screens can miss swapped values and flag real population shift."
+    ],
+    [
+     "**Reproducibility and the model registry**",
+     "Exact replay requires freezing code, data, configuration, and environment plus deterministic kernels, content-addressed lineage traces an incident to its inputs, and a model registry holds immutable versions with lifecycle states so release machinery can promote or roll back the exact evaluated artifact."
+    ],
+    [
+     "**Retraining economics**",
+     "Retrain only when expected recovered value exceeds compute, validation, deployment, and rollout-risk cost, and under locally exponential decay the cost-minimizing interval grows with the square root of run cost, so a fourfold change moves it only twofold."
+    ],
+    [
+     "**Hidden technical debt**",
+     "ML debt compounds through statistical coupling that code review cannot see (entanglement, correction cascades, undeclared consumers, feedback loops, glue code), and each pattern names the infrastructure that pays it down."
+    ],
+    [
+     "**A/B release decisions**",
+     "An A/B release decision needs a randomization unit, a power-derived sample size, guardrail metrics, and a preregistered horizon, and a non-significant result is inconclusive rather than a license to ship."
+    ],
+    [
+     "**Incident response**",
+     "An ML incident is a statistical signal without a stack trace, so response classifies severity by impact, contains in parallel with diagnosis, debugs data-first, restores the whole contract rather than just the weights, and turns each incident into a new check."
+    ],
+    [
+     "**Cost of observability**",
+     "Telemetry is an operating cost rate set by series, sample rate, ingest, and retention, so sampling, cardinality control, and tiered retention set the budget, and monitoring earns its keep only through harm it prevents."
+    ],
+    [
+     "**Operational maturity**",
+     "A readiness score over data, model, infrastructure, and monitoring tests takes the minimum, so a perfectly validated model with no monitoring scores zero, and maturity is judged by which missing control to add next."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v1-14-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Operations loop",
+     "back": "Every production model runs detect, diagnose, decide, release, and recover, each step a control with a concrete machine cost, across three interfaces (data-model consistency, model-infrastructure parity, production feedback) where debt accumulates when a boundary erodes."
+    },
+    {
+     "front": "Layered monitoring and detection delay",
+     "back": "Silent failure is made visible only by layered monitoring (infrastructure telemetry, input checks, label-free drift statistics, outcome metrics joined to matured labels), and confirmation speed is bounded by labeled-outcome arrival, so drift signals must route to an owner with a deadline."
+    },
+    {
+     "front": "Safe release and tested rollback",
+     "back": "A validated checkpoint is not yet a safe release: exposure is staged (shadow, canary, blue-green), every node is verified to run the intended version, and rollback is tiered, tested, and state-aware, because cached state survives a weights-only revert."
+    },
+    {
+     "front": "Release safety costs resident memory",
+     "back": "Every shadow, canary, A/B arm, or standby keeps a second full model copy resident regardless of its traffic share, so release strategy is a memory decision for capacity-bound models and must be scheduled together with retraining on one node."
+    },
+    {
+     "front": "Request-keyed parity testing",
+     "back": "Training-serving skew is caught by replaying recorded inputs through the versioned training and serving transformations and comparing values per request ID, because marginal distribution screens can miss swapped values and flag real population shift."
+    },
+    {
+     "front": "Reproducibility and the model registry",
+     "back": "Exact replay requires freezing code, data, configuration, and environment plus deterministic kernels, content-addressed lineage traces an incident to its inputs, and a model registry holds immutable versions with lifecycle states so release machinery can promote or roll back the exact evaluated artifact."
+    },
+    {
+     "front": "Retraining economics",
+     "back": "Retrain only when expected recovered value exceeds compute, validation, deployment, and rollout-risk cost, and under locally exponential decay the cost-minimizing interval grows with the square root of run cost, so a fourfold change moves it only twofold."
+    },
+    {
+     "front": "Hidden technical debt",
+     "back": "ML debt compounds through statistical coupling that code review cannot see (entanglement, correction cascades, undeclared consumers, feedback loops, glue code), and each pattern names the infrastructure that pays it down."
+    },
+    {
+     "front": "A/B release decisions",
+     "back": "An A/B release decision needs a randomization unit, a power-derived sample size, guardrail metrics, and a preregistered horizon, and a non-significant result is inconclusive rather than a license to ship."
+    },
+    {
+     "front": "Incident response",
+     "back": "An ML incident is a statistical signal without a stack trace, so response classifies severity by impact, contains in parallel with diagnosis, debugs data-first, restores the whole contract rather than just the weights, and turns each incident into a new check."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v1-14-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Operations loop**?",
+     "options": [
+      "Telemetry is an operating cost rate set by series, sample rate, ingest, and retention, so sampling, cardinality control, and tiered retention set the budget, and monitoring earns its keep only through harm it prevents.",
+      "Exact replay requires freezing code, data, configuration, and environment plus deterministic kernels, content-addressed lineage traces an incident to its inputs, and a model registry holds immutable versions with lifecycle states so release machinery can promote or roll back the exact evaluated artifact.",
+      "Every production model runs detect, diagnose, decide, release, and recover, each step a control with a concrete machine cost, across three interfaces (data-model consistency, model-infrastructure parity, production feedback) where debt accumulates when a boundary erodes.",
+      "An A/B release decision needs a randomization unit, a power-derived sample size, guardrail metrics, and a preregistered horizon, and a non-significant result is inconclusive rather than a license to ship."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Operations loop itself, not a neighbouring idea.",
+     "explanation": "**Operations loop:** Every production model runs detect, diagnose, decide, release, and recover, each step a control with a concrete machine cost, across three interfaces (data-model consistency, model-infrastructure parity, production feedback) where debt accumulates when a boundary erodes."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Layered monitoring and detection delay**?",
+     "options": [
+      "Telemetry is an operating cost rate set by series, sample rate, ingest, and retention, so sampling, cardinality control, and tiered retention set the budget, and monitoring earns its keep only through harm it prevents.",
+      "Exact replay requires freezing code, data, configuration, and environment plus deterministic kernels, content-addressed lineage traces an incident to its inputs, and a model registry holds immutable versions with lifecycle states so release machinery can promote or roll back the exact evaluated artifact.",
+      "Silent failure is made visible only by layered monitoring (infrastructure telemetry, input checks, label-free drift statistics, outcome metrics joined to matured labels), and confirmation speed is bounded by labeled-outcome arrival, so drift signals must route to an owner with a deadline.",
+      "An ML incident is a statistical signal without a stack trace, so response classifies severity by impact, contains in parallel with diagnosis, debugs data-first, restores the whole contract rather than just the weights, and turns each incident into a new check."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Layered monitoring and detection delay itself, not a neighbouring idea.",
+     "explanation": "**Layered monitoring and detection delay:** Silent failure is made visible only by layered monitoring (infrastructure telemetry, input checks, label-free drift statistics, outcome metrics joined to matured labels), and confirmation speed is bounded by labeled-outcome arrival, so drift signals must route to an owner with a deadline."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Safe release and tested rollback**?",
+     "options": [
+      "ML debt compounds through statistical coupling that code review cannot see (entanglement, correction cascades, undeclared consumers, feedback loops, glue code), and each pattern names the infrastructure that pays it down.",
+      "An A/B release decision needs a randomization unit, a power-derived sample size, guardrail metrics, and a preregistered horizon, and a non-significant result is inconclusive rather than a license to ship.",
+      "Every shadow, canary, A/B arm, or standby keeps a second full model copy resident regardless of its traffic share, so release strategy is a memory decision for capacity-bound models and must be scheduled together with retraining on one node.",
+      "A validated checkpoint is not yet a safe release: exposure is staged (shadow, canary, blue-green), every node is verified to run the intended version, and rollback is tiered, tested, and state-aware, because cached state survives a weights-only revert."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Safe release and tested rollback itself, not a neighbouring idea.",
+     "explanation": "**Safe release and tested rollback:** A validated checkpoint is not yet a safe release: exposure is staged (shadow, canary, blue-green), every node is verified to run the intended version, and rollback is tiered, tested, and state-aware, because cached state survives a weights-only revert."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Release safety costs resident memory**?",
+     "options": [
+      "A validated checkpoint is not yet a safe release: exposure is staged (shadow, canary, blue-green), every node is verified to run the intended version, and rollback is tiered, tested, and state-aware, because cached state survives a weights-only revert.",
+      "An ML incident is a statistical signal without a stack trace, so response classifies severity by impact, contains in parallel with diagnosis, debugs data-first, restores the whole contract rather than just the weights, and turns each incident into a new check.",
+      "A readiness score over data, model, infrastructure, and monitoring tests takes the minimum, so a perfectly validated model with no monitoring scores zero, and maturity is judged by which missing control to add next.",
+      "Every shadow, canary, A/B arm, or standby keeps a second full model copy resident regardless of its traffic share, so release strategy is a memory decision for capacity-bound models and must be scheduled together with retraining on one node."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Release safety costs resident memory itself, not a neighbouring idea.",
+     "explanation": "**Release safety costs resident memory:** Every shadow, canary, A/B arm, or standby keeps a second full model copy resident regardless of its traffic share, so release strategy is a memory decision for capacity-bound models and must be scheduled together with retraining on one node."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Request-keyed parity testing**?",
+     "options": [
+      "Telemetry is an operating cost rate set by series, sample rate, ingest, and retention, so sampling, cardinality control, and tiered retention set the budget, and monitoring earns its keep only through harm it prevents.",
+      "Training-serving skew is caught by replaying recorded inputs through the versioned training and serving transformations and comparing values per request ID, because marginal distribution screens can miss swapped values and flag real population shift.",
+      "A validated checkpoint is not yet a safe release: exposure is staged (shadow, canary, blue-green), every node is verified to run the intended version, and rollback is tiered, tested, and state-aware, because cached state survives a weights-only revert.",
+      "Silent failure is made visible only by layered monitoring (infrastructure telemetry, input checks, label-free drift statistics, outcome metrics joined to matured labels), and confirmation speed is bounded by labeled-outcome arrival, so drift signals must route to an owner with a deadline."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Request-keyed parity testing itself, not a neighbouring idea.",
+     "explanation": "**Request-keyed parity testing:** Training-serving skew is caught by replaying recorded inputs through the versioned training and serving transformations and comparing values per request ID, because marginal distribution screens can miss swapped values and flag real population shift."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Operations loop: Every production model runs detect, diagnose, decide, release, and recover, each step a control with a concrete machine cost, across three interfaces (data-model consistency, model-infrastructure parity, production feedback) where debt accumulates when a boundary erodes.",
+    "Layered monitoring and detection delay: Silent failure is made visible only by layered monitoring (infrastructure telemetry, input checks, label-free drift statistics, outcome metrics joined to matured labels), and confirmation speed is bounded by labeled-outcome arrival, so drift signals must route to an owner with a deadline.",
+    "Safe release and tested rollback: A validated checkpoint is not yet a safe release: exposure is staged (shadow, canary, blue-green), every node is verified to run the intended version, and rollback is tiered, tested, and state-aware, because cached state survives a weights-only revert.",
+    "Release safety costs resident memory: Every shadow, canary, A/B arm, or standby keeps a second full model copy resident regardless of its traffic share, so release strategy is a memory decision for capacity-bound models and must be scheduled together with retraining on one node."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Operations loop",
+   "def": "Every production model runs detect, diagnose, decide, release, and recover, each step a control with a concrete machine cost, across three interfaces (data-model consistency, model-infrastructure parity, production feedback) where debt accumulates when a boundary erodes."
+  },
+  {
+   "term": "Layered monitoring and detection delay",
+   "def": "Silent failure is made visible only by layered monitoring (infrastructure telemetry, input checks, label-free drift statistics, outcome metrics joined to matured labels), and confirmation speed is bounded by labeled-outcome arrival, so drift signals must route to an owner with a deadline."
+  },
+  {
+   "term": "Safe release and tested rollback",
+   "def": "A validated checkpoint is not yet a safe release: exposure is staged (shadow, canary, blue-green), every node is verified to run the intended version, and rollback is tiered, tested, and state-aware, because cached state survives a weights-only revert."
+  },
+  {
+   "term": "Release safety costs resident memory",
+   "def": "Every shadow, canary, A/B arm, or standby keeps a second full model copy resident regardless of its traffic share, so release strategy is a memory decision for capacity-bound models and must be scheduled together with retraining on one node."
+  },
+  {
+   "term": "Request-keyed parity testing",
+   "def": "Training-serving skew is caught by replaying recorded inputs through the versioned training and serving transformations and comparing values per request ID, because marginal distribution screens can miss swapped values and flag real population shift."
+  },
+  {
+   "term": "Reproducibility and the model registry",
+   "def": "Exact replay requires freezing code, data, configuration, and environment plus deterministic kernels, content-addressed lineage traces an incident to its inputs, and a model registry holds immutable versions with lifecycle states so release machinery can promote or roll back the exact evaluated artifact."
+  },
+  {
+   "term": "Retraining economics",
+   "def": "Retrain only when expected recovered value exceeds compute, validation, deployment, and rollout-risk cost, and under locally exponential decay the cost-minimizing interval grows with the square root of run cost, so a fourfold change moves it only twofold."
+  },
+  {
+   "term": "Hidden technical debt",
+   "def": "ML debt compounds through statistical coupling that code review cannot see (entanglement, correction cascades, undeclared consumers, feedback loops, glue code), and each pattern names the infrastructure that pays it down."
+  },
+  {
+   "term": "A/B release decisions",
+   "def": "An A/B release decision needs a randomization unit, a power-derived sample size, guardrail metrics, and a preregistered horizon, and a non-significant result is inconclusive rather than a license to ship."
+  },
+  {
+   "term": "Incident response",
+   "def": "An ML incident is a statistical signal without a stack trace, so response classifies severity by impact, contains in parallel with diagnosis, debugs data-first, restores the whole contract rather than just the weights, and turns each incident into a new check."
+  },
+  {
+   "term": "Cost of observability",
+   "def": "Telemetry is an operating cost rate set by series, sample rate, ingest, and retention, so sampling, cardinality control, and tiered retention set the budget, and monitoring earns its keep only through harm it prevents."
+  },
+  {
+   "term": "Operational maturity",
+   "def": "A readiness score over data, model, infrastructure, and monitoring tests takes the minimum, so a perfectly validated model with no monitoring scores zero, and maturity is judged by which missing control to add next."
+  }
+ ]
+}

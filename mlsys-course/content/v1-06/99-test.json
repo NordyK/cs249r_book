@@ -1,0 +1,147 @@
+{
+ "title": "Test: Network Architectures",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-06-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "During autoregressive language model inference, single-token generation at batch size 1 achieves near-peak GPU floating-point throughput (TFLOP/s) because the matrix-vector multiplication is highly optimized.",
+     "explanation": "False. The chapter's streamed-weight batch-1 decode model has low arithmetic intensity, so optimization alone does not guarantee near-peak compute throughput. Whether decode is bandwidth bound depends on the machine balance and realized traffic, and prefill or larger batches can reuse weights more effectively than single-token batch-1 generation.",
+     "hint": "Think about: evaluate why highly optimized batch-1 autoregressive decoding can still fall far below peak compute throughput under a low-intensity streamed-weight regime.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The ____ hypothesis states that high-dimensional real-world data (such as natural images) actually resides on a much lower-dimensional structured surface embedded within the full input space, helping explain why useful structure can be learned from finite data.",
+     "explanation": "manifold. The manifold hypothesis proposes that high-dimensional data lies near a lower-dimensional structured region in the ambient space, which helps explain why learning can exploit structure without searching the full input space.",
+     "hint": "Think about: identify the manifold hypothesis from its description and explain how it motivates learnability in high-dimensional settings.",
+     "type": "fill",
+     "answer": [
+      "manifold"
+     ]
+    },
+    {
+     "q": "Why does position-free unmasked self-attention require explicit positional information supplied by mechanisms such as sinusoidal signals, learned positional embeddings, or related position-encoding schemes?",
+     "explanation": "The correct answer is C. The section states that unmasked self-attention treats the sequence as an unordered set unless position information is injected: if the rows of $\\mathbf{X}$ are permuted, the output rows are permuted the same way. That is permutation equivariance, not invariance, and it is why positional information from embeddings, sinusoidal signals, or related mechanisms is needed to represent order. The hardware-padding and complexity answers are unrelated to the mathematical issue.",
+     "hint": "Think about: explain why unmasked self-attention is permutation equivariant and justify the role of positional information in sequence modeling.",
+     "type": "single",
+     "options": [
+      "Because matrix multiplication hardware cannot process tensors without fixed static padding across all dimensions.",
+      "Because layer normalization removes the mean and variance of token vectors, destroying word identity.",
+      "Because without positional information, unmasked self-attention is permutation equivariant: permuting the input rows permutes the output rows in the same way, so the layer by itself does not encode order.",
+      "Because positional encodings reduce the computational complexity of the attention matrix from $\\mathcal{O}(S^2)$ to $\\mathcal{O}(S)$."
+     ],
+     "answer": 2
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Every family lowers onto GEMM**?",
+     "options": [
+      "The same accelerator is compute-, bandwidth-, or capacity-bound by architecture alone, so selection maps data symmetries to an operator family, filters candidates against storage, activation peak, intensity, latency, and power budgets, then validates on the target device.",
+      "Factoring a convolution into depthwise and pointwise stages cuts parameters and multiply-accumulates by about 8-9x for 3x3 filters, but the factored layers have low arithmetic intensity, so far fewer FLOPs need not mean proportionally faster execution.",
+      "Counting weights, multiply-accumulates, and resident bytes per building block predicts which iron-law term dominates: dense layers stream each weight once per batch, convolutions reuse each filter at every position, recurrence adds a serial floor, attention adds quadratic score work, and embedding lookups are copies.",
+      "Convolution reaches matrix multiply through im2col or implicit GEMM, attention and LSTM gates fuse their projections into wide GEMMs, and pointwise convolutions and recommender MLPs are GEMMs, so GEMM dominates nearly every workload's operation count and the exceptions are the memory-bound remainder."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Every family lowers onto GEMM itself, not a neighbouring idea.",
+     "explanation": "**Every family lowers onto GEMM:** Convolution reaches matrix multiply through im2col or implicit GEMM, attention and LSTM gates fuse their projections into wide GEMMs, and pointwise convolutions and recommender MLPs are GEMMs, so GEMM dominates nearly every workload's operation count and the exceptions are the memory-bound remainder."
+    },
+    {
+     "q": "Order the four primary computational stages executed during an end-to-end inference pass in a DLRM recommendation model:",
+     "explanation": "The correct order is (1) and (2) in parallel -> (3) -> (4) (or (1) -> (2) -> (3) -> (4)). Step 1 and 2 are (1) Continuous features through Bottom MLP and (2) Categorical ID embedding table lookups. Step 3 is (3) Pairwise dot product feature interactions. Step 4 is (4) Top MLP classification for click-through rate prediction.",
+     "hint": "Think about: analyze and sequence the four main pipeline stages of DLRM inference dataflow.",
+     "type": "order",
+     "items": [
+      "Process continuous numerical features through the dense Bottom MLP to produce a dense representation",
+      "Look up sparse categorical IDs across embedding tables to gather discrete embedding vectors",
+      "Concatenate interaction dot products with Bottom MLP features and pass through the Top MLP to predict click-through probability"
+     ]
+    },
+    {
+     "q": "In a Multi-Head Attention layer with model dimension $d_{\\text{model}} = 768$ and $N_{\\text{heads}} = 12$ heads, what is the per-head dimension $d_k$, and how does multi-head projection affect total computational FLOP complexity compared to a single attention head operating on the full 768 dimensions?",
+     "explanation": "The correct answer is B. Multi-head attention partitions the model dimension across heads such that $d_k = d_{\\text{model}} / N_{\\text{heads}} = 768 / 12 = 64$. For $N_{\\text{heads}}$ heads, the $S \\times S$ score calculation requires $N_{\\text{heads}} \\times (S \\times S \\times d_k) = S^2 \\times (N_{\\text{heads}} \\cdot d_k) = S^2 \\cdot d_{\\text{model}}$ MACs, which is mathematically identical to the arithmetic cost of a single full-width attention head while providing the representational capacity of diverse attention subspaces. The claim that $d_k = 768$ misstates the per-head dimension. The claim of $d_k = 12$ inverts the head count and head dimension. The claim that multi-head attention eliminates the output projection matrix is false because $\\mathbf{W}^O$ is required to mix the concatenated head outputs.",
+     "hint": "Think about: analyze the dimension partitioning mechanics of multi-head attention and explain why multi-head projection preserves total computational complexity.",
+     "type": "single",
+     "options": [
+      "The per-head dimension is d_k = 768, increasing total projection FLOPs by \\$12× compared to a single head.",
+      "The per-head dimension is $d_k = 768 / 12 = 64$; running 12 heads of dimension 64 has the exact same total projection and score FLOP complexity as a single head of dimension 768, while enabling the model to jointly attend to information from 12 distinct representation subspaces.",
+      "The per-head dimension is d_k = 12, reducing total computational complexity by \\$64×.",
+      "Multi-head attention eliminates the output projection matrix $\\mathbf{W}^O$, halving layer parameter count."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "The workload profile gives the transformer two rows, prefill and decode, even though both run the same weights. Under the table's representative reuse and streaming assumptions, which statement correctly explains why the limiting iron-law term can differ between them at small batch size?",
+     "explanation": "The correct answer is B. The table is explicit that these are representative regimes under stated assumptions, not universal bottlenecks. In prefill, processing many prompt tokens together can reuse weights across the sequence and raise effective intensity enough for the compute term to matter; in small-batch decode, one-token-at-a-time execution rereads weights and accesses the KV cache with much lower reuse, so the data term is often the limiter. The capacity answer overstates a special case, and the serial-latency answer confuses decode with recurrent processing.",
+     "hint": "Think about: use the workload-profile assumptions to predict why transformer prefill and decode can land on different sides of the iron law.",
+     "type": "single",
+     "options": [
+      "Prefill is limited by the data term because it must read the whole prompt from storage, while decode is limited by the compute term because each token requires a full forward pass.",
+      "Prefill processes all $S$ prompt tokens together, which can raise effective reuse and arithmetic intensity enough for the compute term to dominate under the stated assumptions; decode processes one token at a time with reread weights and a growing KV cache, so the data term often dominates at small batch.",
+      "Both phases are limited by memory capacity, because the KV cache always exceeds device memory.",
+      "Decode is compute bound because its $\\mathcal{O}(S^2)$ attention scores dominate, while prefill is latency bound because tokens are processed serially."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In a deep CNN using stacked \\$3 × 3 convolutional filters with stride 1 and padding, by how much does the receptive field side length increase with each additional layer, and what is the architectural implication for detecting large objects?",
+     "explanation": "The correct answer is C. Each successive \\$3 \\times 3$ stride-1 convolutional layer expands the receptive field side length by $K - 1 = 2$ pixels (layer 1 sees \\$3 \\times 3$, layer 2 sees \\$5 \\times 5$, layer 3 sees \\$7 \\times 7$). To detect large objects spanning 100+ pixels in a \\$224 \\times 224$ image, networks must either use deep stacks of layers, strided convolutions, or pooling operations. The claim of 9 pixels confuses kernel area with linear side growth. The claim of exponential doubling is incorrect for stride-1 layers. The claim that receptive field remains \\$3 \\times 3$ confuses single-layer kernel size with cumulative receptive field depth.",
+     "hint": "Think about: calculate receptive field growth across stacked convolutional layers and analyze the depth-versus-downsampling trade-off in network design.",
+     "type": "single",
+     "options": [
+      "Receptive field increases by 9 pixels per layer, allowing a 3-layer network to cover an entire \\$224 × 224 image.",
+      "Receptive field side length doubles with each layer, scaling exponentially as \\$3^L.",
+      "Receptive field side length grows linearly by 2 pixels per layer (a 3-layer stack sees a \\$7 \\times 7$ region), requiring deep stacks of layers or downsampling (pooling/striding) to detect objects spanning \\$100+$ pixels in high-resolution images.",
+      "Receptive field remains strictly fixed at \\$3 × 3 across all layers because convolutional filter weights are shared across positions."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Order the sub-layer operations executed within a single standard Transformer encoder block during a forward pass:",
+     "explanation": "The correct order is (1) -> (2) -> (3) -> (4) -> (5). Step 1 is (1) Linear Q, K, V projections. Step 2 is (2) Multi-head scaled dot-product attention. Step 3 is (3) First residual addition and layer normalization. Step 4 is (4) Position-wise feed-forward MLP. Step 5 is (5) Second residual addition and layer normalization.",
+     "hint": "Think about: explain the architectural layout and sub-layer execution order of a standard Transformer encoder block.",
+     "type": "order",
+     "items": [
+      "Project input activations into Query, Key, and Value tensors via linear weight matrices",
+      "Compute multi-head scaled dot-product self-attention across all sequence positions",
+      "Apply residual skip connection addition and layer normalization to the attention output",
+      "Apply residual skip connection addition and layer normalization to the feed-forward output"
+     ]
+    },
+    {
+     "q": "A depthwise separable convolution decomposes standard convolution into two sequential operations: a ____ convolution that applies spatial filters to each input channel independently, followed by a \\$1 × 1 pointwise convolution that projects and mixes channels across the depth dimension.",
+     "explanation": "depthwise. Depthwise separable convolution factorizes standard convolution into a depthwise convolution (spatial filtering per channel) and a pointwise convolution (\\$1 × 1 cross-channel linear combination).",
+     "hint": "Think about: explain depthwise separable convolution components and explain how factorizing spatial and channel mixing reduces arithmetic complexity.",
+     "type": "fill",
+     "answer": [
+      "depthwise"
+     ]
+    },
+    {
+     "q": "In a standard RNN layer with input dimension $d_{\\text{in}} = 100$ and hidden state dimension $d_{\\text{hidden}} = 128$, how many total multiply-accumulate (MAC) operations are performed per sequence step to compute the unactivated hidden state?",
+     "explanation": "The correct answer is B. At each time step, the RNN performs two distinct matrix multiplications: the recurrent projection h_t-1 W_hh requires \\$128 × 128 = 16,384 MACs, and the input projection x_t W_hx requires \\$100 × 128 = 12,800 MACs. Together, these sum to \\$16,384 + 12,800 = 29,184 MACs per step per batch item. The choice of 12,800 MACs omits the recurrent projection. The choice of 1,280,000 MACs incorrectly assumes quadratic all-to-all history computation. The choice of 256 MACs confuses dimension addition with full matrix transformations.",
+     "hint": "Think about: calculate the per-step multiply-accumulate arithmetic cost of input and recurrent projections in an RNN layer.",
+     "type": "single",
+     "options": [
+      "12,800 MACs, because only the input projection performs matrix multiplication.",
+      "29,184 MACs, consisting of \\$128 \\times 128 = 16{,}384\\text{ MACs}$ for the recurrent projection plus \\$100 \\times 128 = 12{,}800\\text{ MACs}$ for the input projection.",
+      "1,280,000 MACs, because recurrence multiplies all hidden states across all past time steps simultaneously.",
+      "256 MACs, because an RNN updates only a single vector addition per step."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Because transformers offer superior parallelization and representational capacity for long-range dependencies, recurrent neural networks are entirely obsolete and have no valid deployment use cases in modern ML systems.",
+     "explanation": "False. For streaming inference on resource-constrained microcontrollers (TinyML) and always-on audio devices with strict power and memory budgets, an RNN's constant $\\mathcal{O}(1)$ state memory footprint (e.g., 2 KiB for a 512-dimensional FP32 state) is vastly superior to the linear KV-cache growth and quadratic attention requirements of transformers, making RNNs a systems-justified choice.",
+     "hint": "Think about: justify edge and streaming use cases where RNN constant-state memory is superior to transformer memory scaling.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  }
+ ]
+}

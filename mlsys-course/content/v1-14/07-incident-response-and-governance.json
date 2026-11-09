@@ -1,0 +1,61 @@
+{
+ "title": "Incident Response and Governance",
+ "summary": "Apply the chapter's debugging decision tree to choose an initial investigation step for an ML incident with no explicit software failure.",
+ "source": {
+  "chapter": "v1-14",
+  "sections": [
+   "Incident Response and Governance",
+   "Incident response and operational practices",
+   "Governance and team coordination"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Apply the chapter's debugging decision tree to choose an initial investigation step for an ML incident with no explicit software failure\n- Explain how automated promotion checks enforce selected governance checks as release invariants and identify concrete conditions they can require"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Operations, § Incident Response and Governance",
+   "md": "The ranking service from the opening of this chapter drew attention only in week eight, and a product manager noticed before any system did. Drift monitoring could have raised the alarm by week four, when accuracy had already fallen to …, but an alert only relocates the problem. Someone must then decide quickly whether the signal is real, which system caused it, and whether to roll back, and the organization must already have decided which models were allowed to ship and who owns them."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Incident response and operational practices\n- Governance and team coordination\n\nPay attention to: ordered debugging for statistical incidents; governance as automated release invariants."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how a model-registry promotion check turns model governance from a review meeting into a release invariant, and name three conditions such a check can require before a model moves from staging to production.",
+   "md": "A promotion check encodes governance requirements into the same release path that promotes artifacts, so configured requirements must be satisfied before the system advances a model from staging to production. For example, the chapter lists a signed feature contract, a recorded training-data lineage hash with linked retained artifacts, subgroup metrics above policy thresholds, a canary SLO with automated rollback criteria, and a designated artifact owner. This does not replace every human review or guarantee complete compliance, but it makes key governance checks repeatable and harder to bypass casually."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-14-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "At 2:00 AM an alert reports that recommendation click-through rate fell 12 percent in the past hour. There is no stack trace and no failed process. Following the chapter's debugging decision tree, what should the on-call engineer check first?",
+     "explanation": "The correct answer is B. Upstream data pipelines for schema changes, missing values, or shifted input distributions. The chapter's debugging workflow starts with data pipeline integrity as the first diagnostic boundary, because many production ML regressions originate in altered inputs or upstream transformations. An abrupt one-hour drop also focuses attention on recent changes or outages, though it does not prove the data pipeline is at fault. Attribution and calibration checks can still matter later in the investigation.",
+     "hint": "Think about: apply the chapter's debugging decision tree to choose an initial investigation step for an ML incident with no explicit software failure",
+     "type": "single",
+     "options": [
+      "Feature attributions for recent mispredictions, to see which inputs the model now relies on",
+      "Upstream data pipelines for schema changes, missing values, or shifted input distributions",
+      "Calibration curves and confidence distributions of the current model version",
+      "Whether a quarterly retraining is due, since gradual concept drift is the most common cause"
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the chapter's debugging decision tree to choose an initial investigation step for an ML incident with no explicit software failure.",
+    "You can now explain how automated promotion checks enforce selected governance checks as release invariants and identify concrete conditions they can require."
+   ]
+  }
+ ]
+}

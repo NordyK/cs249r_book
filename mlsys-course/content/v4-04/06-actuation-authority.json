@@ -1,0 +1,59 @@
+{
+ "title": "Actuation Authority",
+ "summary": "Work through Actuation Authority.",
+ "source": {
+  "chapter": "v4-04",
+  "sections": [
+   "Actuation Authority",
+   "What a proposal may command"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Actuation Authority**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, The Nervous System, § Actuation Authority",
+   "md": "A shared mailbox cannot protect a mobile manipulator if the host processor retains a diagnostic route, an auxiliary bus master, or a JTAG debug port that writes directly to a drive. The silicon partition established in a later section therefore requires exclusive physical control over every electrical path capable of energizing the motor windings. Actuation authority is this exclusive physical ability to modify drive states, encompassing PWM configuration registers, current references, gate-driver outputs, and bridge-enable lines."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Command interface check burden matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: The level at which a proposal enters the drive's position-velocity-current cascade decides what the permission path must verify, from geometry for a position target to integrated motion for a velocity target."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-04-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Actuation Authority** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Every interface limit is located at one of five handoffs and one of five limits (latency, bandwidth, heat, determinism, fault isolation) and recorded as a handoff record against the capture-to-brake event timing.",
+      "Whether every axis exchanges command and feedback within the bus cycle is a necessary check computed from frame geometry, but occupancy alone is not a response bound.",
+      "The level at which a proposal enters the drive's position-velocity-current cascade decides what the permission path must verify, from geometry for a position target to integrated motion for a velocity target.",
+      "Each tier takes its rate from a different physical constant (winding L/R and the PWM carrier for the current loop, base travel per tick for the permission tick, weight-sweep cost for the chunk policy, prefill cost for the intent model), not from convenience."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Command interface check burden**: The level at which a proposal enters the drive's position-velocity-current cascade decides what the permission path must verify, from geometry for a position target to integrated motion for a velocity target."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Actuation authority**: Exclusive physical control over the paths that can energize actuators; fast proposal generation does not grant it."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Actuation authority",
+   "def": "Exclusive physical control over the paths that can energize actuators; fast proposal generation does not grant it."
+  }
+ ]
+}

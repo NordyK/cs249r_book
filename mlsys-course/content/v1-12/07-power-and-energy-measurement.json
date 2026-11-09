@@ -1,0 +1,97 @@
+{
+ "title": "Power and Energy Measurement",
+ "summary": "Analyze why explicit power-measurement boundaries are necessary when comparing core-only efficiency claims with full-system power measurements.",
+ "source": {
+  "chapter": "v1-12",
+  "sections": [
+   "Power and Energy Measurement",
+   "Power measurement boundaries",
+   "Battery and thermal benchmarking",
+   "Computational efficiency vs. power consumption",
+   "Standardized power measurement",
+   "MLPerf power case study"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze why explicit power-measurement boundaries are necessary when comparing core-only efficiency claims with full-system power measurements\n- Evaluate how a voltage-frequency operating point can reduce dynamic performance per watt even when throughput increases modestly\n- Explain why time-varying execution phases require integrated energy measurement over a matched workload window rather than a single instantaneous power reading\n- Evaluate why memory movement and measurement boundaries must be included when assessing ML system energy consumption\n- Classify and order the steps of an illustrative steady-state ML power measurement workflow, including boundary setup, optional idle baseline, warm-up, matched-window measurement, and energy integration"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Benchmarking, § Power and Energy Measurement",
+   "md": "Estimating that energy from a vendor datasheet is unreliable because energy is the one benchmark quantity that cannot be read off a clock or inferred from isolated peak ratings. A chip vendor may advertise \"… at …,\" yet under sustained inference load it delivers only … while drawing …. The datasheet watts were read at a lighter operating point than the one the workload holds, and thermal throttling lowers throughput once the chip heats."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Power measurement boundaries\n- Battery and thermal benchmarking\n- Computational efficiency vs. power consumption\n- Standardized power measurement\n- MLPerf power case study\n\nPay attention to: Power measurement boundaries (chip TDP vs board vs full server rack); Voltage-frequency scaling and performance-per-watt trade-offs; Time-varying execution phases and thermal equilibrium; Memory movement energy vs arithmetic compute energy."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why one instantaneous power reading during an ML inference workload produces misleading results, and describe how standardized protocols calculate total energy.",
+   "md": "One instantaneous reading captures only a momentary operating state, while ML workloads move through phases with different power draw. A prefill-like compute burst, a memory-bound phase, and an idle gap can all have different instantaneous power even within one request. Standardized energy measurement instead matches a measurement window to the workload interval, records or integrates power over that whole window with appropriate instrumentation, and computes total energy as $E=\\int P(t)\\,dt$. If the goal is energy per inference, the total energy is then divided by the number of completed inferences in that same window."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-12-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A vendor advertises an AI accelerator as delivering '\\$10 TOPS at \\$0.5 W' from a core-only measurement, while a matched measurement of the same workload on the full deployed system shows \\$4.5 W of active power at the wall socket. What benchmarking issue most directly explains the difference?",
+     "explanation": "The correct answer is A. The two numbers use different measurement boundaries: one is core-only, while the other is a full-system active power measurement for the same workload. That boundary difference can include memory interfaces, interconnect activity, power-delivery losses, host-side work, and cooling. The discrepancy alone does not reveal every omitted component exactly, but it does show that quoting a narrow subsystem number is not comparable to wall-socket system power.",
+     "hint": "Think about: analyze why explicit power-measurement boundaries are necessary when comparing core-only efficiency claims with full-system power measurements.",
+     "type": "single",
+     "options": [
+      "The vendor drew an isolated power measurement boundary around the compute core silicon only, omitting DRAM interfaces, PCIe host transfers, voltage regulators, CPU preprocessing, and cooling fans",
+      "The electrical wall outlet was defective and provided improper alternating current",
+      "Power consumption in digital circuits is inherently non-deterministic and varies by \\$10× between runs",
+      "The vendor measured power during sleep mode rather than active compute"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Assume switching activity and capacitance stay fixed. An accelerator raises clock frequency by \\$5\\%, and useful inference throughput also rises by \\$5\\%, but doing so requires a \\$15\\% increase in supply voltage. Using the dynamic-power model P propto V^2 f, the dynamic power rises by about \\$1.15^2 × 1.05 approx 1.389 (\\$38.9\\%). What follows for dynamic performance per watt at this operating point in a power-constrained edge deployment?",
+     "explanation": "The correct answer is B. Under the stated model, useful throughput rises to \\$1.05$ while dynamic power rises to \\$1.389$, so dynamic performance per watt becomes \\$1.05/1.389 \\approx 0.756$, about a \\$24\\%$ drop from baseline. Under the stated assumptions, this is a poor dynamic-efficiency trade. The model here excludes static leakage and other system components, so the conclusion is limited to dynamic performance per watt rather than a full verdict on total power, battery life, or thermals.",
+     "hint": "Think about: evaluate how a voltage-frequency operating point can reduce dynamic performance per watt even when throughput increases modestly.",
+     "type": "single",
+     "options": [
+      "It is an optimal trade-off because throughput is always the only metric that matters",
+      "It represents a severe dynamic energy-efficiency regression, reducing dynamic performance-per-watt to about \\$0.756 of baseline",
+      "Performance-per-watt increases because higher frequency reduces static leakage",
+      "The device will operate cooler because inferences finish \\$5\\% sooner"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In standardized ML power benchmarking, measuring the power draw of the arithmetic compute units (ALUs and tensor cores) is sufficient because the energy required to read and write data from DRAM is negligible in comparison.",
+     "explanation": "False. Data movement can consume large energy per transfer, but whether it dominates depends on how many such transfers occur, the workload regime, and the rest of the measured system. A benchmark must account for memory events and other relevant components rather than assuming arithmetic units alone determine total energy.",
+     "hint": "Think about: evaluate why memory movement and measurement boundaries must be included when assessing ML system energy consumption.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the following steps in an illustrative steady-state ML power measurement workflow from start to finish, where this protocol records an idle baseline before warm-up and then measures a matched active window:",
+     "explanation": "The correct order is: (2) Establish the physical measurement boundary and connect a calibrated power analyzer to the appropriate measurement points, (4) Measure and record the baseline idle/quiescent power consumption while the system is waiting for requests, (3) Execute unmeasured warm-up iterations until the device achieves thermal equilibrium (steady-state junction temperature), (5) Execute the synchronized inference benchmark workload while logging power over the matched measurement window, (1) Integrate instantaneous power readings over the matched active measurement window and compute Joules per inference. In this illustrative protocol, the boundary and instrumentation must be set first, and the idle baseline is recorded before warm-up because that ordering is part of the stated workflow. Warm-up precedes the timed active window so the measurement reflects steady-state behavior, and integration can only occur after the active measurement window has been collected.",
+     "hint": "Think about: classify and order the steps of an illustrative steady-state ML power measurement workflow, including boundary setup, optional idle baseline, warm-up, matched-window measurement, and energy integration.",
+     "type": "order",
+     "items": [
+      "Establish the physical measurement boundary and connect a calibrated power analyzer to the appropriate measurement points",
+      "Measure and record the baseline idle/quiescent power consumption while the system is waiting for requests",
+      "Execute the synchronized inference benchmark workload while logging power over the matched measurement window"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze why explicit power-measurement boundaries are necessary when comparing core-only efficiency claims with full-system power measurements.",
+    "You can now evaluate how a voltage-frequency operating point can reduce dynamic performance per watt even when throughput increases modestly.",
+    "You can now explain why time-varying execution phases require integrated energy measurement over a matched workload window rather than a single instantaneous power reading.",
+    "You can now evaluate why memory movement and measurement boundaries must be included when assessing ML system energy consumption."
+   ]
+  }
+ ]
+}

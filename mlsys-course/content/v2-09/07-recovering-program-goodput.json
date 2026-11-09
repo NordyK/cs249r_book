@@ -1,0 +1,102 @@
+{
+ "title": "Recovering Program Goodput",
+ "summary": "Diagnose compiler-derived partitioning from the collectives a step trace shows.",
+ "source": {
+  "chapter": "v2-09",
+  "sections": [
+   "Recovering Program Goodput",
+   "Compiler-derived partitioning",
+   "Tensor-parallel collectives under contention",
+   "Kernel-level levers",
+   "Composing program fixes"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Diagnose compiler-derived partitioning from the collectives a step trace shows\n- Order the runtime sequence of bucketed gradient overlap and explain why its dependencies allow hiding\n- Explain the resource contention of concurrent compute and communication and the condition for a net gain\n- Analyze the readiness and lifetime obligations of multi-stream execution\n- Evaluate graph replay by the term it shortens and the capture constraints that limit it"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Efficiency, § Recovering Program Goodput",
+   "md": "Tuning a single-device kernel when a step is bound by cross-node gradient reductions, or overlapping collectives when the step is bound by host kernel launches, leaves the critical path untouched. Recovering program goodput requires changing how a retained step executes, and an optimization helps only to the extent that it shortens an exposed term of the step. Three families of levers target distinct Fleet Law terms:"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Compiler-derived partitioning\n- Tensor-parallel collectives under contention\n- Kernel-level levers\n- Composing program fixes\n\nPay attention to: Compiler-derived partitioning: annotations, propagation, and resharding collectives; Overlap of gradient exchange and contention between compute and communication streams; Readiness and lifetime obligations for multi-stream execution; Kernel-level levers by the term they shorten, and why program fixes do not add."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how a collective on a communication stream can contend with matrix multiplications on a compute stream, and state the measured condition under which overlap raises program goodput.",
+   "md": "Separate streams make concurrent execution possible but do not reserve independent hardware. The collective library runs its own kernels on the same streaming multiprocessors to move and reduce data, so it competes with the matrix multiplications for those processors, memory bandwidth, and cache. On a timeline, successful overlap moves the collective's interval under computation while the compute kernels beside it grow longer. Overlap raises program goodput only if the communication time it removes from the critical path exceeds the time it adds to the computation, which only an end-to-end measurement of the step establishes."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-09-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In the running example, the programmer annotates the input's batch dimension along the data axis and splits the feed-forward and attention projections along the model axis. After an annotation change, a step trace shows an AllGather in every layer that the layout does not predict. What does this most likely indicate?",
+     "explanation": "The correct answer is A. With compiler-derived partitioning, the programmer annotates a few tensors and the compiler propagates layouts and inserts the collectives they require, such as the model-axis AllReduce after the row-split output projection. Wherever two derived layouts disagree, it inserts resharding collectives. The annotations decide which collectives exist, the mapping of the mesh onto the allocation decides how long each takes, and the overlap schedule decides how much is exposed. Counting the trace's collectives by type and mesh axis against the layout's prediction checks the propagation; the model code itself contains no collective.",
+     "hint": "Think about: diagnose compiler-derived partitioning from the collectives a step trace shows.",
+     "type": "single",
+     "options": [
+      "A conflict in sharding propagation, such as a reshape or a tensor whose annotation disagrees with its neighbors, causing the compiler to insert resharding collectives that no line of the program names",
+      "The compiler has correctly added the data-parallel gradient reduction",
+      "The NVLink links are failing, so collectives are being retried",
+      "The model code contains an explicit AllGather that the annotations cannot override"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In PyTorch DistributedDataParallel, arrange the following events in the sequence that overlaps gradient communication with the backward pass:",
+     "explanation": "The correct order is (2) -> (4) -> (1) -> (3). A gradient bucket can be reduced as soon as the backward pass has produced it, so a hook dispatches a non-blocking AllReduce on a side stream while backward propagation continues on the main stream, and the two streams synchronize only before the optimizer step. These loose dependencies are why the data-axis exchange can be hidden, unlike model-axis AllReduce operations whose result the next operation needs.",
+     "hint": "Think about: order the runtime sequence of bucketed gradient overlap and explain why its dependencies allow hiding.",
+     "type": "order",
+     "items": [
+      "the backward pass computes the gradients that fill a bucket",
+      "a backward hook launches an asynchronous AllReduce of the bucket on a communication stream.",
+      "the compute stream continues the backward pass on earlier layers while the bucket is transferred",
+      "the communication stream is synchronized with the compute stream before the optimizer step"
+     ]
+    },
+    {
+     "q": "If a side-stream collective reads a tensor before its producing kernel completes, missing producer-consumer ordering can cause a data race even though each stream executes its own operations in order.",
+     "explanation": "True. Per-stream order does not establish order between a producer on one stream and a consumer on another. Overlap that a program arranges for itself must meet two obligations a data-parallel wrapper otherwise meets for it: readiness, so that no consumer reads a tensor before its producer finishes, and lifetime, so that no tensor's storage is reused while a side stream still uses it. Both must hold before a shorter step is credited to overlap rather than to a race that skipped work.",
+     "hint": "Think about: analyze the readiness and lifetime obligations of multi-stream execution.",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "Eager submission of one forward pass of the 70B model costs roughly 12–24 ms of host time, while the serving replica's batch-one decode floor is about 5.2 ms per token. What does graph replay change, and what limits it?",
+     "explanation": "The correct answer is C. Because eager dispatch can exceed the bandwidth floor, eager decode can be dispatch-bound before it is bandwidth-bound, and graph replay targets exactly that interval. It does not fuse kernels or reduce bytes; fusion and tiling shorten the data term. The evidence of success is that launch gaps disappear from the kernel timeline. The replica's per-layer AllReduce, about 32.8 KB at batch one, is latency-bound and cannot be hidden because the next operation needs its result, so fewer exchanges or cheaper launches are what shorten it.",
+     "hint": "Think about: evaluate graph replay by the term it shortens and the capture constraints that limit it.",
+     "type": "single",
+     "options": [
+      "It fuses the pass's element-wise kernels, removing intermediate HBM traffic, and works for any input shape",
+      "It lowers the bandwidth floor of decode by keeping the weights in on-chip memory",
+      "It shortens only the host-dispatch part of the latency term by resubmitting a captured kernel sequence in one request; shapes, memory addresses, and control flow must match the capture, so varying shapes need one captured variant per shape bucket",
+      "It hides the per-layer tensor-parallel AllReduce behind computation, removing the communication term"
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Two program fixes each shorten the node step when measured alone. Explain one way applying both can save less than the sum of their savings, one way it can save more, and why a fix that worked on the node baseline is measured again on the fleet configuration.",
+   "md": "A lever shortens only the exposed part of its term, so after one lever runs, every term's share of the step changes. Combinations can overlap or conflict: a compiler that already fuses an element-wise chain leaves nothing for a hand-written fusion of the same chain, and a kernel speedup that shortens the backward pass shrinks the window that hid the gradient exchange, exposing communication that was free before. Combinations can reinforce: fusion and tiling free activation memory, which allows a larger microbatch that lengthens the computation available to hide each collective. On the fleet, the data-axis exchange holds most of the loss that scale adds, so only an end-to-end measurement under the contract on the fleet configuration classifies a combination."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now diagnose compiler-derived partitioning from the collectives a step trace shows.",
+    "You can now order the runtime sequence of bucketed gradient overlap and explain why its dependencies allow hiding.",
+    "You can now explain the resource contention of concurrent compute and communication and the condition for a net gain.",
+    "You can now analyze the readiness and lifetime obligations of multi-stream execution."
+   ]
+  }
+ ]
+}

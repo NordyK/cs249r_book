@@ -1,0 +1,61 @@
+{
+ "title": "Capacity for Trajectories",
+ "summary": "Work through Capacity for Trajectories.",
+ "source": {
+  "chapter": "v3-19",
+  "sections": [
+   "Capacity for Trajectories",
+   "Residence, service, and quota",
+   "The price of queueing",
+   "Dedicated capacity vs. per-token APIs"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Capacity for Trajectories**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Agent Economics, § Capacity for Trajectories",
+   "md": "Admitting one 20-minute repair trajectory per minute holds 20 sandboxes open concurrently while sending 60 model calls per minute to the inference pool. Sizing an agent platform therefore differs from sizing a stateless web service. Work enters the platform as a multi-step trajectory, but the operations that saturate hardware consist of individual model calls, tool executions, and resource leases, each with its own arrival rate, holding interval, and concurrency limit."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Residence, service, and quota\n- The price of queueing\n- Dedicated capacity vs. per-token APIs"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Trajectory goodput matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Accepted tasks per unit time is the platform's deliverable, so sustaining goodput G at acceptance alpha requires admitting G/alpha trajectories and any change that lowers acceptance raises offered load."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-19-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Capacity for Trajectories** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Speculative decoding pays only when the accepted-draft rate shortens the output-bound critical path by more than draft and verification work add to the bill.",
+      "A speedup g applied to a fraction f of the measured critical path gives T' = T[(1-f) + f/g] and a ceiling of 1/(1-f), which a baseline profile reveals before anything is bought.",
+      "Near saturation queueing wait grows like rho/(1-rho), so a modest throughput gain from higher utilization costs a multiple in wait that compounds across every serial step of a trajectory.",
+      "Accepted tasks per unit time is the platform's deliverable, so sustaining goodput G at acceptance alpha requires admitting G/alpha trajectories and any change that lowers acceptance raises offered load."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Trajectory goodput**: Accepted tasks per unit time is the platform's deliverable, so sustaining goodput G at acceptance alpha requires admitting G/alpha trajectories and any change that lowers acceptance raises offered load."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Capacity for Trajectories."
+   ]
+  }
+ ]
+}

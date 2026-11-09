@@ -1,0 +1,112 @@
+{
+ "title": "CI/CD for ML at Scale",
+ "summary": "Analyze the statistical and operational mechanisms of SUTVA violations in networked ML evaluation.",
+ "source": {
+  "chapter": "v2-12",
+  "sections": [
+   "CI/CD for ML at Scale",
+   "Training pipeline automation",
+   "Validation gates",
+   "Production experimentation as a release gate",
+   "SUTVA violations and network effects",
+   "Staged rollout strategies",
+   "Rollout risk management",
+   "Multi-region deployment coordination",
+   "The end-to-end evaluation contract"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the statistical and operational mechanisms of SUTVA violations in networked ML evaluation\n- Compare statistical multiple-testing correction methods for large-scale ML experimentation platforms\n- Design automated multi-criteria validation gates for production ML CI/CD pipelines\n- Size canary stage durations from experiment sample requirements and explain what sets the rollout schedule\n- Identify the formal statistical assumption underlying independent A/B testing"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, ML Operations at Scale, § CI/CD for ML at Scale",
+   "md": "Versioned model dependencies and feature contracts define a candidate release, but they do not establish that it is safe to expose. Each model update must navigate the dependency web. In the e-commerce graph of a later section, an embedding model update might require re-evaluation of four transitive downstream components, including the business rules layer, before any component can safely reach production. This coordination challenge transforms continuous integration and continuous deployment from a per-model concern into a platform orchestration problem."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Training pipeline automation\n- Validation gates\n- Production experimentation as a release gate\n- SUTVA violations and network effects\n- Staged rollout strategies\n- Rollout risk management\n- Multi-region deployment coordination\n- The end-to-end evaluation contract\n\nPay attention to: SUTVA violations and network effect bias in online A/B testing; Multiple-testing corrections (Bonferroni vs. Benjamini-Hochberg FDR); Multi-metric performance validation gates and canary stage sizing."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: What three criteria must be evaluated within an automated 'performance gate' function before a candidate model is approved for staging deployment?",
+   "md": "An automated performance gate must evaluate: (1) absolute minimum thresholds on key metrics (e.g., minimum NDCG), (2) relative improvement over the active production baseline, and (3) strict tolerance bounds on secondary guardrail metrics (e.g., maximum allowable regression on MRR, coverage, or latency)."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-12-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In the described social recommendation experiment, treatment users share boosted content with control users. Why does this violate the no-interference component of the Stable Unit Treatment Value Assumption (SUTVA)?",
+     "explanation": "The correct answer is D. The no-interference component of SUTVA requires an individual's outcome not to depend on other users' treatment assignments. Sharing violates that condition. Positive engagement spillovers can attenuate the measured contrast, but bias direction depends on the mechanism and the effect being estimated.",
+     "hint": "Think about: analyze the statistical and operational mechanisms of SUTVA violations in networked ML evaluation.",
+     "type": "single",
+     "options": [
+      "Individual user hashing causes GPU thread divergence on inference accelerators.",
+      "Social networks disallow collecting engagement metrics across control groups due to data privacy regulations.",
+      "User randomization forces feature stores to duplicate user embeddings across all regional caches.",
+      "Treatment users share boosted content with control users, making control outcomes depend on other users' treatment assignments."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "When an ML platform evaluates 20 simultaneous A/B experiments across a model portfolio, why might the team adopt the Benjamini-Hochberg False Discovery Rate (FDR) procedure instead of the Bonferroni correction?",
+     "explanation": "The correct answer is A. Bonferroni controls the probability of any false rejection across the family, at a potential power cost. Benjamini-Hochberg instead controls the expected false-discovery proportion among rejected hypotheses under its dependence assumptions, and may retain more power. It still requires valid p-values and does not guarantee zero false discoveries.",
+     "hint": "Think about: compare statistical multiple-testing correction methods for large-scale ML experimentation platforms.",
+     "type": "single",
+     "options": [
+      "Bonferroni correction divides alpha by the number of tests (\\$0.05 / 20 = 0.0025), creating an overly conservative threshold that inflates Type II errors (false negatives) and discards real model gains.",
+      "The Benjamini-Hochberg procedure eliminates the requirement for computing statistical significance or p-values.",
+      "Bonferroni correction can only be applied to computer vision models running on mobile edge devices.",
+      "The Benjamini-Hochberg procedure mathematically guarantees that zero false discoveries occur across any number of tests."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "The formal statistical assumption that an experimental unit's outcome is unaffected by the treatment assignments of other units is abbreviated as ____.",
+     "explanation": "SUTVA. The no-interference component of the Stable Unit Treatment Value Assumption requires an experimental unit’s outcome not to depend on other units’ treatment assignments. Network and market spillovers can violate that component; it is not a requirement that all observed outcomes be statistically independent.",
+     "hint": "Think about: identify the formal statistical assumption underlying independent A/B testing.",
+     "type": "fill",
+     "answer": [
+      "SUTVA"
+     ]
+    },
+    {
+     "q": "Arrange the standard stages of an end-to-end automated ML training and release pipeline in execution order:",
+     "explanation": "The correct order is: (3) Data validation and schema verification -> (5) Feature engineering and transformation -> (4) Distributed training execution with lineage logging -> (1) Automated evaluation against baseline and slice performance gates -> (2) Artifact packaging with serving configuration and registration in model registry. Data validation (3) prevents training on corrupt data, feature transformation (5) processes inputs, distributed training (4) generates parameters, evaluation gates (1) verify accuracy, and registration (2) commits the approved artifact.",
+     "hint": "Think about: order the sequence of stages in a robust ML CI/CD pipeline.",
+     "type": "order",
+     "items": [
+      "Data validation and schema verification",
+      "Feature engineering and transformation",
+      "Distributed training execution with lineage logging",
+      "Automated evaluation against baseline and slice performance gates",
+      "Artifact packaging with serving configuration and registration in model registry"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A model serves 1 million requests per hour and its canary plan needs about 10,000 samples per variant. Why should each canary stage's duration be computed from that planned sample rather than set by elapsed time, and what sets the length of the whole rollout schedule?",
+   "md": "A stage must last at least the planned sample divided by the request rate times the traffic share: 10,000 samples at 1 million requests per hour take 1 hour at 1 percent traffic and 12 minutes at 5 percent. That is a collection-time lower bound from the experiment design, not a stopping rule; delayed labels, correlated requests, and guardrail windows can extend it, and elapsed time alone establishes no confidence. The full schedule is set by the slowest outcome the release must observe, so fast guardrail metrics fill in hours, delayed outcomes need days of soak, and multi-region rollouts repeat evidence collection region by region."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Staged rollout**: Incrementally exposing live traffic to a candidate release while measuring acceptance and preserving rollback capability."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Staged rollout",
+   "def": "Incrementally exposing live traffic to a candidate release while measuring acceptance and preserving rollback capability."
+  }
+ ]
+}

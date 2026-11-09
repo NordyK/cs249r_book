@@ -1,0 +1,110 @@
+{
+ "title": "Element-wise Arithmetic Operations",
+ "summary": "TinyTorch tensor: Element-wise Arithmetic Operations",
+ "source": {
+  "chapter": "tt-01",
+  "sections": [
+   "Element-wise Arithmetic Operations"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Element-wise Arithmetic Operations\n\nElement-wise operations are the workhorses of neural network computation. They apply the same operation to corresponding elements in tensors, often with broadcasting to handle different shapes elegantly.\n\n### Why Element-wise Operations Matter\n\nElement-wise operations are fundamental to numerical computing:\n- **Scaling**: Multiply every element by a constant (e.g., unit conversion)\n- **Thresholding**: Set values below zero to zero (clamp negatives)\n- **Normalization**: Subtract the mean from every element to center data\n- **Comparison**: Compute difference between two arrays element-by-element\n\n### Element-wise Addition: The Foundation\n\nAddition is the simplest and most fundamental operation. Understanding it deeply helps with all others."
+  },
+  {
+   "type": "text",
+   "md": "```\nElement-wise Addition Visual:\n[1, 2, 3] + [4, 5, 6] = [1+4, 2+5, 3+6] = [5, 7, 9]\n\nMatrix Addition:\n[[1, 2],   [[5, 6],   [[1+5, 2+6],   [[6, 8],\n [3, 4]] +  [7, 8]] =  [3+7, 4+8]] =  [10, 12]]\n\nBroadcasting Addition (Matrix + Vector), the way a bias is added to a matmul output:\n[[1, 2],               [[1, 2],   [[10, 20],   [[11, 22],\n [3, 4]] + [10, 20] =   [3, 4]] +  [10, 20]] =  [13, 24]]\n    ↑        ↑             ↑         ↑            ↑\n  (2,2)    (2,)          (2,2)    broadcast    result\n\nBroadcasting Addition (Matrix + 2D Row Vector):\n[[1, 2],                [[1, 2],   [[10, 20],   [[11, 22],\n [3, 4]] + [[10, 20]] =  [3, 4]] +  [10, 20]] =  [13, 24]]\n    ↑         ↑            ↑         ↑            ↑\n  (2,2)     (1,2)        (2,2)    broadcast    result\n\nBroadcasting Addition (Matrix + 2D Column Vector):\n[[1, 2],   [[10],   [[1, 2],   [[10, 10],   [[11, 12],\n [3, 4]] +  [20]] =  [3, 4]] +  [20, 20]] =  [23, 24]]\n    ↑        ↑          ↑         ↑            ↑\n  (2,2)    (2,1)      (2,2)    broadcast    result\n\nBroadcasting Rules:\n1. Start from rightmost dimension\n2. Dimensions must be equal OR one must be 1 OR one must be missing\n3. Missing dimensions are assumed to be 1\n```"
+  },
+  {
+   "type": "text",
+   "md": "**Key Insight**: Broadcasting makes tensors of different shapes compatible by automatically expanding dimensions. This is crucial for batch processing where you often add a single bias vector to an entire batch of data.\n\n**Memory Efficiency**: Broadcasting doesn't actually create expanded copies in memory - NumPy computes results on-the-fly, saving memory."
+  },
+  {
+   "type": "text",
+   "md": "### Subtraction, Multiplication, and Division\n\nThese operations follow the same pattern as addition, working element-wise with broadcasting support. Each serves specific purposes in data processing:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Operation",
+    "Mathematical Form",
+    "Concrete Example",
+    "Machine Learning Use Case"
+   ],
+   "rows": [
+    [
+     "**Subtraction**",
+     "\\$\\mathbf{x} - \\mathbf{y}\\$",
+     "\\$[6, 8] - [1, 2] = [5, 6]\\$",
+     "Data centering: \\$\\mathbf{x} - \\boldsymbol{\\mu}\\$"
+    ],
+    [
+     "**Multiplication**",
+     "\\$\\mathbf{x} \\odot \\mathbf{y}\\$",
+     "\\$[2, 3] \\times [4, 5] = [8, 15]\\$",
+     "Gating & attention masks: \\$\\mathbf{x} \\odot \\mathbf{m}\\$"
+    ],
+    [
+     "**Division**",
+     "\\$\\mathbf{x} \\oslash \\mathbf{y}\\$",
+     "\\$[8, 9] / [2, 3] = [4.0, 3.0]\\$",
+     "Variance normalization: \\$(\\mathbf{x} - \\boldsymbol{\\mu}) / \\boldsymbol{\\sigma}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Broadcasting with Scalars:**\n\\$\\$\\begin{aligned}\n\\text{Scale: } & \\begin{bmatrix} 1 & 2 & 3 \\end{bmatrix} \\times 2 = \\begin{bmatrix} 2 & 4 & 6 \\end{bmatrix} \\\\\n\\text{Shift: } & \\begin{bmatrix} 1 & 2 & 3 \\end{bmatrix} - 1 = \\begin{bmatrix} 0 & 1 & 2 \\end{bmatrix} \\\\\n\\text{Normalize: } & \\begin{bmatrix} 2 & 4 & 6 \\end{bmatrix} / 2 = \\begin{bmatrix} 1 & 2 & 3 \\end{bmatrix}\n\\end{aligned}\\$\\$\n\n**Feature Standardization in ML:**\nGiven batch data \\$\\mathbf{X} \\in \\mathbb{R}^{3 \\times 2}\\$, feature mean \\$\\boldsymbol{\\mu} \\in \\mathbb{R}^2\\$, and std \\$\\boldsymbol{\\sigma} \\in \\mathbb{R}^2\\$:\n\\$\\$\\mathbf{X}_{\\text{norm}} = \\frac{\\mathbf{X} - \\boldsymbol{\\mu}}{\\boldsymbol{\\sigma}} \\implies (3, 2) - (2,) \\xrightarrow{\\text{broadcast}} (3, 2) \\oslash (2,) \\to (3, 2)\\$\\$\n\n**Performance Note**: Element-wise operations are vectorized through CPU SIMD instructions (AVX-512/NEON), processing 4–16 float32 elements per instruction cycle.\n\n**⚠️ Broadcasting Pitfall**: Broadcasting is powerful but dangerous. When shapes are accidentally mismatched, broadcasting silently fills missing dimensions instead of raising an error:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Tensor",
+    "Shape",
+    "Meaning"
+   ],
+   "rows": [
+    [
+     "`predictions`",
+     "`(32, 4)`",
+     "32 batch samples, 4 class scores each"
+    ],
+    [
+     "`targets`",
+     "`(4,)`",
+     "Intended one score per sample per class, shape \\$(32, 4)\\$, but the batch axis is missing!"
+    ],
+    [
+     "**Silent Broadcast**",
+     "`(4,)` \\$\\to\\$ `(32, 4)`",
+     "Target is replicated across all 32 samples with no warning"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "This is a frequent source of silent bugs in ML code. Always verify tensor shapes before element-wise operations like loss computation."
+  },
+  {
+   "type": "text",
+   "md": "### Implement: Add, Sub, Mul, Div\n\nWrite `forward` for each operation. The inputs are NumPy arrays; return an array. `Tensor` already wrapped scalars and will wrap your result."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 67 lines of code (starting with `class Add(Function):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Arithmetic Operations\n\nThis test validates our arithmetic operations work correctly with both tensor-tensor and tensor-scalar operations, including broadcasting behavior. Scalar arithmetic should feel natural whether the scalar appears before or after the tensor.\n\n**What we're testing**: Addition, subtraction, multiplication, division with broadcasting\n**Why it matters**: Foundation for batch processing, data normalization, and feature scaling\n**Expected**: Operations work with both tensors and scalars, proper broadcasting alignment"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Element-wise Arithmetic Operations."
+   ]
+  }
+ ]
+}

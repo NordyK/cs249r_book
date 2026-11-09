@@ -1,0 +1,121 @@
+{
+ "title": "Shape Manipulation: Reshape and Transpose",
+ "summary": "TinyTorch tensor: Shape Manipulation: Reshape and Transpose",
+ "source": {
+  "chapter": "tt-01",
+  "sections": [
+   "Shape Manipulation: Reshape and Transpose"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Shape Manipulation: Reshape and Transpose\n\nData processing pipelines constantly change tensor shapes to match computation requirements. Understanding these operations is crucial for efficient data flow.\n\n### Why Shape Manipulation Matters\n\nMany computations require constant shape changes across the network pipeline:\n\n\\$\\$\\underbrace{\\mathbf{X}_{(32, 3, 224, 224)}}_{\\text{Batch of RGB Images}} \\xrightarrow{\\text{Convolutions}} \\underbrace{\\mathbf{F}_{(32, 512, 7, 7)}}_{\\text{Feature Maps}} \\xrightarrow{\\text{Global Pool}} \\underbrace{\\mathbf{H}_{(32, 512)}}_{\\text{Vector Embeddings}} \\xrightarrow{\\text{Linear Projection}} \\underbrace{\\hat{\\mathbf{Y}}_{(32, 10)}}_{\\text{Class Logits}}\\$\\$\n\n### Reshape: Changing Interpretation of the Same Data\n\nReshaping alters coordinate dimensions without moving or reordering elements:\n\n\\$\\$\\begin{bmatrix} 1 & 2 & 3 & 4 & 5 & 6 \\end{bmatrix}_{(6,)} \\xrightarrow{\\text{reshape}(2, 3)} \\begin{bmatrix} 1 & 2 & 3 \\\\ 4 & 5 & 6 \\end{bmatrix}_{(2, 3)}\\$\\$\n\n**Underlying Linear Memory Buffer:**\n\\$\\$\\begin{array}{|c|c|c|c|c|c|} \\hline 1 & 2 & 3 & 4 & 5 & 6 \\\\ \\hline \\end{array} \\quad \\text{(Elements remain at identical byte offsets)}\\$\\$\n\n**Key Insight**: NumPy can reshape this contiguous array in \\$O(1)\\$ by returning a view (other layouts may require a copy). Our Tensor wraps the result with `np.array()`, so TinyTorch's reshape is \\$O(N)\\$. The layout reasoning is unchanged; the copy is the price of every Tensor owning its buffer outright."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Reshape Pattern",
+    "Shape Transformation",
+    "Deep Learning Purpose"
+   ],
+   "rows": [
+    [
+     "**Flatten Spatial Grid**",
+     "\\$(N, C, H, W) \\to (N, C \\cdot H \\cdot W)\\$",
+     "Transition from Conv2D feature map to Linear classifier"
+    ],
+    [
+     "**Unflatten Sequence**",
+     "\\$(N, D) \\to (N, H, W, C)\\$",
+     "Latent representation to image decoder grid"
+    ],
+    [
+     "**Inject Batch Axis**",
+     "\\$(H, W) \\to (1, 1, H, W)\\$",
+     "Single-sample inference into batched model pipeline"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Transpose: Swapping Dimensions\n\nTransposing reinterprets axes by inverting coordinate strides:\n\n\\$\\$\\mathbf{X} = \\begin{bmatrix} 1 & 2 & 3 \\\\ 4 & 5 & 6 \\end{bmatrix}_{(2, 3)} \\implies \\mathbf{X}^T = \\begin{bmatrix} 1 & 4 \\\\ 2 & 5 \\\\ 3 & 6 \\end{bmatrix}_{(3, 2)}\\$\\$\n\n**Strides Reinterpretation:**\n\\$\\$\\begin{aligned}\n\\text{Original Strides } (3, 1): \\quad & \\text{row step} = 3 \\text{ elements}, \\quad \\text{col step} = 1 \\text{ element} \\\\\n\\text{Transposed Strides } (1, 3): \\quad & \\text{row step} = 1 \\text{ element}, \\quad \\text{col step} = 3 \\text{ elements}\n\\end{aligned}\\$\\$\n\nThe bytes never move; only the coordinate strides do. Walking a row of the transposed view jumps through memory across stride boundaries:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Mathematical Formulation",
+    "Operation",
+    "Systems & ML Purpose"
+   ],
+   "rows": [
+    [
+     "**\\$\\mathbf{X}^T \\mathbf{X}\\$**",
+     "Gram / Covariance Matrix",
+     "Computes inter-feature correlations"
+    ],
+    [
+     "**\\$\\mathbf{A}^T \\mathbf{b}\\$**",
+     "Least Squares Projection",
+     "Projects target vector onto column space of \\$\\mathbf{A}\\$"
+    ],
+    [
+     "**\\$\\mathbf{Q} \\mathbf{K}^T\\$**",
+     "Attention Matrix Transpose",
+     "Aligns sequence positions for dot-product attention"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Performance Implications"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Operation",
+    "NumPy Underlying Behavior",
+    "TinyTorch Tensor Implementation",
+    "Memory & Cache Implications"
+   ],
+   "rows": [
+    [
+     "**`reshape()`**",
+     "\\$O(1)\\$ zero-copy view when C-contiguous",
+     "\\$O(N)\\$ copies \\$N\\$ float32 values",
+     "Independent buffer ownership prevents subtle mutation leaks"
+    ],
+    [
+     "**`transpose()`**",
+     "\\$O(1)\\$ view with inverted coordinate strides",
+     "\\$O(N)\\$ copies with non-contiguous strides",
+     "Strided access on transposed data jumps cache lines"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Measure the operation and its consumer separately. A cheap view can lead to a more expensive subsequent computation; a copy can cost time now and improve a later access pattern. The result depends on layout, kernel, and hardware."
+  },
+  {
+   "type": "text",
+   "md": "### Implement: Slice, Reshape, Permute, Copy, MaskedFill\n\nWrite `forward` for each operation. The input is a NumPy array; return an array. The Tensor methods pass the extra information (`key`, `shape`, `axes`, `mask` and `value`) as keyword parameters to `apply`, and `Function.__init__` stores each one on the node, so it is available as `self.key`, `self.shape`, and so on."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 69 lines of code (starting with `class Slice(Function):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Shape Manipulation\n\nThis test validates reshape and transpose operations work correctly with validation and edge cases.\n\n**What we're testing**: Reshape and transpose operations with proper error handling\n**Why it matters**: Essential for data manipulation and multi-dimensional array processing\n**Expected**: Correct shape changes, proper error handling for invalid operations"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Shape Manipulation: Reshape and Transpose."
+   ]
+  }
+ ]
+}

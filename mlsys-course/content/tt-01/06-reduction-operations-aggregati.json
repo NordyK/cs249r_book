@@ -1,0 +1,111 @@
+{
+ "title": "Reduction Operations: Aggregating Information",
+ "summary": "TinyTorch tensor: Reduction Operations: Aggregating Information",
+ "source": {
+  "chapter": "tt-01",
+  "sections": [
+   "Reduction Operations: Aggregating Information"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Reduction Operations: Aggregating Information\n\nReduction operations collapse dimensions by aggregating data, which is essential for computing statistics and preparing data for further processing.\n\n### Why Reductions are Crucial in ML\n\nReduction operations appear throughout neural networks:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Reduction Type",
+    "Syntax",
+    "Dimensional Shift",
+    "Machine Learning Use Case"
+   ],
+   "rows": [
+    [
+     "**Column Statistics**",
+     "`data.mean(axis=0)`",
+     "\\$(N, D) \\to (D,)\\$",
+     "Batch normalization: feature mean & variance"
+    ],
+    [
+     "**Row Aggregation**",
+     "`data.mean(axis=1)`",
+     "\\$(N, D) \\to (N,)\\$",
+     "Sample summary: token energy, sample norm"
+    ],
+    [
+     "**Spatial Averaging**",
+     "`img.mean(axis=(1, 2))`",
+     "\\$(N, H, W) \\to (N,)\\$",
+     "Global average pooling across image channels"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Understanding Axis Operations\n\nGiven matrix \\$\\mathbf{X} \\in \\mathbb{R}^{2 \\times 3}\\$:\n\n\\$\\$\\mathbf{X} = \\begin{bmatrix} 1 & 2 & 3 \\\\ 4 & 5 & 6 \\end{bmatrix}\\$\\$\n\n* **Global Reduction (All Elements):**\n  \\$\\$\\text{sum}(\\mathbf{X}) = 21, \\quad \\text{mean}(\\mathbf{X}) = 3.5, \\quad \\max(\\mathbf{X}) = 6\\$\\$\n* **\\$\\text{axis}=0\\$ (Collapse Rows \\$\\downarrow\\$):** Reduces along height, producing one value per column:\n  \\$\\$\\text{sum}(\\mathbf{X}, \\text{axis}=0) = \\begin{bmatrix} 1+4 & 2+5 & 3+6 \\end{bmatrix} = \\begin{bmatrix} 5 & 7 & 9 \\end{bmatrix} \\in \\mathbb{R}^3\\$\\$\n  \\$\\$\\text{mean}(\\mathbf{X}, \\text{axis}=0) = \\begin{bmatrix} 2.5 & 3.5 & 4.5 \\end{bmatrix}\\$\\$\n* **\\$\\text{axis}=1\\$ (Collapse Columns \\$\\to\\$):** Reduces along width, producing one value per row:\n  \\$\\$\\text{sum}(\\mathbf{X}, \\text{axis}=1) = \\begin{bmatrix} 1+2+3 \\\\ 4+5+6 \\end{bmatrix} = \\begin{bmatrix} 6 \\\\ 15 \\end{bmatrix} \\to [6, 15] \\in \\mathbb{R}^2\\$\\$\n  \\$\\$\\text{mean}(\\mathbf{X}, \\text{axis}=1) = [2.0, 5.0]\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "**Multi-axis Reductions on 3D Tensor \\$(B, H, W) = (2, 3, 4)\\$:**\n\\$\\$\\begin{aligned}\n\\text{sum}(\\text{axis}=0) &\\implies (3, 4) \\quad \\text{(Batch sum)} \\\\\n\\text{sum}(\\text{axis}=1) &\\implies (2, 4) \\quad \\text{(Height sum)} \\\\\n\\text{sum}(\\text{axis}=2) &\\implies (2, 3) \\quad \\text{(Width sum)} \\\\\n\\text{sum}(\\text{axis}=(1, 2)) &\\implies (2,) \\quad \\text{(Global spatial pooling)}\n\\end{aligned}\\$\\$\n\n### Memory and Performance Considerations"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Operation",
+    "Complexity",
+    "Access Strategy",
+    "Hardware Cache Locality"
+   ],
+   "rows": [
+    [
+     "**`.sum()`**",
+     "\\$O(N)\\$",
+     "Sequential read",
+     "🟢 **Optimal**: Linear memory streaming"
+    ],
+    [
+     "**`.sum(axis=0)`**",
+     "\\$O(N)\\$",
+     "Sweeps rows in sequence",
+     "🟢 **High**: Accumulates into row buffer, vectorizes cleanly"
+    ],
+    [
+     "**`.sum(axis=1)`**",
+     "\\$O(N)\\$",
+     "Horizontal row reduce",
+     "🟡 **Fair**: Requires horizontal SIMD reduction"
+    ],
+    [
+     "**`.mean()` / `.max()`**",
+     "\\$O(N)\\$",
+     "Sequential read",
+     "🟢 **Optimal**: Single streaming pass"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Why `axis=0` is usually FASTER than `axis=1` (measured ~1.7× speedup on a 4000×4000 array):**\n- NumPy reduces over axis 0 by sweeping memory sequentially and accumulating into an output row, which vectorizes cleanly with SIMD instructions.\n- `axis=1` is a horizontal reduction within each row, which requires horizontal SIMD lane shuffling.\n- The intuition that \"column access must be strided and slow\" applies to element-at-a-time Python loops, not to NumPy's compiled sequential sweep."
+  },
+  {
+   "type": "text",
+   "md": "### Implement: Sum, Mean, Max\n\nWrite `forward` for each operation. The inputs are NumPy arrays; return an array. `Tensor` already wrapped scalars and will wrap your result."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class Sum(Function):\n    \"\"\"Sum over all elements or along an axis. Parameters: axis, keepdims.\"\"\"\n    axis = None\n    keepdims = False\n\n    def forward(self, a):\n        \"\"\"\n        Sum the array along self.axis.\n\n        TODO: Return np.sum(a, axis=self.axis, keepdims=self.keepdims).\n\n        APPROACH:\n        1. self.axis and self.keepdims were set by Tensor.sum (or default to the class attributes)\n        2. np.sum does the reduction; pass both parameters straight through\n\n        HINT: axis=None (the default) sums every element.\n        \"\"\"\n        return np.sum(a, axis=self.axis, keepdims=self.keepdims)\n\n\nclass Mean(Function):\n    \"\"\"Average over all elements or along an axis. Parameters: axis, keepdims.\"\"\"\n    axis = None\n    keepdims = False\n\n    def forward(self, a):\n        \"\"\"\n        Average the array along self.axis.\n\n        TODO: Return np.mean(a, axis=self.axis, keepdims=self.keepdims).\n        \"\"\"\n        return np.mean(a, axis=self.axis, keepdims=self.keepdims)\n\n\nclass Max(Function):\n    \"\"\"Largest element over all elements or along an axis. Parameters: axis, keepdims.\"\"\"\n    axis = None\n    keepdims = False\n\n    def forward(self, a):\n        \"\"\"\n        Take the maximum of the array along self.axis.\n\n        TODO: Return np.max(a, axis=self.axis, keepdims=self.keepdims).\n        \"\"\"\n        return np.max(a, axis=self.axis, keepdims=self.keepdims)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Reduction Operations\n\nThis test validates reduction operations work correctly with axis control and maintain proper shapes.\n\n**What we're testing**: Sum, mean, max operations with axis parameter and keepdims\n**Why it matters**: Essential for loss computation, batch processing, and pooling operations\n**Expected**: Correct reduction along specified axes with proper shape handling"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Reduction Operations: Aggregating Information."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,269 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v1-09",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Data Selection** (Vol I). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Selection, Purpose",
+   "md": "Training pays to acquire, label, score, move, and process examples even though their learning value differs. Large datasets contain redundant, noisy, or target-misaligned samples, while scarce regions may lack the cases a model needs, such as the rare conditions under which a deployed system is most likely to fail."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Data Wall",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Measuring Data Value",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Static Pruning",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Dynamic Selection",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Synthetic Data Generation",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Learning from Unlabeled Data",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Selection Engineering",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Selection inequality**",
+     "A training-time claim for data selection holds only if selection time plus subset training time is less than full training time at matched quality and coverage, so scorer size and refresh rate, not the retained fraction, decide whether selection is a net saving."
+    ],
+    [
+     "**Measuring data value**",
+     "Sample value is learning per unit of training compute (the information-compute ratio), learning-curve metrics show whether a reduction held quality, and a gain in data value becomes a throughput gain only when the run is compute-bound and the saved work is on the critical path."
+    ],
+    [
+     "**Compute-optimal frontier**",
+     "Controlled sweeps fit a compute-optimal balance of about 20 tokens per parameter, so a run whose unique tokens per parameter sit well below it is data-starved and repeats its corpus, which is the regime where selection rather than more compute moves the run toward the frontier."
+    ],
+    [
+     "**Selection engineering on the data path**",
+     "Selection removes accelerator work but adds host hashing, scoring passes, scattered reads, and shard coordination, so a retained subset saves reads only if materialized into its own shards, and data echoing recovers idle accelerator cycles when host preparation is the slow stage."
+    ],
+    [
+     "**Static pruning with coverage floors**",
+     "Deduplication, quality pruning, and coreset selection shrink training work before training, but a score ranking must be constrained by per-class or per-slice coverage floors, which carry an explicit opportunity cost and can make a budget infeasible."
+    ],
+    [
+     "**Dynamic selection**",
+     "Because sample value changes as the model learns, curriculum learning reorders data by difficulty and pacing, and active learning turns labeling into a query loop whose label saving must be measured against a budget-matched random baseline after pool-scoring cost."
+    ],
+    [
+     "**Synthetic data as a lever**",
+     "When the pool lacks the needed cases, augmentation and generative synthesis replace curation at a per-sample cost against realism, the domain gap needs randomization, adaptation, and a real-data anchor, and recursive training risks model collapse."
+    ],
+    [
+     "**Learning from unlabeled data**",
+     "Semi-supervised and self-supervised learning trade extra training compute for fewer task labels, valid only when the unlabeled pool matches the target distribution, and a foundation model pays off only when pretraining is amortized across enough downstream tasks."
+    ],
+    [
+     "**Data cost and amortized ROI**",
+     "Total data cost is acquisition plus labeling plus storage plus processing, and a selection investment is judged by amortized return across all the runs it serves, so a pipeline that loses money on one run can pay across a campaign."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$\\text{ICR} = \\frac{\\Delta I}{\\Delta \\text{FLOPs}}$$\n\n$$\\text{ICR}(D) = \\frac{\\frac{d}{dD} I(D)}{\\frac{d}{dD} C(D)} \\approx \\frac{1/D}{O} = \\frac{1}{O \\cdot D}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v1-09-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Selection inequality",
+     "back": "A training-time claim for data selection holds only if selection time plus subset training time is less than full training time at matched quality and coverage, so scorer size and refresh rate, not the retained fraction, decide whether selection is a net saving."
+    },
+    {
+     "front": "Measuring data value",
+     "back": "Sample value is learning per unit of training compute (the information-compute ratio), learning-curve metrics show whether a reduction held quality, and a gain in data value becomes a throughput gain only when the run is compute-bound and the saved work is on the critical path."
+    },
+    {
+     "front": "Compute-optimal frontier",
+     "back": "Controlled sweeps fit a compute-optimal balance of about 20 tokens per parameter, so a run whose unique tokens per parameter sit well below it is data-starved and repeats its corpus, which is the regime where selection rather than more compute moves the run toward the frontier."
+    },
+    {
+     "front": "Selection engineering on the data path",
+     "back": "Selection removes accelerator work but adds host hashing, scoring passes, scattered reads, and shard coordination, so a retained subset saves reads only if materialized into its own shards, and data echoing recovers idle accelerator cycles when host preparation is the slow stage."
+    },
+    {
+     "front": "Static pruning with coverage floors",
+     "back": "Deduplication, quality pruning, and coreset selection shrink training work before training, but a score ranking must be constrained by per-class or per-slice coverage floors, which carry an explicit opportunity cost and can make a budget infeasible."
+    },
+    {
+     "front": "Dynamic selection",
+     "back": "Because sample value changes as the model learns, curriculum learning reorders data by difficulty and pacing, and active learning turns labeling into a query loop whose label saving must be measured against a budget-matched random baseline after pool-scoring cost."
+    },
+    {
+     "front": "Synthetic data as a lever",
+     "back": "When the pool lacks the needed cases, augmentation and generative synthesis replace curation at a per-sample cost against realism, the domain gap needs randomization, adaptation, and a real-data anchor, and recursive training risks model collapse."
+    },
+    {
+     "front": "Learning from unlabeled data",
+     "back": "Semi-supervised and self-supervised learning trade extra training compute for fewer task labels, valid only when the unlabeled pool matches the target distribution, and a foundation model pays off only when pretraining is amortized across enough downstream tasks."
+    },
+    {
+     "front": "Data cost and amortized ROI",
+     "back": "Total data cost is acquisition plus labeling plus storage plus processing, and a selection investment is judged by amortized return across all the runs it serves, so a pipeline that loses money on one run can pay across a campaign."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v1-09-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Selection inequality**?",
+     "options": [
+      "A training-time claim for data selection holds only if selection time plus subset training time is less than full training time at matched quality and coverage, so scorer size and refresh rate, not the retained fraction, decide whether selection is a net saving.",
+      "Controlled sweeps fit a compute-optimal balance of about 20 tokens per parameter, so a run whose unique tokens per parameter sit well below it is data-starved and repeats its corpus, which is the regime where selection rather than more compute moves the run toward the frontier.",
+      "Sample value is learning per unit of training compute (the information-compute ratio), learning-curve metrics show whether a reduction held quality, and a gain in data value becomes a throughput gain only when the run is compute-bound and the saved work is on the critical path.",
+      "When the pool lacks the needed cases, augmentation and generative synthesis replace curation at a per-sample cost against realism, the domain gap needs randomization, adaptation, and a real-data anchor, and recursive training risks model collapse."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Selection inequality itself, not a neighbouring idea.",
+     "explanation": "**Selection inequality:** A training-time claim for data selection holds only if selection time plus subset training time is less than full training time at matched quality and coverage, so scorer size and refresh rate, not the retained fraction, decide whether selection is a net saving."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Measuring data value**?",
+     "options": [
+      "A training-time claim for data selection holds only if selection time plus subset training time is less than full training time at matched quality and coverage, so scorer size and refresh rate, not the retained fraction, decide whether selection is a net saving.",
+      "Deduplication, quality pruning, and coreset selection shrink training work before training, but a score ranking must be constrained by per-class or per-slice coverage floors, which carry an explicit opportunity cost and can make a budget infeasible.",
+      "Selection removes accelerator work but adds host hashing, scoring passes, scattered reads, and shard coordination, so a retained subset saves reads only if materialized into its own shards, and data echoing recovers idle accelerator cycles when host preparation is the slow stage.",
+      "Sample value is learning per unit of training compute (the information-compute ratio), learning-curve metrics show whether a reduction held quality, and a gain in data value becomes a throughput gain only when the run is compute-bound and the saved work is on the critical path."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Measuring data value itself, not a neighbouring idea.",
+     "explanation": "**Measuring data value:** Sample value is learning per unit of training compute (the information-compute ratio), learning-curve metrics show whether a reduction held quality, and a gain in data value becomes a throughput gain only when the run is compute-bound and the saved work is on the critical path."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Compute-optimal frontier**?",
+     "options": [
+      "Sample value is learning per unit of training compute (the information-compute ratio), learning-curve metrics show whether a reduction held quality, and a gain in data value becomes a throughput gain only when the run is compute-bound and the saved work is on the critical path.",
+      "Controlled sweeps fit a compute-optimal balance of about 20 tokens per parameter, so a run whose unique tokens per parameter sit well below it is data-starved and repeats its corpus, which is the regime where selection rather than more compute moves the run toward the frontier.",
+      "Semi-supervised and self-supervised learning trade extra training compute for fewer task labels, valid only when the unlabeled pool matches the target distribution, and a foundation model pays off only when pretraining is amortized across enough downstream tasks.",
+      "When the pool lacks the needed cases, augmentation and generative synthesis replace curation at a per-sample cost against realism, the domain gap needs randomization, adaptation, and a real-data anchor, and recursive training risks model collapse."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Compute-optimal frontier itself, not a neighbouring idea.",
+     "explanation": "**Compute-optimal frontier:** Controlled sweeps fit a compute-optimal balance of about 20 tokens per parameter, so a run whose unique tokens per parameter sit well below it is data-starved and repeats its corpus, which is the regime where selection rather than more compute moves the run toward the frontier."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Selection engineering on the data path**?",
+     "options": [
+      "Because sample value changes as the model learns, curriculum learning reorders data by difficulty and pacing, and active learning turns labeling into a query loop whose label saving must be measured against a budget-matched random baseline after pool-scoring cost.",
+      "Semi-supervised and self-supervised learning trade extra training compute for fewer task labels, valid only when the unlabeled pool matches the target distribution, and a foundation model pays off only when pretraining is amortized across enough downstream tasks.",
+      "Selection removes accelerator work but adds host hashing, scoring passes, scattered reads, and shard coordination, so a retained subset saves reads only if materialized into its own shards, and data echoing recovers idle accelerator cycles when host preparation is the slow stage.",
+      "A training-time claim for data selection holds only if selection time plus subset training time is less than full training time at matched quality and coverage, so scorer size and refresh rate, not the retained fraction, decide whether selection is a net saving."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Selection engineering on the data path itself, not a neighbouring idea.",
+     "explanation": "**Selection engineering on the data path:** Selection removes accelerator work but adds host hashing, scoring passes, scattered reads, and shard coordination, so a retained subset saves reads only if materialized into its own shards, and data echoing recovers idle accelerator cycles when host preparation is the slow stage."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Static pruning with coverage floors**?",
+     "options": [
+      "Total data cost is acquisition plus labeling plus storage plus processing, and a selection investment is judged by amortized return across all the runs it serves, so a pipeline that loses money on one run can pay across a campaign.",
+      "Selection removes accelerator work but adds host hashing, scoring passes, scattered reads, and shard coordination, so a retained subset saves reads only if materialized into its own shards, and data echoing recovers idle accelerator cycles when host preparation is the slow stage.",
+      "A training-time claim for data selection holds only if selection time plus subset training time is less than full training time at matched quality and coverage, so scorer size and refresh rate, not the retained fraction, decide whether selection is a net saving.",
+      "Deduplication, quality pruning, and coreset selection shrink training work before training, but a score ranking must be constrained by per-class or per-slice coverage floors, which carry an explicit opportunity cost and can make a budget infeasible."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Static pruning with coverage floors itself, not a neighbouring idea.",
+     "explanation": "**Static pruning with coverage floors:** Deduplication, quality pruning, and coreset selection shrink training work before training, but a score ranking must be constrained by per-class or per-slice coverage floors, which carry an explicit opportunity cost and can make a budget infeasible."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Selection inequality: A training-time claim for data selection holds only if selection time plus subset training time is less than full training time at matched quality and coverage, so scorer size and refresh rate, not the retained fraction, decide whether selection is a net saving.",
+    "Measuring data value: Sample value is learning per unit of training compute (the information-compute ratio), learning-curve metrics show whether a reduction held quality, and a gain in data value becomes a throughput gain only when the run is compute-bound and the saved work is on the critical path.",
+    "Compute-optimal frontier: Controlled sweeps fit a compute-optimal balance of about 20 tokens per parameter, so a run whose unique tokens per parameter sit well below it is data-starved and repeats its corpus, which is the regime where selection rather than more compute moves the run toward the frontier.",
+    "Selection engineering on the data path: Selection removes accelerator work but adds host hashing, scoring passes, scattered reads, and shard coordination, so a retained subset saves reads only if materialized into its own shards, and data echoing recovers idle accelerator cycles when host preparation is the slow stage."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Selection inequality",
+   "def": "A training-time claim for data selection holds only if selection time plus subset training time is less than full training time at matched quality and coverage, so scorer size and refresh rate, not the retained fraction, decide whether selection is a net saving."
+  },
+  {
+   "term": "Measuring data value",
+   "def": "Sample value is learning per unit of training compute (the information-compute ratio), learning-curve metrics show whether a reduction held quality, and a gain in data value becomes a throughput gain only when the run is compute-bound and the saved work is on the critical path."
+  },
+  {
+   "term": "Compute-optimal frontier",
+   "def": "Controlled sweeps fit a compute-optimal balance of about 20 tokens per parameter, so a run whose unique tokens per parameter sit well below it is data-starved and repeats its corpus, which is the regime where selection rather than more compute moves the run toward the frontier."
+  },
+  {
+   "term": "Selection engineering on the data path",
+   "def": "Selection removes accelerator work but adds host hashing, scoring passes, scattered reads, and shard coordination, so a retained subset saves reads only if materialized into its own shards, and data echoing recovers idle accelerator cycles when host preparation is the slow stage."
+  },
+  {
+   "term": "Static pruning with coverage floors",
+   "def": "Deduplication, quality pruning, and coreset selection shrink training work before training, but a score ranking must be constrained by per-class or per-slice coverage floors, which carry an explicit opportunity cost and can make a budget infeasible."
+  },
+  {
+   "term": "Dynamic selection",
+   "def": "Because sample value changes as the model learns, curriculum learning reorders data by difficulty and pacing, and active learning turns labeling into a query loop whose label saving must be measured against a budget-matched random baseline after pool-scoring cost."
+  },
+  {
+   "term": "Synthetic data as a lever",
+   "def": "When the pool lacks the needed cases, augmentation and generative synthesis replace curation at a per-sample cost against realism, the domain gap needs randomization, adaptation, and a real-data anchor, and recursive training risks model collapse."
+  },
+  {
+   "term": "Learning from unlabeled data",
+   "def": "Semi-supervised and self-supervised learning trade extra training compute for fewer task labels, valid only when the unlabeled pool matches the target distribution, and a foundation model pays off only when pretraining is amortized across enough downstream tasks."
+  },
+  {
+   "term": "Data cost and amortized ROI",
+   "def": "Total data cost is acquisition plus labeling plus storage plus processing, and a selection investment is judged by amortized return across all the runs it serves, so a pipeline that loses money on one run can pay across a campaign."
+  }
+ ]
+}

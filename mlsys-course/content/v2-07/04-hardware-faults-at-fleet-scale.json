@@ -1,0 +1,84 @@
+{
+ "title": "Hardware Faults at Fleet Scale",
+ "summary": "Classify hardware faults by their temporal signature and determine appropriate mitigation strategies.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "Hardware Faults at Fleet Scale",
+   "Fault persistence and the fleet response",
+   "Hardware lifecycle and the hazard rate",
+   "Fleet-scale detection and mitigation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Classify hardware faults by their temporal signature and determine appropriate mitigation strategies\n- Analyze the vulnerability of floating-point numerical representations to single-bit hardware upsets\n- Identify failure modes that evade timeout-based detection and require performance-based evidence\n- Compare the manifestation of permanent datapath faults in specialized accelerator matrix units against scalar processor faults\n- Evaluate the operational risks of bypassing burn-in screening for newly deployed accelerator hardware"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, § Hardware Faults at Fleet Scale",
+   "md": "A cosmic ray that flips one bit in a GPU's high-bandwidth memory and a solder joint that cracks under thermal cycling are physical events, but the recovery system never observes them directly. It observes symptoms: a gradient spike with no process crash, a rank that disappears from the collective, or a node that fails only after it heats under sustained load. The failure taxonomy of a later section already classifies such events by persistence, manifestation, and scope."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Fault persistence and the fleet response\n- Hardware lifecycle and the hazard rate\n- Fleet-scale detection and mitigation\n\nPay attention to: Fault persistence (transient, intermittent, permanent) and the fleet response each demands; Asymmetric vulnerability of IEEE 754 floating-point representations (sign vs exponent vs mantissa); Fleet-scale fault rates: defective processors and memory errors as routine operating conditions; Permanent datapath defects (stuck-at faults) that corrupt results without crashing."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Compare the impact of a single-bit flip in the sign bit versus a single-bit flip in the exponent bits of an IEEE 754 floating-point weight or gradient tensor during neural network training.",
+   "md": "A sign-bit flip reverses the value, potentially changing the direction of an update. An exponent-bit flip can change its scale by orders of magnitude or create a nonfinite value, so it can be more damaging than a low mantissa-bit error. The effect depends on the original bit pattern, operation, and error masking; not every exponent error immediately causes divergence."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A cluster node passes cold-boot diagnostics and memory tests during morning maintenance, but repeatedly produces incorrect matrix multiplication results under sustained thermal load during large-batch backward passes. What type of fault does this represent, and what is the appropriate operational response?",
+     "explanation": "The correct answer is B. The recurring load-dependent signature is consistent with an intermittent fault and warrants quarantine and tests under the conditions that exposed it. Passing a cold-boot test does not clear that risk. Thermal correlation alone does not exclude software or runtime defects; replay and telemetry must corroborate hardware attribution before repair or replacement. Retrying without validation risks recurring corruption.",
+     "hint": "Think about: classify hardware faults by their temporal signature and determine appropriate mitigation strategies.",
+     "type": "single",
+     "options": [
+      "Transient fault; retry the exact batch on the same node since the fault will disappear automatically.",
+      "Intermittent fault; collect runtime telemetry under load, quarantine the node, and replace or repair it rather than returning it directly to production.",
+      "Permanent stuck-at-0 fault; immediately discard all training checkpoints because the device cannot execute any instructions.",
+      "Software race condition; upgrade the host OS kernel and increase the AllReduce heartbeat timeout threshold."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "How does a permanent stuck-at fault in a specialized accelerator's Tensor Core multiply-accumulate unit manifest differently during training compared to a traditional processor crash?",
+     "explanation": "The correct answer is D. A stuck-at datapath defect can repeatedly corrupt affected computations without raising a process exception. The visible effect depends on which instructions, values and lanes use the faulty circuit, and whether later operations mask the error. It need not affect every matrix multiplication or always cause divergence. The other choices incorrectly require a crash, bus reset or automatic CPU fallback.",
+     "hint": "Think about: compare the manifestation of permanent datapath faults in specialized accelerator matrix units against scalar processor faults.",
+     "type": "single",
+     "options": [
+      "It causes an immediate kernel execution timeout that terminates the local process group within milliseconds.",
+      "It corrupts operating system page tables, forcing an immediate kernel panic and node reboot.",
+      "It triggers a PCIe bus reset that automatically redirects subsequent GEMM operations to host CPU memory.",
+      "It can produce repeatable incorrect values in computations using the defective datapath while the process remains alive."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Because electronic components exhibit a constant failure rate during their useful life phase under the exponential reliability model, cluster operators should assign newly delivered accelerator nodes directly to multi-week foundation model pretraining runs without prior burn-in testing.",
+     "explanation": "False. Newly manufactured hardware can exhibit elevated early-life failure rates from manufacturing defects, marginal packaging, and assembly flaws. Operators screen new or repaired nodes under qualified stress procedures before assigning expensive long jobs. Temperature, voltage, duration, and acceptance criteria depend on the component and procedure; a generic burn-in duration is not an operating specification or a guarantee of later reliability.",
+     "hint": "Think about: evaluate the operational risks of bypassing burn-in screening for newly deployed accelerator hardware.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify hardware faults by their temporal signature and determine appropriate mitigation strategies.",
+    "You can now analyze the vulnerability of floating-point numerical representations to single-bit hardware upsets.",
+    "You can now identify failure modes that evade timeout-based detection and require performance-based evidence.",
+    "You can now compare the manifestation of permanent datapath faults in specialized accelerator matrix units against scalar processor faults."
+   ]
+  }
+ ]
+}

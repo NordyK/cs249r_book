@@ -1,0 +1,106 @@
+{
+ "title": "Neural Network Fundamentals",
+ "summary": "Calculate and identify the parameter and computational hotspots across layers of a fully connected neural network.",
+ "source": {
+  "chapter": "v1-05",
+  "sections": [
+   "Neural Network Fundamentals",
+   "One neuron",
+   "From neurons to layers",
+   "Parameters",
+   "Choosing a topology",
+   "Why depth matters"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate and identify the parameter and computational hotspots across layers of a fully connected neural network\n- Compare ReLU and sigmoid in terms of hardware execution cost and their local effect on gradient flow in deep hidden layers\n- Explain why a stack of linear layers is representationally equivalent to a single linear transformation and why nonlinear activations are required for additional expressive power\n- Distinguish the restricted theoretical depth advantage for compositional function classes from an overgeneralized claim about all tasks\n- Identify the chapter's term for the hardware implementation penalty associated with transcendental activation functions"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Neural Computation, § Neural Network Fundamentals",
+   "md": "Each of the … that classify a single digit belongs to some neuron combining its inputs. Individually those operations are trivial. At network scale, a processor spends more time waiting for operands than computing whenever its memory system cannot supply them fast enough. An accelerator such as a graphics processing unit (GPU) outruns a CPU on suitable neural workloads because it devotes silicon to wide arithmetic arrays and high-bandwidth memory rather than to branch prediction."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- One neuron\n- From neurons to layers\n- Parameters\n- Choosing a topology\n- Why depth matters\n\nPay attention to: Depth and compositionality: polynomial vs exponential parameter scaling; Layer-wise parameter counting and computational hotspot analysis; Activation function trade-offs and the silicon cost of transcendental operations; Systems mechanics of linear algebra layer execution."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why stacking multiple linear layers without nonlinear activation functions ($\\mathbf{y} = \\mathbf{x}\\mathbf{W}_1\\mathbf{W}_2\\mathbf{W}_3$) fails to increase the expressive capacity of a neural network, and describe what changes once nonlinear activation functions are inserted between the layers.",
+   "md": "Stacking linear transformations alone does not increase expressive capacity because their composition is still a single linear transformation with effective matrix $\\mathbf{W}_{\\text{eff}} = \\mathbf{W}_1\\mathbf{W}_2\\mathbf{W}_3$. For example, no matter how many purely linear layers are stacked, the network still cannot represent a nonlinear pattern such as XOR. Once nonlinear activation functions are inserted between layers, the network can form nonlinear decision boundaries, which is what gives depth additional representational power."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-05-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In a fully connected multilayer perceptron with layer dimensions \\$784 to 128 to 64 to 10, which layer represents the primary parameter storage and computational hotspot, and what is its weight parameter count?",
+     "explanation": "The correct answer is C. The first dense layer connects 784 inputs to 128 hidden neurons, requiring \\$784 × 128 = 100,352 weights. The second layer requires \\$128 × 64 = 8,192 weights, and the output layer requires \\$64 × 10 = 640 weights (totaling \\$109,184 weights). The first layer accounts for over \\$91\\% of the weights and forward multiply-accumulate operations. The output layer contains only 640 weights, and softmax normalization does not add weights. The second layer contains less than one-tenth the parameters of the first. Layer dimensions reflect actual weight matrices rather than mandatory square padding.",
+     "hint": "Think about: calculate and identify the parameter and computational hotspots across layers of a fully connected neural network",
+     "type": "single",
+     "options": [
+      "The \\$64 \\to 10$ output layer with \\$640$ weights, because the softmax denominator forces quadratic parameter expansion.",
+      "The \\$128 \\to 64$ hidden layer with \\$8{,}192$ weights, because it bridges intermediate representations.",
+      "The \\$784 \\to 128$ input layer with \\$100{,}352$ weights (\\$784 \\times 128$), accounting for over \\$91\\%$ of the network's total weight parameters and forward MACs.",
+      "All three layers have identical parameter counts because linear algebra kernels require static square matrix padding."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "From a hardware and systems engineering perspective, why has the Rectified Linear Unit ($\\text{ReLU}(z) = \\max(0, z)$) largely replaced Sigmoid ($\\sigma(z) = \\frac{1}{1 + e^{-z}}$) in deep hidden layers?",
+     "explanation": "The correct answer is B. ReLU is cheaper to execute because it uses a comparison/select operation rather than exponential-based computation, and on positive activations its derivative is \\$1, so that branch does not locally saturate the learning signal the way sigmoid can. A claim that ReLU guarantees nonvanishing gradients for the whole network goes too far: the complete gradient still includes weights and other Jacobian factors. The \"always reduces end-to-end training time\" idea also overstates the effect, because overall training time still depends on the rest of the model, memory traffic, and the surrounding pipeline.",
+     "hint": "Think about: compare ReLU and sigmoid in terms of hardware execution cost and their local effect on gradient flow in deep hidden layers",
+     "type": "single",
+     "options": [
+      "ReLU makes many activations exactly zero, which by itself guarantees dense end-to-end training speedups on standard hardware and prevents gradient decay through the whole network.",
+      "ReLU uses a simple comparison/select operation instead of exponential-based computation, and its derivative is \\$1 on the positive branch, which avoids local saturation there even though full-network gradients still depend on weights and other layers.",
+      "Sigmoid and ReLU have essentially the same execution cost on modern hardware, so the preference for ReLU comes mainly from its bounded output range $[0,1]$.",
+      "Because ReLU has lower local compute cost than sigmoid, switching activations alone always reduces end-to-end training time regardless of the rest of the model or input pipeline."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "For compositional target functions where complex patterns decompose hierarchically into reusable sub-patterns, deep networks can represent some functions much more parameter-efficiently than shallow networks, and in restricted function classes that advantage can be exponential.",
+     "explanation": "True. The chapter's claim is restricted: for certain compositional function classes, depth can reuse intermediate features and represent the target far more compactly than a shallow alternative. That does not mean every shallow model must memorize all combinations or that depth has a universal exponential advantage on every task.",
+     "hint": "Think about: distinguish the restricted theoretical depth advantage for compositional function classes from an overgeneralized claim about all tasks",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "In hardware accelerators for neural networks, the illustrative silicon-area and energy penalty of implementing transcendental activations such as sigmoid or softmax rather than simple piecewise-linear activations is referred to as the transistor ____.",
+     "explanation": "tax. The transistor tax is the chapter's name for the extra implementation cost of functions like exponentials and divisions relative to simpler operations such as $\\text{ReLU}(z)=\\max(0,z)$. The exact ratio is illustrative and depends on precision and implementation, not a hardware constant.",
+     "hint": "Think about: identify the chapter's term for the hardware implementation penalty associated with transcendental activation functions",
+     "type": "fill",
+     "answer": [
+      "tax"
+     ]
+    },
+    {
+     "q": "Order the computational and memory staging steps required to execute the forward pass of a single dense hidden layer for a batch of input tokens:",
+     "explanation": "The correct order is: (2) Load the input activation matrix $\\mathbf{X}$ and layer weight matrix $\\mathbf{W}$ into execution registers/caches, (3) Perform the dense matrix multiplication $\\mathbf{X}\\mathbf{W}$, (4) Broadcast and add the bias vector $\\mathbf{b}$ to obtain layer preactivations $\\mathbf{Z}$, (1) Apply the element-wise nonlinear activation function (e.g. ReLU) to preactivations. Operands must first be staged from memory into caches and processor registers (2); the compute cores then execute the matrix-matrix multiply-accumulate operations (3); the bias vector is broadcast and added to form preactivations $\\mathbf{Z} = \\mathbf{X}\\mathbf{W} + \\mathbf{b}$ (4); and finally the nonlinear activation function is applied element-wise to generate the layer output activations $\\mathbf{A} = \\sigma(\\mathbf{Z})$ (1).",
+     "hint": "Think about: analyze the execution sequence of computational and memory staging steps in a dense layer forward pass",
+     "type": "order",
+     "items": [
+      "Load the input activation matrix $\\mathbf{X}$ and layer weight matrix $\\mathbf{W}$ into execution registers/caches",
+      "Perform the dense matrix multiplication $\\mathbf{X}\\mathbf{W}$",
+      "Broadcast and add the bias vector $\\mathbf{b}$ to obtain layer preactivations $\\mathbf{Z}$."
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate and identify the parameter and computational hotspots across layers of a fully connected neural network.",
+    "You can now compare ReLU and sigmoid in terms of hardware execution cost and their local effect on gradient flow in deep hidden layers.",
+    "You can now explain why a stack of linear layers is representationally equivalent to a single linear transformation and why nonlinear activations are required for additional expressive power.",
+    "You can now distinguish the restricted theoretical depth advantage for compositional function classes from an overgeneralized claim about all tasks."
+   ]
+  }
+ ]
+}

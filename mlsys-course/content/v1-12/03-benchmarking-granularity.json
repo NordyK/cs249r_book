@@ -1,0 +1,112 @@
+{
+ "title": "Benchmarking Granularity",
+ "summary": "Design a multi-granularity benchmarking strategy that combines end-to-end, macro, and micro evaluations to diagnose system bottlenecks.",
+ "source": {
+  "chapter": "v1-12",
+  "sections": [
+   "Benchmarking Granularity",
+   "Micro benchmarks",
+   "Macro benchmarks",
+   "End-to-end benchmarks",
+   "End-to-end vs. component latency",
+   "Granularity trade-offs and selection criteria"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Design a multi-granularity benchmarking strategy that combines end-to-end, macro, and micro evaluations to diagnose system bottlenecks\n- Classify benchmark scenarios into micro, macro, and end-to-end granularity levels based on workload scope\n- Compare the diagnostic power and real-world representativeness across micro, macro, and end-to-end benchmarks\n- Evaluate why a microbenchmark speedup does not by itself determine end-to-end service speedup\n- Apply roofline model principles to estimate the throughput ceiling at low arithmetic intensity relative to peak compute capability"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Benchmarking, § Benchmarking Granularity",
+   "md": "A kernel that runs … faster in isolation may deliver no end-to-end speedup if the data pipeline cannot keep the accelerator fed. In an illustrative request, a … inference speedup applied to a … model stage inside a … request yields only about a … end-to-end improvement, or less if the optimization increases memory pressure. The dilution makes the measurement boundary a design choice. Carpentry specifies *how* a measurement is built, while **benchmarking granularity** specifies *what* physical boundary it measures."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Micro benchmarks\n- Macro benchmarks\n- End-to-end benchmarks\n- End-to-end vs. component latency\n- Granularity trade-offs and selection criteria\n\nPay attention to: Granularity spectrum: micro, macro, end-to-end, system-in-the-loop; Diagnostic power vs. real-world representativeness trade-off; Profiler tools (framework vs kernel profilers); Amdahl's law and component isolation pitfalls."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Compare microbenchmarks, macrobenchmarks, and end-to-end benchmarks along the axes of diagnostic isolation and real-world representativeness.",
+   "md": "Benchmarking granularity exists on a fundamental trade-off curve between diagnostic isolation and real-world representativeness:\n- Microbenchmarks (e.g., isolated GEMM kernels) offer high diagnostic isolation—pinpointing exact hardware execution bottlenecks or compiler code generation efficiency—but low real-world representativeness because they ignore framework overhead, memory transfers, and surrounding pipeline stages.\n- Macrobenchmarks (e.g., full ResNet or Transformer forward passes) offer moderate diagnostic power and moderate representativeness, evaluating model architecture and framework execution while excluding external I/O.\n- End-to-end benchmarks (e.g., full serving pipelines with network ingestion, preprocessing, inference, and database writes) offer high real-world representativeness—capturing true user experience—but low diagnostic isolation because a latency spike could stem from network congestion, garbage collection, data loading, or compute."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-12-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An e-commerce search service reports that production query latency has increased by \\$40\\%, violating its SLA. Which benchmarking workflow represents the most effective top-down diagnostic strategy?",
+     "explanation": "The correct answer is C. A disciplined top-down diagnostic workflow starts at the end-to-end level to isolate which pipeline stage caused the SLA violation, zooms into macrobenchmarks (subgraphs/models) for that component, and finally uses microbenchmarks and kernel profilers (e.g. Nsight) to identify the specific hardware or algorithmic bottleneck. Rewriting kernels blindly wastes effort on non-bottlenecks; testing memory bus bandwidth in isolation does not pinpoint where time is spent in the request path; testing tokenization alone ignores interactions with database retrieval and model execution.",
+     "hint": "Think about: design a multi-granularity benchmarking strategy that combines end-to-end, macro, and micro evaluations to diagnose system bottlenecks.",
+     "type": "single",
+     "options": [
+      "Immediately rewrite all GEMM kernels in CUDA assembly without measuring the higher layers",
+      "Run isolated microbenchmarks on the GPU memory bus to determine peak DRAM bandwidth",
+      "Start with an end-to-end pipeline benchmark to isolate latency contributions across database lookup, tokenization, model inference, and reranking; next run macrobenchmarks on the slowest stage; then use microbenchmarks and kernel profilers to optimize the specific bottleneck operator",
+      "Benchmark only the isolated tokenization library on CPU and assume the rest of the pipeline is unaffected"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Consider the following three benchmarking tasks:\n(I) Timing a single \\$4096 × 4096 FP16 matrix multiplication in cuBLAS.\n(II) Measuring the forward-pass execution time of a complete ResNet-50 model on a single GPU.\n(III) Measuring total latency for an image upload, server decompression, feature extraction, neural network classification, and database metadata write.\nHow are tasks (I), (II), and (III) classified by benchmarking granularity?",
+     "explanation": "The correct answer is D. Task (I) isolates an individual mathematical operator (microbenchmark); Task (II) evaluates a complete neural network architecture (macrobenchmark); Task (III) exercises the complete production data pipeline including networking, I/O, preprocessing, model execution, and storage (end-to-end system benchmark). The other combinations scramble these standardized granularity levels.",
+     "hint": "Think about: classify benchmark scenarios into micro, macro, and end-to-end granularity levels based on workload scope.",
+     "type": "single",
+     "options": [
+      "(I) End-to-end, (II) Micro, (III) Macro",
+      "(I) Macro, (II) Micro, (III) End-to-end",
+      "(I) Micro, (II) End-to-end, (III) Macro",
+      "(I) Microbenchmark, (II) Macrobenchmark (model-level), (III) End-to-end system benchmark"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "If an optimized FlashAttention kernel achieves a \\$4\\times$ microbenchmark speedup over a standard attention implementation, the complete language model inference service hosting that model is mathematically guaranteed to run \\$4\\times$ faster end-to-end.",
+     "explanation": "False. A kernel-level speedup does not guarantee the same service-level speedup. Under fixed serial fractions and no queueing feedback, Amdahl's Law limits end-to-end improvement by the fraction of time spent in that kernel. In a loaded service, queueing and batching can also change, so the actual effect may differ from the simple fixed-fraction estimate in either direction.",
+     "hint": "Think about: evaluate why a microbenchmark speedup does not by itself determine end-to-end service speedup.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In roofline analysis, an accelerator has a peak compute performance of \\$989\\text{ TFLOP/s}$ (dense FP16) and a memory bandwidth of \\$3.35\\text{ TB/s}$, yielding a machine ridge point of $\\RooflineRidgePoint \\approx 295\\text{ FLOP/byte}$. When serving a Transformer model with batch size $b=1$, the arithmetic intensity is only $I = 4.8\\text{ FLOP/byte}$. What is the roofline upper bound on achieved throughput as a fraction of peak compute throughput for this workload?",
+     "explanation": "The correct answer is A. Because ArithmeticIntensity < RooflineRidgePoint, the workload is memory-bandwidth bound in the roofline model. The throughput upper bound is \\$3.35 TB/s × 4.8 FLOP/byte approx 16.1 TFLOP/s, and \\$16.1 / 989 approx 1.6\\%. This is a roofline bound on throughput relative to the matching arithmetic peak, not an observed MFU or a generic busy-utilization reading. The compute-bound answers ignore that the arithmetic intensity sits far below the ridge point.",
+     "hint": "Think about: apply roofline model principles to estimate the throughput ceiling at low arithmetic intensity relative to peak compute capability.",
+     "type": "single",
+     "options": [
+      "Approximately \\$1.6\\% of peak compute throughput (memory-bandwidth bound)",
+      "Exactly \\$100\\% because modern tensor cores execute batch b=1 at peak speed",
+      "Approximately \\$50\\% due to pipeline bubbles and kernel launches",
+      "Approximately \\$85\\% because matrix-vector multiplications are compute-bound"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An image classification inference pipeline takes \\$18 ms per request in a serial CPU baseline: \\$8 ms in image decoding/preprocessing and \\$10 ms in neural network execution. If only the model execution is migrated to a specialized NPU that accelerates the neural network by \\$5× (reducing inference time from \\$10 ms to \\$2 ms), with the other \\$8 ms unchanged and no added transfer or queueing effects, what is the resulting end-to-end pipeline latency and speedup?",
+     "explanation": "The correct answer is C. The unchanged preprocessing still costs \\$8 ms, and the accelerated model execution becomes \\$10 ms/5 = 2 ms. The new serial end-to-end latency is therefore \\$8+2=10 ms, and the system-level speedup is \\$18/10=1.8×. The \\$5× gain applies only to the model stage, not to the whole pipeline.",
+     "hint": "Think about: calculate end-to-end speedup in a serial pipeline when only the model-execution stage is accelerated and other latency remains fixed.",
+     "type": "single",
+     "options": [
+      "\\$2.0\\text{ ms}$ latency and \\$9.0\\times$ speedup",
+      "\\$3.6\\text{ ms}$ latency and \\$5.0\\times$ speedup",
+      "\\$10.0\\text{ ms}$ latency and \\$1.8\\times$ speedup",
+      "\\$16.0\\text{ ms}$ latency and \\$1.1\\times$ speedup"
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now design a multi-granularity benchmarking strategy that combines end-to-end, macro, and micro evaluations to diagnose system bottlenecks.",
+    "You can now classify benchmark scenarios into micro, macro, and end-to-end granularity levels based on workload scope.",
+    "You can now compare the diagnostic power and real-world representativeness across micro, macro, and end-to-end benchmarks.",
+    "You can now evaluate why a microbenchmark speedup does not by itself determine end-to-end service speedup."
+   ]
+  }
+ ]
+}

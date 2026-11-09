@@ -1,0 +1,101 @@
+{
+ "title": "Inference Benchmarks",
+ "summary": "Analyze how fan-out across independent backend services amplifies tail-latency risk in a waits-for-all distributed inference pipeline.",
+ "source": {
+  "chapter": "v1-12",
+  "sections": [
+   "Inference Benchmarks",
+   "Inference benchmark motivation",
+   "Inference metrics",
+   "MLPerf inference benchmarks",
+   "Mobile and edge benchmarks",
+   "Building the edge-board benchmark"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze how fan-out across independent backend services amplifies tail-latency risk in a waits-for-all distributed inference pipeline\n- Compare MLPerf Inference scenarios by matching their arrival patterns and latency/throughput objectives to a deployment regime\n- Explain the cause and impact of cold start latency in on-demand serverless inference deployments\n- Evaluate why accelerator-only inference times fail to predict end-to-end mobile performance when preprocessing, data movement, and sustained operating conditions are part of the workload\n- Classify and order the stages of an illustrative MLPerf Inference Server-scenario evaluation workflow, distinguishing separate quality validation from timed performance measurement"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Benchmarking, § Inference Benchmarks",
+   "md": "Whereas training benchmarks tolerate variable iteration times as long as gradient descent reaches its target quality, inference benchmarks test whether the trained model can serve individual requests within strict deployment deadlines. A camera trap running MobileNetV2 on an edge board must classify each frame within a …-millisecond budget to keep up with a …-frame-per-second video stream."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Inference benchmark motivation\n- Inference metrics\n- MLPerf inference benchmarks\n- Mobile and edge benchmarks\n- Building the edge-board benchmark\n\nPay attention to: Latency percentiles (p50, p90, p99) and fan-out tail amplification; End-to-end vs component latency (Amdahl's Law); MLPerf Inference scenarios: SingleStream, MultiStream, Server, Offline; Cold start overhead in serverless inference."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why reporting an accelerator-only inference time (e.g., \\$2 ms on an edge NPU) fails to predict actual mobile application performance, identifying at least two real-world system bottlenecks.",
+   "md": "Accelerator-only timing measures just the model kernel path, not the full request path. Real mobile performance can also depend on CPU-side preprocessing or postprocessing, data movement and synchronization between system components, and sustained thermal behavior under repeated use. For example, a camera pipeline may still spend milliseconds on image decode, resize, and output formatting even if the NPU executes the network quickly; on some integrated SoCs copies may be small or avoided, but the benchmark still must state whether those costs are included. The practical consequence is that end-to-end latency, not accelerator-only latency, determines whether the application feels responsive."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-12-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In a distributed serving architecture, assume a user request is dispatched simultaneously to \\$10 backend ML model services, the overall response waits for all \\$10 replies, other latency is negligible, and each service independently has a \\$1\\% probability of exceeding \\$20 ms on that request. What is the approximate probability that the user request exceeds \\$20 ms?",
+     "explanation": "The correct answer is B. Under the stated independence assumption, the probability that all \\$10 services finish within \\$20 ms is \\$0.99^10 approx 0.9044. Therefore the probability that at least one service exceeds \\$20 ms, making the overall request exceed \\$20 ms because it waits for all \\$10, is \\$1-0.99^10 approx 0.0956. The \\$1.0\\% answer ignores fan-out amplification, and \\$0.1\\% treats the event as though all services must be slow simultaneously.",
+     "hint": "Think about: analyze how fan-out across independent backend services amplifies tail-latency risk in a waits-for-all distributed inference pipeline.",
+     "type": "single",
+     "options": [
+      "Exactly \\$1.0\\%",
+      "Approximately \\$9.6\\% (nearly \\$1 in every \\$10 user requests)",
+      "Exactly \\$0.1\\%",
+      "0% because parallel aggregation hides individual service latency spikes"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A cloud provider is deploying an interactive web translation API where independent user requests arrive randomly according to a Poisson process, and the service is evaluated by the throughput it can sustain while meeting a strict tail-latency objective such as p99 le 15 ms (which does not mean every single response must be at or below \\$15 ms). Which MLPerf Inference scenario most directly matches this arrival-and-metric regime?",
+     "explanation": "The correct answer is D. The Server scenario models independently arriving requests and evaluates the maximum sustainable throughput subject to a scenario-defined tail-latency constraint. Offline removes online arrivals entirely, SingleStream issues one query at a time, and MultiStream evaluates grouped-query latency percentiles rather than the general cloud-API regime described here.",
+     "hint": "Think about: compare MLPerf Inference scenarios by matching their arrival patterns and latency/throughput objectives to a deployment regime.",
+     "type": "single",
+     "options": [
+      "Offline scenario",
+      "SingleStream scenario",
+      "MultiStream scenario",
+      "Server scenario"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In serverless and on-demand inference systems, the latency penalty incurred on the first request after an idle period when the runtime has been unloaded or lazily initialized—caused by loading weights into memory and compiling compute kernels—is termed a ____.",
+     "explanation": "cold start. A cold start is the extra initialization latency paid before the first request can run, and it matters when platforms scale to zero or delay model and runtime setup until demand arrives.",
+     "hint": "Think about: explain the cause and impact of cold start latency in on-demand serverless inference deployments.",
+     "type": "fill",
+     "answer": [
+      "cold start"
+     ]
+    },
+    {
+     "q": "Order the following stages of an illustrative MLPerf Inference Server-scenario evaluation workflow, where this workflow first validates accuracy and then performs a warm, timed performance run:",
+     "explanation": "The correct order is: (4) Validate separately that model output accuracy meets the required reference quality threshold under the specified protocol, (3) Warm up the System Under Test (SUT) with representative queries to populate weights and compile execution graphs, (1) LoadGen generates queries according to a Poisson arrival distribution at a target query-per-second (QPS) rate, (2) SUT receives queries, may apply dynamic batching, executes neural network inference, and returns responses, (5) Record end-to-end timestamps for each query and compute the empirical latency distribution ($p50$, $p90$, $p99$) to verify SLA compliance. In this stated workflow, separate quality validation happens before the warm, timed run. Warm-up precedes timed traffic so measurements reflect a ready system. Query generation must precede query handling, and latency statistics can only be computed after responses are returned.",
+     "hint": "Think about: classify and order the stages of an illustrative MLPerf Inference Server-scenario evaluation workflow, distinguishing separate quality validation from timed performance measurement.",
+     "type": "order",
+     "items": [
+      "Validate separately that model output accuracy meets the required reference quality threshold under the specified protocol",
+      "SUT receives queries, may apply dynamic batching, executes neural network inference, and returns responses"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Latency SLO**: A target for the fraction of requests completing within a stated latency boundary."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Latency SLO",
+   "def": "A target for the fraction of requests completing within a stated latency boundary."
+  }
+ ]
+}

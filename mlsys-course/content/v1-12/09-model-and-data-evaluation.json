@@ -1,0 +1,98 @@
+{
+ "title": "Model and Data Evaluation",
+ "summary": "Analyze how Expected Calibration Error quantifies confidence reliability independently of top-1 accuracy.",
+ "source": {
+  "chapter": "v1-12",
+  "sections": [
+   "Model and Data Evaluation",
+   "Model benchmarking",
+   "Data benchmarking",
+   "Holistic system-model-data evaluation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze how Expected Calibration Error quantifies confidence reliability independently of top-1 accuracy\n- Evaluate why a held-out test set from the training environment can miss deployment failures caused by covariate and concept shift\n- Evaluate whether independent success on system and model benchmarks guarantees deployment readiness without data validation\n- Explain the concept and calculation of Expected Calibration Error across partitioned confidence bins\n- Compare compression candidates using a Pareto-frontier view that separates nondominated trade-offs from absolute deployment acceptance thresholds"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Benchmarking, § Model and Data Evaluation",
+   "md": "A compressed model running on accelerated hardware, such as the camera trap's INT8 MobileNetV2, can still fail if it was trained on unrepresentative data. System benchmarks can confirm that hardware delivers promised training throughput, inference latency, and power efficiency, but hardware validation alone cannot ensure deployment success. The optimization pipeline from Part III also included model compression and data selection, each requiring its own validation."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Model benchmarking\n- Data benchmarking\n- Holistic system-model-data evaluation\n\nPay attention to: Model benchmarking beyond accuracy: Expected Calibration Error (ECE); Compression validation and Pareto frontier; Data benchmarking: coverage, quality, label noise, covariate shift; Dataset saturation and dynamic benchmarks (Dynabench)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why compression evaluation should be framed as a multi-objective Pareto frontier across accuracy, latency, model size, and memory footprint, rather than a single scalar delta.",
+   "md": "Compression changes several deployment-relevant quantities at once, so one scalar summary can hide an important regression. Quantization can cut FP32-to-INT8 raw weight storage by \\$4×, yet total memory, latency, and quality effects still depend on activations, runtime support, and hardware behavior. A Pareto frontier helps identify nondominated candidates within the compared set, while separate acceptance criteria still enforce minimum quality or latency requirements. The practical consequence is that teams choose configurations that match a deployment budget rather than optimizing one metric blindly."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-12-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An image classifier deployed in an autonomous vehicle achieves \\$94\\%$ top-1 accuracy on ImageNet. After post-training INT8 quantization, consider a bin of predictions to which the model assigns about \\$0.99$ confidence on average, but whose observed accuracy is materially lower. Which model evaluation metric directly quantifies this divergence between predicted probability and empirical accuracy?",
+     "explanation": "The correct answer is B. Expected Calibration Error (ECE) measures how far predicted confidence and observed accuracy diverge across confidence bins. The scenario describes a calibration problem: the model is assigning very high confidence to a set of predictions whose empirical correctness is lower than that confidence suggests. Top-5 error tracks ranking, not confidence reliability; PSNR is an image-reconstruction metric; and HFU is a hardware-efficiency metric.",
+     "hint": "Think about: analyze how Expected Calibration Error quantifies confidence reliability independently of top-1 accuracy.",
+     "type": "single",
+     "options": [
+      "Peak Signal-to-Noise Ratio (PSNR)",
+      "Expected Calibration Error (ECE)",
+      "Top-5 classification error",
+      "Hardware FLOPs Utilization (HFU)"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A clinical risk prediction model achieves an outstanding \\$0.92$ ROC-AUC score on a held-out test split from Hospital A's electronic health records. When deployed at Hospital B in a different city, its ROC-AUC drops to \\$0.61$. Assume the implementation and evaluation protocol are matched across sites, and Hospital B differs in patient mix, lab workflows, and clinical protocols. What benchmarking limitation is the best hypothesis for why the standard held-out test failed to predict this deployment failure?",
+     "explanation": "The correct answer is C. A standard held-out split tests in-distribution generalization because it is drawn from the same environment as training. Under the stated assumptions, the most informative explanation for the collapse at Hospital B is that deployment changed the input and labeling conditions in ways the held-out test never represented. The other options are weaker fits to the described evidence: ROC-AUC remains a valid metric here, and while implementation details or underfitting can matter in general, they are not the best explanation for this matched-protocol, cross-site shift scenario.",
+     "hint": "Think about: evaluate why a held-out test set from the training environment can miss deployment failures caused by covariate and concept shift.",
+     "type": "single",
+     "options": [
+      "Hospital B used GPUs with different floating-point rounding modes",
+      "The ROC-AUC metric is mathematically invalid for clinical applications",
+      "The held-out test split shared the same underlying distribution as the training environment, so it could not expose failure under covariate and concept shift at the new site",
+      "The training algorithm suffered from underfitting on Hospital A's dataset"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "If an ML deployment passes both system benchmarking (achieving target throughput and low latency) and model benchmarking (preserving validation accuracy and calibration), data benchmarking is unnecessary because software execution and model mathematics are fully verified.",
+     "explanation": "False. A system can execute at peak hardware efficiency and achieve high benchmark accuracy, yet fail catastrophically in deployment if the training dataset contained systematic label noise, demographic bias, or distributional blind spots that unrepresentative validation sets failed to expose.",
+     "hint": "Think about: evaluate whether independent success on system and model benchmarks guarantees deployment readiness without data validation.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The metric that partitions model prediction confidences into discrete bins and calculates the weighted average difference between confidence and accuracy across all bins is called ____.",
+     "explanation": "expected calibration error. Expected calibration error is a finite-bin empirical measure of how closely predicted confidences match observed correctness frequencies across the evaluation set.",
+     "hint": "Think about: explain the concept and calculation of Expected Calibration Error across partitioned confidence bins.",
+     "type": "fill",
+     "answer": [
+      "expected calibration error"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A team deploys an INT8-quantized vision model to an edge TPU for factory defect detection. The deployment passes MLPerf Inference benchmarks and ImageNet validation, but in production, defect detection accuracy collapses from \\$98\\%$ to \\$74\\%$. Use the three-dimensional benchmarking framework (System, Model, Data) to propose plausible failure hypotheses and the tests that would distinguish them.",
+   "md": "The framework says not to assume a single cause from the production drop alone. On the System axis, check whether the deployed pipeline matches the benchmarked one by measuring end-to-end preprocessing, operator coverage, fallback paths, and numeric execution on the target hardware. On the Model axis, compare FP32 and INT8 on a held-out factory dataset to test whether quantization changes classification on the defect task specifically, and evaluate calibration separately with confidence-versus-frequency reliability analysis rather than treating it as the same question. On the Data axis, inspect whether factory images differ from development data in lighting, blur, camera viewpoint, or defect frequency. Diagnosis should proceed through these discriminating tests rather than through a single invented explanation."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze how Expected Calibration Error quantifies confidence reliability independently of top-1 accuracy.",
+    "You can now evaluate why a held-out test set from the training environment can miss deployment failures caused by covariate and concept shift.",
+    "You can now evaluate whether independent success on system and model benchmarks guarantees deployment readiness without data validation.",
+    "You can now explain the concept and calculation of Expected Calibration Error across partitioned confidence bins."
+   ]
+  }
+ ]
+}

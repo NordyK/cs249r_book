@@ -1,0 +1,93 @@
+{
+ "title": "Inference Runtime Selection",
+ "summary": "Compare unoptimized eager serving with specialized inference engines in terms of graph-level fusion and hardware-specific kernel selection.",
+ "source": {
+  "chapter": "v1-13",
+  "sections": [
+   "Inference Runtime Selection",
+   "Runtime constraint map",
+   "Runtime ecosystem and configuration",
+   "Precision selection for serving"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare unoptimized eager serving with specialized inference engines in terms of graph-level fusion and hardware-specific kernel selection\n- Analyze why INT8 quantization can improve serving throughput and explain how PTQ calibration preserves usable accuracy\n- Evaluate when mixed-precision quantization can preserve serving accuracy by leaving sensitive layers at higher precision\n- Classify platform-specific edge inference engines (CoreML, OpenVINO, TFLite) for specialized hardware accelerators\n- Evaluate how unrepresentative calibration data can harm post-training quantized serving quality"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Serving, § Inference Runtime Selection",
+   "md": "Running an unchanged ResNet-50 model through a compiled C++ engine rather than an eager Python interpreter cuts batch-one latency on the reference H100 by more than …, without altering a single weight. Dynamic batching and request scheduling govern how requests are grouped and queued, but an execution engine still has to map the resulting tensor operations onto physical execution units and memory hierarchies. The **inference runtime**, the software layer that schedules tensor operations and manages device resources, therefore changes both latency and throughput for a fixed model architecture."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Runtime constraint map\n- Runtime ecosystem and configuration\n- Precision selection for serving\n\nPay attention to: Runtime ecosystem: Framework-native (PyTorch/TF) vs. Specialized engines (TensorRT, ONNX Runtime, OpenVINO, CoreML); Ahead-of-time (AOT) graph transformations and operator fusion; Precision selection: FP32 vs. FP16/BF16 vs. INT8 vs. INT4/FP8; Post-Training Quantization (PTQ) calibration (min-max, KL-divergence) vs. QAT."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why can quantizing a model's weights and activations from FP16 to INT8 for GPU serving increase throughput, what limits the gain, and what role does Post-Training Quantization (PTQ) calibration play in preserving accuracy?",
+   "md": "INT8 often improves throughput because it reduces the raw bytes moved for converted tensors and may also enable faster low-precision kernels on supported hardware, especially when memory traffic is a major bottleneck. The exact speedup is hardware- and workload-dependent, so it must be profiled rather than assumed. PTQ calibration uses representative activation data to choose scales and clipping ranges that keep quantization error manageable; if those ranges are poorly chosen, serving accuracy can fall even when latency improves."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-13-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An ML systems team is deploying a transformer-based ranking model on NVIDIA data center GPUs. They consider running the raw PyTorch model in eager Python mode versus compiling the model into an optimized NVIDIA TensorRT engine. Which graph-level serving optimization is TensorRT designed to apply more aggressively than an unoptimized eager execution path?",
+     "explanation": "The correct answer is D. TensorRT is built for ahead-of-time serving optimization: it can fuse compatible graph regions, reduce intermediate writes to global memory, and choose tactics tuned to the target GPU architecture. Eager mode may still invoke optimized library kernels, but it does not apply the same whole-graph serving-oriented compilation and kernel-selection pipeline. TensorRT does not change the learning task, train new adapters during inference, or remove GPU memory usage by moving execution into CPU caches.",
+     "hint": "Think about: compare unoptimized eager serving with specialized inference engines in terms of graph-level fusion and hardware-specific kernel selection.",
+     "type": "single",
+     "options": [
+      "TensorRT automatically converts the supervised classification task into an unsupervised reinforcement learning policy.",
+      "TensorRT trains additional adapter layers during live request serving to adapt to data drift.",
+      "TensorRT eliminates all GPU memory usage by running inferences exclusively in the CPU instruction cache.",
+      "TensorRT performs aggressive vertical and horizontal operator fusion (e.g., combining Conv/MatMul, BiasAdd, and Activation into a single kernel), reduces redundant memory round-trips, and selects hardware-tuned kernels."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In deep neural network quantization, when sensitivity evaluation identifies particular layers as unusually vulnerable to precision loss, preserving those layers in FP16/FP32 while quantizing the remaining bulk layers to INT8/INT4 can preserve model accuracy in mixed-precision serving.",
+     "explanation": "True. Some layers are more sensitive to quantization error than others, so keeping selected boundary or numerically delicate layers at higher precision can preserve accuracy while still capturing much of the benefit from quantizing the larger bulk of the network. The exact layers and gains must be validated on the target model, because conversion overheads and kernel support also matter.",
+     "hint": "Think about: evaluate when mixed-precision quantization can preserve serving accuracy by leaving sensitive layers at higher precision.",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "When deploying models to edge devices with Apple Silicon (such as iPhones and iPads), developers export models to the ____ framework to take full advantage of the dedicated Apple Neural Engine (ANE) hardware accelerator.",
+     "explanation": "CoreML. Apple's CoreML runtime compiles neural network computational graphs into specialized binaries optimized for the Apple Neural Engine (ANE), GPU, and CPU, providing low-latency, energy-efficient on-device inference on Apple hardware.",
+     "hint": "Think about: classify platform-specific edge inference engines (CoreML, OpenVINO, TFLite) for specialized hardware accelerators.",
+     "type": "fill",
+     "answer": [
+      "CoreML"
+     ]
+    },
+    {
+     "q": "When calibrating an INT8 quantized model using Post-Training Quantization (PTQ), what is the primary danger of using a synthetic or unrepresentative calibration dataset (e.g., ImageNet validation images for a medical endoscopy model)?",
+     "explanation": "The correct answer is A. PTQ calibration sets ranges or related quantization parameters from observed activations on the calibration set. If that data does not resemble real production inputs, live activations may fall outside the calibrated ranges or be represented too coarsely, causing silent accuracy loss. The risk is degraded quality, not a forced compiler failure, doubled power draw from integer registers, or any direct change to dynamic batching behavior.",
+     "hint": "Think about: evaluate how unrepresentative calibration data can harm post-training quantized serving quality.",
+     "type": "single",
+     "options": [
+      "The activation dynamic ranges and outlier distributions in production may be misrepresented by the calibration dataset, causing clipping of real-world features or overly coarse quantization scales that degrade serving accuracy.",
+      "The model compiler will fail to generate valid GPU assembly code and reject the weights.",
+      "The server's physical power consumption will double due to misaligned integer registers.",
+      "The dynamic batcher will permanently lock its batch size to 1."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare unoptimized eager serving with specialized inference engines in terms of graph-level fusion and hardware-specific kernel selection.",
+    "You can now analyze why INT8 quantization can improve serving throughput and explain how PTQ calibration preserves usable accuracy.",
+    "You can now evaluate when mixed-precision quantization can preserve serving accuracy by leaving sensitive layers at higher precision.",
+    "You can now classify platform-specific edge inference engines (CoreML, OpenVINO, TFLite) for specialized hardware accelerators."
+   ]
+  }
+ ]
+}

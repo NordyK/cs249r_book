@@ -1,0 +1,35 @@
+{
+ "title": "⭐ Aha Moment: Text Becomes Tokens",
+ "summary": "TinyTorch tokenization: ⭐ Aha Moment: Text Becomes Tokens",
+ "source": {
+  "chapter": "tt-10",
+  "sections": [
+   "⭐ Aha Moment: Text Becomes Tokens"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: Text Becomes Tokens\n\n**What you built:** Tokenizers that convert text into numerical sequences that neural networks can process.\n\n**Why it matters:** Neural networks can't read text - they need numbers! Your tokenizer bridges\nthis gap, converting words into token IDs that can be embedded and processed. Every language\nmodel from GPT to Claude uses tokenization as the first step in understanding text.\n\nYour tokenization system is ready for NLP applications."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_tokenization():\n    \"\"\"🎯 See text become tokens.\"\"\"\n    print(\"🎯 AHA MOMENT: Text Becomes Tokens\")\n    print(\"=\" * 45)\n\n    # Create and train a character tokenizer on sample corpus\n    corpus = [\"hello world\", \"hello there\"]\n    tokenizer = CharTokenizer()\n    tokenizer.build_vocab(corpus)\n\n    # Encode and decode a test phrase\n    text = \"hello\"\n    tokens = tokenizer.encode(text)\n    decoded = tokenizer.decode(tokens)\n\n    print(f\"Input text:       '{text}'\")\n    print(f\"Token IDs:        {tokens}\")\n    print(f\"Decoded back:     '{decoded}'\")\n    print(f\"Match:            {decoded == text}\")\n\n    # Show how BPE compresses better\n    print(\"\\n--- Comparing Tokenization Strategies ---\")\n    test_text = \"hello world\"\n    char_tokens = tokenizer.encode(test_text)\n\n    bpe_tokenizer = create_tokenizer(\"bpe\", vocab_size=50, corpus=corpus)\n    bpe_tokens = bpe_tokenizer.encode(test_text)\n\n    print(f\"Character tokenizer: {len(char_tokens)} tokens\")\n    print(f\"BPE tokenizer:       {len(bpe_tokens)} tokens\")\n\n    print(\"\\n✨ Text becomes tokens - language models start here!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Tokenization\n\nCongratulations! You've built a complete tokenization system for converting text to numerical representations!\n\n### Key Accomplishments\n- **Built a character-level tokenizer** with coverage of seen characters and simple implementation\n- **Implemented BPE tokenizer** that learns efficient subword representations from data\n- **Created vocabulary management** with encoding/decoding and unknown token handling\n- **Discovered the vocabulary size vs sequence length trade-off** through systems analysis\n- **All tests pass** (validated by `test_module()`)\n\n### Systems Insights Discovered\n- **Memory scaling**: Embedding table size = vocab_size x embed_dim (can be 100+ MB)\n- **Sequence length trade-offs**: BPE shortens sequences by about 3.8x, and because attention is quadratic in length that is roughly 15x less attention compute\n- **Training complexity**: BPE training costs about (merges x corpus size), since every merge rescans the corpus\n- **Production patterns**: Rust tokenizers are 10-100x faster than pure Python\n\n### Ready for Next Steps\nYour tokenization implementation enables text processing for language models.\nExport with: `tito module complete 10`"
+  },
+  {
+   "type": "text",
+   "md": "**Next**: Module 11 will add learnable embeddings that convert your token IDs into rich vector representations!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: Text Becomes Tokens."
+   ]
+  }
+ ]
+}

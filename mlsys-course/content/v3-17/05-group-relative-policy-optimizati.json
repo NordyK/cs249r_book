@@ -1,0 +1,69 @@
+{
+ "title": "Group Relative Policy Optimization",
+ "summary": "Work through Group Relative Policy Optimization.",
+ "source": {
+  "chapter": "v3-17",
+  "sections": [
+   "Group Relative Policy Optimization",
+   "Group-relative coefficients",
+   "Clipped surrogate objective",
+   "Length normalization",
+   "Zero-contrast groups"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Group Relative Policy Optimization**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Reinforcement Learning from Verifiable Rewards, § Group Relative Policy Optimization",
+   "md": "Suppose three fresh rollouts attempt the connection-pool repair under the same fixture, budget, and assessment rule. Their completed terminal rewards are $[0,1,0]$. The successful rollout provides a direct comparison for the two failures without requiring an expert to label each intermediate edit, though this outcome comparison alone cannot identify which specific action caused success. **Group relative policy optimization (GRPO)**} uses such within-task comparisons to construct policy update coefficients, replacing a learned value baseline with groups of sampled outcomes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Group-relative coefficients\n- Clipped surrogate objective\n- Length normalization\n- Zero-contrast groups"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Sampled reward contrast matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-17-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Group Relative Policy Optimization** develops one of the chapter's claims. Which one?",
+     "options": [
+      "The false-accept share of rewarded rollouts moves with the policy's current pass rate rather than being a fixed verifier property, so reward shaping must preserve the priority of correct outcomes.",
+      "Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup.",
+      "Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability.",
+      "RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Sampled reward contrast**: RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Sampled reward contrast* learns only distinctions supplied by *Task acceptance contract*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Sampled reward contrast* learns only distinctions supplied by *Reward as measurement*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Group Relative Policy Optimization."
+   ]
+  }
+ ]
+}

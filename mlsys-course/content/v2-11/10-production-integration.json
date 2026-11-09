@@ -1,0 +1,94 @@
+{
+ "title": "Production Integration",
+ "summary": "Analyze how MLOps deployment pipelines transform from static model artifacts into tiered policy bundles for edge fleets.",
+ "source": {
+  "chapter": "v2-11",
+  "sections": [
+   "Production Integration",
+   "MLOps integration challenges"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze how MLOps deployment pipelines transform from static model artifacts into tiered policy bundles for edge fleets\n- Distinguish unlabeled shadow-model change detection from validated quality and rollback decisions\n- Design a privacy-preserving telemetry and observability pipeline using federated analytics\n- Evaluate why global fleet metrics fail to capture cohort-specific regressions in heterogeneous edge deployments\n- Design a federated A/B testing workflow for safe production rollout on edge fleets"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Edge Intelligence, § Production Integration",
+   "md": "A prototype can fine-tune an adapter on one Raspberry Pi under controlled conditions, where the engineer controls the input stream, inspects every loss curve, and reflashes weights by hand if an update diverges. Deploying that same adaptation policy across … turns local learning into a production operations problem across devices whose runtimes, resource budgets, and update histories differ."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: MLOps for edge fleets: policy bundles and hierarchical versioning; Federated analytics and privacy-preserving telemetry; Drift detection without ground truth (confidence calibration, task proxies); On-device shadow validation architectures and automated rollback."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A production edge ML team cannot collect raw user inputs or ground-truth prediction labels due to privacy policies. Explain how Federated Analytics and privacy-preserving telemetry allow the platform team to monitor fleet-wide model health and detect cohort regressions.",
+   "md": "Devices can compute confidence histograms, task proxies, and locally available outcome metrics without exporting raw observations. Secure aggregation hides individual contributions under its protocol assumptions, while differential privacy bounds release leakage through clipping, calibrated noise, and accounting. Cohort summaries help detect regressions, but small cohorts need disclosure controls and unlabeled confidence statistics remain change signals rather than direct accuracy measurements."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-11-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In traditional cloud MLOps, a deployment pipeline releases a single monolithic model binary to uniform server clusters. How does this deployment artifact transform when shipping an on-device learning system across a heterogeneous mobile fleet?",
+     "explanation": "The correct answer is A. On-device learning systems operate across heterogeneous hardware tiers with vast differences in memory, compute, and power. Consequently, MLOps cannot release a single monolithic binary; it ships a validated policy bundle that specifies the base model backbone, tier-specific adaptation mechanisms (e.g., bias-only updates for extreme constraints, LoRA rank configurations for mid-tier devices), opportunistic execution policies (battery, thermal, and network triggers), and automated validation/rollback gates. The other choices mischaracterize production software deployment.",
+     "hint": "Think about: analyze how MLOps deployment pipelines transform from static model artifacts into tiered policy bundles for edge fleets.",
+     "type": "single",
+     "options": [
+      "The deployable artifact becomes a policy bundle containing a shared base model along with device-tier adaptation strategies (e.g., bias-only for microcontrollers, LoRA for mid-tier, selective layers for flagship), resource execution rules, and rollback thresholds.",
+      "The artifact is replaced by an uncompiled Python script executed directly on bare-metal microcontroller sensors.",
+      "The deployment pipeline requires manual per-device flashing over USB cables for every smartphone in the world.",
+      "The deployment artifact eliminates model weights entirely, transmitting only random seeds to client operating systems."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "What can a frozen shadow model establish when compared with a locally adapted model without labeled outcomes or a validated task-quality proxy?",
+     "explanation": "The correct answer is B. A shadow comparison detects disagreement, confidence shifts, latency changes, and resource regressions. Without labels or a validated quality proxy, lower confidence is not proof of lower accuracy, and agreement can hide shared errors. Automatic rollback needs an established outcome criterion or safety invariant, rather than confidence comparison alone.",
+     "hint": "Think about: distinguish unlabeled shadow-model change detection from validated quality and rollback decisions.",
+     "type": "single",
+     "options": [
+      "The Shadow Model connects to cloud labeling services via satellite to annotate live user keystrokes in real time.",
+      "Prediction and confidence differences reveal behavioral change and can suspend an update for evaluation, but do not by themselves establish which model is more accurate.",
+      "The Shadow Model inverts user biometric features into cryptographic tokens to bypass operating system security firewalls.",
+      "The Shadow Model permanently deletes the active model whenever the device battery drops below 90%."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In production edge learning systems, tracking global fleet-wide average accuracy is sufficient to ensure high quality, because individual device variances cancel out across millions of deployed nodes.",
+     "explanation": "False. Tracking only global fleet-wide averages masks critical cohort-specific failures. Because edge fleets exhibit extreme heterogeneity, high-performing flagship devices with fast networks can skew the global average upward, completely hiding severe regressions or adaptation failures occurring on budget devices, specific geographic regions, or underrepresented device demographics. Production monitoring requires segmented cohort tracking across hardware tiers, connectivity types, and participation frequencies.",
+     "hint": "Think about: evaluate why global fleet metrics fail to capture cohort-specific regressions in heterogeneous edge deployments.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A production MLOps system executes a federated A/B deployment to validate a new on-device adaptation algorithm before fleet-wide rollout. Order the stages of this validation workflow from first to last:",
+     "explanation": "The correct order is (3) -> (2) -> (4) -> (1).\nFirst, (3) Stratify device fleet into statistically balanced treatment and control cohorts across hardware capability tiers to ensure fair comparative groups.\nSecond, (2) Deploy candidate adaptation strategy to treatment cohort while control cohort retains baseline strategy under identical operating policies.\nThird, (4) Aggregate differentially private validation metrics and compare convergence speed and user task-proxy satisfaction between cohorts.\nFinally, (1) Gradually expand rollout across the general population once treatment confirms statistically significant quality gains without regressions.",
+     "hint": "Think about: design a federated A/B testing workflow for safe production rollout on edge fleets.",
+     "type": "order",
+     "items": [
+      "Stratify device fleet into statistically balanced treatment and control cohorts across hardware capability tiers",
+      "Deploy candidate adaptation strategy to treatment cohort while control cohort retains baseline strategy",
+      "Aggregate differentially private validation metrics and compare convergence speed and user task-proxy satisfaction",
+      "Gradually expand rollout across the general population once treatment confirms statistically significant quality gains without regressions"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze how MLOps deployment pipelines transform from static model artifacts into tiered policy bundles for edge fleets.",
+    "You can now distinguish unlabeled shadow-model change detection from validated quality and rollback decisions.",
+    "You can now design a privacy-preserving telemetry and observability pipeline using federated analytics.",
+    "You can now evaluate why global fleet metrics fail to capture cohort-specific regressions in heterogeneous edge deployments."
+   ]
+  }
+ ]
+}

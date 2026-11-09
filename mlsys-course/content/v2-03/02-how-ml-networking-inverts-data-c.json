@@ -1,0 +1,88 @@
+{
+ "title": "How ML Networking Inverts Data-Center Assumptions",
+ "summary": "Evaluate why static flow hashing fails under large-scale ML collective traffic.",
+ "source": {
+  "chapter": "v2-03",
+  "sections": [
+   "How ML Networking Inverts Data-Center Assumptions",
+   "The five-level model"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Evaluate why static flow hashing fails under large-scale ML collective traffic\n- Compare packet loss recovery mechanisms and their performance implications in TCP/IP versus RDMA fabrics\n- Classify networking mechanisms within the five-level ML fabric model\n- Analyze why tail latency dominates network fabric design under synchronous training workloads"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Network Fabrics, § How ML Networking Inverts Data-Center Assumptions",
+   "md": "A conventional cloud network built for millions of independent web requests breaks down when a training job releases its gradient exchanges in lockstep at the end of a backward pass. Statistical multiplexing relies on traffic peaks not all coinciding, whereas synchronized workers demand the same switch paths at the same microsecond. Web services also have dependency chains and tail-latency requirements, but a bulk-synchronous training job ties every participating worker to a single shared completion boundary."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Data-center workload inversions (traffic, flow types, metrics, loss tolerance, congestion); Limitations of ECMP flow hashing on elephant flows; Tail latency and the Bulk Synchronous Parallel (BSP) model; The five-level model of ML networking."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Contrast how packet loss is handled in traditional web-scale TCP/IP networks versus RDMA-based ML fabrics (such as RoCEv2), and explain why packet loss in an ML cluster can cause a large performance drop.",
+   "md": "TCP with selective acknowledgments can retransmit missing regions. Reliable RDMA transports also recover loss, but the recovery granularity depends on the RNIC implementation. A Go-Back-N-style RNIC can retransmit data after the missing packet, extending the completion tail seen by synchronized workers; selective-recovery implementations can repair a smaller region. The performance penalty therefore depends on recovery behavior and the collective critical path, rather than following from RDMA alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-03-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why can standard Equal-Cost Multi-Path (ECMP) routing produce persistent hot spots when a distributed ML training job has a small number of large gradient flows?",
+     "explanation": "The correct answer is A. A large population of independent small flows can distribute load more evenly under hashing, but ECMP does not guarantee balance. With few long-lived gradient flows, several hashes can select the same path, and the imbalance can persist through the collective while other paths remain underused. The actual result depends on the flow population, hashes, traffic volumes, and provisioned paths. The statement regarding packet reordering corrupting GPU tensor cores misattributes network-layer reordering to hardware compute corruption. The option referencing slow centralized SDN controllers confuses distributed IP routing with SDN control planes. The claim about switch hardware holding model parameters confuses network routing state with accelerator memory.",
+     "hint": "Think about: evaluate why static flow hashing fails under large-scale ML collective traffic.",
+     "type": "single",
+     "options": [
+      "ECMP hashes each flow to one path, so several large gradient flows can collide on one link while other equal-cost paths remain underused",
+      "ECMP introduces non-deterministic packet reordering that corrupts the internal state of GPU tensor cores",
+      "ECMP relies on centralized SDN controllers that cannot update routing tables at microsecond timescales",
+      "ECMP requires all switches in the fabric to maintain complete copies of the global model parameters"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Arrange the five levels of the high-performance ML network fabric model in ascending order of abstraction, from physical signaling up to cluster orchestration:",
+     "explanation": "The correct sequence is: (3) Wire and Link -> (5) Transport and Performance Model -> (1) Switch and Topology -> (4) Fabric Behavior -> (2) Cluster Design.",
+     "hint": "Think about: classify networking mechanisms within the five-level ML fabric model.",
+     "type": "order",
+     "items": [
+      "Wire and Link",
+      "Transport and Performance Model",
+      "Switch and Topology",
+      "Fabric Behavior",
+      "Cluster Design"
+     ]
+    },
+    {
+     "q": "Which performance metric is the primary optimization target in an ML training network fabric, and why?",
+     "explanation": "The correct answer is D. In distributed ML training under the Bulk Synchronous Parallel (BSP) paradigm, all GPUs must reach a synchronization barrier before any worker can proceed. Consequently, the last required transfer can determine barrier completion and extend the step. The p99 transfer latency summarizes a distribution; it is not the maximum completion time of a particular collective. The choice focusing on average per-flow throughput reflects traditional web-service optimization rather than synchronous ML collectives. The option mentioning jitter buffers pertains to real-time multimedia streaming rather than RDMA bulk transfers. The choice concerning physical fiber deployment costs addresses cabling economics rather than the operational performance metric governing synchronization.",
+     "hint": "Think about: analyze why tail latency dominates network fabric design under synchronous training workloads.",
+     "type": "single",
+     "options": [
+      "Average per-flow throughput, because web data centers maximize aggregate data volume across millions of independent users",
+      "Jitter buffer depth, because audio and video streaming protocols require bounded inter-packet arrival gaps",
+      "Maximum hop count across the core, because reducing total cable length minimizes physical fiber deployment costs",
+      "Collective completion time under load, because a Bulk Synchronous Parallel barrier waits for the last required transfer; p99 transfer latency helps characterize the tail"
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate why static flow hashing fails under large-scale ML collective traffic.",
+    "You can now compare packet loss recovery mechanisms and their performance implications in TCP/IP versus RDMA fabrics.",
+    "You can now classify networking mechanisms within the five-level ML fabric model.",
+    "You can now analyze why tail latency dominates network fabric design under synchronous training workloads."
+   ]
+  }
+ ]
+}

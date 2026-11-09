@@ -1,0 +1,141 @@
+{
+ "title": "Knowledge Distillation: Training a Student on Softened Targets",
+ "summary": "TinyTorch compression: Knowledge Distillation: Training a Student on Softened Targe",
+ "source": {
+  "chapter": "tt-16",
+  "sections": [
+   "Knowledge Distillation: Training a Student on Softened Targets"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Knowledge Distillation: Training a Student on Softened Targets\n\nKnowledge distillation transfers the dark knowledge embedded in a wide, highly accurate teacher model \\$\\mathcal{T}\\$ into an architecturally compact student model \\$\\mathcal{S}\\$. While traditional supervised learning forces models to fit sparse, one-hot ground-truth labels, distillation exposes continuous relative probabilities across all negative classes.\n\n### Teacher vs. Student Systems Profile"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Model Role",
+    "Parameters",
+    "FP32 Footprint",
+    "Batch Latency",
+    "Illustrative Accuracy",
+    "Deployment Target"
+   ],
+   "rows": [
+    [
+     "**Teacher (\\$\\mathcal{T}\\$)**",
+     "\\$100\\text{M}\\$",
+     "\\$400\\text{ MB}\\$",
+     "\\$500\\text{ ms}\\$",
+     "\\$95.0\\%\\$ (Baseline)",
+     "Cloud Training Server (Multi-GPU)"
+    ],
+    [
+     "**Student (\\$\\mathcal{S}\\$)**",
+     "\\$10\\text{M}\\$ (\\$10\\times\\$ smaller)",
+     "\\$40\\text{ MB}\\$ (\\$10\\times\\$ smaller)",
+     "\\$50\\text{ ms}\\$ (\\$10\\times\\$ faster)",
+     "\\$93.2\\%\\$ (\\$1.8\\%\\$ gap)",
+     "Edge Device / Mobile SoC"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The parameter, footprint, and latency columns follow directly from the \\$10\\times\\$ size ratio. The accuracy column is illustrative and shows only the shape a good distillation result takes, a small gap rather than a collapse. It is not measured here and not quoted from a paper. Whether a given student lands within two points of its teacher is an empirical question about that architecture and that dataset, and Milestone 06 is where you answer it with your own numbers.\n\n### Temperature Scaling: Revealing Dark Knowledge\n\nAt standard temperature \\$T = 1\\$, standard softmax exponentiates dominant logits, crushing sub-dominant probabilities to near zero. Temperature scaling softens this distribution, revealing fine-grained cross-class relationships:\n\n\\$\\$p_i(z, T) = \\frac{\\exp(z_i / T)}{\\sum_{j=1}^C \\exp(z_j / T)}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Distribution Parameter",
+    "Class 1 (Cat)",
+    "Class 2 (Dog)",
+    "Class 3 (Car)",
+    "Distribution Entropy",
+    "Gradient Signal Dynamics"
+   ],
+   "rows": [
+    [
+     "**Teacher Raw Logits \\$z\\$**",
+     "\\$1.0\\$",
+     "\\$2.0\\$",
+     "\\$0.5\\$",
+     "—",
+     "Unbounded linear pre-activations"
+    ],
+    [
+     "**Standard Softmax (\\$T = 1\\$)**",
+     "\\$0.231\\$",
+     "\\$0.628\\$",
+     "\\$0.140\\$",
+     "\\$0.91\\text{ nats}\\$",
+     "Hardened decisions; negligible gradient on negative classes"
+    ],
+    [
+     "**Softened Softmax (\\$T = 3\\$)**",
+     "\\$0.308\\$",
+     "\\$0.431\\$",
+     "\\$0.261\\$",
+     "\\$1.08\\text{ nats}\\$",
+     "Reveals dog/cat visual overlap (\"dark knowledge\"); rich gradients"
+    ],
+    [
+     "**Extreme Softmax (\\$T = 10\\$)**",
+     "\\$0.327\\$",
+     "\\$0.362\\$",
+     "\\$0.311\\$",
+     "\\$1.10\\text{ nats}\\$",
+     "High entropy; approaches uniform distribution (\\$1/C = 0.333\\$, maximum entropy \\$\\ln 3 = 1.099\\$)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Distillation Loss Formulation\n\nThe complete training objective balances continuous distribution matching against discrete ground-truth cross-entropy:\n\n\\$\\$\\mathcal{L}_{\\text{total}} = \\alpha \\cdot \\mathcal{L}_{\\text{soft}} + (1 - \\alpha) \\cdot \\mathcal{L}_{\\text{hard}}\\$\\$\n\n\\$\\$\\mathcal{L}_{\\text{soft}} = D_{\\text{KL}}\\left( p(z_T, T) \\,\\|\\, q(z_S, T) \\right) = \\sum_{i=1}^C p_i(z_T, T) \\log \\left( \\frac{p_i(z_T, T)}{q_i(z_S, T)} \\right)\\$\\$\n\n\\$\\$\\mathcal{L}_{\\text{hard}} = \\text{CrossEntropy}\\left(q(z_S, 1), \\, y_{\\text{true}}\\right) = -\\sum_{i=1}^C y_{\\text{true}, i} \\log q_i(z_S, 1)\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Hyperparameter",
+    "Canonical Range",
+    "Optimization Objective",
+    "Boundary Effect"
+   ],
+   "rows": [
+    [
+     "**Distillation Weight \\$\\alpha\\$**",
+     "\\$0.5\\text{--}0.8\\$",
+     "Regulates gradient contribution of teacher vs. ground-truth",
+     "\\$\\alpha = 1.0\\$: Pure imitation; \\$\\alpha = 0.0\\$: Regular training"
+    ],
+    [
+     "**Distillation Temperature \\$T\\$**",
+     "\\$2.0\\text{--}5.0\\$",
+     "Expands logit entropy to transmit non-argmax correlations",
+     "\\$T \\to \\infty\\$: Uniform probabilities; \\$T = 1.0\\$: Standard argmax"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Both loss components average across mini-batch samples, ensuring scale-invariant optimization regardless of batch dimension. The teacher parameters remain strictly frozen; autograd gradients flow only through the student's log-probability computational graph.\n\nNote what is absent from \\$\\mathcal{L}_{\\text{total}}\\$ above. Hinton et al. scale the soft term by \\$T^2\\$ to hold its gradient magnitude steady as the temperature rises, and you will implement the version without that factor, exactly as written. 📐 derives why the factor exists and what it costs to leave out, which is that \\$\\alpha\\$ stops meaning the same thing when you change \\$T\\$."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 130 lines of code (starting with `class KnowledgeDistillation:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Knowledge Distillation\n\nThis test validates teacher-student knowledge transfer with temperature scaling.\n\n**What we're testing**: A differentiable loss combining soft and hard targets\n**Why it matters**: Enables training small models with teacher knowledge\n**Expected**: Student parameters receive gradients; teacher parameters do not"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Knowledge Distillation: Training a Student on Softened Targets."
+   ]
+  }
+ ]
+}

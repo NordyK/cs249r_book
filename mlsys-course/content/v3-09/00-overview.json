@@ -1,0 +1,283 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v3-09",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Agent Security** (Vol III). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Agent Security, Purpose",
+   "md": "Deploying an autonomous agent across enterprise services dissolves the traditional security boundary between untrusted inputs and privileged control logic. Because foundation models cannot mechanically separate external data from system instructions, adversarial text hidden within a webpage, database record, or tool output can hijack the agent execution flow via indirect prompt injection. Defensive engineering cannot rely on heuristic content filters or model alignment; security must be architected into the surrounding execution harness."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Attacks Through Permitted Operations",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "The Adversarial Threat Model",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "The Confused Deputy and Task-Scoped Auth",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Disclosure Through Permitted Tools",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Quarantined Readers and Ingestion Isolat",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Information-Flow Policy",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Delegated Identity and Credential Broker",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Structural prompt injection**",
+     "Instructions, tool definitions, the request, and every observation are serialized into one token sequence in which no position carries enforced privilege, so injection is structural and exposure grows with every untrusted read."
+    ],
+    [
+     "**Callable is not permitted**",
+     "Injection turns the runtime into a confused deputy with a legitimate identity, so authorization must judge this request within this task, not the function name, argument types, or endpoint allowlist."
+    ],
+    [
+     "**Information-flow labels**",
+     "Confidentiality and integrity provenance vary independently, so the host attaches both to every record, propagates them by the lattice join, and checks release and evidence before dispatch."
+    ],
+    [
+     "**Quarantined readers**",
+     "A quarantined reader keeps raw untrusted text out of the planner and typed handles keep untrusted bytes out of context, but a schema-valid field is still an untrusted claim, not evidence."
+    ],
+    [
+     "**Effective permission intersection**",
+     "When an agent acts for a requester, effective permission is the intersection of requester rights, service principal, task grant, and issuer and receiver policy, with identities taken from the runtime's task record, never from prompt text."
+    ],
+    [
+     "**Action-bound approval**",
+     "Human approval binds to a digest of the canonical, host-resolved action, is presented out of band with the agent's explanation labeled untrusted, and is re-verified with its preconditions immediately before dispatch."
+    ],
+    [
+     "**Multi-turn policy continuity**",
+     "Over a trajectory an attacker gains an adaptation oracle and conversational momentum, so every dispatch is re-evaluated against policy and an obfuscated retry after a block is still the blocked action."
+    ],
+    [
+     "**Security outcome measurement**",
+     "A defense is evaluated by system effects at the protected sink on whole eligible episodes, not by model text, and its overhead is priced in cost per accepted task."
+    ],
+    [
+     "**Lethal trifecta**",
+     "An agent that combines access to private data, exposure to untrusted content, and an external communication channel can be steered to exfiltrate, and removing any one leg breaks the attack path."
+    ],
+    [
+     "**Prefix-cache timing channel**",
+     "A prefix cache shared across security domains leaks through time to first token whether another caller processed identical text, so sharing domains must bound cache reuse."
+    ],
+    [
+     "**Detection vs separation**",
+     "Detection only lowers the rate at which payloads get through, whereas separation by construction bounds what any payload can reach, detected or not."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v3-09-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Structural prompt injection",
+     "back": "Instructions, tool definitions, the request, and every observation are serialized into one token sequence in which no position carries enforced privilege, so injection is structural and exposure grows with every untrusted read."
+    },
+    {
+     "front": "Callable is not permitted",
+     "back": "Injection turns the runtime into a confused deputy with a legitimate identity, so authorization must judge this request within this task, not the function name, argument types, or endpoint allowlist."
+    },
+    {
+     "front": "Information-flow labels",
+     "back": "Confidentiality and integrity provenance vary independently, so the host attaches both to every record, propagates them by the lattice join, and checks release and evidence before dispatch."
+    },
+    {
+     "front": "Quarantined readers",
+     "back": "A quarantined reader keeps raw untrusted text out of the planner and typed handles keep untrusted bytes out of context, but a schema-valid field is still an untrusted claim, not evidence."
+    },
+    {
+     "front": "Effective permission intersection",
+     "back": "When an agent acts for a requester, effective permission is the intersection of requester rights, service principal, task grant, and issuer and receiver policy, with identities taken from the runtime's task record, never from prompt text."
+    },
+    {
+     "front": "Action-bound approval",
+     "back": "Human approval binds to a digest of the canonical, host-resolved action, is presented out of band with the agent's explanation labeled untrusted, and is re-verified with its preconditions immediately before dispatch."
+    },
+    {
+     "front": "Multi-turn policy continuity",
+     "back": "Over a trajectory an attacker gains an adaptation oracle and conversational momentum, so every dispatch is re-evaluated against policy and an obfuscated retry after a block is still the blocked action."
+    },
+    {
+     "front": "Security outcome measurement",
+     "back": "A defense is evaluated by system effects at the protected sink on whole eligible episodes, not by model text, and its overhead is priced in cost per accepted task."
+    },
+    {
+     "front": "Lethal trifecta",
+     "back": "An agent that combines access to private data, exposure to untrusted content, and an external communication channel can be steered to exfiltrate, and removing any one leg breaks the attack path."
+    },
+    {
+     "front": "Prefix-cache timing channel",
+     "back": "A prefix cache shared across security domains leaks through time to first token whether another caller processed identical text, so sharing domains must bound cache reuse."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v3-09-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Structural prompt injection**?",
+     "options": [
+      "A defense is evaluated by system effects at the protected sink on whole eligible episodes, not by model text, and its overhead is priced in cost per accepted task.",
+      "A quarantined reader keeps raw untrusted text out of the planner and typed handles keep untrusted bytes out of context, but a schema-valid field is still an untrusted claim, not evidence.",
+      "Instructions, tool definitions, the request, and every observation are serialized into one token sequence in which no position carries enforced privilege, so injection is structural and exposure grows with every untrusted read.",
+      "Detection only lowers the rate at which payloads get through, whereas separation by construction bounds what any payload can reach, detected or not."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Structural prompt injection itself, not a neighbouring idea.",
+     "explanation": "**Structural prompt injection:** Instructions, tool definitions, the request, and every observation are serialized into one token sequence in which no position carries enforced privilege, so injection is structural and exposure grows with every untrusted read."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Callable is not permitted**?",
+     "options": [
+      "Over a trajectory an attacker gains an adaptation oracle and conversational momentum, so every dispatch is re-evaluated against policy and an obfuscated retry after a block is still the blocked action.",
+      "A quarantined reader keeps raw untrusted text out of the planner and typed handles keep untrusted bytes out of context, but a schema-valid field is still an untrusted claim, not evidence.",
+      "An agent that combines access to private data, exposure to untrusted content, and an external communication channel can be steered to exfiltrate, and removing any one leg breaks the attack path.",
+      "Injection turns the runtime into a confused deputy with a legitimate identity, so authorization must judge this request within this task, not the function name, argument types, or endpoint allowlist."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Callable is not permitted itself, not a neighbouring idea.",
+     "explanation": "**Callable is not permitted:** Injection turns the runtime into a confused deputy with a legitimate identity, so authorization must judge this request within this task, not the function name, argument types, or endpoint allowlist."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Information-flow labels**?",
+     "options": [
+      "Confidentiality and integrity provenance vary independently, so the host attaches both to every record, propagates them by the lattice join, and checks release and evidence before dispatch.",
+      "A quarantined reader keeps raw untrusted text out of the planner and typed handles keep untrusted bytes out of context, but a schema-valid field is still an untrusted claim, not evidence.",
+      "When an agent acts for a requester, effective permission is the intersection of requester rights, service principal, task grant, and issuer and receiver policy, with identities taken from the runtime's task record, never from prompt text.",
+      "Detection only lowers the rate at which payloads get through, whereas separation by construction bounds what any payload can reach, detected or not."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Information-flow labels itself, not a neighbouring idea.",
+     "explanation": "**Information-flow labels:** Confidentiality and integrity provenance vary independently, so the host attaches both to every record, propagates them by the lattice join, and checks release and evidence before dispatch."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Quarantined readers**?",
+     "options": [
+      "Instructions, tool definitions, the request, and every observation are serialized into one token sequence in which no position carries enforced privilege, so injection is structural and exposure grows with every untrusted read.",
+      "Over a trajectory an attacker gains an adaptation oracle and conversational momentum, so every dispatch is re-evaluated against policy and an obfuscated retry after a block is still the blocked action.",
+      "A quarantined reader keeps raw untrusted text out of the planner and typed handles keep untrusted bytes out of context, but a schema-valid field is still an untrusted claim, not evidence.",
+      "Confidentiality and integrity provenance vary independently, so the host attaches both to every record, propagates them by the lattice join, and checks release and evidence before dispatch."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Quarantined readers itself, not a neighbouring idea.",
+     "explanation": "**Quarantined readers:** A quarantined reader keeps raw untrusted text out of the planner and typed handles keep untrusted bytes out of context, but a schema-valid field is still an untrusted claim, not evidence."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Effective permission intersection**?",
+     "options": [
+      "Over a trajectory an attacker gains an adaptation oracle and conversational momentum, so every dispatch is re-evaluated against policy and an obfuscated retry after a block is still the blocked action.",
+      "Confidentiality and integrity provenance vary independently, so the host attaches both to every record, propagates them by the lattice join, and checks release and evidence before dispatch.",
+      "A quarantined reader keeps raw untrusted text out of the planner and typed handles keep untrusted bytes out of context, but a schema-valid field is still an untrusted claim, not evidence.",
+      "When an agent acts for a requester, effective permission is the intersection of requester rights, service principal, task grant, and issuer and receiver policy, with identities taken from the runtime's task record, never from prompt text."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Effective permission intersection itself, not a neighbouring idea.",
+     "explanation": "**Effective permission intersection:** When an agent acts for a requester, effective permission is the intersection of requester rights, service principal, task grant, and issuer and receiver policy, with identities taken from the runtime's task record, never from prompt text."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Structural prompt injection: Instructions, tool definitions, the request, and every observation are serialized into one token sequence in which no position carries enforced privilege, so injection is structural and exposure grows with every untrusted read.",
+    "Callable is not permitted: Injection turns the runtime into a confused deputy with a legitimate identity, so authorization must judge this request within this task, not the function name, argument types, or endpoint allowlist.",
+    "Information-flow labels: Confidentiality and integrity provenance vary independently, so the host attaches both to every record, propagates them by the lattice join, and checks release and evidence before dispatch.",
+    "Quarantined readers: A quarantined reader keeps raw untrusted text out of the planner and typed handles keep untrusted bytes out of context, but a schema-valid field is still an untrusted claim, not evidence."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Structural prompt injection",
+   "def": "Instructions, tool definitions, the request, and every observation are serialized into one token sequence in which no position carries enforced privilege, so injection is structural and exposure grows with every untrusted read."
+  },
+  {
+   "term": "Callable is not permitted",
+   "def": "Injection turns the runtime into a confused deputy with a legitimate identity, so authorization must judge this request within this task, not the function name, argument types, or endpoint allowlist."
+  },
+  {
+   "term": "Information-flow labels",
+   "def": "Confidentiality and integrity provenance vary independently, so the host attaches both to every record, propagates them by the lattice join, and checks release and evidence before dispatch."
+  },
+  {
+   "term": "Quarantined readers",
+   "def": "A quarantined reader keeps raw untrusted text out of the planner and typed handles keep untrusted bytes out of context, but a schema-valid field is still an untrusted claim, not evidence."
+  },
+  {
+   "term": "Effective permission intersection",
+   "def": "When an agent acts for a requester, effective permission is the intersection of requester rights, service principal, task grant, and issuer and receiver policy, with identities taken from the runtime's task record, never from prompt text."
+  },
+  {
+   "term": "Action-bound approval",
+   "def": "Human approval binds to a digest of the canonical, host-resolved action, is presented out of band with the agent's explanation labeled untrusted, and is re-verified with its preconditions immediately before dispatch."
+  },
+  {
+   "term": "Multi-turn policy continuity",
+   "def": "Over a trajectory an attacker gains an adaptation oracle and conversational momentum, so every dispatch is re-evaluated against policy and an obfuscated retry after a block is still the blocked action."
+  },
+  {
+   "term": "Security outcome measurement",
+   "def": "A defense is evaluated by system effects at the protected sink on whole eligible episodes, not by model text, and its overhead is priced in cost per accepted task."
+  },
+  {
+   "term": "Lethal trifecta",
+   "def": "An agent that combines access to private data, exposure to untrusted content, and an external communication channel can be steered to exfiltrate, and removing any one leg breaks the attack path."
+  },
+  {
+   "term": "Prefix-cache timing channel",
+   "def": "A prefix cache shared across security domains leaks through time to first token whether another caller processed identical text, so sharing domains must bound cache reuse."
+  },
+  {
+   "term": "Detection vs separation",
+   "def": "Detection only lowers the rate at which payloads get through, whereas separation by construction bounds what any payload can reach, detected or not."
+  }
+ ]
+}

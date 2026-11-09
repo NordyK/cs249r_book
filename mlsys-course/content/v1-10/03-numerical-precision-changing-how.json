@@ -1,0 +1,122 @@
+{
+ "title": "Numerical Precision: Changing How Values Are Stored",
+ "summary": "Explain the circuit-level physical mechanisms responsible for the energy efficiency advantage of INT8 arithmetic over FP32.",
+ "source": {
+  "chapter": "v1-10",
+  "sections": [
+   "Numerical Precision: Changing How Values Are Stored",
+   "Numerical formats",
+   "Precision and energy",
+   "Quantization methods",
+   "Extreme quantization",
+   "When fewer bits run faster"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain the circuit-level physical mechanisms responsible for the energy efficiency advantage of INT8 arithmetic over FP32\n- Calculate the zero-point parameter in affine asymmetric quantization to preserve exact zero representations\n- Sequence the main stages of static-calibrated post-training quantization from calibration through export\n- Contrast why weight-only low-bit quantization is most compelling for weight-bandwidth-bound decoding rather than automatically for training\n- Compare calibration strategies for long-tailed activation distributions by analyzing the trade-off between clipping and resolution"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Compression, § Numerical Precision: Changing How Values Are Stored",
+   "md": "GPT-2 XL decoding on the phone shows what structural changes leave untouched. Its FP16 weights fit in the phone's memory, yet every generated token streams all … of them across a … bus, about … per token before any arithmetic (a later section). Pruning or factorizing its layers would change which weights exist; the complementary optimization leaves the network topology unaltered and reduces the bit width of every surviving tensor."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Numerical formats\n- Precision and energy\n- Quantization methods\n- Extreme quantization\n- When fewer bits run faster\n\nPay attention to: the 30× INT8 vs. FP32 Horowitz energy saving per add vs. 4× bit-width reduction; affine asymmetric quantization parameters (scale, zero-point); post-training quantization (PTQ) calibration workflows; weight-only INT4 quantization for bandwidth-bound LLM generation."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Compare two validation settings for low-bit quantization: (1) candidate INT4 weight-only quantization for autoregressive decoding when profiling shows weight traffic dominates, and (2) candidate low-bit quantization for large-batch training of the same model. Explain why these two settings require different validation conditions before concluding the quantization is worthwhile.",
+   "md": "In low-batch autoregressive decoding, each generated token can be dominated by streaming dense model weights, so cutting weight bytes from FP16 toward INT4 can substantially reduce weight traffic and improve latency when the runtime has a matching kernel. The ideal bound is set by the weight-byte reduction, not an automatic \\$4× end-to-end speedup, because KV-cache traffic, activations, and dequantization overhead remain. Large-batch training is different: it is not automatically accelerated by weight-only INT4, because training is often compute-heavy and also requires a low-precision training recipe, supported execution units, and numerical validation rather than just compressing stored weights."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-10-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "According to the chapter's Horowitz energy constants, an INT8 integer addition consumes roughly \\$0.03\\text{ pJ}$ compared to \\$0.90\\text{ pJ}$ for an FP32 addition—a \\$30\\times$ energy reduction despite only a \\$4\\times$ reduction in bit-width. What explains this operation-level energy dividend?",
+     "explanation": "The correct answer is C. The \\$30× arithmetic energy disparity (\\$0.03 pJ for INT8 add vs. \\$0.9 pJ for FP32 add based on Horowitz constants) stems directly from silicon circuit complexity: an 8-bit integer addition requires a compact adder circuit with minimal logic gates and switching capacitance, whereas a 32-bit floating-point adder requires extensive barrel shifters for exponent alignment, mantissa addition, normalization, and rounding logic. Quantization does not eliminate ALU circuitry or prune parameters, nor does FP32 require host CPU synchronization.",
+     "hint": "Think about: explain the circuit-level physical mechanisms responsible for the energy efficiency advantage of INT8 arithmetic over FP32",
+     "type": "single",
+     "options": [
+      "INT8 arithmetic eliminates the need for registers and ALU logic on the silicon die",
+      "INT8 quantization automatically prunes zero-valued parameters before they reach the execution units",
+      "The 8-bit integer adder circuit requires significantly fewer logic gates, capacitance, and switching energy per operation than a 32-bit floating-point adder with exponent alignment and normalization logic",
+      "Floating-point operations require continuous synchronization with host CPU DRAM on every instruction"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In affine (asymmetric) quantization, the integer parameter ____ shifts the quantized grid so that real-valued zero maps exactly to an integer representation, ensuring that zero-padded tensor regions introduce no numerical bias.",
+     "explanation": "zero-point. The zero-point (or zero point, Z) provides an integer offset that ensures the real floating-point value \\$0.0 is mapped precisely to an integer without rounding error, which is crucial for preserving exact zero representations in padded convolutional feature maps and ReLU activations.",
+     "hint": "Think about: calculate the zero-point parameter in affine asymmetric quantization to preserve exact zero representations",
+     "type": "fill",
+     "answer": [
+      "zero point",
+      "zero-point"
+     ]
+    },
+    {
+     "q": "Order the stages of a standard post-training quantization workflow with static activation calibration:",
+     "explanation": "The correct order is: (2) run representative floating-point calibration inputs through the model and collect activation statistics, (3) choose activation clipping bounds from the collected statistics, (4) derive activation scales and zero-points from those chosen bounds, (1) quantize the finalized weights and export the deployment artifact. Calibration data must be observed before clipping bounds can be chosen, and those bounds must be fixed before scales and zero-points can be derived. Export belongs last because the deployment artifact should reflect the completed quantization parameters rather than precede them. Swapping calibration with export would freeze an artifact before the activation ranges needed to define it were established.",
+     "hint": "Think about: sequence the main stages of static-calibrated post-training quantization from calibration through export",
+     "type": "order",
+     "items": [
+      "run representative floating-point calibration inputs through the model and collect activation statistics",
+      "choose activation clipping bounds from the collected statistics",
+      "derive activation scales and zero-points from those chosen bounds.",
+      "quantize the finalized weights and export the deployment artifact"
+     ]
+    },
+    {
+     "q": "During post-training quantization of a convolutional network, activation profiling reveals that values are heavily concentrated near zero with a small set of extreme positive outliers. Which calibration strategy best preserves numerical resolution for the bulk of typical activations?",
+     "explanation": "The correct answer is D. When a tensor has a dense bulk near zero plus a rare outlier tail, percentile or KL-based calibration can trade some clipping of that tail for better resolution where most values actually lie. A percentile method such as keeping \\$99.9\\% of values clips the remaining tail by design. That trade can improve typical representation quality, but it is not harmless by definition because rare outliers may still matter for task accuracy. Max calibration instead spends range on those extremes and can waste bins on mostly empty space.",
+     "hint": "Think about: compare calibration strategies for long-tailed activation distributions by analyzing the trade-off between clipping and resolution",
+     "type": "single",
+     "options": [
+      "Max-absolute-value calibration, because extending the quantization grid to include extreme outliers guarantees zero clipping error across all layers",
+      "Uncalibrated uniform quantization, because activation distributions in neural networks always follow a perfectly uniform probability density",
+      "Static symmetric quantization with range [-128, +127] mapped unconditionally to [-1.0, +1.0] across every layer",
+      "Percentile or KL-divergence (entropy) calibration, which can clip extreme tails so more integer levels represent the dense bulk of activations"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A team quantizing a deep convolutional network finds that per-channel (filter-wise) quantization achieves significantly higher accuracy than per-tensor (layer-wise) quantization at the same INT8 bit-width. Which mechanism explains this accuracy advantage?",
+     "explanation": "The correct answer is B. In deep convolutional neural networks, different filters within the same layer specialize in distinct feature patterns, often resulting in weight distributions with variances that differ by orders of magnitude. Under per-tensor (layer-wise) quantization, a single clipping range must encompass all filters, forcing narrow-distribution filters into a tiny subset of quantization bins. Per-channel (per-filter) quantization assigns an independent scale factor $S_c$ and zero-point $Z_c$ to each output channel, giving narrow-range filters finer numerical resolution when their ranges differ. This can explain the measured quality advantage, but scale metadata, kernel support, and the calibration policy still determine the deployment trade-off.",
+     "hint": "Think about: explain why per-channel quantization granularity preserves accuracy in convolutional networks compared to per-tensor quantization",
+     "type": "single",
+     "options": [
+      "Per-channel quantization eliminates the need to compute or store scale factors and zero-points",
+      "Individual convolutional filters within a layer often exhibit drastically different weight magnitude ranges; per-channel quantization assigns an independent scale factor to each filter, preventing wide-range filters from degrading the precision of narrow-range filters",
+      "Per-tensor quantization can only be executed on CPUs, whereas per-channel quantization is restricted to edge microcontrollers",
+      "Per-channel quantization automatically converts float operations into sparse matrix multiplications"
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Weight precision**: Lower precision reduces the bytes needed for weights. It improves runtime only when the execution regime and kernel support let those saved bytes matter.",
+    "**Quantization**: Representing tensors at lower precision to reduce storage and traffic, subject to quality and runtime support."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Weight precision",
+   "def": "Lower precision reduces the bytes needed for weights. It improves runtime only when the execution regime and kernel support let those saved bytes matter."
+  },
+  {
+   "term": "Quantization",
+   "def": "Representing tensors at lower precision to reduce storage and traffic, subject to quality and runtime support."
+  }
+ ]
+}

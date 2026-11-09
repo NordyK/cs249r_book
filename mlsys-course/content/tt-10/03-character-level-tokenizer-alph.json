@@ -1,0 +1,99 @@
+{
+ "title": "Character-Level Tokenizer: Alphabet as Vocabulary",
+ "summary": "TinyTorch tokenization: Character-Level Tokenizer: Alphabet as Vocabulary",
+ "source": {
+  "chapter": "tt-10",
+  "sections": [
+   "Character-Level Tokenizer: Alphabet as Vocabulary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Character-Level Tokenizer: Alphabet as Vocabulary\n\nThe character-level tokenizer decomposes text into individual constituent characters. It guarantees deterministic coverage of all symbols present in the training alphabet, but produces sequences proportional to raw character length.\n\n### Step-by-Step Character Tokenization\n\nGiven corpus \\$\\mathcal{C} = [\\text{\"hello\"}, \\text{\"world\"}]\\$:\n\n1. **Alphabet Extraction & Sorting**:\n   \\$\\$\\Sigma = \\operatorname{sorted}(\\operatorname{unique}(\\mathcal{C})) = [\\text{'d'}, \\text{'e'}, \\text{'h'}, \\text{'l'}, \\text{'o'}, \\text{'r'}, \\text{'w'}]\\$\\$\n\n   Neither corpus string contains a space, so no space token appears. A corpus of\n   whole sentences (as in `demo_tokenization()`) would add `' '` to the alphabet\n   and shift every ID after it by one.\n\n2. **Vocabulary Construction**:\n   Prepend special token `` at index \\$0\\$ so unseen symbols map cleanly to an out-of-vocabulary ID:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Token Symbol",
+    "Vocabulary ID",
+    "Byte Value",
+    "Systems Role"
+   ],
+   "rows": [
+    [
+     "`<UNK>`",
+     "`0`",
+     "—",
+     "Fallback out-of-vocabulary indicator"
+    ],
+    [
+     "`'d'`",
+     "`1`",
+     "`0x64`",
+     "Base alphabet character"
+    ],
+    [
+     "`'e'`",
+     "`2`",
+     "`0x65`",
+     "Base alphabet character"
+    ],
+    [
+     "`'h'`",
+     "`3`",
+     "`0x68`",
+     "Base alphabet character"
+    ],
+    [
+     "`'l'`",
+     "`4`",
+     "`0x6C`",
+     "Base alphabet character"
+    ],
+    [
+     "`'o'`",
+     "`5`",
+     "`0x6F`",
+     "Base alphabet character"
+    ],
+    [
+     "`'r'`",
+     "`6`",
+     "`0x72`",
+     "Base alphabet character"
+    ],
+    [
+     "`'w'`",
+     "`7`",
+     "`0x77`",
+     "Base alphabet character"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The vocabulary holds \\$8\\$ entries, which is what `CharTokenizer.vocab_size` reports\nafter `build_vocab([\"hello\", \"world\"])`.\n\n3. **Encoding Pipeline**:\n   \\$\\$\\mathbf{x} = \\text{\"hello\"} \\quad \\xrightarrow{\\text{lookup}} \\quad [3, 2, 4, 4, 5]\\$\\$\n\n4. **Decoding Reconstruction**:\n   \\$\\$[3, 2, 4, 4, 5] \\quad \\xrightarrow{\\text{reverse lookup}} \\quad \\text{\"hello\"}\\$\\$"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 116 lines of code (starting with `class CharTokenizer(Tokenizer):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Character Tokenizer\n\nThis test validates our character tokenizer works correctly with vocabulary building, encoding, and decoding.\n\n**What we're testing**: Character-level tokenization with vocabulary management\n**Why it matters**: Foundation for text processing with known-character coverage\n**Expected**: Correct encoding/decoding, unknown character handling, vocabulary building"
+  },
+  {
+   "type": "text",
+   "md": "Character tokenization provides a simple, robust foundation for text processing. The key insight is that with a small vocabulary (typically `, which the test above exercised with `'!'`.\n\n**Trade-offs**:\n- **Pro**: Out-of-vocabulary is rare (a character has to be unseen, not a word), and any language works once its characters are in the corpus\n- **Con**: Long sequences (1 char = 1 token), limited semantic understanding\n- **Use case**: When robustness is more important than efficiency"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Character-Level Tokenizer: Alphabet as Vocabulary."
+   ]
+  }
+ ]
+}

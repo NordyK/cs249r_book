@@ -1,0 +1,94 @@
+{
+ "title": "Learning from Security Breaches",
+ "summary": "Analyze why simple aggregation fails to protect privacy in high-dimensional behavioral datasets.",
+ "source": {
+  "chapter": "v2-13",
+  "sections": [
+   "Learning from Security Breaches",
+   "Stuxnet and supply chain compromise",
+   "Insufficient isolation in the Jeep Cherokee hack",
+   "Weaponized endpoints and the Mirai botnet"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze why simple aggregation fails to protect privacy in high-dimensional behavioral datasets\n- Compare the attack mechanism of the Stuxnet worm with model backdoor attacks in ML pipelines\n- Evaluate the isolation architecture required between external-facing ML inference APIs and physical actuators\n- Analyze the dual threat posed by compromised edge devices in federated ML architectures\n- Explain the vulnerability window represented by zero-day exploits in ML serving infrastructure"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Security & Privacy, § Learning from Security Breaches",
+   "md": "A public heatmap built for runners became a military-intelligence leak when sparse GPS traces outlined movement around sensitive sites. That privacy failure belongs beside three landmark security breaches because each case turns an abstract control objective into an operational constraint. Behavioral telemetry can identify people. Supply-chain compromise can alter physical systems. Weak isolation can expose safety-critical control paths. Default credentials can turn cheap devices into attack infrastructure."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Stuxnet and supply chain compromise\n- Insufficient isolation in the Jeep Cherokee hack\n- Weaponized endpoints and the Mirai botnet\n\nPay attention to: Strava heatmap aggregate privacy leakage; Stuxnet supply chain and silent telemetry manipulation analog; Jeep Cherokee isolation failure between interfaces and actuators; Mirai botnet weaponized endpoints and federated poisoning risks."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: The Stuxnet worm modified industrial centrifuge control parameters while continuing to report normal operational telemetry to facility operators. Explain the direct architectural parallel between this attack mechanism and a data poisoning backdoor attack on an ML model.",
+   "md": "In both cases, the compromise subverts operational integrity while silently evading standard health monitoring. Just as Stuxnet altered physical controller commands while spoofing healthy telemetry, a backdoored ML model maintains high validation accuracy on clean benchmark data while silently triggering malicious misclassifications only when an attacker's specific trigger pattern is present."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-13-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In 2018, an aggregated activity heatmap revealed sensitive military locations through distinctive activity patterns in sparsely populated areas. What fundamental systems privacy vulnerability did this incident demonstrate?",
+     "explanation": "The correct answer is C. The Strava incident showed that aggregation alone can expose sensitive locations when behavioral structure is distinctive. An individual-level DP guarantee would not automatically hide an institution or population-level activity pattern; its protected contribution and release objective must be stated. Even without user identifiers, unique coordinate patterns in low-density regions directly reveal sensitive operational locations. A database breach hypothesis is incorrect because no raw database or identity records were stolen; the visualization itself leaked the information. A power analysis hypothesis confuses physical side channels with macro-level telemetry visualization. A TLS certificate hypothesis confuses transport encryption with semantic information leakage in published aggregates.",
+     "hint": "Think about: analyze why simple aggregation fails to protect privacy in high-dimensional behavioral datasets.",
+     "type": "single",
+     "options": [
+      "The platform suffered an unencrypted SQL database breach that leaked user account names and plaintext GPS coordinates.",
+      "An adversary executed a physical side-channel power analysis attack against user GPS hardware chips.",
+      "Aggregation can expose sensitive locations in sparse environments where high-dimensional behavioral traces retain distinct structural patterns.",
+      "The web application failed to validate TLS 1.3 certificates on incoming client telemetry streams."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "The 2015 remote hack of a Jeep Cherokee exploited a cellular connection in the vehicle's infotainment system to send unauthorized commands to the safety-critical CAN bus controlling brakes and steering. Which architectural safeguard directly addresses the equivalent vulnerability in autonomous ML robotic systems?",
+     "explanation": "The correct answer is D. Segmentation and narrow authenticated gateways limit the authority an externally reachable component can exercise over actuators. Controllers must validate permitted commands and use a system-specific safe response to invalid inputs or communication failure. A model architecture change or DP noise does not establish that control boundary; the safe response depends on consequences, not an anomaly score alone.",
+     "hint": "Think about: evaluate the isolation architecture required between external-facing ML inference APIs and physical actuators.",
+     "type": "single",
+     "options": [
+      "Upgrading perception models from convolutional neural networks to vision transformers.",
+      "Applying differential privacy noise to perception model bounding box outputs.",
+      "Storing model weights in unencrypted pickle files on edge microcontrollers.",
+      "Enforcing strict hardware and network segmentation between untrusted inference interfaces and safety-critical actuator control planes, backed by fail-safe defaults."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In edge-deployed ML fleets and federated learning systems, compromised IoT endpoints with default credentials represent only a bandwidth-exhaustion (DDoS) threat to serving infrastructure.",
+     "explanation": "False. While compromised IoT endpoints can be marshaled for bandwidth DDoS attacks, in ML systems they also present severe algorithmic threats: they can inject poisoned gradient updates into federated aggregation pipelines, exfiltrate local biometric and sensor telemetry, and execute distributed model extraction queries while masking the attacker's identity.",
+     "hint": "Think about: analyze the dual threat posed by compromised edge devices in federated ML architectures.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Stuxnet chained four ____ exploits, vulnerabilities for which zero days of vendor patch or defense exist, demonstrating how unpatched dependencies in ML serving frameworks can expose air-gapped or production clusters to immediate compromise.",
+     "explanation": "The correct answer is zero-day. A zero-day exploit targets a previously undisclosed vulnerability for which developers have had zero days to create and deploy patches. In ML systems, unpatched zero-day flaws in model-serving runtimes or serialization parsers create critical exposure windows before security updates can be distributed.",
+     "hint": "Think about: explain the vulnerability window represented by zero-day exploits in ML serving infrastructure.",
+     "type": "fill",
+     "answer": [
+      "The correct answer is zero day",
+      "The correct answer is zero-day"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze why simple aggregation fails to protect privacy in high-dimensional behavioral datasets.",
+    "You can now compare the attack mechanism of the Stuxnet worm with model backdoor attacks in ML pipelines.",
+    "You can now evaluate the isolation architecture required between external-facing ML inference APIs and physical actuators.",
+    "You can now analyze the dual threat posed by compromised edge devices in federated ML architectures."
+   ]
+  }
+ ]
+}

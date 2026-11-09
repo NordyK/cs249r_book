@@ -1,0 +1,68 @@
+{
+ "title": "Failure Taxonomy",
+ "summary": "Classify infrastructure failure domains by hierarchical containment and blast radius.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "Failure Taxonomy",
+   "Transient failures",
+   "Fail-stop failures",
+   "Byzantine failures",
+   "Correlated failures"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Classify infrastructure failure domains by hierarchical containment and blast radius\n- Compare Byzantine failures and silent data corruption against fail-stop failures in synchronous distributed training"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, § Failure Taxonomy",
+   "md": "A network partition that clears in seconds and a permanent GPU failure both interrupt a training step, yet retrying the first succeeds while retrying the second wastes cluster time on dead silicon. Silent memory corruption that produces wrong gradients demands a different defense again from a node crash that stops responding altogether. While the MTBF calculations quantify *how often* interruptions arrive, which sets checkpoint intervals and spare-pool sizes, choosing the right recovery action requires distinguishing *what kind* of failure has occurred."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Transient failures\n- Fail-stop failures\n- Byzantine failures\n- Correlated failures\n\nPay attention to: Failure scope and the nesting of failure domains; Value-corrupting (Byzantine) failures versus fail-stop failures."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Sequence the following failure domains in ascending order of their physical containment hierarchy and typical blast radius (from smallest number of affected GPUs to largest):",
+     "explanation": "The correct sequence is (2) -> (4) -> (1) -> (3) -> (5).\n- (2) Single GPU hardware lockup: Affects 1 GPU.\n- (4) Node-level power loss (redundant PSUs exhausted): Affects 8 GPUs.\n- (1) Top-of-rack (ToR) switch failure: Affects 32–64 GPUs.\n- (3) Multi-rack Power Distribution Unit (PDU) failure: Affects 100–500 GPUs.\n- (5) Regional power grid disruption: Affects all GPUs across the data center region.",
+     "hint": "Think about: classify infrastructure failure domains by hierarchical containment and blast radius.",
+     "type": "order",
+     "items": [
+      "Single GPU hardware lockup affecting 1 GPU",
+      "Regional power grid disruption affecting all GPUs in a data center"
+     ]
+    },
+    {
+     "q": "During a distributed AllReduce operation, a single GPU rank experiences a silent bit flip in an exponent calculation. The rank does not crash, passes network timeouts, and contributes an anomalously large gradient to the collective average. How is this failure categorized, and what is its primary danger to the training run?",
+     "explanation": "The correct answer is A. This is a Byzantine failure because the defective component continues participating in collective communication while transmitting mathematically corrupted data, silently poisoning global model parameters without triggering fail-stop crash handlers. Categorizing this as a fail-stop failure is incorrect because fail-stop components cease operation and are caught by timeout mechanisms. Categorizing this as a transient packet loss error confuses network transport retries with silent arithmetic corruption. Categorizing this as a benign gray failure that self-corrects through stochastic gradient descent is incorrect because exponent bit flips can scale gradients by orders of magnitude, causing divergence or NaN collapse.",
+     "hint": "Think about: compare Byzantine failures and silent data corruption against fail-stop failures in synchronous distributed training.",
+     "type": "single",
+     "options": [
+      "Byzantine failure; it silently poisons model weights and gradients while bypassing standard process-liveness and timeout detection.",
+      "Fail-stop failure; it immediately halts the AllReduce collective and triggers an automated container restart.",
+      "Transient network failure; it is automatically corrected by underlying InfiniBand packet retransmission protocols.",
+      "Benign gray failure; it is absorbed by stochastic gradient descent with zero impact on final convergence."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify infrastructure failure domains by hierarchical containment and blast radius.",
+    "You can now compare Byzantine failures and silent data corruption against fail-stop failures in synchronous distributed training."
+   ]
+  }
+ ]
+}

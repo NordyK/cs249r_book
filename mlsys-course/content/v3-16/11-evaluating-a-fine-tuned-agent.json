@@ -1,0 +1,67 @@
+{
+ "title": "Evaluating a Fine-Tuned Agent",
+ "summary": "Work through Evaluating a Fine-Tuned Agent.",
+ "source": {
+  "chapter": "v3-16",
+  "sections": [
+   "Evaluating a Fine-Tuned Agent",
+   "Comparable loss and closed-loop performance",
+   "Task and behavior measurements",
+   "Controlled comparison and conditional release"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Evaluating a Fine-Tuned Agent**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Trajectory Fine-Tuning, § Evaluating a Fine-Tuned Agent",
+   "md": "A fine-tuned checkpoint can reach a low loss on a repair corpus yet fail to resolve actual connection-pool leaks in production. Training configurations and data manifests record how an artifact was produced, but only closed-loop trials reveal how the policy navigates multi-step execution when its own actions dictate future observations. The task acceptance contract defined in a later section governs these trials, addressing the specific failure modes and behavioral shifts that weight updates introduce."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Comparable loss and closed-loop performance\n- Task and behavior measurements\n- Controlled comparison and conditional release"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Schema augmentation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-16-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Evaluating a Fine-Tuned Agent** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas.",
+      "Loss values are comparable only under identical split, serialization, mask, and normalization, and promotion requires closed-loop task acceptance under the serving configuration, not lower loss.",
+      "Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime.",
+      "When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Schema augmentation**: A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Closed-loop evaluation**: A policy is assessed on the task outcomes produced by its own actions under a fixed contract and budget, independently of teacher-forced loss."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Closed-loop evaluation",
+   "def": "A policy is assessed on the task outcomes produced by its own actions under a fixed contract and budget, independently of teacher-forced loss."
+  }
+ ]
+}

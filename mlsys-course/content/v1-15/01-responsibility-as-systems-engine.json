@@ -1,0 +1,67 @@
+{
+ "title": "Responsibility as Systems Engineering",
+ "summary": "Classify an ML deployment failure using the systems-engineering verification-versus-validation framework.",
+ "source": {
+  "chapter": "v1-15",
+  "sections": [
+   "Responsibility as Systems Engineering"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Classify an ML deployment failure using the systems-engineering verification-versus-validation framework\n- Explain why responsible engineering requires a continuous production control loop analogous to MLOps rather than a static pre-deployment review\n- Distinguish localized software bugs from data-coupled ML specification failures across shared representations"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Responsible Engineering, § Responsibility as Systems Engineering",
+   "md": "A credit model decides whose loan applications are approved, a ranking model decides which items millions of people see, and a voice assistant decides when audio from a private room leaves the device. None of these outcomes appears in a loss curve or a latency dashboard, yet every deployed model settles them. A system can meet every latency, uptime, and aggregate accuracy target while rejecting qualified minority applicants, amplifying clickbait, or leaking private audio."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: verification vs validation in ML systems; responsibility as a safety control loop paralleling MLOps; architectural propagation of specification failures; expanded correctness beyond latency and accuracy."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A team argues that a one-time ethics sign-off before deployment is sufficient because their model passes all latency and aggregate accuracy checks. Using the MLOps control-loop analogy, explain why responsible engineering must instead operate as a continuous control loop, and identify one specific production metric that a one-time pre-launch review cannot capture.",
+   "md": "MLOps functions as a continuous control loop for operational reliability because data distributions drift over time; responsible engineering is the corresponding control loop for safety because outcome quality degrades as downstream user populations, proxies, and deployment environments evolve. A one-time sign-off cannot detect post-deployment subgroup-level error rate disparities (such as a widening true-positive-rate gap between demographic slices) that emerge as input distributions shift while overall latency and availability dashboards remain green."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-15-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An AI recruiting tool meets its latency SLA, maintains 99.9% availability, and achieves 87% aggregate accuracy, yet it systematically downgrades resumes containing the word \"women's\" or graduates of women's colleges. Applying the systems-engineering verification-versus-validation framing, which diagnosis correctly explains this outcome?",
+     "explanation": "The correct answer is D. In systems engineering, verification asks whether the system was built correctly against stated specifications, while validation asks whether the right system was built to meet true needs. The tool met all monitored technical targets (passing verification) but optimized a flawed objective that reproduced historical hiring bias (failing validation). The low-level defect claim is incorrect because the code executed without error on the objective it was assigned. The operational reliability option conflates service uptime with specification correctness. The model capacity explanation is flawed because a larger model would simply fit and reproduce the biased historical patterns more faithfully.",
+     "hint": "Think about: classify an ML deployment failure using the systems-engineering verification-versus-validation framework.",
+     "type": "single",
+     "options": [
+      "The system failed verification because any discriminatory outcome is by definition a low-level coding defect in the model implementation.",
+      "The failure is primarily an operational reliability defect that responsible engineering addresses only after serving infrastructure destabilizes.",
+      "The root cause is insufficient model capacity, which can be resolved by scaling up model parameters without altering the optimization objective.",
+      "The system passed verification by meeting its stated technical requirements, but failed validation because the specification itself did not capture the organization's true goal of fair hiring."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Because ML systems are constructed from modular software components, a fairness defect originating from biased training data can be isolated and patched within a single function without altering data pipelines, training objectives, or shared representations.",
+     "explanation": "False. Unlike traditional software where defects can often be isolated within a specific function or module, ML systems exhibit tight data-dependent coupling. Data flows through shared representations (such as embeddings and learned feature weights), meaning a biased training signal propagates across multiple downstream predictions. Remediating such a failure requires architectural interventions across the D·A·M axes—including data curation, constrained optimization objectives, and disaggregated outcome monitoring.",
+     "hint": "Think about: distinguish localized software bugs from data-coupled ML specification failures across shared representations.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify an ML deployment failure using the systems-engineering verification-versus-validation framework.",
+    "You can now explain why responsible engineering requires a continuous production control loop analogous to MLOps rather than a static pre-deployment review.",
+    "You can now distinguish localized software bugs from data-coupled ML specification failures across shared representations."
+   ]
+  }
+ ]
+}

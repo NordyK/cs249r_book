@@ -1,0 +1,101 @@
+{
+ "title": "Stage Ownership and Hand-offs",
+ "summary": "Classify and sequence the six core ML lifecycle stages and justify the prerequisite artifact dependencies across stage boundaries.",
+ "source": {
+  "chapter": "v1-03",
+  "sections": [
+   "Stage Ownership and Hand-offs",
+   "Stage interface contracts"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Classify and sequence the six core ML lifecycle stages and justify the prerequisite artifact dependencies across stage boundaries\n- Apply stage interface contracts to audit lifecycle transitions and settle deployment constraints early\n- Explain how mobile hardware constraints propagate backward through Problem Definition, Data Collection, Model Development, and Evaluation\n- Apply the Iron Law of ML Systems as a diagnostic lens for how lifecycle stages most directly influence different system terms\n- Explain the role of stage interface contracts as control-plane quality checks in ML workflows"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Lifecycle, § Stage Ownership and Hand-offs",
+   "md": "The rural-clinic failure paid that rework penalty in full because no stage owned the 500 MB memory constraint. The deployment limit surfaced only after data curation, model training, and evaluation decisions had hardened around an infeasible target, and preventing such misalignments requires clear ownership across the system stack. The six stages of a later section divide project responsibilities along the D·A·M axes. Problem definition sets the governing requirements for all three."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Six core stages of the ML lifecycle; Stage interface contracts and transition audits; Backward propagation of deployment constraints (MobileNetV2); Mapping lifecycle stages to the Iron Law of ML Systems."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: The chapter considers MobileNetV2 (about 14 MB of FP32 weights and ~600 MFLOPs per inference) as a candidate backbone for the DR clinic device, whose model budget was fixed at Problem Definition. Explain how choosing a model to fit that budget propagates across Data Collection, Model Development, and Evaluation.",
+   "md": "The memory budget fixed at Problem Definition reshapes all downstream stages. In Data Collection, images must be prepared at the input resolution the chosen backbone expects. In Model Development, it favors architectures built from cheap operators (such as depthwise separable convolutions) over dense convolutions or large ensembles; MobileNetV2's ~600 MFLOPs per inference is what such a design costs, not the requirement itself. In Evaluation, on-device latency and memory footprint must be validated alongside sensitivity, and a missed latency target loops back to architecture or input resolution."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-03-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Order the following lifecycle phases in the canonical sequence established in the chapter for a new ML system project:",
+     "explanation": "The correct order is: (2) Problem Definition, (4) Data Collection and Preparation, (5) Model Development and Training, (6) Evaluation and Validation, (1) Deployment and Integration, (3) Monitoring and Maintenance. Each stage consumes artifacts and contracts produced by preceding stages: Problem Definition sets measurable objectives and physical constraints; Data Collection acquires and curates versioned datasets satisfying those constraints; Model Development trains candidate models within the computational budget; Evaluation and Validation checks models against stratified safety thresholds; Deployment and Integration delivers serving infrastructure meeting latency SLAs; and Monitoring and Maintenance tracks live operational telemetry and feeds drift evidence back into upstream stages.",
+     "hint": "Think about: classify and sequence the six core ML lifecycle stages and justify the prerequisite artifact dependencies across stage boundaries.",
+     "type": "order",
+     "items": [
+      "Problem Definition",
+      "Data Collection and Preparation",
+      "Model Development and Training",
+      "Evaluation and Validation.",
+      "Deployment and Integration",
+      "Monitoring and Maintenance"
+     ]
+    },
+    {
+     "q": "An engineering team completes Problem Definition with clinical sensitivity targets but marks the target deployment paradigm as 'TBD — to be determined after model training.' According to the Stage Interface Specification, what should the transition audit verdict be, and why?",
+     "explanation": "The correct answer is C. The Stage Interface Specification says Problem Definition must produce measurable objectives, deployment paradigm selection, and resource constraints before downstream work proceeds. Leaving the target as TBD violates that contract because deployment constraints shape what data collection, preprocessing, and model choices are feasible. The chapter's constraint-propagation discussion shows that late discovery can force rework across dependent artifacts, with the amount depending on which earlier outputs must be revisited. An answer based on unconstrained accuracy-first optimization ignores those early dependencies, and the cloud-fallback idea ignores that latency or connectivity requirements may already rule cloud out.",
+     "hint": "Think about: apply stage interface contracts to audit lifecycle transitions and settle deployment constraints early.",
+     "type": "single",
+     "options": [
+      "A. Approved, because decoupling model development from hardware targets allows researchers to maximize accuracy before applying post-hoc pruning.",
+      "B. Approved with warning, provided the team commits to using cloud inference if the model exceeds edge memory budgets.",
+      "C. Blocked, because Problem Definition's output contract explicitly requires deployment paradigm and resource constraints to be established before data collection and modeling begin.",
+      "D. Blocked only if the model architecture requires distributed multi-GPU training, since single-device models can adapt to any deployment target."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Which mapping between lifecycle stages and the terms in the Iron Law of ML Systems ($T = \\frac{D_{\\text{vol}}}{\\text{BW}} + \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}} + L_{\\text{lat}}$) is conceptually consistent with the chapter?",
+     "explanation": "The correct answer is D. The chapter treats these stage-to-term links as nonexclusive diagnostic associations, not one-to-one ownership. Data Collection and Preparation strongly influences how much data must be stored and moved, Model Development and Training strongly influences computational work and reuse structure, and Deployment and Integration strongly influences serving overhead such as latency. The exclusive-assignment alternatives are wrong because the chapter explicitly teaches overlapping influences: data work can affect compute efficiency, model choices can affect bytes moved and latency, and deployment choices do not erase upstream effects on the other terms.",
+     "hint": "Think about: apply the Iron Law of ML Systems as a diagnostic lens for how lifecycle stages most directly influence different system terms.",
+     "type": "single",
+     "options": [
+      "A. Problem Definition exclusively determines $R_{\\text{peak}}$, and later lifecycle stages cannot materially affect hardware throughput or efficiency once the use case is chosen.",
+      "B. Model Development and Training exclusively determines $O$, while Data Collection and Preparation cannot affect bytes moved and Deployment and Integration cannot affect latency overhead.",
+      "C. Deployment and Integration exclusively determines $L_{\\text{lat}}$, while earlier stages cannot materially affect operation count, data volume, or serving-path overhead once deployment begins.",
+      "D. Data Collection and Preparation is diagnostically associated with bytes moved such as $D_{\\text{vol}}$; Model Development and Training is associated with computational work $O$ and opportunities for reuse; Deployment and Integration is associated with serving-path overhead such as $L_{\\text{lat}}$, even though these influences are not exclusive."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "To prevent defect propagation across lifecycle boundaries, the chapter formalizes each stage boundary using a(n) ____ contract, which defines required inputs, output deliverables, and non-negotiable quality invariants.",
+     "explanation": "stage interface. Stage interface contracts establish formal quality checks at each transition boundary in the ML lifecycle, ensuring that prerequisites (such as deployment paradigm selection or schema validation) are met before downstream engineering begins.",
+     "hint": "Think about: explain the role of stage interface contracts as control-plane quality checks in ML workflows.",
+     "type": "fill",
+     "answer": [
+      "stage interface"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Stage interface contract**: A checked specification of the inputs, outputs, and invariants at a pipeline boundary."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Stage interface contract",
+   "def": "A checked specification of the inputs, outputs, and invariants at a pipeline boundary."
+  }
+ ]
+}

@@ -1,0 +1,103 @@
+{
+ "title": "Data Labeling",
+ "summary": "Calculate the storage and annotation scale differences between classification, bounding boxes, and pixel-level semantic segmentation.",
+ "source": {
+  "chapter": "v1-04",
+  "sections": [
+   "Data Labeling",
+   "Label types and system requirements",
+   "Labeling economics",
+   "Label accuracy and consensus",
+   "Label quality drift",
+   "Scaling with AI-assisted labeling",
+   "Automated labeling in KWS"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate the storage and annotation scale differences between classification, bounding boxes, and pixel-level semantic segmentation\n- Identify the workload quantities needed to scale mixed-unit labeling and storage rates into comparable total costs\n- Explain the scale-versus-noise trade-off in weak supervision and why validation remains necessary after programmatic labeling\n- Design a tiered consensus labeling workflow using inter-annotator agreement metrics and gold-standard benchmarks\n- Evaluate active learning query strategies (uncertainty, margin, and entropy sampling) for sample efficiency"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Engineering, § Data Labeling",
+   "md": "A crowdsourced annotator mislabels a whispered \"Alexa\" as background noise, or two radiologists disagree over a borderline scan, and every training step and evaluation metric that follows treats the resulting label as the definition of a correct answer. In the KWS pipeline, each of the millions of validated recordings needs that missing statement, including a label for every clip that holds only background sound. This declaration is the **ground truth**, and producing it at scale is often the most human-dependent and error-prone stage of the pipeline."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Label types and system requirements\n- Labeling economics\n- Label accuracy and consensus\n- Label quality drift\n- Scaling with AI-assisted labeling\n- Automated labeling in KWS\n\nPay attention to: label types and scalar data scaling (classification vs. bounding boxes vs. segmentation); per-unit labeling and storage cost rates; weak supervision and programmatic labeling functions (Snorkel); tiered consensus labeling and inter-annotator agreement."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Describe how a tiered consensus labeling system uses inter-annotator agreement metrics (such as Fleiss' kappa) and 'gold standard' honeypot examples to balance labeling cost against annotation quality.",
+   "md": "A tiered consensus system routes data through escalating quality tiers: inexpensive crowdsourced workers label all instances, using per-item disagreement and failed gold-standard checks to route selected items to domain experts. Fleiss' kappa measures cohort agreement, not per-example confidence or annotator accuracy. Independent gold-standard checks and expert audits assess correctness: annotators can share systematic errors despite high agreement. Routine items can be accepted under a validated review policy while escalation and auditing control cost and quality."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-04-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A smart city perception system evaluates annotation formats for a \\$1920 × 1080 video stream. The team compares bounding box annotations (10 boxes per frame, each with 4 spatial coordinates) against pixel-level semantic segmentation masks. What is the ratio of scalar label entries generated between a full segmentation mask and the 10 bounding boxes?",
+     "explanation": "The correct answer is B. Roughly 50,000x more scalar entries for segmentation (~2.07 million pixel labels vs. 40 bounding box coordinates). A \\$1920 \\times 1080$ image contains \\$2{,}073{,}600$ pixels, requiring ~2.07 million discrete pixel class labels for semantic segmentation. In contrast, 10 bounding boxes with 4 coordinates each store \\$10 \\times 4 = 40$ scalar entries. The ratio is \\$2{,}073{,}600 / 40 \\approx 51{,}840 \\approx 50{,}000\\times$. This is a scalar-entry ratio, not a storage-byte or human-effort ratio. Encoding and compression determine stored bytes; annotation tooling and boundary complexity determine human effort.",
+     "hint": "Think about: calculate the storage and annotation scale differences between classification, bounding boxes, and pixel-level semantic segmentation.",
+     "type": "single",
+     "options": [
+      "Roughly 10x more entries for segmentation, matching the ratio of bounding box coordinates.",
+      "Roughly 50,000x more scalar entries for segmentation (~2.07 million pixel labels vs. 40 bounding box coordinates).",
+      "Both formats require identical scalar entries because both represent 1080p resolution.",
+      "Bounding boxes require 50,000x more entries because floating-point coordinates consume more bytes than integer masks."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A team wants to compare the total cost of two acquisition plans: one relies on human labeling, and the other emphasizes storing a large retained corpus for later reuse. The chapter's cost table gives rates such as per-label, per-box, and per-terabyte-per-month costs. Which additional quantities are necessary to turn those rates into a fair total-cost comparison?",
+     "explanation": "The correct answer is D. The chapter explicitly warns that these rows are rates with different units, so a fair comparison needs the workload quantities each rate prices: how many labels or boxes are purchased, and how many terabytes are retained for how many months. An answer based only on accuracy targets or compute hours omits the unit-conversion step, while an answer that treats the listed prices as universal constants misses the chapter's warning that they are illustrative and workload-specific.",
+     "hint": "Think about: identify the workload quantities needed to scale mixed-unit labeling and storage rates into comparable total costs.",
+     "type": "single",
+     "options": [
+      "Only the GPU training hours, because acquisition cost can be inferred once compute usage is known.",
+      "Only the number of source websites and annotators, because storage and labeling rates are universal constants that do not need workload quantities.",
+      "Only the final model accuracy target, because unit costs scale directly from performance goals.",
+      "The number of labels or boxes to be paid for, plus the total retained terabytes and storage months to be paid for, because the rows use different units and must be scaled by their own quantities."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "An ML team applies weak supervision to label a large unlabeled text corpus using heuristic rules and keyword patterns written by domain experts. According to the chapter, what is the main trade-off this approach makes?",
+     "explanation": "The correct answer is C. Weak supervision trades per-example manual labeling for cheap, scalable programmatic labeling, but the produced labels remain noisy and need validation against held-out human-audited data. The expert-guarantee answer ignores that heuristic labels can systematically encode mistakes, and the agreement-based answer confuses consensus among correlated heuristics with ground-truth correctness: multiple rules can agree for the same wrong reason.",
+     "hint": "Think about: explain the scale-versus-noise trade-off in weak supervision and why validation remains necessary after programmatic labeling.",
+     "type": "single",
+     "options": [
+      "It guarantees expert-level labels at scale, so no additional quality checks or audits are needed once the heuristics run.",
+      "It replaces all human involvement with deterministic labels, so disagreement between heuristics becomes a schema-validation problem rather than a quality problem.",
+      "It increases labeling scale by applying programmatic heuristics cheaply across many examples, but the resulting labels are still noisy and must be validated against held-out human-audited data.",
+      "If several heuristics agree on a label, that agreement is enough to treat the label as correct without checking against an independent human-audited set."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In Active Learning, uncertainty sampling selects the unlabeled examples for which the current model has the highest prediction confidence to ensure the training set contains only clean data.",
+     "explanation": "False. Uncertainty sampling selects the examples where the model is least confident (e.g., smallest difference between top two predicted class probabilities or highest prediction entropy). Uncertainty is a selection heuristic, not proof of label value: ambiguous, corrupted, or unrepresentative inputs can also be uncertain. Its benefit and scoring cost must be validated against the task and budget.",
+     "hint": "Think about: evaluate active learning query strategies (uncertainty, margin, and entropy sampling) for sample efficiency.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Labels**: Supervision targets that specify the behavior the model is trained to reproduce."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Labels",
+   "def": "Supervision targets that specify the behavior the model is trained to reproduce."
+  }
+ ]
+}

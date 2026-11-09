@@ -1,0 +1,142 @@
+{
+ "title": "Module 14: Profiling - Measuring What Matters in ML Systems",
+ "summary": "TinyTorch profiling: Module 14: Profiling - Measuring What Matters in ML Systems",
+ "source": {
+  "chapter": "tt-14",
+  "sections": [
+   "Module 14: Profiling - Measuring What Matters in ML Systems"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 14: Profiling - Measuring What Matters in ML Systems\n\nWelcome to Module 14! You'll build professional profiling tools to measure model performance, identify hardware bottlenecks, and uncover optimization opportunities.\n\n## 🔗 Prerequisites & Progress\n\n**You've Built**: Complete ML stack from tensors to autoregressive transformers (`Tensor`, `Linear`, `Conv2d`, `MultiHeadAttention`, `TransformerBlock`, `GPT`).\n**You'll Build**: Comprehensive profiling system for parameters, FLOPs, memory allocations, and latency (a `Profiler` class whose methods are `count_parameters`, `count_flops`, `measure_memory`, and `measure_latency`, plus the free functions `arithmetic_intensity`, `quick_profile`, and `analyze_weight_distribution`).\n**You'll Enable**: Data-driven optimization decisions across quantization (`15_quantization`), compression (`16_compression`), acceleration (`17_acceleration`), memory caching (`18_memoization`), and the benchmark harness that consumes these measurements directly (`19_benchmarking`).\n\n### Architectural Roadmap"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Tier",
+    "Subsystem",
+    "Primitives & Capabilities",
+    "Status"
+   ],
+   "rows": [
+    [
+     "**Modules 01–08**",
+     "Foundation Tier",
+     "`Tensor`, `Function`, `Linear`, `GELU`, `SGD`, `Adam`, `Trainer`",
+     "Completed"
+    ],
+    [
+     "**Modules 09–13**",
+     "Architecture Tier",
+     "`Conv2d`, `BPETokenizer`, `EmbeddingLayer`, `MultiHeadAttention`, `GPT`",
+     "Completed"
+    ],
+    [
+     "**Module 14**",
+     "**Profiling & Diagnostics**",
+     "`Profiler`, `count_flops`, `measure_memory`, `measure_latency`",
+     "**Active Subsystem**"
+    ],
+    [
+     "**Modules 15–20**",
+     "Optimization & Capstone",
+     "`QuantizedLinear`, `Compressor`, `im2col_conv2d`, `KVCache`, `BenchmarkSuite`",
+     "Downstream Consumers"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 🎯 Learning Objectives\n\nBy the end of this module, you will:\n\n1. **Implement a Unified Profiler Engine**: Construct a multi-pass measurement harness tracking model weights, runtime activations, execution latency, and peak memory allocations.\n2. **Derive Precise FLOP and Parameter Formulations**: Distinguish persistent memory footprint (\\$W \\times 4\\text{ B}\\$) from computational work (\\$2 \\cdot M \\cdot N \\cdot K\\$), uncovering why convolutions and attention diverge from linear layers.\n3. **Isolate Hardware Bottlenecks with the Roofline Model**: Calculate arithmetic intensity (\\$I = \\text{FLOPs} / \\text{Bytes}\\$) to classify workloads into memory-bandwidth bound versus compute-bound regimes.\n4. **Budget Multi-Stage Training Lifecycles**: Estimate the roughly \\$4\\times\\$ memory expansion across forward activations, backward gradients, and first/second moment optimizer state from a parameter count alone, before a training run exists to measure.\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/14_profiling/profiling.ipynb`\n**Building Side:** Code exports to `tinytorch.perf.profiling`\n\n```python\n# Final package structure:\nfrom tinytorch.perf.profiling import Profiler, quick_profile, analyze_weight_distribution\n```\n\nEvery module up to this one exported into `tinytorch.core`, because every module up to\nthis one added a piece of the framework. This one exports to `tinytorch.perf` instead,\nand the change of namespace is the point. Nothing here is a framework component. A\nprofiler does not participate in a forward pass, holds no parameters, and appears in no\ncomputational graph. It is an instrument you point at the framework from outside, which\nis why it lives beside the framework rather than inside it, and why Modules 15 through\n20 can import it without the framework importing anything of theirs."
+  },
+  {
+   "type": "text",
+   "md": "This is also where the course turns. Modules 01 to 13 built the thing. Modules 14 to 20\nmeasure it and then change it on the evidence, and the measuring has to come first.\n\n## 📋 Module Dependencies\n\n**Prerequisites**: Modules 01 (Tensor), 03 (Layers), and 09 (Convolutions) must be complete\n\n**External Dependencies**:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dependency",
+    "Origin",
+    "Imported Symbols",
+    "Architectural Purpose in Profiling"
+   ],
+   "rows": [
+    [
+     "`numpy`",
+     "External",
+     "`np`, `default_rng`",
+     "High-performance array generation and statistical reductions"
+    ],
+    [
+     "`tracemalloc`",
+     "Standard Lib",
+     "`tracemalloc`",
+     "Python memory allocation snapshotting and peak heap tracking"
+    ],
+    [
+     "`time`",
+     "Standard Lib",
+     "`perf_counter`",
+     "High-precision nanosecond monotonic timestamping for latency benchmarking"
+    ],
+    [
+     "`typing`",
+     "Standard Lib",
+     "`Any`, `Dict`, `Tuple`",
+     "Type hints"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**TinyTorch Dependencies**:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dependency",
+    "Origin",
+    "Imported Symbols",
+    "Architectural Purpose in Profiling"
+   ],
+   "rows": [
+    [
+     "`tinytorch.core.tensor`",
+     "Module 01",
+     "`Tensor`",
+     "Multi-dimensional array container and gradient storage tracker"
+    ],
+    [
+     "`tinytorch.core.layers`",
+     "Module 03",
+     "`Linear`",
+     "Dense projection layers evaluated for FLOPs and parameter memory"
+    ],
+    [
+     "`tinytorch.core.spatial`",
+     "Module 09",
+     "`Conv2d`",
+     "Sliding window spatial convolutions with high compute reuse"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Dependency Flow**:\n```\nModule 01 (Tensor) ──┐\nModule 03 (Linear) ──┼──→ Module 14 (Profiler)\nModule 09 (Conv2d) ──┘\n```"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import time\nimport tracemalloc\nfrom typing import Any, Dict, Tuple\n\nimport numpy as np\nrng = np.random.default_rng(7)\n\n# Import from TinyTorch package (previous modules must be completed and exported)\nfrom tinytorch.core.tensor import Tensor\nfrom tinytorch.core.layers import Linear\nfrom tinytorch.core.spatial import Conv2d\n\n# Constants for memory and performance measurement\nBYTES_PER_FLOAT32 = 4  # Standard float32 size in bytes\nKB_TO_BYTES = 1000  # Decimal kilobyte (10^3 bytes)\nMB_TO_BYTES = 1_000_000  # Decimal megabyte (10^6 bytes), the convention used throughout TinyTorch"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 14: Profiling - Measuring What Matters in ML Systems."
+   ]
+  }
+ ]
+}

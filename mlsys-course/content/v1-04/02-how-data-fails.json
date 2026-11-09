@@ -1,0 +1,76 @@
+{
+ "title": "How Data Fails",
+ "summary": "Analyze the cross-pillar trade-offs between validation rigor (Quality) and processing throughput/latency (Scalability and Reliability).",
+ "source": {
+  "chapter": "v1-04",
+  "sections": [
+   "How Data Fails",
+   "Data cascades",
+   "Four foundational pillars"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the cross-pillar trade-offs between validation rigor (Quality) and processing throughput/latency (Scalability and Reliability)\n- Compare silent data cascade failure modes with traditional software bugs caught by unit tests\n- Analyze the multi-stage propagation of data cascades from upstream defects to production degradation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Engineering, § How Data Fails",
+   "md": "Unlike a broken software build, which fails loudly at compile or test time, a broken data build often finishes cleanly and fails in production. A credit scoring model starts rejecting every applicant from one region after an upstream database migration silently changes how ZIP codes are typed; a wake-word detector misses more and more spoken commands for months after a device maker changes the microphone in its new models; a fraud detection system misses a new attack vector because its training data was six months stale."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Data cascades\n- Four foundational pillars\n\nPay attention to: data cascades and silent upstream defect propagation; Four Pillars operational trade-offs (Quality, Reliability, Scalability, Governance)."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-04-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A data engineering team implements comprehensive synchronous schema and distribution validation checks directly inside the real-time event ingestion path. Under the Four Pillars framework, which primary operational trade-off will this team encounter?",
+     "explanation": "The correct answer is C. A Scalability and Reliability trade-off: heavy synchronous validation consumes CPU cycles and increases per-record latency, reducing ingestion throughput and risking dropped messages during traffic spikes. The Four Pillars framework highlights tension between Quality and Scalability/Reliability: performing exhaustive synchronous validation in the hot ingestion path adds CPU latency and backpressure, reducing peak throughput and creating potential availability failures under load surges. Production pipelines balance this by executing lightweight structural checks synchronously at ingestion while offloading deep statistical and semantic validation to asynchronous processing or dead-letter queues. The remaining choices misattribute the trade-off to privacy violations, neural parameter expansion, or SSD wear.",
+     "hint": "Think about: analyze the cross-pillar trade-offs between validation rigor (Quality) and processing throughput/latency (Scalability and Reliability).",
+     "type": "single",
+     "options": [
+      "A Governance trade-off: inspecting payload schemas automatically breaches user data retention agreements.",
+      "A Model Capacity trade-off: validating input records forces downstream neural network layers to increase parameter counts.",
+      "A Scalability and Reliability trade-off: heavy synchronous validation consumes CPU cycles and increases per-record latency, reducing ingestion throughput and risking dropped messages during traffic spikes.",
+      "A Durability trade-off: validating data records accelerates physical wear on persistent solid-state drive cells."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Data cascades in ML systems are easily caught by standard software unit tests because corrupted input data causes deterministic assertion failures in pipeline code.",
+     "explanation": "False. Data cascades are characterized as 'silent' failures precisely because corrupted or drifted data often remains syntactically valid (e.g., non-null strings or valid numeric ranges) and passes traditional code unit tests. The defect cascades downstream, subtly biasing feature distributions, distorting learned model representations, and degrading real-world accuracy without throwing software exceptions.",
+     "hint": "Think about: compare silent data cascade failure modes with traditional software bugs caught by unit tests.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Trace the propagation sequence of a data cascade as described in the chapter, from its root cause to user-facing impact:",
+     "explanation": "The correct order is: (2) Upstream sensor or schema change without contract notification -> (3) Silent distortion of extracted features passing syntactic checks -> (1) Downstream model optimization on distorted representations -> (4) Degraded real-world predictions and costly post-deployment rollback. A data cascade begins with an uncoordinated upstream source or schema change. Because the data passes basic syntactic tests, it enters feature extraction and silently distorts intermediate representations. Downstream model training optimizes over these corrupted features, ultimately manifesting as degraded production predictions and requiring expensive system rollback.",
+     "hint": "Think about: analyze the multi-stage propagation of data cascades from upstream defects to production degradation.",
+     "type": "order",
+     "items": [
+      "Upstream sensor or schema change without contract notification",
+      "Silent distortion of extracted features passing syntactic checks",
+      "Downstream model optimization on distorted representations",
+      "Degraded real-world predictions and costly post-deployment rollback"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the cross-pillar trade-offs between validation rigor (Quality) and processing throughput/latency (Scalability and Reliability).",
+    "You can now compare silent data cascade failure modes with traditional software bugs caught by unit tests.",
+    "You can now analyze the multi-stage propagation of data cascades from upstream defects to production degradation."
+   ]
+  }
+ ]
+}

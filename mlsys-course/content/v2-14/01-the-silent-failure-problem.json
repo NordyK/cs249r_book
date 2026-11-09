@@ -1,0 +1,95 @@
+{
+ "title": "The Silent Failure Problem",
+ "summary": "Distinguish worst-case robustness from i.i.d. generalization using the chapter's quantitative definition.",
+ "source": {
+  "chapter": "v2-14",
+  "sections": [
+   "The Silent Failure Problem"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Distinguish worst-case robustness from i.i.d. generalization using the chapter's quantitative definition\n- Explain why a confidence filter alone does not establish certified robustness\n- Design deployment-specific robustness strategies matching cloud versus edge resource envelopes\n- Analyze how software faults masquerade as distribution shift and adversarial attack\n- Explain the graceful degradation principle under operational resource stress"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Robust AI, § The Silent Failure Problem",
+   "md": "A vehicle's vision model validated on sunny roads may become unreliable when snow changes the visual distribution, yet reading a snow-covered stop sign as a speed-limit sign or misclassifying a truck as the sky need not throw an exception or produce a stack trace. A demand forecasting model does not error out when it produces wildly inaccurate predictions, and a medical diagnosis system does not shut down when it quietly returns incorrect classifications that endanger patient lives."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: silent behavioral failure beyond conventional uptime-based health checks; robustness evidence under specified shifts, attacks, and faults versus i.i.d. accuracy; software faults as a cross-cutting amplifier that can mimic shift or attack; deployment-specific trade-offs across cloud, edge, and embedded regimes."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A preprocessing library silently converts pixel values from 0-1 floats to 0-255 integers for 1 in 10,000 requests. Downstream monitoring flags occasional confidence drops that resemble adversarial attacks. Identify the fault’s pillar by origin and explain why its symptoms cut across the other pillars.",
+   "md": "The preprocessing bug alters input tensors outside the model's expected distribution (inducing an artificial input-distribution shift) while creating abnormal internal activation patterns that mimic adversarial manipulation, meaning a single software bug simultaneously produces symptoms of environmental shift and input attack. A defense monitoring only input distributions or gradient-based evasion would observe symptoms without diagnosing the root cause in the preprocessing library. The fault belongs to the system-level pillar by origin. Diagnosis must compare pipeline versions and tensors alongside behavioral signals, because a detector’s symptom does not identify the cause; algorithmic checks can help expose the problem without locating it."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-14-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A medical imaging classifier reports 95 percent accuracy on its i.i.d. held-out test set. Applying the chapter's quantitative definition of Robust AI, which finding would indicate the model lacks robustness rather than generalization ability?",
+     "explanation": "The correct answer is B. The reported accuracy collapse under the specified perturbation supplies evidence of vulnerability within that evaluated threat model. A second random split from the same historical population measures i.i.d. generalization, while changed batch latency and a learning-rate schedule concern execution and optimization. This empirical attack result does not establish behavior under every allowed perturbation or under other shifts and attacks.",
+     "hint": "Think about: distinguish worst-case robustness from i.i.d. generalization using the chapter's quantitative definition",
+     "type": "single",
+     "options": [
+      "Accuracy drops to 94.8 percent when tested on a second random split from the same historical training distribution.",
+      "Accuracy drops to 35 percent under an imperceptible ell_infty perturbation of radius epsilon_adv = 8/255 on the same test images.",
+      "Inference latency increases from 50 ms to 120 ms when batch size is doubled on the deployment GPU.",
+      "Training loss fails to reach zero because the learning rate schedule decayed too early in optimization."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A classifier trained only with standard cross-entropy loss can achieve certified robustness after deployment by wrapping it in a runtime filter that rejects inputs whose predicted confidence falls below a threshold.",
+     "explanation": "False. A confidence threshold supplies a rejection policy, not a proof that accepted predictions remain unchanged throughout a specified perturbation set. Certification requires a valid verification or certified-defense procedure with explicit assumptions. It need not require adversarial training, and monitoring alone does not provide it.",
+     "hint": "Think about: explain why a confidence filter alone does not establish certified robustness",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An engineering team must deploy a perception model across two platforms: a data-center inference cluster with elastic capacity and an industrial inspection drone with a fixed 10 W thermal budget. Per the section, which deployment strategy correctly balances their respective constraints?",
+     "explanation": "The correct answer is D. Cloud capacity can support broader redundancy and ensemble fallbacks, while the drone must budget selective checks and a validated degraded mode within its power, memory, and response-time limits. Neither platform gains a safety guarantee from redundancy alone. The stem does not quantify the cost of full redundancy or wireless latency, so those alternatives require measurement; relying entirely on remote inference also requires a fallback for lost connectivity. Disabling monitoring leaves the cloud service without behavioral evidence.",
+     "hint": "Think about: design deployment-specific robustness strategies matching cloud versus edge resource envelopes",
+     "type": "single",
+     "options": [
+      "Apply identical full-stack redundancy and continuous background verification on both platforms to maintain uniform safety guarantees.",
+      "Disable monitoring in the data center to minimize serving latency and move all verification onto the drone.",
+      "Offload all drone perception requests over a wireless network to the data-center backup cluster and disable on-device inference.",
+      "Equip the data center with broad redundancy and ensemble fallbacks while the drone selectively hardens critical paths and relies on graceful degradation."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "When a battery-powered device's full redundancy and verification budget exceeds its thermal envelope, the chapter prescribes a controlled, predictable reduction to a simpler model or reduced-feature mode so core functionality continues safely rather than silently returning invalid predictions. This behavior is known as ____.",
+     "explanation": "graceful degradation. This is a bounded reduction in capability through a validated simpler model or reduced-feature mode. Continuing operation is acceptable only when the degraded path meets the application’s behavioral and timing contract; reducing capability alone does not establish safety.",
+     "hint": "Think about: explain the graceful degradation principle under operational resource stress",
+     "type": "fill",
+     "answer": [
+      "graceful degradation"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: The section states that robustness protection is not free: error correction adds storage and checking work, redundant processing repeats computation, and monitoring consumes compute and telemetry capacity. Explain why these overheads require robustness to be treated as an architectural constraint budgeted from inception rather than an add-on feature.",
+   "md": "Robustness overheads directly compete with throughput, latency, and thermal budgets across every hardware layer; for example, redundant processing repeats computation and adds energy and heat, which can breach edge power envelopes or data-center cooling limits. If treated as an afterthought, engineers discovering these costs late in deployment are forced to disable safeguards to meet latency SLOs or physical thermal limits. Budgeting robustness from inception ensures compute, memory bandwidth, and thermal margins are co-designed with model architecture, serving topology, and fallback paths."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now distinguish worst-case robustness from i.i.d. generalization using the chapter's quantitative definition.",
+    "You can now explain why a confidence filter alone does not establish certified robustness.",
+    "You can now design deployment-specific robustness strategies matching cloud versus edge resource envelopes.",
+    "You can now analyze how software faults masquerade as distribution shift and adversarial attack."
+   ]
+  }
+ ]
+}

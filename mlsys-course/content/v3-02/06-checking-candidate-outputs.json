@@ -1,0 +1,61 @@
+{
+ "title": "Checking Candidate Outputs",
+ "summary": "Work through Checking Candidate Outputs.",
+ "source": {
+  "chapter": "v3-02",
+  "sections": [
+   "Checking Candidate Outputs",
+   "Why token likelihood cannot replace checks",
+   "Self-review and external evidence",
+   "Staging checks by cost and scope"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Checking Candidate Outputs**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Foundation Model, § Checking Candidate Outputs",
+   "md": "Passing the status gate admits a completed proposal to the candidate path, whether that proposal is the initial `read_file(\"src/pool.py\")` request or the connection-pool patch the repair agent emits on the next turn. Neither high token probability nor schema conformance determines whether the runtime can safely act on either candidate: a well-formed `read_file` request can still target a missing or unauthorized path (a later section), and a candidate patch can parse cleanly, compile against existing headers, and pass a sequential unit test while leaving the underlying race condition untouched."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Why token likelihood cannot replace checks\n- Self-review and external evidence\n- Staging checks by cost and scope"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Checks certify named properties matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Likelihood is not truth, schema conformance is not permission, a passing test covers only exercised behavior, and self-review re-samples the same distribution, so each gate is chosen for the one property it certifies and a fallible checker leaves a residual defect share given by Bayes."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-02-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Checking Candidate Outputs** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A request is admitted only if its fully serialized wire payload, counted with the target model's own tokenizer, satisfies S <= S_max - K_max, and hidden reasoning tokens debit the same output headroom.",
+      "Temperature, top-k, and top-p reshape which candidates appear but none makes a likely token a correct one, so sampling settings are chosen by measured task pass rates.",
+      "Representation granularity, serialization, and constraint mechanism are independent interface axes judged on accepted outcomes under matched budgets, with a deadline acting as an admission filter and every initiated trial kept in the denominator.",
+      "Likelihood is not truth, schema conformance is not permission, a passing test covers only exercised behavior, and self-review re-samples the same distribution, so each gate is chosen for the one property it certifies and a fallible checker leaves a residual defect share given by Bayes."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Checks certify named properties**: Likelihood is not truth, schema conformance is not permission, a passing test covers only exercised behavior, and self-review re-samples the same distribution, so each gate is chosen for the one property it certifies and a fallible checker leaves a residual defect share given by Bayes."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Checking Candidate Outputs."
+   ]
+  }
+ ]
+}

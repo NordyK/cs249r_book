@@ -1,0 +1,171 @@
+{
+ "title": "Implementation: Building Spatial Operations",
+ "summary": "TinyTorch convolutions: Implementation: Building Spatial Operations",
+ "source": {
+  "chapter": "tt-09",
+  "sections": [
+   "Implementation: Building Spatial Operations"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Building Spatial Operations\n\nNow we implement convolution step by step using explicit nested loops. Seeing the raw loop mechanics reveals exactly where cache misses, memory bandwidth ceilings, and algorithmic complexity arise.\n\n### The Seven Nested Loops of Convolution\n\n```python\nfor batch in range(B):              # Loop 1: Process each batch item\n    for out_ch in range(C_out):     # Loop 2: Each output channel / filter\n        for out_h in range(H_out):  # Loop 3: Each output row\n            for out_w in range(W_out):  # Loop 4: Each output column\n                for k_h in range(K_h):      # Loop 5: Each kernel row\n                    for k_w in range(K_w):      # Loop 6: Each kernel column\n                        for in_ch in range(C_in):   # Loop 7: Each input channel\n                            result += input[batch, in_ch, out_h * S + k_h, out_w * S + k_w] * weight[out_ch, in_ch, k_h, k_w]\n```"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Loop Level",
+    "Iterator",
+    "Bound",
+    "Systems Execution Semantics"
+   ],
+   "rows": [
+    [
+     "**Loop 1**",
+     "`batch`",
+     "\\$B\\$",
+     "Independent batch samples (embarrassingly parallel across threads)"
+    ],
+    [
+     "**Loop 2**",
+     "`out_ch`",
+     "\\$C_{\\text{out}}\\$",
+     "Separate filter bank kernels; parallel across CUDA thread blocks"
+    ],
+    [
+     "**Loop 3**",
+     "`out_h`",
+     "\\$H_{\\text{out}}\\$",
+     "Vertical output spatial grid coordinate"
+    ],
+    [
+     "**Loop 4**",
+     "`out_w`",
+     "\\$W_{\\text{out}}\\$",
+     "Horizontal output spatial grid coordinate"
+    ],
+    [
+     "**Loop 5**",
+     "`k_h`",
+     "\\$K_h\\$",
+     "Vertical kernel spatial coordinate"
+    ],
+    [
+     "**Loop 6**",
+     "`k_w`",
+     "\\$K_w\\$",
+     "Horizontal kernel spatial coordinate"
+    ],
+    [
+     "**Loop 7**",
+     "`in_ch`",
+     "\\$C_{\\text{in}}\\$",
+     "Channel reduction sum (accumulated across input depth)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\text{Total Operations} = B \\times C_{\\text{out}} \\times H_{\\text{out}} \\times W_{\\text{out}} \\times K_h \\times K_w \\times C_{\\text{in}}\\$\\$\n\nFor standard batch processing (\\$B=32\\$, \\$C_{\\text{out}}=64\\$, \\$H_{\\text{out}}=224\\$, \\$W_{\\text{out}}=224\\$, \\$K_h=3\\$, \\$K_w=3\\$, \\$C_{\\text{in}}=3\\$):\n\\$\\$32 \\times 64 \\times 224 \\times 224 \\times 3 \\times 3 \\times 3 = \\mathbf{2{,}774{,}532{,}096\\text{ operations (\\approx 2.8 billion)}}\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "### Shared Input Validation\n\nAll spatial operations (Conv2d, MaxPool2d, AvgPool2d) require 4D inputs shaped\nas (batch, channels, height, width). Rather than duplicating this validation\nlogic three times, we define it once here.\n\nThis is NOT a student task. It is shared infrastructure."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def validate_4d_input(x: Tensor, layer_name: str) -> None:\n    \"\"\"\n    Validate that input tensor is 4D (batch, channels, height, width).\n\n    Provides educational error messages that anticipate common student\n    mistakes: forgetting the batch dimension, passing flattened data, etc.\n\n    Args:\n        x: Input Tensor to validate\n        layer_name: Name of the calling layer (for error messages)\n\n    Raises:\n        ValueError: If input is not 4D, with specific guidance per case\n    \"\"\"\n    if len(x.shape) == 4:\n        return  # Valid input\n\n    if len(x.shape) == 3:\n        raise ValueError(\n            f\"{layer_name} expected 4D input (batch, channels, height, width), got 3D: {x.shape}\\n\"\n            f\"  One dimension is missing; which one depends on what the tensor holds\\n\"\n            f\"  One image with {x.shape[0]} channels: x.reshape(1, {x.shape[0]}, {x.shape[1]}, {x.shape[2]})\\n\"\n            f\"  A batch of {x.shape[0]} single-channel images: x.reshape({x.shape[0]}, 1, {x.shape[1]}, {x.shape[2]})\"\n        )\n    elif len(x.shape) == 2:\n        raise ValueError(\n            f\"{layer_name} expected 4D input (batch, channels, height, width), got 2D: {x.shape}\\n\"\n            f\"  Got a matrix, expected an image tensor\\n\"\n            f\"  {layer_name} needs spatial dimensions (height, width) plus batch and channels\\n\"\n            f\"  If this is a flattened image, reshape it: x.reshape(1, channels, height, width)\"\n        )\n    else:\n        raise ValueError(\n            f\"{layer_name} expected 4D input (batch, channels, height, width), got {len(x.shape)}D: {x.shape}\\n\"\n            f\"  Wrong number of dimensions\\n\"\n            f\"  {layer_name} expects: (batch_size, channels, height, width)\\n\"\n            f\"  Reshape your input to 4D with the correct dimensions\"\n        )"
+  },
+  {
+   "type": "text",
+   "md": "### Conv2d Implementation: Building the Core of Computer Vision\n\n`Conv2d` is the workhorse of computer vision. It slides learned filter banks across multi-channel feature maps to detect spatial motifs ranging from oriented edges to complex textures.\n\n#### Weight Initialization: He Normal for ReLU Networks\n\n`Conv2d` uses He (Kaiming) normal initialization, calibrated specifically for rectified linear units:\n\\$\\$\\sigma = \\sqrt{\\frac{2}{\\text{fan}_{\\text{in}}}}, \\qquad \\text{fan}_{\\text{in}} = C_{\\text{in}} \\times K_h \\times K_w\\$\\$\n\n- **Failure Mode**: Standard normal or overly small variance leads to exponential signal decay across deep layers.\n- **MLSys Solution**: Scale weights inversely with the receptive field fan-in so variance is preserved across successive layer activations.\n\n---\n\n### Implementation Strategy: Decomposed Helpers\n\nWe decompose `Conv2d.forward` into four focused, modular helpers so each mathematical and memory concept can be verified independently:\n\n1. **`_compute_output_shape(in_h, in_w)`** computes output spatial grid dimensions given kernel, stride, and padding.\n2. **`_apply_padding(x_data)`** zero-pads spatial dimensions \\$(H, W)\\$ while preserving batch and channel axes.\n3. **`_convolve_loops(padded, batch, oh, ow)`** executes the sliding window dot products and channel reductions.\n4. **`forward(x)`** composes the pipeline and links gradient tracking via `Conv2dFunction`."
+  },
+  {
+   "type": "text",
+   "md": "### Step 1: Output Shape Formula\n\nBefore allocating output memory buffers, the output dimensions must be determined:\n\n\\$\\$H_{\\text{out}} = \\left\\lfloor \\frac{H_{\\text{in}} + 2 P_h - K_h}{S_h} \\right\\rfloor + 1, \\qquad W_{\\text{out}} = \\left\\lfloor \\frac{W_{\\text{in}} + 2 P_w - K_w}{S_w} \\right\\rfloor + 1\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Input Spatial",
+    "Kernel Size",
+    "Padding \\$P\\$",
+    "Stride \\$S\\$",
+    "Output Spatial",
+    "MLSys Spatial Effect"
+   ],
+   "rows": [
+    [
+     "\\$32 \\times 32\\$",
+     "\\$3 \\times 3\\$",
+     "0",
+     "1",
+     "\\$30 \\times 30\\$",
+     "Valid convolution (shrinks by \\$K-1\\$)"
+    ],
+    [
+     "\\$32 \\times 32\\$",
+     "\\$3 \\times 3\\$",
+     "1",
+     "1",
+     "\\$32 \\times 32\\$",
+     "Same convolution (preserves spatial resolution)"
+    ],
+    [
+     "\\$32 \\times 32\\$",
+     "\\$3 \\times 3\\$",
+     "0",
+     "2",
+     "\\$15 \\times 15\\$",
+     "Strided convolution without padding"
+    ],
+    [
+     "\\$32 \\times 32\\$",
+     "\\$3 \\times 3\\$",
+     "1",
+     "2",
+     "\\$16 \\times 16\\$",
+     "Standard spatial downsampling (\\$H/2, W/2\\$)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Step 2: Zero Padding\n\nPadding introduces zero-valued borders around spatial edges \\$(H, W)\\$, ensuring perimeter features receive equal filter coverage:\n\n\\$\\$\\mathbf{X} = \\begin{bmatrix} 1 & 2 & 3 \\\\ 4 & 5 & 6 \\\\ 7 & 8 & 9 \\end{bmatrix} \\quad \\xrightarrow{\\text{pad } P=1} \\quad \\mathbf{X}_{\\text{padded}} = \\begin{bmatrix} 0 & 0 & 0 & 0 & 0 \\\\ 0 & 1 & 2 & 3 & 0 \\\\ 0 & 4 & 5 & 6 & 0 \\\\ 0 & 7 & 8 & 9 & 0 \\\\ 0 & 0 & 0 & 0 & 0 \\end{bmatrix}\\$\\$\n\nOnly the spatial dimensions \\$(H, W)\\$ are padded. The batch (\\$B\\$) and channel (\\$C\\$) axes remain completely untouched."
+  },
+  {
+   "type": "text",
+   "md": "### Step 3: The Convolution Loops\n\nFor each output coordinate \\$(b, c_{\\text{out}}, h, w)\\$, we slice the corresponding multi-channel input patch and compute its inner product against filter kernel \\$W[c_{\\text{out}}]\\$:\n\n\\$\\$\\text{Output}[b, c_{\\text{out}}, h, w] = \\sum_{c_{\\text{in}}=0}^{C_{\\text{in}}-1} \\sum_{k_h=0}^{K_h-1} \\sum_{k_w=0}^{K_w-1} X_{\\text{pad}}[b, c_{\\text{in}}, h \\cdot S_h + k_h, w \\cdot S_w + k_w] \\cdot W[c_{\\text{out}}, c_{\\text{in}}, k_h, k_w]\\$\\$\n\n---\n\n### Backward Propagation Route\n\nDuring backpropagation, gradients flow from the output tensor back to both input activations and filter weights:"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 341 lines of code (starting with `class Conv2dFunction(Function):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Conv2d Output Shape Computation\n\nThis test validates that `_compute_output_shape` correctly applies the convolution output dimension formula:\n\n\\$\\$\\text{dim}_{\\text{out}} = \\left\\lfloor \\frac{\\text{dim}_{\\text{in}} + 2 \\cdot \\text{padding} - \\text{kernel}}{\\text{stride}} \\right\\rfloor + 1\\$\\$\n\n- **Same padding** (\\$32 \\times 32, K=3, P=1, S=1\\$): \\$(32 + 2 - 3)/1 + 1 = 32\\$\n- **Valid padding** (\\$32 \\times 32, K=3, P=0, S=1\\$): \\$(32 + 0 - 3)/1 + 1 = 30\\$\n- **Downsampling** (\\$32 \\times 32, K=3, P=0, S=2\\$): \\$(32 + 0 - 3)/2 + 1 = 15\\$\n\n**What we're testing**: Output dimension formula for various configurations\n**Why it matters**: Wrong dimensions cause silent shape bugs in CNNs\n**Expected**: Matches hand-calculated values"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Conv2d Padding\n\nThis test validates that `_apply_padding` correctly zero-pads the spatial dimensions while leaving batch and channel dimensions untouched:\n\n\\$\\$\\mathbf{X}_{(1, 1, 3, 3)} = \\begin{bmatrix} 1 & 2 & 3 \\\\ 4 & 5 & 6 \\\\ 7 & 8 & 9 \\end{bmatrix} \\quad \\xrightarrow{P=1} \\quad \\mathbf{X}_{\\text{pad}(1, 1, 5, 5)} = \\begin{bmatrix} 0 & 0 & 0 & 0 & 0 \\\\ 0 & 1 & 2 & 3 & 0 \\\\ 0 & 4 & 5 & 6 & 0 \\\\ 0 & 7 & 8 & 9 & 0 \\\\ 0 & 0 & 0 & 0 & 0 \\end{bmatrix}\\$\\$\n\n**What we're testing**: Zero-padding adds correct borders to spatial dims\n**Why it matters**: Padding controls whether convolution preserves spatial size\n**Expected**: Padded array has correct shape and zero borders"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Conv2d Convolution Loops\n\nThis test validates the core sliding window computation in `_convolve_loops`:\n\n\\$\\$\\text{Output}[b, c_{\\text{out}}, h, w] = \\sum_{c_{\\text{in}}} \\sum_{m=0}^{K_h-1} \\sum_{n=0}^{K_w-1} X_{\\text{patch}}[b, c_{\\text{in}}, m, n] \\cdot W[c_{\\text{out}}, c_{\\text{in}}, m, n]\\$\\$\n\n**What we're testing**: The 7-nested-loop convolution produces correct values\n**Why it matters**: This is THE core operation of computer vision\n**Expected**: Output matches hand-computed convolution results"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Conv2d Forward (Composition)\n\nThis test validates the complete `forward` method that composes all helpers\ntogether: validation, shape computation, padding, convolution loops, bias,\nand gradient tracking.\n\n**What we're testing**: End-to-end Conv2d with shape preservation, padding, stride\n**Why it matters**: Convolution is the foundation of computer vision\n**Expected**: Correct output shapes and reasonable value ranges"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Implementation: Building Spatial Operations."
+   ]
+  }
+ ]
+}

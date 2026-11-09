@@ -1,0 +1,93 @@
+{
+ "title": "Compute Units",
+ "summary": "Explain how 2:4 structured sparsity reduces transferred value payload and enables a higher dense-equivalent sparse Tensor Core path.",
+ "source": {
+  "chapter": "v1-11",
+  "sections": [
+   "Compute Units",
+   "From SIMD lanes to SIMT threads",
+   "Tensor Cores",
+   "Processing elements",
+   "Systolic arrays",
+   "Numerics and sparsity on the datapath"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain how 2:4 structured sparsity reduces transferred value payload and enables a higher dense-equivalent sparse Tensor Core path\n- Sequence the workflow for 2:4 structured sparse matrix multiplication from constraint formation through runtime sparse execution\n- Compare FP16 and BF16 in terms of dynamic range versus fraction precision using the format properties introduced in the section\n- Analyze the performance penalty of warp divergence in SIMT architectures"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Hardware Acceleration, § Compute Units",
+   "md": "Applying ReLU to a 512-element vector shows why execution models matter. The operation is simple, but throughput depends on whether the hardware treats those 512 comparisons as scalar instructions, as lanes of a single instruction, multiple data (SIMD) unit, as GPU threads, or as elements of a tile that one tile-level program processes together. Modern AI processors package the three compute primitives into distinct execution units: vector units for vector work, matrix units such as Tensor Cores and systolic arrays for matrix work, and special function units for nonlinear functions."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- From SIMD lanes to SIMT threads\n- Tensor Cores\n- Processing elements\n- Systolic arrays\n- Numerics and sparsity on the datapath\n\nPay attention to: SIMD vs SIMT execution models and warp divergence penalties; Tensor Cores and mixed-precision matrix execution (FP16, BF16, FP8 E4M3 vs E5M2); N:M structured sparsity mechanics and 2:4 sparse Tensor Cores; Systolic array architectures and dataflow strategies (Weight-Stationary vs Output-Stationary)."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-11-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In NVIDIA's Ampere and Hopper architectures, how does 2:4 structured sparsity achieve an up to \\$2× dense-equivalent Tensor Core throughput path for supported matrix multiplication?",
+     "explanation": "The correct answer is A. The 2:4 pattern keeps exactly two nonzeros in each contiguous four-value group along the supported dimension, so the stored value payload is cut roughly in half while compact metadata indicates which positions were kept. Sparse Tensor Cores then use that metadata to select matching activations and skip the removed values. The row-dropping idea describes a different pruning pattern, the four-thread explanation confuses SIMT scheduling with sparsity hardware, and the 2-bit-integer claim is quantization rather than structured sparsity.",
+     "hint": "Think about: explain how 2:4 structured sparsity reduces transferred value payload and enables a higher dense-equivalent sparse Tensor Core path.",
+     "type": "single",
+     "options": [
+      "Exactly two non-zero values are preserved in every contiguous four-element block, so the value payload is halved while compact metadata records positions and sparse Tensor Cores compute only on the retained values",
+      "Every alternate row of the weight matrix is dropped completely, allowing the GPU to halve the grid launch dimensions",
+      "Four separate threads simultaneously execute one scalar multiply-accumulate instruction in a single clock cycle",
+      "Floating-point numbers are converted to 2-bit integers, quadrupling register file capacity"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Place the following steps in the correct execution sequence for processing a matrix multiplication on an accelerator with Sparse Tensor Cores using 2:4 structured sparsity:",
+     "explanation": "The correct order is: (1) Fine-tune or prune the weight matrix to ensure exactly two non-zero values exist in every four-element contiguous group, (4) Compress the sparse weight matrix by storing only the non-zero values alongside metadata describing their positions, (2) Sparse Tensor Cores load compressed weights and decode metadata to gather matching input activation elements, (3) Multiply non-zero weights by gathered activations and accumulate into output partial sums on the sparse path. The sequence is necessary because the runtime path assumes weights already satisfy the 2:4 constraint and have been compressed with consistent metadata. Swapping compression ahead of pruning would encode the wrong pattern, and executing the sparse multiply before metadata-guided selection would leave the hardware without the positional information needed to match retained weights with the correct activations.",
+     "hint": "Think about: sequence the workflow for 2:4 structured sparse matrix multiplication from constraint formation through runtime sparse execution.",
+     "type": "order",
+     "items": [
+      "Fine-tune or prune the weight matrix to ensure exactly two non-zero values exist in every four-element contiguous group",
+      "Compress the sparse weight matrix by storing only the non-zero values alongside metadata describing their positions",
+      "Sparse Tensor Cores load compressed weights and decode metadata to gather matching input activation elements",
+      "Multiply non-zero weights by gathered activations and accumulate into output partial sums on the sparse path"
+     ]
+    },
+    {
+     "q": "What is the primary numerical difference between FP16 and BF16 as presented in this section?",
+     "explanation": "The correct answer is B. Both FP16 and BF16 are 16-bit floating-point formats, but BF16 keeps an 8-bit exponent like FP32, giving it a wider dynamic range, while FP16 devotes more bits to the stored fraction and therefore offers finer precision within a narrower range. The lower-byte-count claim is false because both use 16 bits, the integer claim is wrong because both are floating point, and the underflow claim is too strong because numerical behavior depends on the workload and execution path.",
+     "hint": "Think about: compare FP16 and BF16 in terms of dynamic range versus fraction precision using the format properties introduced in the section.",
+     "type": "single",
+     "options": [
+      "FP16 uses fewer total bits than BF16, so it always transfers less data",
+      "BF16 has a wider exponent range, while FP16 has more fraction precision within the same 16-bit width",
+      "FP16 is an integer format, whereas BF16 is floating point",
+      "BF16 always prevents gradient underflow, whereas FP16 cannot be used for training"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In NVIDIA's SIMT (Single Instruction, Multiple Threads) execution model, when threads within the same 32-thread warp execute divergent branches of an `if-else` condition, both paths are executed concurrently in parallel at full hardware throughput.",
+     "explanation": "False. When threads within a warp diverge on conditional branches, the warp executes each branch path serially while masking off (disabling) threads that do not take that path. The total execution time becomes the sum of the times of both paths, reducing hardware utilization and throughput.",
+     "hint": "Think about: analyze the performance penalty of warp divergence in SIMT architectures.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain how 2:4 structured sparsity reduces transferred value payload and enables a higher dense-equivalent sparse Tensor Core path.",
+    "You can now sequence the workflow for 2:4 structured sparse matrix multiplication from constraint formation through runtime sparse execution.",
+    "You can now compare FP16 and BF16 in terms of dynamic range versus fraction precision using the format properties introduced in the section.",
+    "You can now analyze the performance penalty of warp divergence in SIMT architectures."
+   ]
+  }
+ ]
+}

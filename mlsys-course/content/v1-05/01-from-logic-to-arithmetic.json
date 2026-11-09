@@ -1,0 +1,71 @@
+{
+ "title": "From Logic to Arithmetic",
+ "summary": "Analyze a hardware-dependent neural network failure by reasoning from tensor operator dimensions rather than application code.",
+ "source": {
+  "chapter": "v1-05",
+  "sections": [
+   "From Logic to Arithmetic"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze a hardware-dependent neural network failure by reasoning from tensor operator dimensions rather than application code\n- Explain why neural workloads fail numerically or on memory rather than logically\n- Analyze how the shift from rule-based logic to dense neural computation maps onto the iron law's compute, data-movement, and latency terms"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Neural Computation, § From Logic to Arithmetic",
+   "md": "Recognizing one handwritten digit costs the small network at the center of this chapter …. A multiply-accumulate (MAC) multiplies one weight by one input value and adds the product to a running sum (MacAccumulatorleftarrow MacAccumulator+ ModelWeight× LayerInputComponent), and the usual convention counts it as two floating-point operations (\\$1 MAC = 2 FLOPs), so the digit costs …. None of that work is a logical branch. A program that once tested pixel thresholds and stroke patterns with if-then-else rules has become a fixed sequence of arithmetic."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Shift from logical branching to massive arithmetic tensor workloads; The Silicon Contract between mathematical operators and physical hardware; Why traditional control-flow debuggers fail on numerical and memory-contract neural errors; Mapping the logic-to-arithmetic shift onto the iron law of ML systems."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Recognizing one MNIST digit requires approximately \\$109,000 multiply-accumulate operations. Explain why a traditional control-flow debugger is insufficient when such a network fails, and describe how its failures differ from those of a rule-based program.",
+   "md": "A traditional debugger inspects branches and control flow, but the network contains no logical branches to inspect, only a fixed sequence of arithmetic. Such a program rarely fails logically. It fails numerically, as values grow or shrink until they stop carrying information, or it fails on resources when its tensors exceed the memory the machine provides. Diagnosing it therefore means checking numerical range and memory demand against the operators' tensor dimensions rather than stepping through control flow."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-05-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An engineer deploys the same neural network model on an accelerator with high GPU memory and on an older accelerator with smaller memory capacity. The model executes cleanly on the larger card but crashes mid-batch on the smaller card with a CUDA out-of-memory error on an intermediate activation tensor, without generating a Python traceback. Per the Silicon Contract perspective of neural computation, which diagnostic approach addresses the root cause of this failure?",
+     "explanation": "The correct answer is D. The Silicon Contract states that mathematical operators determine the memory and compute workload of a model. The intermediate activation memory required by dense layers and attention mechanisms is dictated by tensor dimensions and batch size; when this requirement exceeds physical accelerator memory capacity, an out-of-memory error occurs regardless of code syntax. Auditing Python control flow or increasing logging treats an operator-level resource exhaustion as an application software bug. Downgrading drivers ignores the physical memory ceiling set by the model's tensor dimensions.",
+     "hint": "Think about: analyze a hardware-dependent neural network failure by reasoning from tensor operator dimensions rather than application code",
+     "type": "single",
+     "options": [
+      "Audit the Python application code and framework version to identify an unhandled control-flow software exception.",
+      "Increase logging verbosity to capture a Python traceback, assuming the crash stems from glue-code syntax errors.",
+      "Downgrade the GPU driver and CUDA toolkit under the assumption that the newer driver introduced backward-incompatibility bugs.",
+      "Calculate the intermediate activation and parameter memory requirements directly from layer tensor dimensions, because the mathematical operators—not the application code—determine the physical memory demands."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In the iron law of ML systems ($T = \\frac{D_{\\text{vol}}}{\\text{BW}} + \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}} + L_{\\text{lat}}$), the shift from rule-based logic to dense neural computation primarily increases the network latency term $L_{\\text{lat}}$ because matrix multiplications introduce distributed network round-trips.",
+     "explanation": "False. The shift from branching rules to dense neural computation primarily increases the operation term $O$ and often the stored state that can later drive more realized memory traffic, while $L_{\\text{lat}}$ is the nonoverlapped latency term more broadly, not just network round-trips. Local matrix arithmetic does not intrinsically create distributed communication, though implementation, precision, and reuse still affect the realized bytes moved and time paid.",
+     "hint": "Think about: analyze how the shift from rule-based logic to dense neural computation maps onto the iron law's compute, data-movement, and latency terms",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Saved activations**: Forward intermediate tensors retained because backward derivative rules need their values."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Saved activations",
+   "def": "Forward intermediate tensors retained because backward derivative rules need their values."
+  }
+ ]
+}

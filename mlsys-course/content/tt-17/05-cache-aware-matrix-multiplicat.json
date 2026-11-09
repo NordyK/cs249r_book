@@ -1,0 +1,117 @@
+{
+ "title": "Cache-Aware Matrix Multiplication: Tiling & Locality",
+ "summary": "TinyTorch acceleration: Cache-Aware Matrix Multiplication: Tiling & Locality",
+ "source": {
+  "chapter": "tt-17",
+  "sections": [
+   "Cache-Aware Matrix Multiplication: Tiling & Locality"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Cache-Aware Matrix Multiplication: Tiling & Locality\n\nWhen matrices exceed the capacity of fast CPU on-chip caches (L1/L2), naive matrix multiplication causes continuous cache evictions, repeatedly fetching the same rows and columns from high-latency main memory (DRAM). Tiling (loop blocking) reorganizes nested loops to operate on sub-matrices sized to remain resident in SRAM cache.\n\n### Silicon Memory Hierarchy Latency & Bandwidth"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Memory Level",
+    "Typical Size",
+    "Access Latency",
+    "Bandwidth",
+    "Systems Function"
+   ],
+   "rows": [
+    [
+     "**Registers**",
+     "\\$1\\text{--}2\\text{ KB}\\$",
+     "1 cycle (\\$< 0.5\\text{ ns}\\$)",
+     "\\$> 20{,}000\\text{ GB/s}\\$",
+     "Immediate operands for ALU / Tensor Cores"
+    ],
+    [
+     "**L1 Cache / Shared Memory**",
+     "\\$32\\text{--}128\\text{ KB}\\$",
+     "3–4 cycles (\\$\\sim 1\\text{ ns}\\$)",
+     "\\$> 10{,}000\\text{ GB/s}\\$",
+     "Holds active tile blocks (\\$A_{\\text{tile}}, B_{\\text{tile}}, C_{\\text{tile}}\\$)"
+    ],
+    [
+     "**L2 Cache**",
+     "\\$1\\text{--}16\\text{ MB}\\$",
+     "10–20 cycles (\\$\\sim 4\\text{ ns}\\$)",
+     "\\$\\sim 3{,}000\\text{ GB/s}\\$",
+     "Cross-core shared working set cache"
+    ],
+    [
+     "**L3 Cache (LLC)**",
+     "\\$32\\text{--}256\\text{ MB}\\$",
+     "40–75 cycles (\\$\\sim 15\\text{ ns}\\$)",
+     "\\$\\sim 1{,}000\\text{ GB/s}\\$",
+     "Last-level cache before off-chip bus"
+    ],
+    [
+     "**Main DRAM / HBM**",
+     "\\$16\\text{--}128\\text{ GB}\\$",
+     "100–300 cycles (\\$\\sim 60\\text{ ns}\\$)",
+     "\\$50\\text{--}2{,}000\\text{ GB/s}\\$",
+     "Bulk storage for full network parameter weights and activations"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Derivation: Optimal Tile Dimension for L1 SRAM Residency\n\nEvaluating an output tile of size \\$(t \\times t)\\$ involves simultaneously keeping three sub-matrices in cache:\n1. Active block of \\$A\\$: \\$t \\times t \\times 4\\text{ bytes}\\$\n2. Active block of \\$B\\$: \\$t \\times t \\times 4\\text{ bytes}\\$\n3. Accumulation block of \\$C\\$: \\$t \\times t \\times 4\\text{ bytes}\\$\n\nThe total working set footprint satisfies the cache boundary constraint:\n\n\\$\\$3 \\cdot t^2 \\times 4\\text{ bytes} \\le C_{\\text{L1}}\\$\\$\n\nFor a canonical \\$32\\text{ KB} = 32{,}768\\text{ bytes}\\$ L1 data cache:\n\n\\$\\$12 \\cdot t^2 \\le 32{,}768 \\implies t^2 \\le 2{,}730 \\implies t \\le 52.25\\$\\$\n\nPowers of two such as \\$t = 32\\$ or \\$t = 64\\$ (using L2 cache) maximize register tiling and cache-line alignment.\n\nNote the seam you are about to hit. `tiled_matmul` below defaults to \\$t = 64\\$, not to the \\$t = 32\\$ this derivation endorses, and the 📊 tile sweep later in the module shows why. For a tile loop written in Python, larger tiles win monotonically, because the cost that dominates is the number of interpreted iterations rather than L1 residency. The derivation is the right model for a compiled micro-kernel. It is the wrong model for this implementation, and measuring is how you find that out."
+  },
+  {
+   "type": "text",
+   "md": "### Systems Reality: Python Tiling vs. Tuned Hardware BLAS"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dimension",
+    "Native Python / NumPy Tiling",
+    "Production BLAS (OpenBLAS, MKL, cuBLAS)"
+   ],
+   "rows": [
+    [
+     "**Outer Loop Mechanics**",
+     "Interpreted Python `for i0, j0, k0` loop overhead",
+     "Multi-threaded assembly dispatch with branch prediction"
+    ],
+    [
+     "**Micro-Kernel Tiling**",
+     "Invokes separate NumPy sub-array slices",
+     "Register-level unrolling (\\$8 \\times 8\\$ or \\$16 \\times 16\\$ accumulator registers)"
+    ],
+    [
+     "**Prefetching**",
+     "Reactive on-demand page faults",
+     "Software and hardware asynchronous prefetch (`prefetcht0`)"
+    ],
+    [
+     "**Educational Value**",
+     "Directly exposes block-accumulation order \\$C_{\\text{tile}} += A_{\\text{tile}} @ B_{\\text{tile}}\\$",
+     "High peak performance, but opaque closed-source binary"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 90 lines of code (starting with `def tiled_matmul(a: Tensor, b: Tensor, tile_size: int = 64) -> Tensor:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Tiled Matrix Multiplication\n\nThis test validates that blocking the loops preserves the result.\n\n**What we're testing**: Tiled output matches the vectorized reference across\nseveral tile sizes, plus shape validation\n**Why it matters**: Tiling reorders the accumulation, and float addition is not\nassociative, so \"close enough\" has to be defined rather than assumed\n**Expected**: Agreement within float32 reassociation tolerance at every tile size"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Cache-Aware Matrix Multiplication: Tiling & Locality."
+   ]
+  }
+ ]
+}

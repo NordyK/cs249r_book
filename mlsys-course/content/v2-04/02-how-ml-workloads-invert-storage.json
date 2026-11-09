@@ -1,0 +1,94 @@
+{
+ "title": "How ML Workloads Invert Storage Assumptions",
+ "summary": "Evaluate storage procurement decisions against the sequential-streaming and bursty-write inversions of ML workloads.",
+ "source": {
+  "chapter": "v2-04",
+  "sections": [
+   "How ML Workloads Invert Storage Assumptions"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Evaluate storage procurement decisions against the sequential-streaming and bursty-write inversions of ML workloads\n- Analyze why temporal-locality caching strategies such as LRU fail on uniformly streamed ML pretraining datasets\n- Justify shard-level shuffling under explicit mixing and convergence checks\n- Classify model rollout storage traffic as a synchronized fan-out read burst and quantify its cluster-wide volume\n- Explain why phase-dependent read/write behavior requires a multi-tier storage hierarchy"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Data Storage, § How ML Workloads Invert Storage Assumptions",
+   "md": "A database administrator moving to an ML infrastructure team would find many familiar storage design principles inverted by the multi-terabyte sequential scans and checkpoint bursts of the 175B running example. Transactional databases emphasize small random accesses and strong consistency, issuing thousands of 4 KB reads per second to serve user queries."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: the five workload inversions (streaming, massive working sets, bursty writes, phase-dependent ratios, uniform access); IOPS trap and sequential vs random access disparities; LRU hit-rate failure on uniformly shuffled datasets; shard-level shuffling as a convergence-throughput compromise."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why ML data loaders implement shard-level shuffling combined with within-shard buffer mixing rather than true global per-sample random shuffling across petabyte-scale training corpora.",
+   "md": "Shard-level shuffling and within-shard buffer mixing preserve sequential I/O while introducing sample-order variation. Adequate mixing depends on shard composition and buffer size: homogeneous shards may require finer shards or larger mixing buffers. Validate the layout against the loss curve of a fully shuffled baseline on a subset before committing the run."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-04-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A storage procurement team is sizing storage hardware for a cluster dedicated to pretraining foundation models on a \\$200 TB immutable text corpus. Which purchasing decision represents the most severe misallocation of budget based on ML workload characteristics?",
+     "explanation": "The correct answer is A. Paying a premium for enterprise SSDs optimized for high \\$4 KB random-read IOPS while under-provisioning sustained sequential read bandwidth (GB/s). ML pretraining streams large contiguous batches sequentially, where a drive delivers \\$7-14 GB/s, whereas \\$4 KB random reads drop throughput to approx 0.5 GB/s; optimizing for random IOPS buys capabilities the workload never utilizes while starving the pipeline of raw gigabytes-per-second throughput. Shard aggregation is the standard mitigation against metadata serialization, local NVMe caching prevents repeated network egress, and sizing for checkpoint bursts directly addresses the bursty write inversion.",
+     "hint": "Think about: evaluate storage procurement decisions against the sequential-streaming and bursty-write inversions of ML workloads",
+     "type": "single",
+     "options": [
+      "Paying a premium for enterprise SSDs optimized for high \\$4 KB random-read IOPS while under-provisioning sustained sequential read bandwidth (GB/s).",
+      "Aggregating raw text samples into \\$256\\text{ MB}$ to \\$4\\text{ GB}$ contiguous binary shards prior to training to amortize file-system metadata operations.",
+      "Provisioning local NVMe drives on compute nodes to serve as a warm read cache for multi-epoch training passes.",
+      "Sizing the parallel file system write tier to absorb synchronized multi-terabyte checkpoint write bursts from hundreds of nodes."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An in-memory LRU cache sized to \\$300 GB placed in front of a \\$3 TB uniformly shuffled pretraining dataset will achieve roughly a \\$90\\% hit rate after the first epoch warms the cache because all samples are reused across epochs.",
+     "explanation": "False. A cache holding one-tenth of a uniformly shuffled corpus does not gain a 90 percent hit rate merely because samples recur in later epochs. Most cached samples are evicted before reuse. A fixed cyclic scan larger than the cache can approach zero hits; independently reshuffled epochs allow low but nonzero cross-epoch hits that depend on cache fraction and sample order.",
+     "hint": "Think about: analyze why temporal-locality caching strategies such as LRU fail on uniformly streamed ML pretraining datasets",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "When an inference platform deploys a new version of a 175B-parameter model (\\$350 GB FP16 weights) across 100 serving replicas, how does the storage access profile contrast with a training checkpoint save?",
+     "explanation": "The correct answer is C. It creates a synchronized fan-out read burst of roughly \\$35\\text{ TB}$ (\\$100 \\times 350\\text{ GB}$) that must complete within the deployment latency budget while serving traffic continues. A model rollout is the architectural mirror image of a checkpoint storm: instead of many nodes simultaneously writing state to storage (fan-in burst), many replica nodes simultaneously read the same large model weights from storage (fan-out burst). The small-random-writes option describes OLTP database journaling. The delta-streaming option assumes parameter-level differential rollouts that production serving frameworks avoid in favor of immutable weight images. The central-write option confuses read distribution to serving nodes with training checkpoint writes.",
+     "hint": "Think about: classify model rollout storage traffic as a synchronized fan-out read burst and quantify its cluster-wide volume",
+     "type": "single",
+     "options": [
+      "It generates continuous small random writes to update parameter journals on each replica node.",
+      "It streams an incremental delta of only modified parameters over hours to minimize bandwidth utilization.",
+      "It creates a synchronized fan-out read burst of roughly \\$35\\text{ TB}$ (\\$100 \\times 350\\text{ GB}$) that must complete within the deployment latency budget while serving traffic continues.",
+      "It requires sustained multi-gigabyte-per-second sequential write bandwidth to central durable object storage."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A team plans one storage configuration for the whole life of a language-model project: tokenizing and deduplicating a \\$3\\text{ TB}$ compressed corpus into \\$6\\text{ TB}$ of shards, then training on those shards with periodic checkpoints. Why does the chapter conclude that no single configuration optimizes every phase?",
+     "explanation": "The correct answer is A. The fourth inversion is that the read/write ratio shifts by lifecycle phase: preprocessing scans and rewrites large artifacts, while training streams read-only shards between synchronized checkpoint bursts. Each phase loads the tiers differently, which is why ML systems use a multi-tier hierarchy rather than one storage technology. Training reads are not small random lookups, the tokenized corpus is larger than the compressed source, and checkpoints are bursty large writes, not continuous small ones.",
+     "hint": "Think about: explain why phase-dependent read/write behavior requires a multi-tier storage hierarchy",
+     "type": "single",
+     "options": [
+      "Preprocessing reads and writes large sequential artifacts in MapReduce-like passes, while training reads immutable shards between bursty checkpoint writes, so the read/write balance and access pattern change by phase.",
+      "Training reads are dominated by small random lookups that only a database-style random-IOPS tier can serve, while preprocessing is purely sequential.",
+      "The tokenized corpus is smaller than the compressed source, so preprocessing frees capacity that the training phase cannot use.",
+      "Checkpoint writes are continuous and small, so they require a different write-ahead log configuration than preprocessing."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate storage procurement decisions against the sequential-streaming and bursty-write inversions of ML workloads.",
+    "You can now analyze why temporal-locality caching strategies such as LRU fail on uniformly streamed ML pretraining datasets.",
+    "You can now justify shard-level shuffling under explicit mixing and convergence checks.",
+    "You can now classify model rollout storage traffic as a synchronized fan-out read burst and quantify its cluster-wide volume."
+   ]
+  }
+ ]
+}

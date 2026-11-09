@@ -1,0 +1,91 @@
+{
+ "title": "Engineering Challenges and Mitigations",
+ "summary": "Analyze unbounded adaptation drift and feedback loops in on-device text prediction systems and identify mitigation controls.",
+ "source": {
+  "chapter": "v2-11",
+  "sections": [
+   "Engineering Challenges and Mitigations",
+   "Device and data heterogeneity management",
+   "Non-IID data distribution challenges",
+   "Failure modes and prevention mechanisms",
+   "Compliance, security, and recovery risks in production",
+   "Poisoned updates and the combined control path"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze unbounded adaptation drift and feedback loops in on-device text prediction systems and identify mitigation controls\n- Apply Byzantine-resilient aggregation techniques (trimmed mean, median, Krum) to protect federated systems against poisoned updates\n- Analyze the sociological and algorithmic causes of participation bias amplification in federated learning fleets\n- Evaluate why operational limits and enforceable supervision are part of a safety-critical edge deployment\n- Analyze the server-side orchestration and platform infrastructure required to support decentralized edge learning fleets"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Edge Intelligence, § Engineering Challenges and Mitigations",
+   "md": "A billion-user predictive text model that learns from live keyboard inputs can be poisoned if a coordinated group of malicious users repeatedly types a specific slur and those local updates enter the global federated aggregate. The release gates and runtime monitors of a later section bound resource contention and flag gross regressions, and the tiered integration policy bounds where each pillar may act, yet neither erases the field conditions that let an adapting fleet degrade or conceal an attack. Those failure surfaces form a coupled chain across the deployment."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Device and data heterogeneity management\n- Non-IID data distribution challenges\n- Failure modes and prevention mechanisms\n- Compliance, security, and recovery risks in production\n- Poisoned updates and the combined control path\n\nPay attention to: Unbounded adaptation drift and autocorrection feedback loops; Byzantine clients and poisoned gradient updates; Participation bias amplification across user populations; Safety-critical real-time control loops and human fallback failure modes (Tesla 2016 case study)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain the mechanism of 'participation bias amplification' in large-scale mobile federated learning, and describe how it creates a digital inequality feedback loop across user cohorts.",
+   "md": "Participation bias amplification occurs when client eligibility requirements (e.g., connected to Wi-Fi, fully charged, idle overnight) are systematically met more frequently by users with high-end flagship devices, high-speed home broadband, and regular charging habits. As a result, the global model receives a disproportionate volume of updates from this privileged cohort, becoming heavily optimized for their language patterns, accents, and usage contexts. Conversely, budget devices with irregular charging or limited connectivity participate rarely, causing global model quality to degrade for those underserved populations. This degradation reduces app engagement among budget users, causing them to participate even less and amplifying digital inequality across the fleet."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-11-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A mobile keyboard application allows continuous, unconstrained on-device model adaptation on all typed keystrokes. After several months of deployment, users report that the keyboard frequently suggests misspelled words and typos as high-confidence autocomplete options. What failure mode has occurred, and what is the standard architectural mitigation?",
+     "explanation": "The correct answer is A. When an adaptive system trains naively on streaming user inputs without validation, it cannot distinguish between intentional typing and accidental typos. If users accept or correct typos, the model adapts to its own mistakes, causing unbounded adaptation drift and creating an autocorrection feedback loop. The mitigation requires bounded adaptation ranges, input filtering (e.g., ignoring unverified corrections), task-proxy gating, and shadow evaluation against a frozen baseline model. RSA key size, DRAM memory leaks, and NPU quantization do not address adaptation drift.",
+     "hint": "Think about: analyze unbounded adaptation drift and feedback loops in on-device text prediction systems and identify mitigation controls.",
+     "type": "single",
+     "options": [
+      "Unbounded adaptation drift and autocorrection feedback loop; mitigated by bounding parameter update ranges, filtering user corrections, and validating against a frozen shadow model.",
+      "Cryptographic hash collision in the secure aggregation protocol; mitigated by increasing RSA key size to 4096 bits.",
+      "Memory leak in the LPDDR5X DRAM controller; mitigated by rewriting the keyboard in assembly language.",
+      "Quantization underflow in the NPU matrix multipliers; mitigated by disabling all integer arithmetic."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In a federated learning fleet of 100,000 devices, malicious or compromised clients attempt to corrupt the global model by uploading maliciously crafted gradient vectors with extreme magnitudes. Which aggregation defense mitigates this Byzantine attack?",
+     "explanation": "The correct answer is B. Clipping limits update magnitude, while robust aggregation can reduce the influence of outliers under assumptions about malicious participation and honest-data variation. These methods do not guarantee stability against arbitrary attacks. Many require access to individual updates, creating a design tension with secure aggregation. Unfiltered averaging remains vulnerable; extra local epochs do not remove poisoned updates.",
+     "hint": "Think about: apply Byzantine-resilient aggregation techniques (trimmed mean, median, Krum) to protect federated systems against poisoned updates.",
+     "type": "single",
+     "options": [
+      "Standard arithmetic mean aggregation with no client filtering.",
+      "Byzantine-resilient aggregation rules (such as coordinate-wise median, trimmed mean, or Krum) combined with gradient norm clipping.",
+      "Increasing the local training epochs on all clients to $E = 100$.",
+      "Disabling secure aggregation and publishing all client IP addresses to an open web dashboard."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Because on-device learning decentralizes computation to user hardware, platform engineering teams no longer need to budget for server-side orchestration, verification, or monitoring infrastructure.",
+     "explanation": "False. Decentralizing learning to edge devices actually increases server-side and platform engineering complexity. The central infrastructure must manage complex client selection protocols, secure aggregation handshakes, straggler mitigation, differential privacy accounting, multi-stage cryptographic verification of updates, distributed telemetry aggregation (Federated Analytics), shadow model tracking, and tiered rollback mechanisms across millions of heterogeneous clients.",
+     "hint": "Think about: analyze the server-side orchestration and platform infrastructure required to support decentralized edge learning fleets.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: What does the 2016 Williston Tesla crash illustrate about relying on human supervision as the fallback for an automated driving feature?",
+   "md": "The NTSB identified the truck driver’s failure to yield and the car driver’s inattention associated with overreliance on automation; the automation design permitted prolonged disengagement and use outside guidance. The engineering lesson is to enforce operational limits and the supervision contract. A fast local inference loop alone cannot ensure that a disengaged driver will intervene when needed."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze unbounded adaptation drift and feedback loops in on-device text prediction systems and identify mitigation controls.",
+    "You can now apply Byzantine-resilient aggregation techniques (trimmed mean, median, Krum) to protect federated systems against poisoned updates.",
+    "You can now analyze the sociological and algorithmic causes of participation bias amplification in federated learning fleets.",
+    "You can now evaluate why operational limits and enforceable supervision are part of a safety-critical edge deployment."
+   ]
+  }
+ ]
+}

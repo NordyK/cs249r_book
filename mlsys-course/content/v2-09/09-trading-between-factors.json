@@ -1,0 +1,103 @@
+{
+ "title": "Trading Between Factors",
+ "summary": "Apply the product rule to decide whether a cross-factor trade raises goodput.",
+ "source": {
+  "chapter": "v2-09",
+  "sections": [
+   "Trading Between Factors",
+   "Judging a trade by the product",
+   "Cross-boundary trades across the fleet stack",
+   "Compilation builds",
+   "The efficiency frontier"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Apply the product rule to decide whether a cross-factor trade raises goodput\n- Calculate a compilation dividend and the executions needed to repay its build\n- Order the stages of graph compilation and relate them to the two factors a build touches\n- Charge a compilation cost to the correct factor and choose the matching remedy\n- Determine whose product judges a lever that moves capacity between jobs"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Efficiency, § Trading Between Factors",
+   "md": "Waiting for a compact node placement, running a longer autotuning compilation before the first step, and enforcing a tighter preemption policy each raise one goodput factor by shifting loss to another boundary. Evaluating any cross-boundary change on the single factor it was built to improve ignores the capacity lost at the boundary that paid for it, so the change must be judged by the goodput product it leaves behind."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Judging a trade by the product\n- Cross-boundary trades across the fleet stack\n- Compilation builds\n- The efficiency frontier\n\nPay attention to: The product rule for changes that touch several factors; Whose product and which window judge a trade; Compilation builds: where builds and recompilations are charged, and amortization over executions; Time to result and the efficiency frontier."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A constructed 13B decode budget on one H100 runs at 120 tokens/s (8.33 ms per token): 50% matrix multiplications, 35% element-wise kernels, and 15% exposed launch overhead. Compilation leaves the matrix multiplications unchanged, removes 70% of the element-wise time and 80% of the launch overhead, and an autotuning build takes about 15 minutes. Calculate the compiled step time and speedup and the tokens needed to repay the build on one replica, and explain how sharing the artifact across 128 replicas changes the answer.",
+   "md": "The compiled step is \\$0.50 + 0.35 × 0.30 + 0.15 × 0.20 = 0.635 of the uncompiled step, about 5.3 ms per token, a 1.58× speedup that saves about 3.0 ms per token. Repaying 15 minutes takes about 300,000 tokens, roughly 26 minutes of single-stream generation. A shared artifact is repaid in about 12 seconds of the pool's generation, while per-replica builds cost about 32 GPU-hours per rollout, a quarter of the held time of a replica added for one burst hour. A build is amortized over executions, not over time."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-09-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A change raises a job's program goodput by a tenth of its value and lowers its runtime goodput by a twelfth of its value, both measured over the same window. Does the product rise, and is scheduling goodput needed to decide?",
+     "explanation": "The correct answer is A. A change that touches several factors multiplies MPG by the product of each factor's ratio, its value after the change divided by its value before, measured on the same boundary and window; it is worth making only when that product exceeds one. Ratios let separate owners apply the rule from their own records. The rule is asymmetric because factors start at different heights: lifting the running example's program goodput to its ceiling would still pay at up to 26% of runtime goodput, while removing every runtime loss could raise runtime goodput by only about 11%.",
+     "hint": "Think about: apply the product rule to decide whether a cross-factor trade raises goodput.",
+     "type": "single",
+     "options": [
+      "Yes; the product is multiplied by about \\$1.10 × 11/12 approx 1.008, and scheduling goodput is not needed because an unchanged factor's ratio is one",
+      "No, because a loss in runtime goodput always outweighs an equal or larger gain in program goodput",
+      "It cannot be decided without the absolute values of scheduling and runtime goodput",
+      "Yes, by about 18%, the sum of the two percentage changes"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Arrange the following stages of graph compilation in the order a compiler applies them:",
+     "explanation": "The correct order is (2) -> (5) -> (1) -> (4) -> (3). The compiler captures a region as a graph, rewrites it, fuses its operations, plans its memory across the fused graph, and finally selects or generates a kernel for each fused group. This work is paid before the first step it improves and again at every recompilation, a runtime goodput cost, while the speed of the compiled steps is program goodput.",
+     "hint": "Think about: order the stages of graph compilation and relate them to the two factors a build touches.",
+     "type": "order",
+     "items": [
+      "capture a region of the program as a graph",
+      "rewrite the graph with simplifications.",
+      "fuse operations into groups whose intermediates stay on chip",
+      "plan memory for the fused graph's tensors",
+      "select or generate a kernel for each fused group"
+     ]
+    },
+    {
+     "q": "A job's input shapes vary so much that its compiled graph recompiles every few hundred steps during steady operation. Where is that recompilation charged, and what is the remedy?",
+     "explanation": "The correct answer is B. A build at a job's start, after a restart, or after a resize to a new mesh happens once per launch and is charged to runtime goodput with that launch's startup. A recompilation triggered repeatedly during steady operation lowers program goodput instead. A narrow shape range runs faster but rebuilds on new shapes, while symbolic dimensions accept varied batches and sequence lengths without rebuilding; graph breaks also split the regions a compiler can fuse and can force recompilation.",
+     "hint": "Think about: charge a compilation cost to the correct factor and choose the matching remedy.",
+     "type": "single",
+     "options": [
+      "Runtime goodput, as startup; the remedy is a faster compiler",
+      "Program goodput, because it recurs inside the job's own fault-free step rate and shows up as slow steps; the remedy is a compilation that accepts the shape distribution",
+      "Scheduling goodput, because the job cannot take steps while it recompiles",
+      "Nowhere, because compilation is a one-time cost paid before the first step"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A priority preemption that lets an urgent gang form without draining capacity for it should be judged by the product of the urgent job's factors, since that job is the one the policy serves.",
+     "explanation": "False. A lever that moves capacity between jobs also changes other jobs' factors. The urgent job gains scheduling goodput while every victim loses runtime goodput, multiplied by any cascade, so only the pool's product contains both the gain and the cost. The preemption budget sets the rate at which one is exchanged for the other.",
+     "hint": "Think about: determine whose product judges a lever that moves capacity between jobs.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Time to result is the queue wait plus the job's ideal-rate accelerator-time divided by its device count times its runtime and program goodput. Explain why scheduling goodput does not appear in this relation, why holding a job to fewer devices can raise the fleet's goodput while lengthening that job's time to result, and why the product rule alone cannot choose between such configurations.",
+   "md": "The pool's unallocated capacity does not slow a job that already holds its allocation, so the pool enters only through the queue wait. Program goodput falls as the device count grows, by the scaling efficiency of the layout, so adding devices shortens held time only while device count times program goodput keeps rising, and each added device lowers the pool's goodput; in the elastic example, efficiency relative to 128 GPUs is 90% at 256 and 80% at 512. The product contains no time, so two configurations with the same product can finish days apart. A deadline-driven job buys time with more devices at lower program goodput, and a fleet with a deep queue buys goodput by holding the job to fewer, points on the efficiency frontier where none dominates."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the product rule to decide whether a cross-factor trade raises goodput.",
+    "You can now calculate a compilation dividend and the executions needed to repay its build.",
+    "You can now order the stages of graph compilation and relate them to the two factors a build touches.",
+    "You can now charge a compilation cost to the correct factor and choose the matching remedy."
+   ]
+  }
+ ]
+}

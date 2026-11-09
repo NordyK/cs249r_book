@@ -1,0 +1,101 @@
+{
+ "title": "The Whole Fleet",
+ "summary": "Compute job and pool goodput products and the share of fleet capacity lost at each boundary.",
+ "source": {
+  "chapter": "v2-09",
+  "sections": [
+   "The Whole Fleet",
+   "Decomposing the running example",
+   "Cost per useful unit"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compute job and pool goodput products and the share of fleet capacity lost at each boundary\n- Calculate the marginal value of a goodput point as the product of the other factors\n- Rank goodput levers by relative gain at their owners' ceilings rather than by loss share\n- Translate goodput factors into the cost of a useful accelerator-hour and evaluate a chargeback policy\n- Distinguish what the job product and the pool product each measure and who can change them"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Efficiency, § The Whole Fleet",
+   "md": "The Llama 2 70B job keeps … of its held time as retained steps, runs those steps at … of the ideal rate, and draws its nodes from a pool that holds … of its capacity in complete allocations. Each figure is accurate on its own boundary, yet none states alone how much of the fleet's capacity becomes training progress or which engineering lever yields the largest return."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Decomposing the running example\n- Cost per useful unit\n\nPay attention to: Job product versus pool product and their loss shares; The value of one point of a factor as the product of the other two; Ranking levers by relative gain at the owners' ceilings; Cost per useful accelerator-hour and the Archetype B goodput profile."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Scheduling loses the largest share of the running example's pool capacity, yet the chapter ranks the program lever first. Using the owners' ceilings (scheduling 0.80, runtime 0.98 with input waits removed, program 0.65 at the node baseline), explain the ranking.",
+   "md": "A loss share says where capacity went, not what a lever returns, because capacity recovered at an early boundary must still cross the later ones. Each lever multiplies MPG by its factor's own relative gain: scheduling to 0.80 raises MPG about 23% to 0.35, removing input waits about 9% to 0.31, and the program to the node's 0.65 about 35% to 0.38. The program lever is worth the most because its factor has the most relative room to its ceiling. The ceilings are optimistic for every owner, but the ranking holds unless one owner's practical reach falls far below the others'."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-09-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "The running example has scheduling goodput 0.65, runtime goodput 0.90, and per-microbatch program goodput 0.48. Which statement of its products and loss shares is correct?",
+     "explanation": "The correct answer is D. The job product is \\$0.90 × 0.48 approx 0.43 and the pool product is \\$0.65 × 0.43 approx 0.28. Loss shares weight each factor's loss by what earlier boundaries passed: scheduling \\$1 - 0.65 = 0.35, runtime \\$0.65 × 0.10 approx 0.06, and program \\$0.59 × 0.52 approx 0.31, where 0.59 is scheduling times runtime goodput. With the 0.28 that became progress, the four parts add to one. Charging the runtime and program losses against full capacity counts earlier losses again. These products use the per-microbatch program goodput; amortizing the data-axis gradient reduction over the accumulated microbatches lowers program goodput to about 0.456 over a full optimizer step and MPG to about 0.27.",
+     "hint": "Think about: compute job and pool goodput products and the share of fleet capacity lost at each boundary.",
+     "type": "single",
+     "options": [
+      "The job product is about 0.43 and the pool's MPG about 0.28; of fleet capacity, 35% is lost to scheduling, 10% to runtime, and 52% to the program",
+      "The job product is about 0.58 and the pool's MPG about 0.43; of fleet capacity, 35%, 6%, and 15% are lost at the three boundaries",
+      "The pool's MPG is about 0.67, the average of the three factors, so a third of fleet capacity is lost",
+      "The job product is about 0.43 and the pool's MPG about 0.28; of fleet capacity, 35% is lost to scheduling, 6% to runtime, and 31% to the program"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "For the running example, what is one percentage point of program goodput worth in MPG, and why is it worth more than a point of runtime goodput?",
+     "explanation": "The correct answer is B. Raising one factor by a small amount raises the product by that amount times the other two. A point of program goodput is worth the most because its value is the product of the two highest factors, and a point of runtime goodput the least because its value is the product of the two lowest. Every factor's lever is worth more on a fleet whose other factors are high.",
+     "hint": "Think about: calculate the marginal value of a goodput point as the product of the other factors.",
+     "type": "single",
+     "options": [
+      "About 0.48 of a point, equal to program goodput itself",
+      "About 0.59 of a point, the product of the other two factors, \\$0.65 \\times 0.90$; a point of runtime goodput is worth only \\$0.65 \\times 0.48 \\approx 0.31$",
+      "One full point, because MPG is the sum of the three factors",
+      "About 0.43 of a point, the job product, because scheduling goodput does not affect the program's value"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "At an internal fleet rate of \\$2 per in-service accelerator-hour, what does the running example's pool pay for one accelerator-hour of ideal-rate progress, and what does a chargeback that bills each team only for the hours it holds charge this job?",
+     "explanation": "The correct answer is A. The cost of a useful accelerator-hour is the capacity price divided by MPG, about \\$2 divided by 0.28, so every factor acts as a cost multiplier. A chargeback per held hour divides only by the job product of about 0.43, so the scheduling loss is billed to no one unless the cost-attribution policy assigns it. Lifting program goodput to its ceiling would cut the price of useful work by about 26% without buying an accelerator.",
+     "hint": "Think about: translate goodput factors into the cost of a useful accelerator-hour and evaluate a chargeback policy.",
+     "type": "single",
+     "options": [
+      "About \\$7.09, or 3.5$\\times$ the capacity price; billing held hours charges about 2.3$\\times$ the rate and leaves the scheduling loss unbilled",
+      "About \\$4.17, because only program goodput divides the capacity price",
+      "About \\$2.25, because only runtime losses raise the price of useful work",
+      "About \\$7.09, and billing held hours charges the same 3.5$\\times$, because every loss lies inside the job's allocation"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Raising the pool's scheduling goodput is the most direct way to shorten the running example's time to result, because scheduling loses the largest share of pool capacity.",
+     "explanation": "False. The job already holds its allocation, so the pool's unheld capacity does not slow it; capacity that a better scheduler recovers becomes complete allocations for other queued jobs. The job's product, runtime times program goodput, is what its team can change. An accounting that reports only the job's product hides the pool's largest loss from its owners, and one that reports only the pool's charges the job a loss its team cannot touch.",
+     "hint": "Think about: distinguish what the job product and the pool product each measure and who can change them.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: For an Archetype B (DLRM at Scale) recommendation fleet, explain where a wait for embedding rows fetched from host memory and an exposed AllToAll exchange of the gathered vectors are charged, and why the running example's lever ranking cannot be reused.",
+   "md": "Rows fetched ahead of the step belong to the input path, so when that path cannot keep pace with the step rate the accelerators wait for their batch, a runtime loss sized by the data stall ratio and recovered by prefetching and caching hot rows. Inside the retained step, the AllToAll's completion is set by the slowest destination under shard skew or a congested fabric, and the part the dense computation does not hide is a program loss recovered by shard balancing and message coalescing. Because such a step is bounded more by bytes moved than by arithmetic, its program goodput must name its ideal with care. The value of a point is still the product of the other two factors, but the ranking must be recomputed from that fleet's own measured factors."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compute job and pool goodput products and the share of fleet capacity lost at each boundary.",
+    "You can now calculate the marginal value of a goodput point as the product of the other factors.",
+    "You can now rank goodput levers by relative gain at their owners' ceilings rather than by loss share.",
+    "You can now translate goodput factors into the cost of a useful accelerator-hour and evaluate a chargeback policy."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,101 @@
+{
+ "title": "Stage 4: Evaluation and Validation",
+ "summary": "Compare Model Evaluation and Model Validation to classify their distinct roles in deciding deployment readiness.",
+ "source": {
+  "chapter": "v1-03",
+  "sections": [
+   "Stage 4: Evaluation and Validation",
+   "Evaluation metrics and thresholds",
+   "Offline and online evaluation",
+   "Production-condition validation",
+   "Regulatory validation",
+   "Deployment readiness"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare Model Evaluation and Model Validation to classify their distinct roles in deciding deployment readiness\n- Evaluate stratified subgroup validation results and justify blocking deployment when subgroup safety thresholds are violated\n- Explain why threshold-free AUC metrics do not establish clinical deployment readiness at fixed operating thresholds\n- Design the sequence of progressive online validation stages from zero-exposure integration testing to live comparative evaluation\n- Evaluate the role of model calibration in supporting safe clinical triage and human-in-the-loop routing"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Lifecycle, § Stage 4: Evaluation and Validation",
+   "md": "Suppose the DR team's packaged candidate artifact matches the study's AUC of 0.99 on curated research data. The team then tests it on images from a rural clinic where a nurse with two weeks of training operates a five-year-old fundus camera, and sensitivity falls well below the 90 percent target. The software executes without throwing an exception or returning an error code; the model's learned features simply encounter pixel distributions distorted by optical blur, low illumination, and variable pupil dilation that never appeared in the training distribution."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Evaluation metrics and thresholds\n- Offline and online evaluation\n- Production-condition validation\n- Regulatory validation\n- Deployment readiness\n\nPay attention to: Evaluation vs. validation definitions and boundaries; Stratified evaluation and subgroup safety floors; Operating threshold validation vs. threshold-free AUC; Staged progressive rollout (shadow, canary, A/B)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why a medical diagnostic model with an outstanding Area Under the ROC Curve (AUC) of 0.99 on a research dataset may still fail deployment validation for clinical screening.",
+   "md": "AUC is a threshold-independent metric that evaluates ranking quality across all possible classification cutoffs from 0 to 1. In production clinical screening, however, the model operates at a single, fixed decision threshold. At that specific operating point, the model must simultaneously satisfy strict clinical floors: sensitivity >90 percent (to prevent missed diagnoses) and specificity >80 percent (to prevent overwhelming referral clinics) on production-representative data with diverse camera models and lighting. A high AUC does not guarantee that any single operating threshold meets both clinical floors under real-world distribution shift."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-03-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "What is the primary conceptual distinction between Model Evaluation and Model Validation as defined in this chapter?",
+     "explanation": "The correct answer is C. The chapter defines Model Evaluation as characterizing algorithmic performance using selected datasets, loss metrics, and test benchmarks. Model Validation is an evidence-based decision on deployment readiness, verifying that the integrated model and system satisfy all physical constraints (latency, memory, power), subgroup safety floors (demographic fairness, comorbidity performance), robustness under distribution shift (blur, lighting, camera variation), and cost budgets. Confining validation to external regulators misses its internal engineering function, splitting evaluation/validation by hardware architecture is incorrect, and online vs. offline execution is handled within staged validation rather than defining the conceptual boundary.",
+     "hint": "Think about: compare Model Evaluation and Model Validation to classify their distinct roles in deciding deployment readiness.",
+     "type": "single",
+     "options": [
+      "A. Evaluation is conducted by internal software engineers, whereas validation is conducted exclusively by government regulatory agencies.",
+      "B. Evaluation tests software execution speed on accelerators, whereas validation tests algorithm mathematical convergence on CPUs.",
+      "C. Evaluation measures model behavior on chosen datasets and metrics; validation is a multi-dimensional evidence check confirming the model satisfies all operational, latency, subgroup fairness, robustness, and cost constraints under production-representative conditions.",
+      "D. Evaluation is performed on live production traffic, whereas validation is performed exclusively on synthetic offline data."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A diabetic retinopathy screening model achieves 94 percent aggregate accuracy on held-out validation data. However, stratified evaluation reveals that sensitivity drops to 76 percent for patients with cataracts and falls below the 90 percent sensitivity floor for one demographic subpopulation. How should the engineering team respond?",
+     "explanation": "The correct answer is D. In medical AI systems, aggregate accuracy is deceptive: high overall accuracy can obscure catastrophic error rates in specific sub-populations. A sensitivity drop to 76 percent in cataract patients or below the 90 percent safety floor means referable eye disease will be missed, leading to preventable blindness. Problem Definition establishes that subgroup sensitivity floors are hard quality invariants; failing them must block deployment regardless of aggregate accuracy. Relying on aggregate metrics to override subgroup failure violates medical safety principles, temperature scaling modifies confidence scores without altering underlying class sensitivity, and shadow mode is an evaluation stage rather than a permanent production workaround.",
+     "hint": "Think about: evaluate stratified subgroup validation results and justify blocking deployment when subgroup safety thresholds are violated.",
+     "type": "single",
+     "options": [
+      "A. Proceed to full deployment immediately, because aggregate accuracy above 90 percent statistically compensates for minor subpopulation variations.",
+      "B. Apply post-hoc temperature scaling to increase overall prediction confidence, which automatically resolves subgroup sensitivity deficits.",
+      "C. Deploy the model in shadow mode permanently, since shadow mode bypasses clinical subgroup safety requirements.",
+      "D. Block deployment, because the model violates non-negotiable clinical sensitivity safety thresholds for vulnerable subgroups; stratified validation exists precisely to prevent aggregate metrics from masking localized clinical harm."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Order the stages of progressive online validation from lowest initial user risk to broadest comparative evaluation:",
+     "explanation": "The correct order is: (2) Offline evaluation on held-out and stratified test sets, (4) Shadow mode running in parallel on live requests without serving predictions to users, (1) Canary deployment exposing 1–5% of live traffic, (3) A/B testing comparing outcomes against the production baseline. Progressive validation begins offline with static benchmark testing; next, shadow mode tests end-to-end serving integration and performance under live production load with zero user exposure; canary deployment routes a small, controlled fraction of traffic to verify stability under real user interactions; and finally, A/B testing establishes statistically significant comparative efficacy against the incumbent baseline.",
+     "hint": "Think about: design the sequence of progressive online validation stages from zero-exposure integration testing to live comparative evaluation.",
+     "type": "order",
+     "items": [
+      "Offline evaluation on held-out and stratified test sets",
+      "Shadow mode running in parallel on live requests without serving predictions to users.",
+      "Canary deployment exposing 1–5% of live traffic",
+      "A/B testing comparing outcomes against the production baseline"
+     ]
+    },
+    {
+     "q": "Model calibration—ensuring that a predicted confidence score of 0.80 corresponds to an empirical 80 percent probability of correctness—is critical for medical AI systems because clinical triage workflows rely directly on confidence scores to route ambiguous cases to human specialists.",
+     "explanation": "True. Calibration is distinct from classification accuracy. In clinical triage, physicians use model confidence scores to determine whether automated decisions can be trusted or require specialist review. An uncalibrated model that outputs 95% confidence on borderline, uncertain cases can dangerously mislead clinicians into skipping necessary specialist referrals, creating severe safety risks even if aggregate accuracy appears acceptable.",
+     "hint": "Think about: evaluate the role of model calibration in supporting safe clinical triage and human-in-the-loop routing.",
+     "type": "truefalse",
+     "answer": true
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Release decision**: A decision that blocks deployment unless a particular artifact meets declared evaluation thresholds."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Release decision",
+   "def": "A decision that blocks deployment unless a particular artifact meets declared evaluation thresholds."
+  }
+ ]
+}

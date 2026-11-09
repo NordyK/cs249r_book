@@ -1,0 +1,68 @@
+{
+ "title": "Requirements and Data Budget",
+ "summary": "Calculate the required per-window false positive rate for always-on streaming ML systems and explain why aggregate accuracy fails for streaming workloads.",
+ "source": {
+  "chapter": "v1-04",
+  "sections": [
+   "Requirements and Data Budget",
+   "KWS design space"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate the required per-window false positive rate for always-on streaming ML systems and explain why aggregate accuracy fails for streaming workloads\n- Explain why rare-event detectors are specified by detection rate at a false-alarm operating point rather than by aggregate accuracy"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Engineering, § Requirements and Data Budget",
+   "md": "A wake-word detector answers to two numbers at once. It must catch nearly every spoken wake word, and it must almost never wake for anything else, while listening continuously in tens of kilobytes of memory on a microcontroller or the low-power core of a phone or smart speaker. The chapter's illustrative smart speaker sets those numbers, and every later stage of the pipeline is measured against them."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: always-on KWS false-positive rate arithmetic; detection rate versus aggregate accuracy."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-04-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An always-on Keyword Spotting (KWS) system on an embedded voice assistant continuously evaluates 1-second audio classification windows (\\$24\\text{ hours/day}$ over a \\$30\\text{-day}$ month). Treat each window as nonkeyword audio. The product budgets at most 1 expected false activation per month. An engineer reports 99% aggregate accuracy and, separately, a measured 1% false positive rate on background noise. How many false activations does that FPR imply in expectation, and what per-window FPR meets the expected-count budget?",
+     "explanation": "The correct answer is B. A 1% FPR implies an expected count of ~25,920 false activations per month (~36 false wakes/hour); the expected-count budget requires a per-window FPR of $\\le 3.86 \\times 10^{-7}$ (>99.9999% non-keyword rejection). Over a 30-day month with continuous 1-second windows, there are \\$30 \\times 24 \\times 3600 = 2{,}592{,}000$ evaluation windows. A 1% false-positive rate gives an expected count of \\$0.01 \\times 2{,}592{,}000 = 25{,}920$ false wake-ups per month (roughly 36 per hour in expectation, far beyond the budget). To meet the expected-count budget of $\\le 1$ false activation per month, the per-window FPR must satisfy $\\text{FPR} \\le 1 / 2{,}592{,}000 \\approx 3.86 \\times 10^{-7}$, requiring $>99.9999\\%$ non-keyword rejection. This expectation does not require independent windows and does not guarantee a maximum count in every month. Aggregate accuracy alone does not determine the nonkeyword FPR. The other options miscalculate the monthly window count or misapply aggregate metrics.",
+     "hint": "Think about: calculate the required per-window false positive rate for always-on streaming ML systems and explain why aggregate accuracy fails for streaming workloads.",
+     "type": "single",
+     "options": [
+      "A 1% FPR implies an expected count of 720 false activations per month; the expected-count budget requires a per-window FPR of $\\le 1.38 \\times 10^{-5}$.",
+      "A 1% FPR implies an expected count of ~25,920 false activations per month (~36 false wakes/hour); the expected-count budget requires a per-window FPR of $\\le 3.86 \\times 10^{-7}$ (>99.9999% non-keyword rejection).",
+      "A 1% FPR implies an expected count of ~2,592 false activations per month; the expected-count budget requires a per-window FPR of $\\le 1.0 \\times 10^{-4}$.",
+      "A 1% FPR satisfies the expected-count budget because accuracy is averaged over the total number of audio hours across the entire device fleet."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "The chapter specifies its keyword spotter by a keyword detection rate measured at a threshold that holds the expected false-wake budget, rather than by overall accuracy. Why is overall accuracy the wrong target for an always-on detector?",
+     "explanation": "The correct answer is A. Wake words are rare among the windows the detector evaluates, so overall accuracy is dominated by easy non-keyword windows and rewards a detector that never fires. Evaluation runs offline, so the device's ability to compute a metric is irrelevant. More data does not raise accuracy automatically, and the two metrics differ: accuracy averages over all windows, while detection rate counts only the windows that contain the wake word.",
+     "hint": "Think about: explain why rare-event detectors are specified by detection rate at a false-alarm operating point rather than by aggregate accuracy.",
+     "type": "single",
+     "options": [
+      "Almost every one-second window contains no wake word, so a detector that never fires scores near-perfect overall accuracy while missing every command; the meaningful targets are the fraction of spoken wake words caught and the false-wake rate at the chosen threshold.",
+      "Overall accuracy cannot be computed for a model that runs on a microcontroller, so the target must use a metric the device can calculate itself.",
+      "Overall accuracy rises automatically with more training data, so it cannot distinguish one data plan from another.",
+      "Detection rate and overall accuracy are the same quantity for a binary classifier; the scenario only renames it."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate the required per-window false positive rate for always-on streaming ML systems and explain why aggregate accuracy fails for streaming workloads.",
+    "You can now explain why rare-event detectors are specified by detection rate at a false-alarm operating point rather than by aggregate accuracy."
+   ]
+  }
+ ]
+}

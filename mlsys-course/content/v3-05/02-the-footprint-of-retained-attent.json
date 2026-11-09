@@ -1,0 +1,65 @@
+{
+ "title": "The Footprint of Retained Attention State",
+ "summary": "Work through The Footprint of Retained Attention State.",
+ "source": {
+  "chapter": "v3-05",
+  "sections": [
+   "The Footprint of Retained Attention State"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **The Footprint of Retained Attention State**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, KV Cache Management, § The Footprint of Retained Attention State",
+   "md": "The r18 request's 32,768 tokens do not reach the accelerator as raw text. During causal self-attention in a Transformer decoder, each newly generated token attends to earlier tokens through their key and value projections. Recomputing these projections at every decode step would repeat the linear transformations over the entire historical prefix, creating an unsustainable quadratic compute bottleneck. Serving engines avoid this recomputation by retaining the computed key and value tensors in accelerator memory across decode cycles."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why KV footprint and resident fit matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Retained attention state costs 2 x layers x KV heads x head dim x bytes per token, so resident fit in the KV pool falls as 1/S with context length, and the attention design fixed at pretraining sets the slope."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-05-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Footprint of Retained Attention State** develops one of the chapter's claims. Which one?",
+     "options": [
+      "During a tool wait the engine keeps, moves, or drops only uniquely reclaimable blocks, and offloading pays only when the wait exceeds the transfer round trip and memory is contested.",
+      "A content-keyed radix tree finds the longest retained common prefix, leaf-first eviction keeps residency prefix-closed, and efficacy is the token-weighted hit rate after availability, permission, and block rounding.",
+      "Retained attention state costs 2 x layers x KV heads x head dim x bytes per token, so resident fit in the KV pool falls as 1/S with context length, and the attention design fixed at pretraining sets the slope.",
+      "Mean occupancy equals arrival rate times mean residence (L = lambda W), a mean identity that sizes slot pools but says nothing about peaks."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **KV footprint and resident fit**: Retained attention state costs 2 x layers x KV heads x head dim x bytes per token, so resident fit in the KV pool falls as 1/S with context length, and the attention design fixed at pretraining sets the slope."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *KV footprint and resident fit* constrains retained state under *Allocation axes*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. KV footprint and resident fit constrains retained state under Allocation axes."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Retained KV state**: Cached attention keys and values are derived execution state for a particular model and token prefix, occupying physical serving memory."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Retained KV state",
+   "def": "Cached attention keys and values are derived execution state for a particular model and token prefix, occupying physical serving memory."
+  }
+ ]
+}

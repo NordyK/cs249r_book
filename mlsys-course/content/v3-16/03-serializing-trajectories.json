@@ -1,0 +1,61 @@
+{
+ "title": "Serializing Trajectories",
+ "summary": "Work through Serializing Trajectories.",
+ "source": {
+  "chapter": "v3-16",
+  "sections": [
+   "Serializing Trajectories",
+   "Reconstructing each model input",
+   "Rendering with versioned templates",
+   "One example per invocation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Serializing Trajectories**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Trajectory Fine-Tuning, § Serializing Trajectories",
+   "md": "In the admitted repair demonstration `trace_r19_01_redacted_v1`, the corrected edit (`e4`) makes sense only as a response to the malformed proposal (`e2`), the runtime refusal, and the schema inspection (`e3`) that preceded it. A training loader that strips out the refusal changes the problem the subsequent correction answered, and a loader that places the later passing test check (`e5`) before the edit leaks future evidence that the model did not have when proposing the patch."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Reconstructing each model input\n- Rendering with versioned templates\n- One example per invocation"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Schema augmentation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-16-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Serializing Trajectories** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas.",
+      "Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime.",
+      "Packing is only a memory layout, so block-diagonal attention, per-example label shifts, and position handling must leave each packed example's logits equal to its unpacked logits, a property tested rather than assumed.",
+      "When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Schema augmentation**: A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Serializing Trajectories."
+   ]
+  }
+ ]
+}

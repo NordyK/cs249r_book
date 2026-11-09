@@ -1,0 +1,84 @@
+{
+ "title": "Case Studies",
+ "summary": "Analyze how edge hardware constraints reshape the implementation of foundational MLOps principles in a proposed wearable architecture.",
+ "source": {
+  "chapter": "v1-14",
+  "sections": [
+   "Case Studies",
+   "Keyword spotting at the edge",
+   "ClinAIOps case study",
+   "Case study synthesis"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze how edge hardware constraints reshape the implementation of foundational MLOps principles in a proposed wearable architecture\n- Evaluate why human oversight remains a core risk-control mechanism in proposed clinical AI operations frameworks\n- Calculate the fraction of a reference gap closed and interpret human agreement as context rather than as a strict performance ceiling\n- Compare how domain constraints alter the technical implementation of universal MLOps principles"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Operations, § Case Studies",
+   "md": "Because the physical envelope of the serving hardware and the consequences of an incorrect prediction govern what a deployment can observe and change, a cloud MLOps playbook fails immediately if applied unmodified to a battery-powered voice trigger that cannot stream audio off the device, or to a clinical decision-support loop where an unreviewed weight update can harm a patient. The chapter's keyword spotter operates under a milliwatt-scale power budget, kilobytes of on-device memory, and telemetry that must leave the device as aggregates rather than audio."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Keyword spotting at the edge\n- ClinAIOps case study\n- Case study synthesis\n\nPay attention to: mapping the five principles to an Oura-inspired edge wearable; mapping the five principles to ClinAIOps healthcare AI; edge hardware and telemetry constraints; clinical human-in-the-loop oversight and governance."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In the Oura sleep-stage study, multi-sensor enhancement increased four-stage sleep classification accuracy from \\$57\\% (accelerometer baseline) to \\$79\\%, while human polysomnography (PSG) inter-scorer agreement is \\$82\\%--83\\%. Calculate the fraction of the reference gap closed by the enhanced model and explain the systems lesson of comparing model accuracy against human agreement.",
+   "md": "Using human agreement as a reference comparison, the gap from the \\$57\\% baseline to \\$82\\%--83\\% is \\$25 to \\$26 percentage points, and the enhanced model recovers \\$79 - 57 = 22 percentage points. That means it closes \\$22/26 approx 84.6\\% to \\$22/25 = 88.0\\% of the reference gap. The systems lesson is that human agreement is useful context for interpreting progress and label uncertainty, but it is not a hard accuracy ceiling or an automatic stopping rule because cohort, task, and scoring differences can make the comparison only approximate."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-14-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In the keyword-spotting edge design, how do edge hardware constraints (microcontroller memory, battery capacity, intermittent connectivity) reshape the implementation of foundational MLOps principles?",
+     "explanation": "The correct answer is C. In the keyword-spotting edge design, edge constraints favor lightweight on-device feature extraction, OTA deployment with rollback safety, and selective batched telemetry rather than assuming always-on cloud streaming. The alternatives are wrong because edge constraints do not remove the need for versioning, do not imply nightly on-device distributed backpropagation, and do not justify ignoring training-serving consistency.",
+     "hint": "Think about: analyze how edge hardware constraints reshape the implementation of foundational MLOps principles in a proposed wearable architecture",
+     "type": "single",
+     "options": [
+      "They eliminate the requirement for artifact versioning because firmware cannot be updated over the air",
+      "They require continuous on-device distributed backpropagation to retrain neural networks nightly",
+      "They favor lightweight on-device feature extraction, OTA deployment with rollback safety, and selective batched telemetry rather than continuous cloud streaming",
+      "They allow the system to bypass training-serving consistency because raw sensor data is processed without filtering"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Why does the ClinAIOps clinical AI framework intentionally incorporate clinician-in-the-loop override points as a core architectural feature rather than viewing human review as a failure of automation?",
+     "explanation": "The correct answer is D. Because in healthcare, the asymmetric cost of diagnostic error involves patient harm, making expert oversight an essential risk-mitigation control in cost-aware automation. In the chapter's proposed ClinAIOps framework, human oversight is built in because the consequences of bad recommendations are high and accountability matters. That oversight reduces risk but does not guarantee safety, and it does not remove the need for provenance or audit mechanisms. The other answers either overstate regulation or deny that clinical distributions can change.",
+     "hint": "Think about: evaluate why human oversight remains a core risk-control mechanism in proposed clinical AI operations frameworks",
+     "type": "single",
+     "options": [
+      "Because FDA regulations strictly forbid machine learning algorithms from executing in clinical settings",
+      "Because clinical patient distributions never experience covariate shift or demographic drift",
+      "Because human review eliminates the need for regulatory audit trails or data provenance tracking",
+      "Because in healthcare, the asymmetric cost of diagnostic error involves patient harm, making expert oversight an essential risk-mitigation control in cost-aware automation"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "When transitioning an MLOps architecture from a cloud environment to a battery-constrained edge wearable, the foundational principles of reproducibility and consistency are discarded in favor of battery life.",
+     "explanation": "False. The five foundational MLOps principles (reproducibility, separation of concerns, consistency, observable degradation, cost-aware automation) remain universal across domains; edge constraints reshape *how* they are implemented (e.g., using OTA firmware versioning and quantized preprocessing parity) without discarding the principles themselves.",
+     "hint": "Think about: compare how domain constraints alter the technical implementation of universal MLOps principles",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze how edge hardware constraints reshape the implementation of foundational MLOps principles in a proposed wearable architecture.",
+    "You can now evaluate why human oversight remains a core risk-control mechanism in proposed clinical AI operations frameworks.",
+    "You can now calculate the fraction of a reference gap closed and interpret human agreement as context rather than as a strict performance ceiling.",
+    "You can now compare how domain constraints alter the technical implementation of universal MLOps principles."
+   ]
+  }
+ ]
+}

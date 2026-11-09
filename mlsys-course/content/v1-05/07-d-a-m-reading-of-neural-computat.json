@@ -1,0 +1,73 @@
+{
+ "title": "D·A·M Reading of Neural Computation",
+ "summary": "Classify the distinct responsibilities of the Data, Algorithm, and Machine axes within the D·A·M taxonomy.",
+ "source": {
+  "chapter": "v1-05",
+  "sections": [
+   "D·A·M Reading of Neural Computation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Classify the distinct responsibilities of the Data, Algorithm, and Machine axes within the D·A·M taxonomy\n- Apply the D·A·M taxonomy to systematically diagnose accuracy drops and hardware underutilization in deployed ML systems\n- Justify why hardware scaling alone cannot resolve data distribution or algorithmic modeling deficiencies"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Neural Computation, § D·A·M Reading of Neural Computation",
+   "md": "In the D·A·M taxonomy, each axis fixes one of the running network's headline numbers, and the data axis fixed the largest weight matrix before any design choice was made. A \\$28{\\times}28$ image flattens to … inputs, so the first layer holds … weights and performs … of the network's arithmetic. The same digits scanned at \\$56{\\times}56$ would quadruple that matrix to … weights without changing the model's depth or the task. Data also decides whether those weights are worth learning."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Distinct responsibilities of the Data, Algorithm, and Machine axes; Diagnostic sequencing for underperforming production deployments; Coupled trade-offs across D·A·M intersections."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A computer vision model deployed in production exhibits high accuracy during offline benchmark evaluations but suffers severe error rates on live camera feeds, while hardware GPU utilization is only \\$15\\%. Use the D·A·M taxonomy to outline a structured diagnostic sequence to isolate the root causes.",
+   "md": "First, investigate the Data axis by comparing live camera feeds against training data to identify distribution shift (lighting, blur, camera angles) or missing classes causing the accuracy drop. Second, investigate the Machine and Algorithm axes by profiling data ingestion pipelines, CPU-side image decoding, and batch sizes to determine why GPU compute units are starved of work (e.g. I/O bottlenecks or un-batched kernel launches). The D·A·M framework separates statistical data mismatches from computational execution bottlenecks."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-05-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Under the D·A·M (Data, Algorithm, Machine) taxonomy presented in the chapter, which statement correctly describes the primary responsibility of each axis and their systems interplay?",
+     "explanation": "The correct answer is D. The D·A·M taxonomy assigns computational structure and hypothesis class to Algorithm, statistical evidence and learnability to Data, and execution efficiency, throughput, memory, and energy to Machine. Deep learning systems succeed only when all three axes align. Cross-assigning hardware constraints to data and algorithms misclassifies axis responsibilities. Asserting guaranteed 100% accuracy ignores statistical learning limitations. Claiming the axes can be optimized independently contradicts the core thesis that changes on one axis (such as increasing model width or batch size) directly impact the others.",
+     "hint": "Think about: classify the distinct responsibilities of the Data, Algorithm, and Machine axes within the D·A·M taxonomy",
+     "type": "single",
+     "options": [
+      "Data determines GPU clock speed, Algorithm dictates physical memory capacity, and Machine formats training labels.",
+      "Algorithm determines whether data is collected, Machine ensures 100% training accuracy, and Data operates independently of both.",
+      "Data, Algorithm, and Machine can be optimized independently without cross-axis trade-offs.",
+      "Algorithm defines computational transformations and capacity, Data determines whether the model can learn the task from representative evidence, and Machine determines whether those operations execute within latency, throughput, memory, and energy budgets."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "According to the D·A·M taxonomy, if a deployed computer vision model suffers elevated error rates in production due to a distribution shift in ambient lighting and camera angles, why will scaling the Machine axis (allocating a larger cluster of faster GPUs) fail to resolve the operational failure?",
+     "explanation": "The correct answer is C. The failure stems from the Data axis (unrepresented deployment lighting conditions and covariate shift). Allocating additional compute hardware on the Machine axis merely executes the training of an unrepresentative model faster without correcting the underlying data deficiency. Hardware accelerators do not alter optimizer learning rates automatically. GPU kernels process arbitrary tensor shapes and aspect ratios. The D·A·M taxonomy provides an analysis framework and does not mandate specific hardware platforms.",
+     "hint": "Think about: justify why hardware scaling alone cannot resolve data distribution or algorithmic modeling deficiencies",
+     "type": "single",
+     "options": [
+      "Hardware accelerators automatically reduce optimizer learning rates when cluster size increases.",
+      "Faster GPU accelerators cannot process image tensors captured at non-standard aspect ratios.",
+      "Machine scaling accelerates computational throughput but cannot supply the missing visual patterns or domain coverage required on the Data axis to learn the shifted distribution.",
+      "The D·A·M framework requires all production deployments to execute on single-thread CPU cores."
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify the distinct responsibilities of the Data, Algorithm, and Machine axes within the D·A·M taxonomy.",
+    "You can now apply the D·A·M taxonomy to systematically diagnose accuracy drops and hardware underutilization in deployed ML systems.",
+    "You can now justify why hardware scaling alone cannot resolve data distribution or algorithmic modeling deficiencies."
+   ]
+  }
+ ]
+}

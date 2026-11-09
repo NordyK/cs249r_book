@@ -1,0 +1,35 @@
+{
+ "title": "⭐ Aha Moment: Your Tensor Works Like NumPy",
+ "summary": "TinyTorch tensor: ⭐ Aha Moment: Your Tensor Works Like NumPy",
+ "source": {
+  "chapter": "tt-01",
+  "sections": [
+   "⭐ Aha Moment: Your Tensor Works Like NumPy"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: Your Tensor Works Like NumPy\n\n**What you built:** A complete Tensor class with arithmetic operations and matrix multiplication.\n\n**Why it matters:** Your Tensor is the foundation of everything to come. Every ML\noperation, from simple addition to complex multi-step computations, will use this class.\nIts surface mirrors NumPy's, so the shape rules, broadcasting semantics, and reduction\naxes you just learned carry straight over to NumPy, PyTorch, and JAX. The implementation\nunderneath is deliberately educational rather than production-grade. `__init__` casts\nevery input to float32, `reshape` copies where NumPy would hand back a view, and\n`MatMul.forward` runs an explicit Python loop so the arithmetic stays visible. Later\nmodules replace those choices one at a time; the interface you learned here does not move.\n\nYour Tensor is ready for machine learning operations.\nEvery operation you just implemented will be used extensively as we build the full framework!"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_tensor():\n    \"\"\"🎯 See your Tensor work just like NumPy.\"\"\"\n    print(\"🎯 AHA MOMENT: Your Tensor Works Like NumPy\")\n    print(\"=\" * 45)\n\n    # Create tensors\n    a = Tensor(np.array([1, 2, 3]))\n    b = Tensor(np.array([4, 5, 6]))\n\n    # Tensor operations\n    tensor_sum = a + b\n    tensor_prod = a * b\n\n    # NumPy equivalents\n    np_sum = np.array([1, 2, 3]) + np.array([4, 5, 6])\n    np_prod = np.array([1, 2, 3]) * np.array([4, 5, 6])\n\n    print(f\"Tensor a + b: {tensor_sum.data}\")\n    print(f\"NumPy  a + b: {np_sum}\")\n    print(f\"Match: {np.allclose(tensor_sum.data, np_sum)}\")\n\n    print(f\"\\nTensor a * b: {tensor_prod.data}\")\n    print(f\"NumPy  a * b: {np_prod}\")\n    print(f\"Match: {np.allclose(tensor_prod.data, np_prod)}\")\n\n    print(\"\\n✨ Your Tensor mirrors NumPy's API, ready for ML!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Tensor Foundation\n\nCongratulations! You've built the foundational Tensor class that powers all machine learning operations!\n\n### Key Accomplishments\n- Built a complete Tensor class with arithmetic operations, matrix multiplication, and shape manipulation\n- Implemented broadcasting semantics that match NumPy for automatic shape alignment\n- Created reduction operations (sum, mean, max) for aggregating data across dimensions\n- Discovered cache performance implications through memory layout analysis\n- All tests pass (validated by `test_module()`)\n\n### Systems Insights Discovered\n- Memory layout matters, but which direction wins depends on the kernel: NumPy's compiled `axis=0` sweep measured about 1.7x faster than `axis=1`, while the \"column access must be strided and slow\" intuition applies to element-at-a-time Python loops\n- Broadcasting efficiency: NumPy handles shape alignment without explicit data copying\n- Matrix multiplication is the computational foundation of linear transformations\n- Shape validation provides clear error messages at minimal performance cost\n\n### Ready for Next Steps\nYour Tensor implementation enables all future ML operations.\nExport with: `tito module complete 01`"
+  },
+  {
+   "type": "text",
+   "md": "**Next**: Module 02 will add Activations that introduce nonlinearity to your tensors!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: Your Tensor Works Like NumPy."
+   ]
+  }
+ ]
+}

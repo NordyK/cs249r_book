@@ -1,0 +1,87 @@
+{
+ "title": "From Code-Defined Logic to Data-Defined Behavior",
+ "summary": "Compare the structural components of Software 1.0 with their Software 2.0 counterparts.",
+ "source": {
+  "chapter": "v1-01",
+  "sections": [
+   "From Code-Defined Logic to Data-Defined Behavior"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare the structural components of Software 1.0 with their Software 2.0 counterparts\n- Calculate and explain the mathematical origin of the verification gap in high-dimensional ML systems\n- Analyze the failure mechanism of Google Flu Trends to evaluate the risks of uncalibrated behavioral proxies\n- Identify the term for data-centric AI versus model-centric AI"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Introduction, § From Code-Defined Logic to Data-Defined Behavior",
+   "md": "In traditional software engineering, a programmer encodes domain logic directly into source code: a tax calculator applies statutory brackets line by line, and an early email filter blocks messages that match a list of forbidden keywords. That rule-based approach works when the specification is closed, but it breaks as soon as attackers rephrase their messages or disguise trigger words faster than engineers can patch the rules."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Software 1.0 vs Software 2.0 mapping; verification gap and high-dimensional input space; behavioral proxy drift and Google Flu Trends war story."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: How did Google Flu Trends fail despite having access to hundreds of billions of real-time search queries, and what systems engineering lesson does this failure provide regarding behavioral proxies?",
+   "md": "Google Flu Trends failed because search query volume was a behavioral proxy reflecting news coverage and search autocomplete features (public attention) as well as actual influenza infection (clinical ground truth), causing overestimates for 100 out of 108 weeks. The systems lesson is that massive data volume cannot substitute for a feedback loop to validated ground-truth measurements (such as CDC clinical sentinel data) to continuously detect proxy drift."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-01-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In Andrej Karpathy's Software 1.0 vs. Software 2.0 framing, how do the roles of source code, the compiler, and debugging map to machine learning workflows?",
+     "explanation": "The correct answer is A. In Software 2.0, learned weights shaped by training data act as source code, and the training loop (stochastic gradient descent) plays the role of the compiler that produces those weights from the curated examples. Debugging still traces execution, but it also expands to the data and the learned behavior. Treating Python scripts or raw datasets as source code misplaces where the program logic lives, and treating hardware or serving runtimes as compilers confuses the execution platform with the training process that produces the weights.",
+     "hint": "Think about: compare the structural components of Software 1.0 with their Software 2.0 counterparts.",
+     "type": "single",
+     "options": [
+      "Learned weights shaped by training data act as source code, the training loop (stochastic gradient descent) acts as the compiler, and debugging expands from execution traces to the data and learned behavior.",
+      "Python scripts act as source code, the deep learning framework acts as the compiler, and debugging focuses on stepping through tensor operations in an interactive debugger.",
+      "Training datasets act as source code, GPU hardware acts as the compiler, and debugging focuses on profiling memory bandwidth utilization.",
+      "Pretrained model weights act as source code, inference serving runtimes act as the compiler, and debugging focuses on network packet inspection."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A computer vision test suite evaluates a \\$224×224 RGB image classifier on 50,000 validation images. Why does passing 100% of these test cases still leave a substantial 'verification gap' in production?",
+     "explanation": "The correct answer is B. The verification gap, the disparity between what a test set covers and the inputs a deployed system meets, arises because the input space of \\$224{\\times}224$ 8-bit RGB images contains \\$256^{150{,}528}$ possible configurations (a number with over 300,000 digits in base 10), whereas a 50,000-image test set evaluates a vanishingly small fraction. Predeployment testing provides statistical evidence over sampled inputs, not exhaustive mathematical proof. Explanations invoking integer precision describe quantization effects rather than the fundamental input-space disparity. Explanations suggesting batch-size limits or backward pass requirements in production confuse inference serving with training mechanics.",
+     "hint": "Think about: calculate and explain the mathematical origin of the verification gap in high-dimensional ML systems.",
+     "type": "single",
+     "options": [
+      "Validation sets evaluate floating-point weights, whereas production inference engines always run in integer precision.",
+      "The total input space of possible pixel configurations (\\$256^150,528, spanning over 300,000 decimal digits) vastly exceeds the sample coverage of any finite test set, making exhaustive testing mathematically impossible.",
+      "Convolutional neural networks cannot generalize beyond the exact batch size used during validation testing.",
+      "Test suites only evaluate forward inference passes, whereas production systems must continuously execute backward gradient updates."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "The development paradigm where engineering teams hold model architecture code relatively fixed and systematically improve dataset quality, labels, and coverage to program model behavior is known as ____ AI.",
+     "explanation": "data-centric. It emphasizes improving the data while holding the code comparatively fixed to shape model behavior.",
+     "hint": "Think about: identify the term for data-centric AI versus model-centric AI.",
+     "type": "fill",
+     "answer": [
+      "data centric",
+      "data-centric"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Training data**: Examples used to fit model parameters; their coverage and labels help determine learned behavior."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Training data",
+   "def": "Examples used to fit model parameters; their coverage and labels help determine learned behavior."
+  }
+ ]
+}

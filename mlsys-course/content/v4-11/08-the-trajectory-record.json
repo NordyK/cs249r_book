@@ -1,0 +1,59 @@
+{
+ "title": "The Trajectory Record",
+ "summary": "Work through The Trajectory Record.",
+ "source": {
+  "chapter": "v4-11",
+  "sections": [
+   "The Trajectory Record"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **The Trajectory Record**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Trajectory Planning, § The Trajectory Record",
+   "md": "Suppose the planner hands the low-level controller a bare array of … joint setpoints for the reach toward the mug, without the obstacle epoch, payload assumption, and pre-checked stopping suffix under which those setpoints were cleared. The MCU then has no way to tell whether the plan is still safe to run when the host stalls or the load changes. The trajectory record, handed over immutably at every replanning cycle, lets the low-level permission path decide whether to admit those setpoints without consulting the high-level planner again."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Trajectory record matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: The planner hands over an immutable record naming frame, evidence epoch, seam state, parent intent-lease digest, and four MCU-clock deadlines in two tiers (high-rate chunk lease, hardware commitment cutoff) together with its latched stop."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-11-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Trajectory Record** develops one of the chapter's claims. Which one?",
+     "options": [
+      "The planner hands over an immutable record naming frame, evidence epoch, seam state, parent intent-lease digest, and four MCU-clock deadlines in two tiers (high-rate chunk lease, hardware commitment cutoff) together with its latched stop.",
+      "Receding-horizon MPC handles constraints explicitly and gains recursive feasibility only through a terminal invariant set, and its solve time against the period decides whether its output can be admitted.",
+      "Planning searches the configuration space and its collision-free subset, and collision queries dominate a sampling planner's run time.",
+      "Because the arm keeps moving during inference, a replacement is planned from the state projected to the seam and admitted against the measured state."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Trajectory record**: The planner hands over an immutable record naming frame, evidence epoch, seam state, parent intent-lease digest, and four MCU-clock deadlines in two tiers (high-rate chunk lease, hardware commitment cutoff) together with its latched stop."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Trajectory record* is transported through *Freshest-proposal mailbox*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Trajectory record is transported through Freshest-proposal mailbox."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through The Trajectory Record."
+   ]
+  }
+ ]
+}

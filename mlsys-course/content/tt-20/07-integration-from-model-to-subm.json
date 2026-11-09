@@ -1,0 +1,144 @@
+{
+ "title": "Integration: From Model to Submission",
+ "summary": "TinyTorch capstone: Integration: From Model to Submission",
+ "source": {
+  "chapter": "tt-20",
+  "sections": [
+   "Integration: From Model to Submission"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: From Model to Submission\n\nThis section demonstrates the complete workflow from model to submission.\nStudents can modify this to benchmark their own models!\n\n**Workflow Steps:**\n1. Create test dataset (or load from milestone)\n2. Create baseline model\n3. Benchmark baseline performance\n4. (Optional) Apply optimizations\n5. (Optional) Benchmark optimized version\n6. Generate submission with comparisons\n7. Save to JSON file\n\nThis is the EXACT workflow used in production ML systems!"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def run_example_benchmark() -> Dict[str, Any]:\n    \"\"\"\n    Complete example showing the full benchmarking workflow.\n\n    Students can modify this to benchmark their own models!\n    \"\"\"\n    print(\"=\"*70)\n    print(\"TINYTORCH CAPSTONE: BENCHMARKING WORKFLOW EXAMPLE\")\n    print(\"=\"*70)\n\n    # Step 1: Create toy dataset\n    print(\"\\n🔧 Step 1: Creating toy dataset...\")\n    X_test = Tensor(rng.standard_normal((100, 10)))\n    y_test = rng.integers(0, 3, 100)\n    print(f\"  Dataset: {X_test.shape[0]} samples, {X_test.shape[1]} features, 3 classes\")\n\n    # Step 2: Create baseline model\n    print(\"\\n🔧 Step 2: Creating baseline model...\")\n    baseline_model = SimpleMLP(input_size=10, hidden_size=20, output_size=3)\n    print(f\"  Model: {baseline_model.count_parameters():,} parameters\")\n\n    # Step 3: Benchmark baseline\n    print(\"\\n📊 Step 3: Benchmarking baseline model...\")\n    baseline_report = BenchmarkReport(model_name=\"baseline_mlp\")\n    baseline_report.benchmark_model(baseline_model, X_test, y_test, num_runs=50)\n\n    # Step 4: Generate submission\n    print(\"\\n📝 Step 4: Generating submission...\")\n    submission = generate_submission(\n        baseline_report=baseline_report,\n        student_name=\"TinyTorch Student\"\n    )\n\n    # Step 5: Save submission\n    print(\"\\n💾 Step 5: Saving submission...\")\n    save_submission(submission, \"capstone_submission.json\")\n\n    print(\"\\n\" + \"=\"*70)\n    print(\"🎉 WORKFLOW COMPLETE!\")\n    print(\"=\"*70)\n    print(\"\\nNext steps:\")\n    print(\"  1. Try optimizing the model (quantization, pruning, etc.)\")\n    print(\"  2. Benchmark the optimized version\")\n    print(\"  3. Generate a new submission with both baseline and optimized results\")\n    print(\"  4. Check which events it qualifies for with qualifies_event()\")\n    print(\"  5. Keep capstone_submission.json as your own record, and diff the next\")\n    print(\"     one against it. That diff is the point; there is no central\")\n    print(\"     leaderboard, and a benchmark you can re-check yourself is worth more\")\n    print(\"     than a rank you cannot.\")\n\n    return submission\n\n\nif __name__ == \"__main__\":\n    run_example_benchmark()"
+  },
+  {
+   "type": "text",
+   "md": "### Understanding the Workflow Pattern\n\nThis workflow follows industry best practices for iterative optimization and deployment qualification:\n\n### Production ML Systems Optimization Lifecycle"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Lifecycle Stage",
+    "Implementation Action",
+    "Output Artifact / Decision",
+    "Systems Verification"
+   ],
+   "rows": [
+    [
+     "**1. Define Task & SLA**",
+     "Select dataset and evaluation metrics",
+     "Fixed test split, latency ceiling, minimum accuracy",
+     "Controlled experimental environment"
+    ],
+    [
+     "**2. Baseline Measurement**",
+     "Profile unoptimized reference model",
+     "`BenchmarkReport` (\\$\\mu_{\\text{base}}, s_{\\text{base}}, M_{\\text{base}}\\$)",
+     "True unoptimized reference baseline"
+    ],
+    [
+     "**3. Apply Candidate Transform**",
+     "Apply one optimization technique (e.g. INT8)",
+     "Transformed model graph (e.g. `QuantizedLinear`)",
+     "Isolate individual transformation impact"
+    ],
+    [
+     "**4. Benchmark & Recheck**",
+     "Sample latency and evaluate accuracy",
+     "Candidate `BenchmarkReport`",
+     "Detect immediate accuracy regressions"
+    ],
+    [
+     "**5. Multi-Objective Comparison**",
+     "Calculate Speedup (\\$S\\$), Compression (\\$C\\$), \\$\\Delta \\text{Acc}\\$",
+     "Three independent ratios, reported together",
+     "Keep only if no axis regressed past its budget"
+    ],
+    [
+     "**6. Submission & Audit**",
+     "Serialized JSON submission schema",
+     "`submission.json` with system environment metadata",
+     "Machine-readable reproducible artifact"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Key Insight**: Professional ML systems engineers iterate methodically on Step 3 and Step 4, verifying each single modification before compounding optimizations."
+  },
+  {
+   "type": "text",
+   "md": "### Advanced Optimization Workflow\n\nThis section runs one end-to-end pass with the modules the workflow actually imports:\n- Module 14 (Profiling): Count the baseline model's parameters\n- Module 16 (Compression): Prune the low-magnitude half of the weights\n- Module 15 (Quantization): Wrap both Linear layers as `QuantizedLinear` (INT8 weights, FP32 arithmetic)\n- Module 19 (Benchmarking): Warmup, repeated timing, median reporting\n- Module 20 (Capstone): Assemble and validate the submission\n\nModules 17 (Acceleration) and 18 (Memoization) are not in this pass. Fusion and KV\ncaching pay off on matmul-heavy and autoregressive workloads, and a 283-parameter MLP\nis neither. Leaving them out is the honest version of the story: Profile, Optimize,\nBenchmark, Submit.\n\n**What Students Learn:**\n- How to import and use APIs from previous modules\n- How to combine two optimizations (pruning, then simulated quantization) and measure the result\n- That storage and latency both regress here, and why. TinyTorch's quantizer keeps the\n  FP32 reference beside the rounded values, so storage grows rather than shrinks, and the\n  extra dequantize step makes the forward pass slower rather than faster\n- That the accuracy delta this pass prints is not evidence of anything, because `SimpleMLP`\n  is never trained and both models sit at chance on random labels. Knowing which of your\n  three numbers is a measurement and which is noise is the skill\n- How to report a modeled packed size next to measured dense bytes, without confusing the two\n- How to document techniques for reproducibility"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 164 lines of code (starting with `def run_optimization_workflow_example() -> Dict[str, Any]:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Combining Multiple Optimizations: What Stacks and What Does Not\n\nIn production ML systems, optimizations are rarely deployed in isolation. Systems engineers stack complementary transformations (vectorization, operator fusion, INT8 quantization, weight pruning, KV-caching) hoping for compounding returns. Whether the returns actually compound depends on whether each pass touches a different cost, and on whether the runtime can exploit what the pass produced:\n\n\n  \n\n\n#### The Analytic Model, Beside the Measurement\n\nTwo columns, because they answer two different questions. The analytic column asks what a deployment that packs int8 and skips zeros would store. The measured column reports what `run_optimization_workflow_example()` above actually observed on this machine, on the 283-parameter `SimpleMLP`, with nothing packed and nothing skipped."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Optimization Pass",
+    "Transformation Mechanism",
+    "Analytic Storage (packed int8)",
+    "Measured Storage (dense FP32)",
+    "Measured Latency"
+   ],
+   "rows": [
+    [
+     "**0. Baseline**",
+     "FP32 arrays, no transformation",
+     "\\$1{,}132\\text{ B}\\$ (\\$1.0\\times\\$)",
+     "\\$1{,}132\\text{ B}\\$ (\\$1.0\\times\\$)",
+     "\\$1.0\\times\\$ reference"
+    ],
+    [
+     "**1. Magnitude Pruning**",
+     "Unstructured, zeroing the smallest half of the weights in place",
+     "Would reach \\$2.0\\times\\$ if the format skipped zeros",
+     "\\$1{,}132\\text{ B}\\$ (\\$1.0\\times\\$), because a zeroed float still occupies 4 bytes",
+     "No change, because the matmul shape is identical"
+    ],
+    [
+     "**2. Simulated INT8 Quantization**",
+     "Round each array to 256 levels, keep the FP32 reference for comparison",
+     "\\$315\\text{ B}\\$ (\\$3.59\\times\\$, from `QuantizedLinear.memory_usage()`)",
+     "\\$2{,}264\\text{ B}\\$ (\\$0.50\\times\\$), reference plus rounded arrays, both FP32",
+     "Slower, because `forward` dequantizes before the matmul"
+    ],
+    [
+     "**Stacked Result**",
+     "Both passes applied, in that order",
+     "\\$\\mathbf{3.59\\times}\\$ smaller, *if* you write a packing format",
+     "\\$\\mathbf{0.50\\times}\\$, i.e. **twice the baseline**",
+     "\\$\\mathbf{< 1.0\\times}\\$, a **regression**"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$C_{\\text{analytic}} = \\frac{1{,}132\\text{ B}}{315\\text{ B}} = \\mathbf{3.59\\times} \\qquad C_{\\text{measured}} = \\frac{1{,}132\\text{ B}}{2{,}264\\text{ B}} = \\mathbf{0.50\\times}\\$\\$\n\nThe analytic factor is not \\$4.0\\times\\$ even in principle, because each quantized array still carries a float32 scale and a zero point. \\$283\\$ codes plus \\$32\\text{ B}\\$ of metadata is \\$315\\text{ B}\\$, not \\$283\\text{ B}\\$. And pruning contributes nothing to either column here, because neither the dense format nor the int8 packing model skips a zero.\n\n**There is no accuracy column, on purpose.** `SimpleMLP` is never trained, so both models classify random labels at chance (\\$1/3\\$ for three classes) and the difference between them is sampling noise. Measured over 40 seeds on this exact setup, the delta averages \\$+0.58\\%\\$ with a standard deviation of \\$3.00\\%\\$, and it comes out negative in 13 seeds, positive in 21, and exactly zero in 6. A column reading \"falls slightly\" would be a number pretending to be a finding. Report the accuracy delta, because the comparison is incomplete without it, and refuse to interpret it until there is a trained model underneath.\n\n**The lesson the two columns teach.** Simulated quantization buys accuracy fidelity, not bytes. Its job is to answer \"what would int8 cost me in accuracy?\" before anyone invests in a packed storage format or an int8 kernel, which is exactly the question this untrained toy cannot answer and a trained milestone model can. The \\$3.59\\times\\$ stays analytic until you write code that stores one byte per weight, and the latency win stays hypothetical until the hardware has an int8 datapath to exploit. A stacking table that multiplies advertised factors together, as brochures do, would have promised \\$8.0\\times\\$ here and been off by a factor of sixteen in the wrong direction.\n\nThe submission's `techniques_applied` list documents each applied pass for automated audit and community replication:"
+  },
+  {
+   "type": "text",
+   "md": "```json\n\"techniques_applied\": [\"int8_quantization\", \"magnitude_pruning_0.5\"]\n```\n\nThis ensures downstream deployment pipelines know the exact sequence of graph lowering transformations required to reproduce the numbers."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Integration: From Model to Submission."
+   ]
+  }
+ ]
+}

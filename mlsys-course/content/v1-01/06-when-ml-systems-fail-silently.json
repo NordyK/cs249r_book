@@ -1,0 +1,81 @@
+{
+ "title": "When ML Systems Fail Silently",
+ "summary": "Analyze the mathematical terms of the degradation equation and map them to their corresponding engineering interventions.",
+ "source": {
+  "chapter": "v1-01",
+  "sections": [
+   "When ML Systems Fail Silently"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the mathematical terms of the degradation equation and map them to their corresponding engineering interventions\n- Identify and diagnose training-serving skew as a structural cause of silent degradation in ML systems\n- Explain why drift monitoring must be paired with outcome evaluation to justify model retraining decisions\n- Distinguish between baseline accuracy improvements and distribution shift sensitivity in ML model degradation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Introduction, § When ML Systems Fail Silently",
+   "md": "Even when every component executes without error, a shift on the data axis can still degrade predictions silently. That vulnerability governs the first half of the dual mandate: keeping learned behavior trustworthy after deployment. In an automotive driver-assistance system, diagnostic trouble codes and hardware watchdog timers expose hardware or communication faults, yet they do not measure how often a perception model detects pedestrians."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: silent degradation vs loud failures; degradation equation and engineering levers (initial accuracy, sensitivity, drift); training-serving skew and operational monitoring."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why does the degradation equation indicate that tracking statistical data drift ($\\mathcal{D}(P_t \\lVert P_0)$) alone is necessary but not sufficient to determine whether a deployed model must be retrained?",
+   "md": "Statistical divergence ($\\mathcal{D}(P_t \\lVert P_0)$) indicates that the input distribution has shifted, but divergence alone does not dictate whether prediction accuracy has actually dropped or by how much. Determining whether retraining is necessary requires monitoring labeled ground-truth outcomes or calibrated business proxies alongside drift metrics to confirm whether the shift has caused meaningful performance degradation."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-01-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In the degradation equation $\\text{Accuracy}(t) \\approx \\text{Accuracy}_0 - \\lambda \\cdot \\mathcal{D}(P_t \\lVert P_0)$, what do the terms $\\mathcal{D}(P_t \\lVert P_0)$ and $\\lambda$ represent, and which engineering lever addresses $\\lambda$?",
+     "explanation": "The correct answer is B. In the degradation equation, $\\mathcal{D}(P_t \\lVert P_0)$ measures statistical divergence (such as KL divergence or Wasserstein distance) between the current operational data distribution $P_t$ and the baseline training distribution $P_0$, while $\\lambda$ represents the model's sensitivity to that shift. The engineering lever for $\\lambda$ is making the model more robust to shift through domain generalization, data augmentation, and regularized training, which flattens the degradation slope. Explanations referring to clock jitter, memory bandwidth ratios, or learning rate schedules confuse statistical data drift with hardware execution or optimization hyperparameters.",
+     "hint": "Think about: analyze the mathematical terms of the degradation equation and map them to their corresponding engineering interventions.",
+     "type": "single",
+     "options": [
+      "$\\mathcal{D}(P_t \\lVert P_0)$ is hardware clock jitter, $\\lambda$ is GPU temperature sensitivity, and it is addressed by dynamic voltage and frequency scaling.",
+      "$\\mathcal{D}(P_t \\lVert P_0)$ is statistical divergence between live production data and training data, $\\lambda$ is model sensitivity to distribution shift, and it is addressed by robust training and domain adaptation to flatten the degradation curve.",
+      "$\\mathcal{D}(P_t \\lVert P_0)$ is the memory bandwidth ratio, $\\lambda$ is cache miss penalty, and it is addressed by prefetching weights into on-chip memory.",
+      "$\\mathcal{D}(P_t \\lVert P_0)$ is training loss divergence, $\\lambda$ is the learning rate decay, and it is addressed by tuning the optimization algorithm."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A production fraud detection model begins misclassifying high-risk transactions immediately after deployment. An audit reveals that the training pipeline extracted user account age in integer days, while the live inference microservice computed account age in fractional floating-point seconds. What type of systems failure does this scenario illustrate?",
+     "explanation": "The correct answer is A. This is a classic example of training-serving skew: the mathematical representation of a feature (account age in days vs. seconds) differed between the offline training environment and the online serving path. Both pipelines executed without software exceptions, yet the model received inputs outside its learned numerical distribution, causing silent prediction degradation. It is not hardware corruption, deserialization latency, or multi-year macroeconomic drift.",
+     "hint": "Think about: identify and diagnose training-serving skew as a structural cause of silent degradation in ML systems.",
+     "type": "single",
+     "options": [
+      "Training-serving skew, where discrepancies in feature computation between training and serving pipelines cause silent model degradation despite bug-free code execution.",
+      "Hardware memory corruption caused by unaligned tensor strides in the GPU inference runtime.",
+      "Unbounded latency growth where deserialization overhead violates the service-level agreement.",
+      "Concept drift caused by macroeconomic shifts in consumer purchasing behavior over multiple years."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Holding drift sensitivity fixed, improving the initial training accuracy ($\\text{Accuracy}_0$) of an ML model shifts the starting point of the degradation curve upward, but does not change the model's rate of accuracy decline ($\\lambda$) with respect to distribution drift over time.",
+     "explanation": "True. Under the fixed-drift-sensitivity assumption in the degradation equation ($\\text{Accuracy}(t) \\approx \\text{Accuracy}_0 - \\lambda \\cdot \\mathcal{D}(P_t \\lVert P_0)$), increasing $\\text{Accuracy}_0$ raises the baseline intercept, while the rate of decline is still governed by $\\lambda$. Better models can also change sensitivity, but this statement holds only when $\\lambda$ is assumed fixed.",
+     "hint": "Think about: distinguish between baseline accuracy improvements and distribution shift sensitivity in ML model degradation.",
+     "type": "truefalse",
+     "answer": true
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the mathematical terms of the degradation equation and map them to their corresponding engineering interventions.",
+    "You can now identify and diagnose training-serving skew as a structural cause of silent degradation in ML systems.",
+    "You can now explain why drift monitoring must be paired with outcome evaluation to justify model retraining decisions.",
+    "You can now distinguish between baseline accuracy improvements and distribution shift sensitivity in ML model degradation."
+   ]
+  }
+ ]
+}

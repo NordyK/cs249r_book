@@ -1,0 +1,61 @@
+{
+ "title": "Evolution of Framework Abstractions",
+ "summary": "Analyze which scaling bottleneck NumPy left open for subsequent deep learning frameworks to solve.",
+ "source": {
+  "chapter": "v1-07",
+  "sections": [
+   "Evolution of Framework Abstractions"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze which scaling bottleneck NumPy left open for subsequent deep learning frameworks to solve\n- Explain how successive ladder rungs inherit low-level primitives rather than replacing them\n- Order the historical milestones in the evolution of machine learning frameworks\n- Identify the vectorization design pattern that connects interpreted frontends to compiled numerical backends"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Frameworks, § Evolution of Framework Abstractions",
+   "md": "In 1979, writing a matrix multiplication in Fortran that used the hardware efficiently required deep knowledge of cache lines, register scheduling, and vector units. By the late 2010s, a single line of Python (`torch.matmul(A, W)`) could dispatch to a tuned implementation without the programmer knowing the details of the hardware. Four decades of abstraction closed that gap, each layer removing a bottleneck that made the previous generation impractical at scale."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: The ladder of abstraction from BLAS/LAPACK to NumPy, Theano, PyTorch, and JAX; Each rung solving the scaling bottleneck exposed by the previous rung; Inheritance versus replacement: higher rungs delegate compute to low-level primitives like cuBLAS; The vectorization pattern (Python logic + compiled C/Fortran inner loops)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why the relationship between rungs on the ladder of abstraction (such as BLAS/LAPACK, NumPy, and modern deep learning frameworks) is characterized by inheritance rather than replacement.",
+   "md": "Higher rungs on the ladder do not replace the numerical primitives of lower rungs; instead, they wrap and orchestrate them while automating higher-level concerns such as automatic differentiation, memory planning, and graph compilation. For instance, a high-level PyTorch matrix multiplication `torch.matmul(A, B)` ultimately delegates to vendor-optimized BLAS kernels (such as cuBLAS on NVIDIA GPUs), meaning an inefficient low-level primitive establishes a performance ceiling for all frameworks built above it."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-07-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "While NumPy provided high-performance linear algebra by wrapping BLAS in Python, what critical scaling bottleneck did it leave unaddressed that motivated the development of deep learning frameworks such as Theano, TensorFlow, and PyTorch?",
+     "explanation": "The correct answer is C. NumPy provided high-level array ergonomics and BLAS-backed performance, but practitioners still had to manually derive and implement analytical backpropagation gradients, creating an error-prone bottleneck for deep networks that automatic differentiation frameworks solved. Single-core CPU matrix multiplication was already solved at the BLAS layer. The $n$-dimensional array abstraction was NumPy's primary feature rather than a missing capability. Python-to-C/Fortran bindings were the core mechanism of NumPy's vectorization model rather than an unsolved problem.",
+     "hint": "Think about: analyze which scaling bottleneck NumPy left open for subsequent deep learning frameworks to solve",
+     "type": "single",
+     "options": [
+      "Inability to execute matrix multiplications on single-core CPU architectures",
+      "Lack of an $n$-dimensional array data structure in scientific computing",
+      "The requirement for manual gradient derivation and hand-written backpropagation passes for multi-layer neural networks",
+      "Inability to run compiled Fortran and C routines through high-level scripting languages"
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze which scaling bottleneck NumPy left open for subsequent deep learning frameworks to solve.",
+    "You can now explain how successive ladder rungs inherit low-level primitives rather than replacing them.",
+    "You can now order the historical milestones in the evolution of machine learning frameworks.",
+    "You can now identify the vectorization design pattern that connects interpreted frontends to compiled numerical backends."
+   ]
+  }
+ ]
+}

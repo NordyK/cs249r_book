@@ -1,0 +1,106 @@
+{
+ "title": "Test: Trajectory Fine-Tuning",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v3-16-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Trajectory Preference Optimization** develops one of the chapter's claims. Which one?",
+     "options": [
+      "When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context.",
+      "Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed.",
+      "A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas.",
+      "LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Preference training**: When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Loss masking**?",
+     "options": [
+      "A training example reconstructs each selected response's input exactly as the model received it, truncations and redactions included, under a recorded tokenizer and template configuration.",
+      "Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime.",
+      "When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context.",
+      "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Loss masking itself, not a neighbouring idea.",
+     "explanation": "**Loss masking:** Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+    },
+    {
+     "type": "single",
+     "q": "The section **Serializing Trajectories** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas.",
+      "Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime.",
+      "Packing is only a memory layout, so block-diagonal attention, per-example label shifts, and position handling must leave each packed example's logits equal to its unpacked logits, a property tested rather than assumed.",
+      "When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Schema augmentation**: A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas."
+    },
+    {
+     "type": "single",
+     "q": "The section **Fallacies and Pitfalls** develops one of the chapter's claims. Which one?",
+     "options": [
+      "LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation.",
+      "Loss values are comparable only under identical split, serialization, mask, and normalization, and promotion requires closed-loop task acceptance under the serving configuration, not lower loss.",
+      "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained.",
+      "When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Preference training**: When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context."
+    },
+    {
+     "type": "single",
+     "q": "The section **Batching Variable-Length Trajectories** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A disagreement rate measured on reference prefixes bounds excess task cost only by min(H, H^2 eps), while the same rate on learner states with bounded recovery cost gives a linear bound, so where imitation error is measured sets the horizon penalty.",
+      "Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed.",
+      "LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation.",
+      "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Loss normalization**: Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Three homes for behavior* preserves the authority limit of *Proposal boundary*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Three homes for behavior preserves the authority limit of Proposal boundary."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Loss masking* selects response positions within *Delivered-prefix serialization*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Loss masking selects response positions within Delivered-prefix serialization."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Three homes for behavior**?",
+     "options": [
+      "Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime.",
+      "A costly teacher configuration generates trajectories that pass the same admission as any demonstration, so distillation from sampled tokens is imitation rather than soft-target matching.",
+      "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained.",
+      "Loss values are comparable only under identical split, serialization, mask, and normalization, and promotion requires closed-loop task acceptance under the serving configuration, not lower loss."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Three homes for behavior itself, not a neighbouring idea.",
+     "explanation": "**Three homes for behavior:** Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime."
+    }
+   ]
+  }
+ ]
+}

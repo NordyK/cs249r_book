@@ -1,0 +1,61 @@
+{
+ "title": "Spending Governance",
+ "summary": "Work through Spending Governance.",
+ "source": {
+  "chapter": "v3-19",
+  "sections": [
+   "Spending Governance",
+   "Liability bounds and admission",
+   "Budget conservation across descendants",
+   "Spending alarms and admission limits"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Spending Governance**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Agent Economics, § Spending Governance",
+   "md": "When a coordinator admits concurrent sub-agents or child tasks, simple balance checks collapse under race conditions. If two children inspect the remaining free balance simultaneously before either records a reservation, both admission checks succeed, yet their combined liability immediately breaches the authorized task budget. Task cancellation introduces a second concurrency bug: returning a stopped child's allocation to the free pool while its remote service call remains billable allows another worker to spend funds that are already committed to third-party infrastructure. The harness already solved this for one trajectory."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Liability bounds and admission\n- Budget conservation across descendants\n- Spending alarms and admission limits"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Budget conservation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Every budget account in the tree keeps budget = settled + reserved + free under atomic, logged transitions, so a delegation tree conserves spending and a stopped child keeps its reservation until its late bills settle."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-19-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Spending Governance** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Owning capacity beats an API at a delivered utilization u* = F / (3600 R (P_eff - v)), not at a token price.",
+      "Speculative decoding pays only when the accepted-draft rate shortens the output-bound critical path by more than draft and verification work add to the bill.",
+      "Ideal prefix reuse bills the quadratic re-send at the cached rate, which lowers its coefficient without removing it, so a compaction pays back only after enough turns to recover its rewrite and lost cache.",
+      "Every budget account in the tree keeps budget = settled + reserved + free under atomic, logged transitions, so a delegation tree conserves spending and a stopped child keeps its reservation until its late bills settle."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Budget conservation**: Every budget account in the tree keeps budget = settled + reserved + free under atomic, logged transitions, so a delegation tree conserves spending and a stopped child keeps its reservation until its late bills settle."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Spending Governance."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,68 @@
+{
+ "title": "Lighthouse Models: Constraint Propagation",
+ "summary": "Classify diverse ML workloads by their limiting physical constraints (capacity-bound vs. bandwidth-bound vs. compute-bound) using the lighthouse model framework.",
+ "source": {
+  "chapter": "v1-16",
+  "sections": [
+   "Lighthouse Models: Constraint Propagation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Classify diverse ML workloads by their limiting physical constraints (capacity-bound vs. bandwidth-bound vs. compute-bound) using the lighthouse model framework\n- Use a lighthouse's home regime and limiting term to select the optimization lever that pays and reject the one that is wasted\n- Order the lifecycle phases of ML systems constraint propagation from foundational hardware constraints through architecture, compression, acceleration, serving, and operational monitoring"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Conclusion, § Lighthouse Models: Constraint Propagation",
+   "md": "Predicting how an engineering change propagates across layers starts with identifying which physical resource limits the workload. Each of the book's five lighthouse models has a home regime defined by the resource it saturates first under typical operating conditions: ResNet-50 is compute-bound, decode for GPT-2 and Llama is bandwidth-bound, DLRM is capacity-bound, MobileNetV2 is compute-bound in its efficient regime, and keyword spotting (KWS) is power-bound."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: each lighthouse's home regime and the iron-law term that limits it; the lever that paid and the lever that was wasted for a given limiting term; cross-layer constraint propagation illustrated by the MobileNetV2 journey."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-16-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A production recommender workload is dominated by embedding tables larger than one accelerator's memory where engineers spend significant effort deciding where data physically resides across storage tiers rather than optimizing dense matrix math. Which lighthouse model embodies this constraint regime, and how does its primary bottleneck differ from low-batch GPT-2/Llama decoding?",
+     "explanation": "The correct answer is D. DLRM; it is capacity-bound by embedding tables larger than one accelerator's memory requiring physical data placement design, whereas low-batch LLM decode is memory-bandwidth-bound due to streaming weights with minimal arithmetic reuse per token. The five lighthouse models represent distinct home regimes across the systems spectrum: DLRM is capacity-bound because embedding tables larger than one accelerator's memory cannot fit in one accelerator's HBM, forcing the tables to be sharded across accelerators or memory tiers; low-batch autoregressive LLM decoding is bandwidth-bound because weights must be read from HBM for every token with an arithmetic intensity of $\\approx 1\\text{ FLOP/byte}$; ResNet-50 at large batch sizes is compute-bound; MobileNetV2 operates under mobile battery/thermal envelopes; and KWS operates under sub-megabyte SRAM and milliwatt constraints. The other options misclassify the workloads and their physical bottlenecks.",
+     "hint": "Think about: classify diverse ML workloads by their limiting physical constraints (capacity-bound vs. bandwidth-bound vs. compute-bound) using the lighthouse model framework.",
+     "type": "single",
+     "options": [
+      "MobileNetV2; it is capacity-bound on microcontrollers, whereas autoregressive decoding is bound by network packet round-trip times.",
+      "ResNet-50; it is capacity-bound by image batch activation footprints in host DRAM, whereas LLM decode is compute-bound.",
+      "Keyword Spotting (KWS); it is capacity-bound by microcontroller flash storage, whereas LLM decode is strictly compute-bound by tensor core peak FLOP/s.",
+      "DLRM; it is capacity-bound by embedding tables larger than one accelerator's memory requiring physical data placement design, whereas low-batch LLM decode is memory-bandwidth-bound due to streaming weights with minimal arithmetic reuse per token."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A team serving GPT-2 at batch size one on an H100 proposes two investments: hand-tuning the matrix-multiply kernels to raise achieved FLOP/s, or batching concurrent requests and storing weights in fewer bytes. Using the chapter's lighthouse trace, which investment pays off, and why?",
+     "explanation": "The correct answer is B. Batching and fewer bytes per weight, because batch-one decode is bandwidth-bound: its data-movement term exceeds its compute term, so only levers that reuse each weight across more tokens or move fewer bytes per token shorten the step. The trace table pairs the bandwidth-bound regime of GPT-2/Llama decode with the data-movement term DataVolume/Bandwidth; raising peak arithmetic throughput is the lever wasted at batch one. GPT-2 training is compute-bound, which is why the regime belongs to the workload and phase rather than to the model name. GPT-2 weights fit comfortably on one H100, so capacity is not the limit, and a high ridge point makes low-intensity workloads more bandwidth-bound, not less.",
+     "hint": "Think about: use a lighthouse's home regime and limiting term to select the optimization lever that pays and reject the one that is wasted.",
+     "type": "single",
+     "options": [
+      "Kernel tuning, because GPT-2 is compute-bound at every batch size and phase.",
+      "Batching and fewer bytes per weight, because batch-one decode is bandwidth-bound: its data-movement term exceeds its compute term, so only levers that reuse each weight across more tokens or move fewer bytes per token shorten the step.",
+      "Neither, because GPT-2 decode is capacity-bound like DLRM and must first be sharded across several devices.",
+      "Kernel tuning, because a high ridge point means every workload gains more from compute than from bandwidth."
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify diverse ML workloads by their limiting physical constraints (capacity-bound vs. bandwidth-bound vs. compute-bound) using the lighthouse model framework.",
+    "You can now use a lighthouse's home regime and limiting term to select the optimization lever that pays and reject the one that is wasted.",
+    "You can now order the lifecycle phases of ML systems constraint propagation from foundational hardware constraints through architecture, compression, acceleration, serving, and operational monitoring."
+   ]
+  }
+ ]
+}

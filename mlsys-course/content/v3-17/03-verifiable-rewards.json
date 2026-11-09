@@ -1,0 +1,74 @@
+{
+ "title": "Verifiable Rewards",
+ "summary": "Work through Verifiable Rewards.",
+ "source": {
+  "chapter": "v3-17",
+  "sections": [
+   "Verifiable Rewards",
+   "The score and the intended outcome",
+   "False accepts among rewarded outcomes",
+   "Reward composition"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Verifiable Rewards**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Reinforcement Learning from Verifiable Rewards, § Verifiable Rewards",
+   "md": "When a trial on `pool_repair_01` finishes, the training loop scores the submitted patch by running the acceptance suite `repair_accept_v1`, yet passing that unit test provides evidence only about the specific assertions the suite checks. Before the system can convert an execution outcome into a scalar reward, the training infrastructure must guarantee exactly what was executed, which artifact was tested, and which version of the grader evaluated it."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The score and the intended outcome\n- False accepts among rewarded outcomes\n- Reward composition"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Reward hacking matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-17-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Verifiable Rewards** develops one of the chapter's claims. Which one?",
+     "options": [
+      "GRPO replaces the learned critic with G rollouts per task and broadcasts one standardized coefficient to every sampled token of a rollout, and its clipping and KL estimator choices change how that signal is weighted.",
+      "Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability.",
+      "The false-accept share of rewarded rollouts moves with the policy's current pass rate rather than being a fixed verifier property, so reward shaping must preserve the priority of correct outcomes.",
+      "Grader isolation placed on the reward path protects the verdict from both the acting policy and the candidate code it submits, so a reward reflects executed tests rather than tampering."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Reward hacking**: Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Reward hacking* exploits errors in *Task acceptance contract*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Reward hacking* exploits errors in *Reward as measurement*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Verifiable reward**: A measured rollout score supplies an optimization signal under a specified evaluator; it may incompletely represent the intended task."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Verifiable reward",
+   "def": "A measured rollout score supplies an optimization signal under a specified evaluator; it may incompletely represent the intended task."
+  }
+ ]
+}

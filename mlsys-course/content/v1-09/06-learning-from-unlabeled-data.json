@@ -1,0 +1,96 @@
+{
+ "title": "Learning from Unlabeled Data",
+ "summary": "Explain confirmation bias in pseudo-labeling and evaluate what confidence thresholding can and cannot fix.",
+ "source": {
+  "chapter": "v1-09",
+  "sections": [
+   "Learning from Unlabeled Data",
+   "Semi-supervised learning",
+   "Self-supervised learning",
+   "Foundation-model amortization"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain confirmation bias in pseudo-labeling and evaluate what confidence thresholding can and cannot fix\n- Evaluate the task-dependent assumption behind consistency regularization\n- Calculate the break-even threshold for amortizing self-supervised pretraining across downstream tasks\n- Compare contrastive self-supervised learning architectures and their memory-compute scaling trade-offs\n- Analyze why pretraining-data defects in a shared foundation model can affect many downstream adaptations"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Selection, § Learning from Unlabeled Data",
+   "md": "A hospital archive holding tens of thousands of unannotated chest X-rays or a language-modeling team holding terabytes of raw web text already has its inputs on disk; the bottleneck is that active learning still pays an expert for every example it selects and synthesis still pays for every example it creates. Learning from unlabeled data attacks that label bottleneck from the other side. Semi-supervised learning lets a model trained on a small labeled seed supply provisional labels for the rest of the pool."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Semi-supervised learning\n- Self-supervised learning\n- Foundation-model amortization\n\nPay attention to: Pseudo-labeling and confirmation bias; Consistency regularization; Foundation-model amortization; Contrastive learning memory cost."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain the mechanism of confirmation bias in semi-supervised pseudo-labeling, and specify how confidence thresholding mitigates it.",
+   "md": "Confirmation bias arises when the model trains on its own wrong pseudo-labels and reinforces those mistakes in later rounds. A high confidence threshold filters out low-confidence predictions, but confidently wrong pseudo-labels can still survive, so thresholding is only a partial defense. The practical check is to compare the model's confidence against held-out labeled validation evidence before trusting the expanded training set."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-09-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Consistency regularization methods such as FixMatch assume that label-preserving perturbations of an input should not change the model's predicted class distribution much.",
+     "explanation": "True. The method relies on a task-valid smoothness assumption: if the augmentation preserves the label, predictions across the two views should stay consistent. The key caveat is that closeness in raw input space alone is not enough—rotations, crops, or other perturbations can change the true label on some tasks.",
+     "hint": "Think about: evaluate the task-dependent assumption behind consistency regularization.",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "In the economics of foundation models, an organization invests $C_{\\text{pretrain}} = 10{,}000$ GPU-hours in self-supervised pretraining. Each downstream task fine-tuning costs $C_{\\text{finetune}} = 50$ GPU-hours. Training each task from scratch would cost $C_{\\text{scratch}} = 1{,}000$ GPU-hours. What is the minimum number of downstream tasks $N^*$ required to break even on the pretraining investment?",
+     "explanation": "The correct answer is C. The break-even condition is $C_{\\text{pretrain}} + N \\cdot C_{\\text{finetune}} \\le N \\cdot C_{\\text{scratch}}$, which gives \\$10{,}000 + 50N \\le 1000N$, or \\$950N \\ge 10{,}000$. Solving for $N$ yields $N \\ge 10{,}000 / 950 \\approx 10.53$. Thus, at least 11 downstream tasks are required for the foundation model approach to use fewer total GPU-hours under these assumptions. This is a compute-only crossover at matched target quality; a dollar comparison must also price labels, accelerator hours, and other differing costs. At 10 tasks, scratch training costs \\$10{,}000$ hours while the foundation model costs \\$10{,}500$ hours. At 11 tasks, scratch training costs \\$11{,}000$ hours while the foundation model costs \\$10{,}550$ hours.",
+     "hint": "Think about: calculate the break-even threshold for amortizing self-supervised pretraining across downstream tasks.",
+     "type": "single",
+     "options": [
+      "$N^* = 5$ downstream tasks",
+      "$N^* = 8$ downstream tasks",
+      "N^* = 11 downstream tasks (\\$10,000 + 11 × 50 = 10,550 < 11 × 1,000 = 11,000)",
+      "$N^* = 50$ downstream tasks"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "How does the MoCo (Momentum Contrast) framework reduce the hardware and memory constraints of contrastive self-supervised learning compared to naive SimCLR?",
+     "explanation": "The correct answer is C. Contrastive learning requires large sets of negative examples for effective representation learning. While SimCLR scales the mini-batch size (batches of up to 8,192 examples, paid for in activation memory and all-gather traffic), MoCo decouples the dictionary size from the mini-batch size by maintaining a memory queue of negative keys updated with a momentum-averaged teacher encoder. MoCo still uses neural backbones and backpropagation, operates in an unsupervised manner without human labels, and computes cosine similarities in latent space rather than raw byte Jaccard comparisons.",
+     "hint": "Think about: compare contrastive self-supervised learning architectures and their memory-compute scaling trade-offs.",
+     "type": "single",
+     "options": [
+      "By replacing convolutional backbones with rule-based lookup tables to avoid backpropagation",
+      "By requiring fully supervised class labels to filter out false negative pairs",
+      "By using a dynamic queue of negative keys and a slowly updating momentum encoder, decoupling negative dictionary size from mini-batch size",
+      "By computing exact pairwise Jaccard similarities on raw byte sequences rather than latent embeddings"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Because self-supervised pretraining learns general representations from unlabeled data, it completely eliminates the need for data selection or quality filtering during the pretraining stage.",
+     "explanation": "False. Self-supervised pretraining at web scale remains highly sensitive to pretraining data quality; uncurated corpora containing boilerplate, corrupted text, toxic samples, or pervasive duplicates degrade representation quality and inflate training FLOPs without improving downstream transfer.",
+     "hint": "Think about: evaluate the misconception that self-supervised learning eliminates data curation requirements.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: What is the systems-level 'homogenization risk' (or blast radius) of pretraining a shared foundation model on an uncurated dataset?",
+   "md": "A shared base model can propagate the same upstream defect into many downstream tasks, so a bad pretraining-data choice has a much larger blast radius than in train-from-scratch workflows. For example, a memorized private pattern or systematic bias in the base model may affect many adaptations built on top of it. The actual impact is not universal, because downstream fine-tuning and validation can reduce or expose some defects."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain confirmation bias in pseudo-labeling and evaluate what confidence thresholding can and cannot fix.",
+    "You can now evaluate the task-dependent assumption behind consistency regularization.",
+    "You can now calculate the break-even threshold for amortizing self-supervised pretraining across downstream tasks.",
+    "You can now compare contrastive self-supervised learning architectures and their memory-compute scaling trade-offs."
+   ]
+  }
+ ]
+}

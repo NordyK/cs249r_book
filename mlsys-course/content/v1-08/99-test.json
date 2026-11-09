@@ -1,0 +1,140 @@
+{
+ "title": "Test: Model Training",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-08-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "When a team transitions a model from FP32 training to mixed-precision (FP16/BF16) on Tensor Core accelerators without changing the model architecture, batch size, or dataset, which term of the training-time law ($T_{\\text{train}} = \\frac{O}{R_{\\text{peak}} \\times \\eta_{\\text{hw}}}$) is most directly improved?",
+     "explanation": "The correct answer is C. The chapter's optimization matching table assigns mixed precision (FP16/BF16) to peak throughput ($R_{\\text{peak}}$). Tensor Cores execute reduced-precision matrix multiplications at several times the theoretical FLOP/s ceiling of FP32 ALUs. The claim regarding total operations $O$ is incorrect because the algorithmic graph and number of multiply-accumulate operations remain identical. The utilization claim is incorrect because $\\eta_{\\text{hw}}$ measures efficiency relative to the available peak, and precision changes do not inherently eliminate data loader bubbles. The data volume claim is false because precision does not reduce sample requirements.",
+     "hint": "Think about: classify mixed-precision training by its direct target term ($R_{\\text{peak}}$) in the training-time law.",
+     "type": "single",
+     "options": [
+      "Total operations $O$, because lower numerical precision halves the number of multiplications required in each matrix multiplication.",
+      "Hardware utilization $\\eta_{\\text{hw}}$, because mixed precision automatically eliminates all GPU pipeline bubbles and CPU data stalls.",
+      "Peak throughput $R_{\\text{peak}}$, because Tensor Cores provide a substantially higher theoretical FLOP/s ceiling for reduced-precision matrix operations compared to standard FP32 execution units.",
+      "Data volume $D_{\\text{tokens}}$, because lower precision requires fewer training tokens for the loss to converge."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Why does the chapter's conventional FP16 mixed-precision recipe keep FP32 master weights and perform selected reductions in FP32 instead of forcing every part of training into 16-bit precision?",
+     "explanation": "The correct answer is D. The section's FP16 recipe keeps FP32 master weights because an update can be too small to change a stored FP16 weight after rounding even when the update itself is representable; preserving the update in FP32 avoids losing it across many steps. The same section also notes that selected reductions are often kept in FP32 because wider accumulation improves numerical behavior, though it does not guarantee stability everywhere. The FP64 and host-RAM claims invent hardware requirements the chapter does not make, and autodiff does not require a purely FP32 graph representation.",
+     "hint": "Think about: justify FP32 master weights and selected FP32 reductions in the conventional FP16 mixed-precision training recipe.",
+     "type": "single",
+     "options": [
+      "Tensor Cores cannot execute backpropagation unless gradients are stored in FP64.",
+      "FP16 allocations can lock the accelerator memory bus unless the master weights are moved to host RAM.",
+      "Automatic differentiation requires symbolic derivatives to be represented only in FP32.",
+      "Very small parameter updates can be rounded away when applied directly to FP16 weights, and selected reductions benefit from the wider range or precision of FP32 accumulation."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Place the following milestones in chronological order, reflecting how training-system constraints evolved:",
+     "explanation": "The correct order is: (2) Backpropagation is popularized for multilayer neural networks, (4) AlexNet demonstrates that deep neural network training maps effectively to GPUs, (1) Transformers shift sequence modeling toward high-throughput dense matrix multiplication and large activation footprints, (3) Large-scale foundation models such as GPT-3 make utilization and multi-accelerator scaling central engineering concerns, (5) IO-aware FlashAttention appears as a response to attention memory-bandwidth limits. This sequence matters because each later systems response addresses a constraint exposed by the earlier stage: GPU acceleration follows practical deep learning, transformers amplify activation and attention costs, frontier-scale models make utilization and scaling decisive, and FlashAttention targets the resulting IO bottleneck in attention.",
+     "hint": "Think about: trace the historical sequence linking major training-system milestones to the constraints they exposed.",
+     "type": "order",
+     "items": [
+      "Backpropagation is popularized for multilayer neural networks.",
+      "AlexNet demonstrates that deep neural network training maps effectively to GPUs.",
+      "Transformers shift sequence modeling toward high-throughput dense matrix multiplication and large activation footprints.",
+      "Large-scale foundation models such as GPT-3 make utilization and multi-accelerator scaling central engineering concerns.",
+      "IO-aware FlashAttention appears as a response to attention memory-bandwidth limits."
+     ]
+    },
+    {
+     "q": "An engineering team suspects that an individual custom LayerNorm kernel has poor arithmetic intensity and low register occupancy, while another team suspects their DataLoader is causing host-to-device PCIe transfer stalls. Which combination of profiling tool classes from the chapter is best suited to investigate each respective issue?",
+     "explanation": "The correct answer is A. The chapter distinguishes two classes of profilers. Kernel-level GPU profilers record per-kernel counters such as achieved memory throughput and arithmetic-unit occupancy, making them right for the custom LayerNorm kernel. Framework-level and system-level timeline profilers (for example PyTorch Profiler or NVIDIA Nsight Systems) record timeline traces capturing CPU thread execution, CUDA API dispatches, PCIe memory copies, and GPU stream synchronization, making them ideal for diagnosing DataLoader and PCIe stalls. `nvidia-smi` provides coarse device-wide polling rather than kernel-level roofline analysis. Linux `top` monitors host OS processes, not GPU internal instruction pipelines.",
+     "hint": "Think about: select the appropriate class of profiler (kernel-level counters versus timeline traces) based on the granularity of the performance investigation.",
+     "type": "single",
+     "options": [
+      "A kernel-level GPU profiler with per-kernel counters for the arithmetic intensity and occupancy analysis; a framework-level or system-level timeline profiler for the DataLoader and PCIe transfers.",
+      "`nvidia-smi` for kernel-level arithmetic intensity; TensorBoard loss curves for DataLoader PCIe transfer stalls.",
+      "NVIDIA Nsight Compute for cluster-wide inter-node network bandwidth; PyTorch Profiler for register allocation analysis.",
+      "Linux `top` command for GPU kernel instruction analysis; NVIDIA Nsight Systems for CPU register spill tracking."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A team scales a dense model from 7 billion to 20 billion parameters while keeping the same training-token budget, precision recipe, and optimizer structure. Under the chapter's fallacies discussion, what is the most defensible conclusion?",
+     "explanation": "The correct answer is D. Under the chapter's dense-model accounting with fixed precision and optimizer assumptions, a larger parameter count clearly raises memory and leading FLOP requirements, so systems cost goes up in a predictable direction. But the scientific outcome is not guaranteed: keeping the same token budget does not prove either improvement or collapse in validation quality. The \"must improve\" answer mistakes model size for a universal quality guarantee, while the CPU answer invents a hardware consequence the chapter does not state.",
+     "hint": "Think about: distinguish the predictable systems costs of scaling parameter count from the uncertain effect on final model quality.",
+     "type": "single",
+     "options": [
+      "Validation accuracy must improve in proportion to parameter count because the larger model can represent more functions.",
+      "The run will necessarily move to CPU execution because 20B parameters cannot be trained on accelerators.",
+      "The larger model guarantees worse accuracy because fixed-token training always causes catastrophic interference at higher parameter counts.",
+      "The training-state and compute budgets rise substantially under the same dense-model accounting, but model quality is not guaranteed to improve because it still depends on data, optimization, and evaluation."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Arrange the following engineering steps in the chapter's preferred order for deciding whether to scale beyond one device, assuming the initial bounds do not already prove that single-device training is infeasible:",
+     "explanation": "The correct order is: (3) Establish a single-device baseline and quantify the current bottleneck, (4) Apply relevant local optimizations such as mixed precision, prefetching, checkpointing, or accumulation, (1) Re-evaluate whether memory or time limits still justify scaling, (2) Add distributed parallelism or sharding if the remaining limit still requires it. This order matters because the chapter's scaling discipline uses baseline measurement first, then local fixes targeted to the observed constraint, then a new decision about whether a hard limit remains. Jumping straight to distributed scaling can add communication and operational complexity before the single-device bottleneck is even understood.",
+     "hint": "Think about: sequence the chapter's single-machine-first process for deciding when distributed scaling is actually justified.",
+     "type": "order",
+     "items": [
+      "Establish a single-device baseline and quantify the current bottleneck.",
+      "Apply relevant local optimizations such as mixed precision, prefetching, checkpointing, or accumulation.",
+      "Re-evaluate whether memory or time limits still justify scaling.",
+      "Add distributed parallelism or sharding if the remaining limit still requires it."
+     ]
+    },
+    {
+     "q": "Sudden NaN loss spikes during mixed-precision training are usually the same failure mode as an out-of-memory error, because both come from the GPU running out of memory during backpropagation.",
+     "explanation": "False. An out-of-memory failure is a capacity problem that triggers an allocation error, while NaNs indicate numerical instability somewhere in the training computation. Mixed precision can contribute to numerical issues, but a NaN spike is not the same diagnosis as memory exhaustion.",
+     "hint": "Think about: distinguish memory-capacity failures from numerical-instability failures in mixed-precision training.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Why is Model FLOPs Utilization (MFU) a more reliable metric than raw GPU busy percentage (reported by tools like `nvidia-smi`) when evaluating training systems efficiency?",
+     "explanation": "The correct answer is C. Raw GPU utilization measures the percentage of time GPU execution units or kernels are active. A GPU can show 95% utilization while spending half its time stalling on memory bandwidth or recomputing activations during gradient checkpointing. In contrast, MFU ($\\text{MFU} = \\frac{O_{\\text{model}}}{R_{\\text{peak}} \\times T_{\\text{step}}}$) includes only the useful forward and backward model FLOPs in the numerator, explicitly penalizing recomputation, padding FLOPs, memory stalls, and pipeline bubbles. MFU is an accelerator metric, not a CPU metric. MFU is not fixed to 100%; reported values depend on workload, hardware, precision, and the FLOP-counting convention. MFU measures hardware efficiency, not loss convergence per dollar.",
+     "hint": "Think about: differentiate Model FLOPs Utilization (MFU) from raw GPU busy utilization and explain which overheads MFU exposes.",
+     "type": "single",
+     "options": [
+      "MFU is measured directly from host CPU clock cycles, eliminating GPU driver instrumentation overhead.",
+      "MFU is mathematically fixed to 100% on any healthy accelerator cluster regardless of software overhead.",
+      "MFU counts only the theoretical forward and backward FLOPs required by the model architecture divided by the product of peak hardware throughput and measured step time, whereas raw GPU busy percentage also counts time spent on recomputation, padding, and memory stalls outside that model-FLOP numerator.",
+      "MFU measures training loss convergence speed per dollar rather than floating-point operations."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "For each batch, a training step has three dependent stages in a serial baseline: data preprocessing ($T_{\\text{prep}} = 30\\text{ ms}$), host-to-device transfer ($T_{\\text{xfer}} = 10\\text{ ms}$), and GPU compute ($T_{\\text{comp}} = 50\\text{ ms}$). Different batches can occupy independent resources and overlap with correct handoff. If the team implements steady-state overlapping with prefetching and double buffering, what iteration interval is theoretically possible after fill and before drain?",
+     "explanation": "The correct answer is B. The serial baseline takes \\$30 + 10 + 50 = 90 ms per batch, but ideal steady-state overlap changes the limiting interval to max(30, 10, 50) = 50 ms. That is a throughput improvement to \\$90/50 = 1.8×, not a promise that the latency of one isolated batch falls to 50 ms from startup. The \\$10 ms answer uses the fastest stage instead of the slowest, and the no-overlap answer ignores the purpose of prefetching and copy/compute concurrency.",
+     "hint": "Think about: calculate the steady-state throughput interval of an overlapped training pipeline from its stage times.",
+     "type": "single",
+     "options": [
+      "\\$40 ms, because preprocessing and transfer replace compute once overlap is enabled.",
+      "\\$50 ms, because in ideal steady state the interval is bounded by the slowest overlapped stage rather than the serial sum.",
+      "\\$10 ms, because all stages run concurrently and the fastest one sets the pace.",
+      "\\$90 ms, because DMA transfers cannot overlap useful GPU computation."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In FP16 mixed-precision training, the loss is multiplied before backpropagation so the resulting gradients are shifted into a safer numeric range, then divided back down before the optimizer update. This technique is known as loss ____.",
+     "explanation": "scaling. Loss scaling multiplies the loss before backward so the resulting gradients are less likely to underflow in FP16, then unscales them before the optimizer step.",
+     "hint": "Think about: identify loss scaling as the technique used to reduce FP16 gradient underflow risk.",
+     "type": "fill",
+     "answer": [
+      "scaling"
+     ]
+    },
+    {
+     "q": "Scaling the training batch size by \\$8× while keeping the learning rate and schedule unchanged guarantees the same model quality in less wall-clock time.",
+     "explanation": "False. A larger batch changes both the number of updates per epoch and the gradient statistics seen by the optimizer, so the old learning-rate schedule may no longer be appropriate. The section says validation is needed after a large batch-size change, and retuning may be needed rather than guaranteed.",
+     "hint": "Think about: evaluate why changing batch size can alter optimization behavior even when hardware throughput improves.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  }
+ ]
+}

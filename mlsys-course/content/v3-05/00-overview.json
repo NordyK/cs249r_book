@@ -1,0 +1,275 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v3-05",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **KV Cache Management** (Vol III). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, KV Cache Management, Purpose",
+   "md": "An agent spends much of its life waiting. While a test suite runs or a remote service responds, the model generates nothing, yet the attention state computed from the request's prefix can stay resident in accelerator memory, holding capacity that another request could put to work. That state is large, it grows with every token the trajectory carries, and its size is fixed by the model's geometry rather than by any choice the agent makes."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Attention State as a Serving Resource",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "The Footprint of Retained Attention Stat",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Memory Fragmentation",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Paged KV Allocation",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Prefix Caching Across Turns",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Chunked Prefill Scheduling",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Paused-State Policies",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**KV footprint and resident fit**",
+     "Retained attention state costs 2 x layers x KV heads x head dim x bytes per token, so resident fit in the KV pool falls as 1/S with context length, and the attention design fixed at pretraining sets the slope."
+    ],
+    [
+     "**Paged KV allocation**",
+     "Fixed-size blocks mapped by a per-sequence block table remove the stranded memory of full-cap reservation and bound tail waste below one block."
+    ],
+    [
+     "**Copy-on-write block sharing**",
+     "Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks."
+    ],
+    [
+     "**Radix prefix cache**",
+     "A content-keyed radix tree finds the longest retained common prefix, leaf-first eviction keeps residency prefix-closed, and efficacy is the token-weighted hit rate after availability, permission, and block rounding."
+    ],
+    [
+     "**Reusable is not applicable**",
+     "A reusable prefix must be compatible, available, and permitted, and none of the three says whether the evidence is current, so freshness is enforced by the harness rewriting the prompt."
+    ],
+    [
+     "**Paused-state policy**",
+     "During a tool wait the engine keeps, moves, or drops only uniquely reclaimable blocks, and offloading pays only when the wait exceeds the transfer round trip and memory is contested."
+    ],
+    [
+     "**Residency tax**",
+     "By Little's law a fixed pool of slots sustains a turn rate inversely proportional to residence, so holding state through a synchronous tool wait divides the memory-bound turn rate by 1 + T_tool/T_model."
+    ],
+    [
+     "**Lossy KV approximation**",
+     "Token eviction, sliding windows, and KV quantization change the computation and must be validated against an agent's hard semantic dependencies, such as dormant constraints and exact identifiers, rather than perplexity."
+    ],
+    [
+     "**Chunked prefill**",
+     "Splitting an uncached prompt into chunks under a per-iteration token budget bounds the inter-token gap of ongoing streams to one iteration at a modest delay to the new request's first token."
+    ],
+    [
+     "**Little's law**",
+     "Mean occupancy equals arrival rate times mean residence (L = lambda W), a mean identity that sizes slot pools but says nothing about peaks."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v3-05-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "KV footprint and resident fit",
+     "back": "Retained attention state costs 2 x layers x KV heads x head dim x bytes per token, so resident fit in the KV pool falls as 1/S with context length, and the attention design fixed at pretraining sets the slope."
+    },
+    {
+     "front": "Paged KV allocation",
+     "back": "Fixed-size blocks mapped by a per-sequence block table remove the stranded memory of full-cap reservation and bound tail waste below one block."
+    },
+    {
+     "front": "Copy-on-write block sharing",
+     "back": "Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks."
+    },
+    {
+     "front": "Radix prefix cache",
+     "back": "A content-keyed radix tree finds the longest retained common prefix, leaf-first eviction keeps residency prefix-closed, and efficacy is the token-weighted hit rate after availability, permission, and block rounding."
+    },
+    {
+     "front": "Reusable is not applicable",
+     "back": "A reusable prefix must be compatible, available, and permitted, and none of the three says whether the evidence is current, so freshness is enforced by the harness rewriting the prompt."
+    },
+    {
+     "front": "Paused-state policy",
+     "back": "During a tool wait the engine keeps, moves, or drops only uniquely reclaimable blocks, and offloading pays only when the wait exceeds the transfer round trip and memory is contested."
+    },
+    {
+     "front": "Residency tax",
+     "back": "By Little's law a fixed pool of slots sustains a turn rate inversely proportional to residence, so holding state through a synchronous tool wait divides the memory-bound turn rate by 1 + T_tool/T_model."
+    },
+    {
+     "front": "Lossy KV approximation",
+     "back": "Token eviction, sliding windows, and KV quantization change the computation and must be validated against an agent's hard semantic dependencies, such as dormant constraints and exact identifiers, rather than perplexity."
+    },
+    {
+     "front": "Chunked prefill",
+     "back": "Splitting an uncached prompt into chunks under a per-iteration token budget bounds the inter-token gap of ongoing streams to one iteration at a modest delay to the new request's first token."
+    },
+    {
+     "front": "Little's law",
+     "back": "Mean occupancy equals arrival rate times mean residence (L = lambda W), a mean identity that sizes slot pools but says nothing about peaks."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v3-05-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **KV footprint and resident fit**?",
+     "options": [
+      "By Little's law a fixed pool of slots sustains a turn rate inversely proportional to residence, so holding state through a synchronous tool wait divides the memory-bound turn rate by 1 + T_tool/T_model.",
+      "Retained attention state costs 2 x layers x KV heads x head dim x bytes per token, so resident fit in the KV pool falls as 1/S with context length, and the attention design fixed at pretraining sets the slope.",
+      "Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks.",
+      "During a tool wait the engine keeps, moves, or drops only uniquely reclaimable blocks, and offloading pays only when the wait exceeds the transfer round trip and memory is contested."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is KV footprint and resident fit itself, not a neighbouring idea.",
+     "explanation": "**KV footprint and resident fit:** Retained attention state costs 2 x layers x KV heads x head dim x bytes per token, so resident fit in the KV pool falls as 1/S with context length, and the attention design fixed at pretraining sets the slope."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Paged KV allocation**?",
+     "options": [
+      "A reusable prefix must be compatible, available, and permitted, and none of the three says whether the evidence is current, so freshness is enforced by the harness rewriting the prompt.",
+      "Retained attention state costs 2 x layers x KV heads x head dim x bytes per token, so resident fit in the KV pool falls as 1/S with context length, and the attention design fixed at pretraining sets the slope.",
+      "Mean occupancy equals arrival rate times mean residence (L = lambda W), a mean identity that sizes slot pools but says nothing about peaks.",
+      "Fixed-size blocks mapped by a per-sequence block table remove the stranded memory of full-cap reservation and bound tail waste below one block."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Paged KV allocation itself, not a neighbouring idea.",
+     "explanation": "**Paged KV allocation:** Fixed-size blocks mapped by a per-sequence block table remove the stranded memory of full-cap reservation and bound tail waste below one block."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Copy-on-write block sharing**?",
+     "options": [
+      "During a tool wait the engine keeps, moves, or drops only uniquely reclaimable blocks, and offloading pays only when the wait exceeds the transfer round trip and memory is contested.",
+      "Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks.",
+      "Splitting an uncached prompt into chunks under a per-iteration token budget bounds the inter-token gap of ongoing streams to one iteration at a modest delay to the new request's first token.",
+      "Retained attention state costs 2 x layers x KV heads x head dim x bytes per token, so resident fit in the KV pool falls as 1/S with context length, and the attention design fixed at pretraining sets the slope."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Copy-on-write block sharing itself, not a neighbouring idea.",
+     "explanation": "**Copy-on-write block sharing:** Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Radix prefix cache**?",
+     "options": [
+      "A content-keyed radix tree finds the longest retained common prefix, leaf-first eviction keeps residency prefix-closed, and efficacy is the token-weighted hit rate after availability, permission, and block rounding.",
+      "By Little's law a fixed pool of slots sustains a turn rate inversely proportional to residence, so holding state through a synchronous tool wait divides the memory-bound turn rate by 1 + T_tool/T_model.",
+      "Retained attention state costs 2 x layers x KV heads x head dim x bytes per token, so resident fit in the KV pool falls as 1/S with context length, and the attention design fixed at pretraining sets the slope.",
+      "Splitting an uncached prompt into chunks under a per-iteration token budget bounds the inter-token gap of ongoing streams to one iteration at a modest delay to the new request's first token."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Radix prefix cache itself, not a neighbouring idea.",
+     "explanation": "**Radix prefix cache:** A content-keyed radix tree finds the longest retained common prefix, leaf-first eviction keeps residency prefix-closed, and efficacy is the token-weighted hit rate after availability, permission, and block rounding."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Reusable is not applicable**?",
+     "options": [
+      "A reusable prefix must be compatible, available, and permitted, and none of the three says whether the evidence is current, so freshness is enforced by the harness rewriting the prompt.",
+      "Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks.",
+      "Mean occupancy equals arrival rate times mean residence (L = lambda W), a mean identity that sizes slot pools but says nothing about peaks.",
+      "Fixed-size blocks mapped by a per-sequence block table remove the stranded memory of full-cap reservation and bound tail waste below one block."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Reusable is not applicable itself, not a neighbouring idea.",
+     "explanation": "**Reusable is not applicable:** A reusable prefix must be compatible, available, and permitted, and none of the three says whether the evidence is current, so freshness is enforced by the harness rewriting the prompt."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "KV footprint and resident fit: Retained attention state costs 2 x layers x KV heads x head dim x bytes per token, so resident fit in the KV pool falls as 1/S with context length, and the attention design fixed at pretraining sets the slope.",
+    "Paged KV allocation: Fixed-size blocks mapped by a per-sequence block table remove the stranded memory of full-cap reservation and bound tail waste below one block.",
+    "Copy-on-write block sharing: Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks.",
+    "Radix prefix cache: A content-keyed radix tree finds the longest retained common prefix, leaf-first eviction keeps residency prefix-closed, and efficacy is the token-weighted hit rate after availability, permission, and block rounding."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "KV footprint and resident fit",
+   "def": "Retained attention state costs 2 x layers x KV heads x head dim x bytes per token, so resident fit in the KV pool falls as 1/S with context length, and the attention design fixed at pretraining sets the slope."
+  },
+  {
+   "term": "Paged KV allocation",
+   "def": "Fixed-size blocks mapped by a per-sequence block table remove the stranded memory of full-cap reservation and bound tail waste below one block."
+  },
+  {
+   "term": "Copy-on-write block sharing",
+   "def": "Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks."
+  },
+  {
+   "term": "Radix prefix cache",
+   "def": "A content-keyed radix tree finds the longest retained common prefix, leaf-first eviction keeps residency prefix-closed, and efficacy is the token-weighted hit rate after availability, permission, and block rounding."
+  },
+  {
+   "term": "Reusable is not applicable",
+   "def": "A reusable prefix must be compatible, available, and permitted, and none of the three says whether the evidence is current, so freshness is enforced by the harness rewriting the prompt."
+  },
+  {
+   "term": "Paused-state policy",
+   "def": "During a tool wait the engine keeps, moves, or drops only uniquely reclaimable blocks, and offloading pays only when the wait exceeds the transfer round trip and memory is contested."
+  },
+  {
+   "term": "Residency tax",
+   "def": "By Little's law a fixed pool of slots sustains a turn rate inversely proportional to residence, so holding state through a synchronous tool wait divides the memory-bound turn rate by 1 + T_tool/T_model."
+  },
+  {
+   "term": "Lossy KV approximation",
+   "def": "Token eviction, sliding windows, and KV quantization change the computation and must be validated against an agent's hard semantic dependencies, such as dormant constraints and exact identifiers, rather than perplexity."
+  },
+  {
+   "term": "Chunked prefill",
+   "def": "Splitting an uncached prompt into chunks under a per-iteration token budget bounds the inter-token gap of ongoing streams to one iteration at a modest delay to the new request's first token."
+  },
+  {
+   "term": "Little's law",
+   "def": "Mean occupancy equals arrival rate times mean residence (L = lambda W), a mean identity that sizes slot pools but says nothing about peaks."
+  }
+ ]
+}

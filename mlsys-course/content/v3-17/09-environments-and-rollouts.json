@@ -1,0 +1,66 @@
+{
+ "title": "Environments and Rollouts",
+ "summary": "Work through Environments and Rollouts.",
+ "source": {
+  "chapter": "v3-17",
+  "sections": [
+   "Environments and Rollouts",
+   "Task fixtures and reset conditions",
+   "Environment-cycle time and throughput",
+   "Complete-group scheduling",
+   "Policy staleness",
+   "Verification capacity",
+   "Policy version gating",
+   "Case Study: Reinforcing the Repair Policy",
+   "Case Study: Reinforcing the Repair Policy"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Environments and Rollouts**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Reinforcement Learning from Verifiable Rewards, § Environments and Rollouts",
+   "md": "Before a single repair rollout can contribute to a parameter update, it passes through pipeline stages whose latencies span two orders of magnitude: a model inference step samples tokens in tens of milliseconds, stateful tool commands and test suites inside `pool_fixture_v1` run for seconds, and cold sandbox provisioning can take longer still. Coordinating model inference, isolated sandboxes, automated assessment suites, and trace storage across those disparate timescales is the central systems challenge of verifiable reinforcement learning."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Task fixtures and reset conditions\n- Environment-cycle time and throughput\n- Complete-group scheduling\n- Policy staleness\n- Verification capacity\n- Policy version gating\n- Case Study: Reinforcing the Repair Policy"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Rollout loop sizing matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-17-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Environments and Rollouts** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup.",
+      "Ratios and gradients are valid only on per-invocation records of the delivered prefix token IDs, sampled token IDs, and behavior log probabilities under the actual sampling transforms.",
+      "The false-accept share of rewarded rollouts moves with the policy's current pass rate rather than being a fixed verifier property, so reward shaping must preserve the priority of correct outcomes.",
+      "Symmetric ratio clipping is asymmetric in probability space, so early successes sharpen the policy until groups converge and contrast vanishes, which outcome statistics can diagnose."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Rollout loop sizing**: Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Environments and Rollouts."
+   ]
+  }
+ ]
+}

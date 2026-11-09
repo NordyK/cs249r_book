@@ -1,0 +1,89 @@
+{
+ "title": "Systems Analysis: Understanding Performance Characteristics",
+ "summary": "TinyTorch profiling: Systems Analysis: Understanding Performance Characteristics",
+ "source": {
+  "chapter": "tt-14",
+  "sections": [
+   "Systems Analysis: Understanding Performance Characteristics"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Understanding Performance Characteristics\n\nModel profiling reveals the empirical performance characteristics of deep learning architectures across dimensions of model scale, batch size, and arithmetic intensity.\n\nThe roofline, the ridge point, and the two regimes were defined in 📐 Foundations,\nbefore any of this module's code. What follows is the measurement side of that\npicture. We sweep model size and batch size, time real forward passes, and read the\nnumbers against those ceilings. Watch for the places where the measurement refuses to\nbehave like the model predicts, because those are the places the profiler is telling\nyou something about this implementation rather than about the hardware."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 109 lines of code (starting with `def analyze_model_scaling():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Optimization Insights: Production Performance Patterns\n\nProfiling results guide targeted systems interventions. Different machine learning operations inhabit fundamentally different regimes on the roofline curve, demanding distinct optimization strategies.\n\n### Operational Characteristics & Optimization Taxonomy"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Operation Class",
+    "Dominant Workload",
+    "Arithmetic Intensity (\\$I\\$)",
+    "Primary Hardware Bound",
+    "High-Leverage Optimization Mechanism"
+   ],
+   "rows": [
+    [
+     "**Matrix Multiplications (GEMM)**",
+     "Linear projections, MLP up/down",
+     "High (\\$I \\gg I_{\\text{ridge}}\\$ at large \\$B\\$)",
+     "Compute (ALU / Tensor Core)",
+     "Optimized BLAS kernels, Tensor Core MMA, loop tiling"
+    ],
+    [
+     "**Spatial Convolutions**",
+     "Conv2d feature extraction",
+     "High (\\$I \\gg I_{\\text{ridge}}\\$)",
+     "Compute (ALU)",
+     "Im2col GEMM transforms, Winograd minimal filtering"
+    ],
+    [
+     "**Self-Attention (\\$QK^\\top, SV\\$)**",
+     "Dynamic relational routing",
+     "Variable (\\$I \\propto \\text{Seq Len}\\$)",
+     "Memory bandwidth (SRAM transfers)",
+     "FlashAttention (online softmax tiling in SRAM)"
+    ],
+    [
+     "**Pointwise Elements**",
+     "GELU, ReLU, residual additions",
+     "Very low (\\$I \\le 1\\text{ FLOP/B}\\$)",
+     "Memory bandwidth",
+     "Kernel fusion (fused pointwise passes)"
+    ],
+    [
+     "**Reductions & Normalizations**",
+     "LayerNorm, Softmax, sum pooling",
+     "Very low (\\$I \\le 1\\text{ FLOP/B}\\$)",
+     "Memory bandwidth",
+     "Fused two-pass reduction kernels, Welford's algorithm"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Systematic Optimization Strategy\n\n1. **Profile First**: Establish baseline latency, peak memory, and GFLOP/s to identify the high-overhead stages.\n2. **Compute-Bound Operations**: Address with precision reduction (FP32 \\$\\to\\$ FP16/BF16/FP8) and hardware-specialized Tensor Core instructions.\n3. **Memory-Bound Operations**: Address with data movement minimization, activation recomputation, KV cache reuse, and kernel fusion.\n4. **Iterative Verification**: Re-profile after each code change to confirm speedup on the empirical roofline curve."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 144 lines of code (starting with `def benchmark_operation_efficiency():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Systems Analysis: Understanding Performance Characteristics."
+   ]
+  }
+ ]
+}

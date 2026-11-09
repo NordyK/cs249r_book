@@ -1,0 +1,97 @@
+{
+ "title": "Data Governance and Compliance",
+ "summary": "Explain why data governance requires enforceable technical infrastructure across the ML pipeline rather than standalone security or policy documents.",
+ "source": {
+  "chapter": "v1-15",
+  "sections": [
+   "Data Governance and Compliance",
+   "Security and access control architecture",
+   "Technical privacy protection methods",
+   "Regulation as architecture",
+   "Building data lineage infrastructure",
+   "Audit infrastructure and accountability"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain why data governance requires enforceable technical infrastructure across the ML pipeline rather than standalone security or policy documents\n- Explain how lineage supports scoped erasure workflows and why database deletion alone may be insufficient\n- Design privacy-by-design architectures for always-listening edge ML systems using data minimization and on-device processing\n- Explain when governance safeguards must operate and how lineage supports scoped erasure workflows\n- Analyze the mechanism and vulnerability surface of membership inference attacks in ML privacy auditing"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Responsible Engineering, § Data Governance and Compliance",
+   "md": "The keyword spotting system makes the governance problem physical. An always-listening voice assistant samples audio continuously in private homes, stores enrolled speaker profiles, and periodically syncs with cloud pipelines that retrain on population-wide audio. Every guarantee the earlier stages established now therefore depends on what data the system may hold, who may touch it, and what evidence survives."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Security and access control architecture\n- Technical privacy protection methods\n- Regulation as architecture\n- Building data lineage infrastructure\n- Audit infrastructure and accountability\n\nPay attention to: governance as technical infrastructure vs policy document; lawful basis as a governance constraint (Meta DPC decision); security / privacy / compliance / audit 4 domains; differential privacy vs k-anonymity vs membership inference."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A voice assistant receives an erasure request. Explain how retained lineage helps identify derived artifacts, why database deletion alone may be insufficient, and why identifying an artifact does not automatically require deleting it.",
+   "md": "Source audio can feed features, caches, training snapshots, and model artifacts, so deleting one database record does not establish removal of every in-scope copy or training contribution. Retained lineage identifies candidate dependencies for scope review. The team determines applicable duties, exceptions, and retention boundaries, then executes and verifies appropriate deletion, restriction, retraining, or validated unlearning. Lineage supplies evidence for that decision; it does not establish that every linked artifact is covered or that automation alone proves completion."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-15-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In 2023, Ireland's Data Protection Commission found that Meta had processed user data for behavioral advertising without a valid legal basis and in violation of transparency and fairness requirements, an infraction involving no data breach or server compromise. Which systems-engineering principle does this case demonstrate?",
+     "explanation": "The correct answer is B. Data governance requires demonstrable, technically enforceable controls across the entire data engineering lifecycle: establishing a lawful basis for processing, verifying purpose limitation in feature pipelines, tracking consent, and enforcing retention limits. Meeting encryption standards (security) does not satisfy lawful processing or transparency obligations (governance). The static lake exemption is incorrect because governance applies to all storage and streaming tiers. The datasheet liability claim is false because documentation does not substitute for lawful processing and technical compliance.",
+     "hint": "Think about: explain why data governance requires enforceable technical infrastructure across the ML pipeline rather than standalone security or policy documents.",
+     "type": "single",
+     "options": [
+      "Security encryption at rest and in transit is sufficient to guarantee total regulatory compliance across all data privacy laws.",
+      "Data governance is an enforceable technical constraint across the data lifecycle, requiring infrastructure to verify lawful basis, purpose limitation, and consent rather than relying on policy assertions.",
+      "Regulatory compliance applies only to static tabular data lakes and exempts real-time streaming feature stores.",
+      "Publishing a public datasheet for a dataset eliminates all downstream corporate liability for unlawful processing."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A smart-home voice assistant (such as the Lighthouse KWS system) is designed with an always-listening microphone. Which combination of architectural choices best embodies privacy-by-design for this deployment?",
+     "explanation": "The correct answer is C. Local detection and bounded buffers reduce routine audio exposure, but false wakes can still release ambient speech. Testing must cover false-activation rates, pre-trigger audio, and buffer and egress controls. Retention policies must cover in-scope copies. Federated training requires capable clients, and model updates can leak information; differential privacy supplies a bound only under the declared mechanism, neighboring-dataset relation, and accounting assumptions. RBAC alone does not minimize continuously uploaded audio, permanent local retention preserves an exposure surface, and filtering after ingestion does not avoid the initial collection.",
+     "hint": "Think about: design privacy-by-design architectures for always-listening edge ML systems using data minimization and on-device processing.",
+     "type": "single",
+     "options": [
+      "Stream continuous raw ambient audio to a centralized cloud cluster where access is protected exclusively by role-based access control (RBAC).",
+      "Store all raw acoustic recordings permanently on local edge flash memory so that future model versions can be trained without cloud connectivity.",
+      "Perform wake-word detection locally, bound the audio window released after a trigger and test false wakes and egress controls, apply retention/deletion policies, and use training-capable clients with appropriately accounted differential privacy for federated model improvements.",
+      "Rely on third-party cloud data warehouses to handle all privacy filtering after raw audio ingestion has completed."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A European financial institution deploys an automated machine learning system to make sole decisions on credit applications. Under the EU AI Act (high-risk classification) and GDPR Article 22, which set of architectural capabilities must the engineering team build into the system from inception?",
+     "explanation": "The correct answer is D. Covered high-risk systems under the EU AI Act and solely automated decision pipelines under GDPR Article 22 require technical infrastructure for risk management, dataset provenance and lineage logging, explainability (providing meaningful information about the automated logic), and substantive human oversight with the ability for affected individuals to contest decisions. Saliency maps alone do not satisfy comprehensive risk-management or adverse-action requirements. The retrospective spreadsheet option fails the requirement for continuous, built-in audit trails. The unconstrained optimization option ignores the explicit legal mandate that high accuracy does not exempt systems from governance, transparency, and human oversight controls.",
+     "hint": "Think about: analyze how EU AI Act and GDPR Article 22 mandates translate into technical architecture requirements for automated decision systems.",
+     "type": "single",
+     "options": [
+      "Post-hoc saliency map visualization tools only, because EU regulations apply strict requirements exclusively to generative foundation models.",
+      "A manual spreadsheet of training dataset URLs and an annual retrospective fairness report submitted after year-end financial audits.",
+      "An unconstrained deep neural network optimized for accuracy, since high aggregate predictive power automatically satisfies legal safety criteria.",
+      "Automated risk management, training data provenance logging, explainable adverse-action factor generation, and an operational workflow supporting substantive human review and user contestability."
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A team plans to ingest raw audio, transform it into features, and only then configure feature-store RBAC and encryption. It will add lineage and inference logging after deployment. Explain which safeguards must exist before the corresponding data handling begins, and how retained lineage supports a later erasure request.",
+   "md": "The team must establish lawful processing authority and appropriate access and encryption controls before handling the covered raw audio or features. Provenance must be captured at ingestion, and lineage must be captured as transformations and training create artifacts. Privacy-preserving training needs its clipping, noise, sampling, and accounting controls in place before the protected training or release. Decision logging must operate when inference decisions occur. A later erasure request uses retained lineage to identify candidate derived artifacts, determine applicable scope and exceptions, and execute the appropriate deletion, restriction, retraining, or unlearning workflow. These are dependencies between safeguards and the actions they protect, not a unique order in which all governance work must occur."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain why data governance requires enforceable technical infrastructure across the ML pipeline rather than standalone security or policy documents.",
+    "You can now explain how lineage supports scoped erasure workflows and why database deletion alone may be insufficient.",
+    "You can now design privacy-by-design architectures for always-listening edge ML systems using data minimization and on-device processing.",
+    "You can now explain when governance safeguards must operate and how lineage supports scoped erasure workflows."
+   ]
+  }
+ ]
+}

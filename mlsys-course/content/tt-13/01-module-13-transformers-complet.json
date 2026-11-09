@@ -1,0 +1,138 @@
+{
+ "title": "Module 13: Transformers - Complete Transformer Architecture",
+ "summary": "TinyTorch transformers: Module 13: Transformers - Complete Transformer Architecture",
+ "source": {
+  "chapter": "tt-13",
+  "sections": [
+   "Module 13: Transformers - Complete Transformer Architecture"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 13: Transformers - Complete Transformer Architecture\n\nWelcome to Module 13! You're about to synthesize everything you've built across TinyTorch into the complete Pre-LayerNorm Transformer architecture that powers modern autoregressive language models (GPT, Claude, Llama, and Mistral).\n\n## 🔗 Prerequisites & Progress\n**You've Built**: Autograd engine (`Tensor`), non-linear activations (`GELU`), feed-forward primitives (`Linear`), subword tokenization (`BPETokenizer`), positional embeddings (`EmbeddingLayer`), and multi-head attention (`MultiHeadAttention`).\n**You'll Build**: Numerically stable layer normalization (`LayerNorm`), 4× expansion feed-forward networks (`MLP`), complete residual blocks (`TransformerBlock`), and standalone autoregressive generation utilities (`sample_next_token`, `generate`).\n**You'll Enable**: Profiling and roofline optimization (`14_profiling`), post-training quantization (`15_quantization`), and key-value memory caching (`18_memoization`).\n\n### Architectural Roadmap"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Stage",
+    "Subsystem",
+    "Primitives & Capabilities",
+    "Status"
+   ],
+   "rows": [
+    [
+     "**Modules 01–08**",
+     "Foundation & Training",
+     "`Tensor`, `Function`, `Linear`, `GELU`, `SGD`, `Adam`, `Trainer`",
+     "Completed"
+    ],
+    [
+     "**Modules 09–12**",
+     "Representations & Attention",
+     "`Conv2d`, `BPETokenizer`, `EmbeddingLayer`, `MultiHeadAttention`",
+     "Completed"
+    ],
+    [
+     "**Module 13**",
+     "**Transformer Stack & Generation**",
+     "`LayerNorm`, `MLP`, `TransformerBlock`, `sample_next_token`, `generate`",
+     "**Active Subsystem**"
+    ],
+    [
+     "**Modules 14–20**",
+     "Systems & Acceleration",
+     "`Profiler`, `INT8Linear`, `KVCache`, `TinyGPT`",
+     "Downstream Consumers"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 🎯 Learning Objectives\nBy the end of this module, you will:\n1. **Implement Numerically Stable Layer Normalization**: Standardize per-token feature vectors with a two-pass mean-then-variance computation and learnable affine restoration parameters (\\$\\gamma, \\beta\\$).\n2. **Construct Two-Layer MLP Expansion Blocks**: Build a \\$d_{\\text{embed}} \\to 4d_{\\text{embed}} \\to d_{\\text{embed}}\\$ feed-forward channel projection with smooth GELU gating.\n3. **Assemble the Pre-LN Transformer Block**: Route clean residual highway streams through attention and MLP off-ramps to preserve unobstructed gradient backpropagation.\n4. **Implement Autoregressive Generation & Sampling**: Build standalone token sampling with temperature scaling and autoregressive decoding loops.\n5. **Analyze LLM Parameter Scaling & Memory Footprints**: Calculate exact parameter allocations across attention and FFN layers and derive the quadratic memory scaling law.\n\n---\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/13_transformers/transformers.ipynb`  \n**Building Side:** Code exports to `tinytorch.core.transformers`"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Artifact",
+    "Path / Location",
+    "Export Target",
+    "Primary Symbols"
+   ],
+   "rows": [
+    [
+     "**Notebook**",
+     "`modules/13_transformers/transformers.ipynb`",
+     "Interactive Learning",
+     "Exploratory code, assertions, benchmarks"
+    ],
+    [
+     "**Core Source**",
+     "`src/13_transformers/13_transformers.py`",
+     "`tinytorch.core.transformers`",
+     "`LayerNorm`, `MLP`, `TransformerBlock`, `create_causal_mask`, `sample_next_token`, `generate`"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "```python\n# How to use this module:\nfrom tinytorch.core.transformers import LayerNorm, MLP, TransformerBlock, create_causal_mask, sample_next_token, generate\n```\n\n---\n\n## 📋 Module Dependencies\n\n**Prerequisites**: Modules 01 (Tensor), 02 (Activations), 03 (Layers), 11 (Embeddings), and 12 (Attention) must be complete\n\n**External Dependencies**:\n- `numpy`: high-performance array operations for random number generation, moment reductions, and masking\n- `typing` (for type hints)\n- `unittest.mock` (used only inside a unit test)\n\n**TinyTorch Dependencies**:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dependency",
+    "Origin",
+    "Functionality Utilized",
+    "Role in Module 13"
+   ],
+   "rows": [
+    [
+     "`tinytorch.core.tensor`",
+     "Module 01",
+     "`Tensor`, `Function`",
+     "Base data structure and computation graph nodes"
+    ],
+    [
+     "`tinytorch.core.activations`",
+     "Module 02",
+     "`GELU` activation function",
+     "Non-linear gating inside the MLP expansion layer"
+    ],
+    [
+     "`tinytorch.core.layers`",
+     "Module 03",
+     "`Linear` projection layers",
+     "Projection weights for MLP and output LM head"
+    ],
+    [
+     "`tinytorch.core.embeddings`",
+     "Module 11",
+     "`EmbeddingLayer`",
+     "Converts token IDs to dense representation vectors"
+    ],
+    [
+     "`tinytorch.core.attention`",
+     "Module 12",
+     "`MultiHeadAttention`",
+     "Subspace relational routing across sequence positions"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "A final export cell also re-exports `GPT` and `TinyGPT` from `tinytorch.models.transformer` when that package is present.\n\n**Dependency Flow**:\n```\nModule 01 (Tensor, Function) ──┐\nModule 02 (GELU)             ──┤\nModule 03 (Linear)           ──┼──→ Module 13 (LayerNorm, MLP, TransformerBlock, generate)\nModule 11 (EmbeddingLayer)   ──┤\nModule 12 (MultiHeadAttention)─┘\n```"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import numpy as np\nfrom typing import Any, List, Optional, Tuple\n\nrng = np.random.default_rng(7)\n\n# Import from previous modules - following the dependency chain\nfrom tinytorch.core.tensor import Tensor, Function\nfrom tinytorch.core.activations import GELU\nfrom tinytorch.core.layers import Linear\nfrom tinytorch.core.embeddings import EmbeddingLayer\nfrom tinytorch.core.attention import MultiHeadAttention\n\n# Constants for memory calculations\nBYTES_PER_FLOAT32 = 4  # Standard float32 size in bytes\nMB_TO_BYTES = 1_000_000  # Decimal megabyte (10^6 bytes), the convention used throughout TinyTorch"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 13: Transformers - Complete Transformer Architecture."
+   ]
+  }
+ ]
+}

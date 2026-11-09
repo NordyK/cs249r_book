@@ -1,0 +1,99 @@
+{
+ "title": "Computing with Patterns",
+ "summary": "Apply the MNIST paradigm workload numbers to predict the primary hardware bottleneck when switching from rule-based to dense neural computation.",
+ "source": {
+  "chapter": "v1-05",
+  "sections": [
+   "Computing with Patterns",
+   "From rules to engineered features",
+   "Automatic pattern discovery",
+   "Why backpropagation waited for systems"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Apply the MNIST paradigm workload numbers to predict the primary hardware bottleneck when switching from rule-based to dense neural computation\n- Evaluate why parallel matrix arithmetic maps to specialized accelerator architectures rather than higher-frequency scalar processors\n- Compare the systems and maintenance trade-offs of handcrafted feature engineering against end-to-end learned representations\n- Explain how the maturation of hardware, data, training techniques, and software infrastructure resolved the adoption lag for backpropagation-based deep learning\n- Justify selecting simpler linear models over deep neural networks for small sample size tabular workloads"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Neural Computation, § Computing with Patterns",
+   "md": "Before a learned network spent … on that \\$28×28 digit, earlier generations of computing attacked the same classification problem with two simpler representation strategies. An illustrative rule tree tests roughly one hundred pixel comparisons per digit; an engineered feature pipeline performs several thousand arithmetic operations; the three-layer neural network performs more than one hundred thousand multiply-accumulates. Each strategy replaced a predecessor whose representations ran out of expressive reach on unconstrained handwriting, and each step up in representation capacity shifted which hardware resource bound execution."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- From rules to engineered features\n- Automatic pattern discovery\n- Why backpropagation waited for systems\n\nPay attention to: Paradigm progression from rule-based systems to feature engineering to deep learning; Quantitative workload escalation using the MNIST benchmark; Computational infrastructure requirements: parallel accelerators vs scalar clock speeds; Algorithm-hardware adoption lag and testing a classical baseline before a neural network."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A computer vision team evaluates two approaches for a multi-class recognition task: (a) a handcrafted feature pipeline (e.g. HOG + SVM) and (b) an end-to-end convolutional neural network. Compare the systems engineering trade-offs between these two approaches when the product must scale from 2 initial categories to 50 diverse object categories.",
+   "md": "Handcrafted feature pipelines (HOG + SVM) offer low per-image inference compute but require extensive manual engineering to design and tune descriptors for new object classes, creating a human labor bottleneck and fragmented preprocessing code. End-to-end neural networks automate feature discovery by learning hierarchical representations directly from data using uniform tensor operations, replacing ongoing feature-engineering labor with increased training data collection, accelerator compute requirements, and memory bandwidth demands."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-05-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team replaces a hand-coded digit recognition system ($\\approx 100$ conditional comparisons, \\$784\\text{ bytes}$ of working state) with a \\$784 \\to 128 \\to 64 \\to 10$ MLP ($\\approx 109{,}184\\text{ MACs}$, $\\approx 438\\text{ KB}$ of weights) on the same MNIST input. Which systems consequence should they expect when deploying this new model on a commodity CPU?",
+     "explanation": "The correct answer is B. Replacing rule-based logic with an MLP shifts the workload from branch-heavy scalar instructions to dense linear algebra ($\\approx 109{,}184\\text{ MACs}$). The $\\approx 438\\text{ KB}$ parameter footprint exceeds typical CPU L1 data cache sizes (typically \\$32\\text{ KB}$ to \\$48\\text{ KB}$), creating cache-level memory traffic to stream weights. Dense neural layers execute regular arithmetic without if-then branches, making branch prediction irrelevant. CPU register files hold at most a few kilobytes and cannot store hundreds of kilobytes of weights. Matrix arithmetic heavily utilizes ALU and SIMD execution units.",
+     "hint": "Think about: apply the MNIST paradigm workload numbers to predict the primary hardware bottleneck when switching from rule-based to dense neural computation",
+     "type": "single",
+     "options": [
+      "The workload becomes dominated by branch mispredictions because artificial neurons execute frequent if-then branching decisions.",
+      "The workload transitions from branch-heavy scalar code to dense matrix arithmetic whose weight footprint exceeds L1 cache capacity, generating cache-level memory traffic absent in the rule-based system.",
+      "Execution memory traffic drops to zero because the \\$438 KB weight footprint fits entirely within standard CPU register files.",
+      "The model executes without using arithmetic logic units (ALUs) because learned representations bypass hardware compute pipelines."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A hardware vendor claims that increasing single-threaded CPU clock frequencies by \\$5× will eliminate the necessity of specialized accelerators (such as GPUs or TPUs) for deep neural networks. Based on the computational profile of neural networks, what is the strongest technical refutation of this claim?",
+     "explanation": "The correct answer is A. Neural network forward and backward passes consist of large-scale, uniform matrix-matrix and matrix-vector multiplications. These workloads are bounded by parallel arithmetic throughput and off-chip memory bandwidth (the Memory Wall). Accelerators succeed by providing thousands of arithmetic execution units and high-bandwidth memory (HBM), whereas raising scalar clock speed provides only linear improvement to sequential execution without increasing memory bandwidth or SIMD parallel width. The geometry of the loss surface is an algorithmic property independent of processor frequency. Neural networks execute on digital floating-point hardware. Clock frequency scaling does not alter IEEE floating-point precision.",
+     "hint": "Think about: evaluate why parallel matrix arithmetic maps to specialized accelerator architectures rather than higher-frequency scalar processors",
+     "type": "single",
+     "options": [
+      "Deep learning is dominated by massive parallel matrix multiplications bounded by arithmetic throughput and memory bandwidth, which benefit from thousands of parallel SIMD/tensor units rather than higher scalar clock speeds.",
+      "Higher CPU clock frequencies force the loss function to become non-convex, destabilizing gradient descent.",
+      "Modern neural networks require asynchronous analog circuits that cannot be simulated on digital CPU cores.",
+      "Increasing CPU clock frequencies reduces the numerical precision of floating-point registers to 4-bit integers."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "For a tabular dataset with 500 records and linear relationships between features and targets, deploying a deep neural network is generally superior to a linear regression model because deep networks inherently generalize better across all problem scales.",
+     "explanation": "False. On small tabular datasets ($<1{,}000$ samples) with linear relationships, deep neural networks are prone to severe overfitting, require substantial hyperparameter tuning and compute resources, and introduce complex deployment and monitoring pipelines. A linear model is a sensible baseline for the stated relationships and can require less training and deployment effort. Small sample size does not guarantee generalization for either model; held-out evaluation must establish whether added neural-network complexity earns a useful gain.",
+     "hint": "Think about: justify selecting simpler linear models over deep neural networks for small sample size tabular workloads",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the pattern-computing paradigms as the chapter presents their progression, from explicit logic to learned representations:",
+     "explanation": "The correct order is: (2) Rule-based programming with explicit hand-authored logical branches, (3) Classical machine learning pairing hand-engineered feature extractors (e.g. HOG) with statistical classifiers, (1) Deep learning with automatic hierarchical feature discovery on parallel accelerators. Rule-based programs encode every decision as a hand-written branch and fail on coverage (2); classical ML learns the decision from data but still depends on expert-designed descriptors such as HOG (3); and deep learning learns the features themselves as hierarchical representations, at the cost of dense arithmetic suited to parallel accelerators (1).",
+     "hint": "Think about: classify the historical progression of pattern computation paradigms from explicit logic to automatic deep representations",
+     "type": "order",
+     "items": [
+      "Rule-based programming with explicit hand-authored logical branches",
+      "Deep learning with automatic hierarchical feature discovery on parallel accelerators"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain the systems-level concept of the 'algorithm-hardware adoption lag' using the historical trajectory of backpropagation (Werbos 1974 / Rumelhart et al. 1986) and modern deep learning. Which surrounding factors had to mature before the algorithm achieved widespread practical viability?",
+   "md": "An algorithm can exist long before the surrounding system makes it useful at scale, and backpropagation was known decades before modern deep learning became practical. Every increase in model size multiplies forward operations, saved activations, gradient computations, and parameter updates, so in this chapter's account the gap reflects the maturation of hardware, data, initialization, nonlinearities, optimization, benchmarks, and software infrastructure. No single factor sufficed; together they turned an older learning rule into a practical workflow. The lesson does not run in reverse, since expense alone does not vindicate a computationally costly idea."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the MNIST paradigm workload numbers to predict the primary hardware bottleneck when switching from rule-based to dense neural computation.",
+    "You can now evaluate why parallel matrix arithmetic maps to specialized accelerator architectures rather than higher-frequency scalar processors.",
+    "You can now compare the systems and maintenance trade-offs of handcrafted feature engineering against end-to-end learned representations.",
+    "You can now explain how the maturation of hardware, data, training techniques, and software infrastructure resolved the adoption lag for backpropagation-based deep learning."
+   ]
+  }
+ ]
+}

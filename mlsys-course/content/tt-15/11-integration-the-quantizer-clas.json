@@ -1,0 +1,127 @@
+{
+ "title": "Integration: The Quantizer Class",
+ "summary": "TinyTorch quantization: Integration: The Quantizer Class",
+ "source": {
+  "chapter": "tt-15",
+  "sections": [
+   "Integration: The Quantizer Class"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: The Quantizer Class\n\nNow that we've implemented all quantization components, let's create consolidated classes\nfor export to the tinytorch package. This allows milestones to use the complete quantization system."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 84 lines of code (starting with `class Quantizer:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Quantization in Production\n\nNow let's measure the real-world impact of quantization through systematic analysis."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_quantization_memory():\n    \"\"\"Analyze memory reduction across different model sizes.\"\"\"\n    print(\"Analyzing Quantization Memory Reduction\")\n\n    model_sizes = [\n        (\"Small\", 1_000_000),\n        (\"Medium\", 10_000_000),\n        (\"Large\", 100_000_000)\n    ]\n\n    print(f\"{'Model':<10} {'FP32 (MB)':<12} {'INT8 (MB)':<12} {'Reduction':<12}\")\n    print(\"-\" * 50)\n\n    for name, params in model_sizes:\n        fp32_mb = params * BYTES_PER_FLOAT32 / MB_TO_BYTES\n        int8_mb = params * BYTES_PER_INT8 / MB_TO_BYTES\n        reduction = fp32_mb / int8_mb\n\n        print(f\"{name:<10} {fp32_mb:>10.1f}  {int8_mb:>10.1f}  {reduction:>10.1f}x\")\n\n    print(\"\\nKey Insight: packed code storage is 4x smaller, before metadata overhead\")\n    print(\"This enables deployment on memory-constrained devices\")\n\nif __name__ == \"__main__\":\n    analyze_quantization_memory()"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_quantization_accuracy():\n    \"\"\"Measure how much quantizing each layer perturbs the model output.\"\"\"\n    print(\"\\nMeasuring Per-Layer Quantization Sensitivity\")\n\n    # A small MLP: quantize one Linear layer at a time and compare outputs\n    layers = [Linear(64, 32), ReLU(), Linear(32, 16), ReLU(), Linear(16, 10)]\n    x = Tensor(rng.standard_normal((32, 64)))\n    baseline = Sequential(*layers).forward(x).data\n    baseline_power = np.mean(baseline ** 2)\n\n    print(f\"{'Layer':<12} {'Params':<10} {'Relative output error (Frobenius)'}\")\n    print(\"-\" * 50)\n\n    for idx, layer in enumerate(layers):\n        if not isinstance(layer, Linear):\n            continue\n        swapped = list(layers)\n        swapped[idx] = _quantize_single_layer(layer)\n        output = Sequential(*swapped).forward(x).data\n        # The objective asks for ||X - X_hat||_F / ||X||_F. The ratio of mean\n        # squares is that quantity SQUARED (the element count cancels), so the\n        # square root is what turns it back into a relative error you can read\n        # as a percentage.\n        rel_error = np.sqrt(np.mean((output - baseline) ** 2) / baseline_power)\n        params = sum(p.data.size for p in layer.parameters())\n        print(f\"Linear {idx:<5} {params:<10,} {rel_error:.2e}\")\n\n    print(\"\\nKey Insight: per-tensor INT8 perturbs the output by a small, measurable amount.\")\n    print(\"Measure sensitivity like this before deciding which layers to keep in FP32.\")\n\nif __name__ == \"__main__\":\n    analyze_quantization_accuracy()"
+  },
+  {
+   "type": "text",
+   "md": "### Advanced Quantization Strategies: Production Techniques\n\nProduction inference engines (e.g. TensorRT, llama.cpp, vLLM) employ tailored quantization strategies depending on hardware instruction sets and layer sensitivity:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Strategy",
+    "Granularity",
+    "Mathematical Formulation",
+    "Hardware / GEMM Cost",
+    "Precision Trade-Off"
+   ],
+   "rows": [
+    [
+     "**Per-Tensor (Ours)**",
+     "1 scale & zero-point per entire weight matrix",
+     "\\$s_W = \\frac{\\max(W) - \\min(W)}{255}\\$",
+     "\\$\\mathcal{O}(1)\\$ scale metadata; single scalar broadcast",
+     "Simple and fast; sensitive to cross-channel outlier values"
+    ],
+    [
+     "**Per-Channel (Per-Column/Row)**",
+     "1 scale & zero-point per output feature slice",
+     "\\$s_j = \\frac{\\max(W_{:, j}) - \\min(W_{:, j})}{255}\\$",
+     "\\$\\mathcal{O}(d_{\\text{out}})\\$ scales; vector scaling post-accumulation",
+     "Isolates large weight outliers to single channels; standard in LLMs"
+    ],
+    [
+     "**Mixed Precision**",
+     "Selective bitwidths (\\$32\\text{b}, 16\\text{b}, 8\\text{b}, 4\\text{b}\\$) per module",
+     "\\$q_\\ell \\in \\{\\text{FP32}, \\text{FP16}, \\text{INT8}, \\text{INT4}\\}\\$",
+     "Requires mixed-precision dispatch and typecasting buffers",
+     "Optimal accuracy-footprint Pareto frontier; protects sensitive layers"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Granularity Comparison: Per-Tensor vs Per-Channel\n\n\\$\\$\\text{Per-Tensor}: \\quad \\hat{W} = (Q_W - z_W) \\cdot s_W, \\quad s_W \\in \\mathbb{R}\\$\\$\n\n\\$\\$\\text{Per-Channel}: \\quad \\hat{W}_{i, j} = (Q_{W, i, j} - z_{W, j}) \\cdot s_{W, j}, \\quad \\mathbf{s}_W \\in \\mathbb{R}^{d_{\\text{out}}}\\$\\$\n\n### Mixed Precision Strategy\n\nEmpirical sensitivity profiling reveals that certain network components (e.g., token embeddings, self-attention query-key dot products, and final classification projections) degrade sharply under per-tensor 8-bit quantization. A mixed-precision schedule maintains those sensitive boundaries in FP16/FP32 while quantizing bulky feed-forward projections (\\$W_1, W_2\\$) to INT8 or INT4:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Layer Category",
+    "Typical Sensitivity",
+    "Recommended Precision",
+    "System Rationale"
+   ],
+   "rows": [
+    [
+     "**Input / Embedding**",
+     "High",
+     "FP16 / FP32",
+     "Preserves input feature coordinate resolution"
+    ],
+    [
+     "**Attention Projections (\\$Q, K, V\\$)**",
+     "Moderate",
+     "INT8 / FP16",
+     "Preserves dynamic range for scaled dot-product softmax"
+    ],
+    [
+     "**MLP / Feed-Forward Bulk**",
+     "Low to Moderate",
+     "INT8 / INT4",
+     "Dominates parameter count (\\$>65\\%\\$ of model); maximal compression gain"
+    ],
+    [
+     "**Output Classification Head**",
+     "Very High",
+     "FP16 / FP32",
+     "Prevents logit divergence and classification calibration shift"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Measuring Quantization Savings with Profiler\n\nNow let's use the Profiler tool from Module 14 to measure the actual memory savings from quantization. This demonstrates end-to-end workflow: profile baseline (M14) -> apply quantization (M15) -> measure savings (M14+M15).\n\nThis is the production workflow: measure -> compress -> validate -> deploy."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "# Import Profiler from Module 14\nfrom tinytorch.perf.profiling import Profiler\n\ndef explore_quantization_with_profiler():\n    \"\"\"Demonstrate memory savings using Profiler from Module 14.\"\"\"\n    print(\"Measuring Quantization Memory Savings with Profiler\")\n    print(\"=\" * 70)\n\n    profiler = Profiler()\n\n    # Create a simple model\n    model = Linear(512, 256)\n\n    print(\"\\nBEFORE: FP32 Model\")\n    print(\"-\" * 70)\n\n    # Measure baseline\n    param_count = profiler.count_parameters(model)\n    input_shape = (32, 512)\n    memory_stats = profiler.measure_memory(model, input_shape)\n\n    print(f\"   Parameters: {param_count:,}\")\n    print(f\"   Parameter memory: {memory_stats['parameter_memory_mb']:.2f} MB\")\n    print(f\"   Peak memory: {memory_stats['peak_memory_mb']:.2f} MB\")\n    print(f\"   Precision: FP32 (4 bytes per parameter)\")\n\n    # Quantize the layer\n    print(\"\\nQuantizing to INT8...\")\n    quantized_model = QuantizedLinear(model)\n    usage = quantized_model.memory_usage()\n\n    print(\"\\nAFTER: INT8 Quantized Model\")\n    print(\"-\" * 70)\n\n    # INT8 storage is simulated here, so memory_usage() reports the analytic byte count\n    quantized_param_count = profiler.count_parameters(quantized_model)\n    theoretical_memory_mb = usage['quantized_bytes'] / MB_TO_BYTES\n\n    print(f\"   Parameters: {quantized_param_count:,} (same count, different precision)\")\n    print(f\"   Parameter memory (theoretical): {theoretical_memory_mb:.2f} MB\")\n    print(f\"   Precision: INT8 (1 byte per parameter)\")\n\n    print(\"\\nMEMORY SAVINGS\")\n    print(\"=\" * 70)\n    savings_ratio = memory_stats['parameter_memory_mb'] / theoretical_memory_mb\n    savings_percent = (1 - 1/savings_ratio) * 100\n    savings_mb = memory_stats['parameter_memory_mb'] - theoretical_memory_mb\n\n    print(f\"   Compression ratio: {savings_ratio:.1f}x smaller\")\n    print(f\"   Memory saved: {savings_mb:.2f} MB ({savings_percent:.1f}% reduction)\")\n    print(f\"   Original: {memory_stats['parameter_memory_mb']:.2f} MB -> Quantized: {theoretical_memory_mb:.2f} MB\")\n\n    print(\"\\nKey Insight:\")\n    print(f\"   INT8 quantization reduces memory by 4x (FP32 -> INT8)\")\n    print(\"   Packed weights save parameter storage; activation memory and runtime costs differ.\")\n    print(f\"   Critical for edge devices with limited memory (mobile, IoT)\")\n    print(\"\\nThese are modeled packed-storage savings; measure output error separately.\")\n\nif __name__ == \"__main__\":\n    explore_quantization_with_profiler()"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Integration: The Quantizer Class."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,282 @@
+{
+ "title": "Benchmark Suite: Multi-Metric Evaluation and Reporting",
+ "summary": "TinyTorch benchmarking: Benchmark Suite: Multi-Metric Evaluation and Reporting",
+ "source": {
+  "chapter": "tt-19",
+  "sections": [
+   "Benchmark Suite: Multi-Metric Evaluation and Reporting"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Benchmark Suite: Multi-Metric Evaluation and Reporting\n\nThe BenchmarkSuite orchestrates multiple benchmark types and generates comprehensive reports. This is where individual measurements become actionable engineering insights.\n\n### Why Multi-Metric Analysis Matters\n\nSingle metrics mislead. Consider these three models:\n- **Model A**: 95% accuracy, 100ms latency, 50MB memory\n- **Model B**: 90% accuracy, 20ms latency, 10MB memory\n- **Model C**: 85% accuracy, 10ms latency, 5MB memory\n\nWhich is \"best\"? It depends on your constraints:\n- **Server deployment**: Model A (accuracy matters most)\n- **Mobile app**: Model C (memory/latency critical)\n- **Edge device**: Model B (balanced trade-off)\n\n### Multi-Dimensional Comparison Workflow"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Evaluation Phase",
+    "Component Operation",
+    "Collected Data",
+    "Systems Decision Role"
+   ],
+   "rows": [
+    [
+     "**Model Ingestion**",
+     "`models = [M1, M2, ...]`",
+     "Model architectures and weight buffers",
+     "Candidates for comparative deployment profiling"
+    ],
+    [
+     "**Metric Execution**",
+     "Latency, Accuracy, Memory, Energy",
+     "Sample distributions and allocator peaks",
+     "Multi-objective empirical measurement vectors"
+    ],
+    [
+     "**Aggregation**",
+     "Unified dictionary indexing",
+     "Synchronized per-metric `BenchmarkResult`",
+     "Cross-model normalization and variance alignment"
+    ],
+    [
+     "**Pareto Analysis**",
+     "`pareto_frontier()` non-dominated filtering",
+     "The set of variants no other variant dominates",
+     "Eliminates strictly sub-optimal candidate variants"
+    ],
+    [
+     "**Deployment Synthesis**",
+     "Markdown & JSON report generator",
+     "Quantitative tradeoff recommendations",
+     "Concrete deployment mapping (Server, Mobile, IoT)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Pareto Frontier Analysis\n\n`generate_report` names the Pareto-optimal models, the ones no other model beats on\nevery metric at once. That is a filter rather than a ranking. It narrows the candidate\nset without deciding among what survives, and it never collapses the trade-off to a\nsingle score. Collapsing is a separate, weighted choice, and this module keeps the\ntwo steps apart so you can see which one is doing the deciding.\n\n### Energy Efficiency Modeling\n\nSince direct energy measurement requires specialized hardware, we estimate energy based on computational complexity and memory usage. This provides actionable insights for battery-powered deployments."
+  },
+  {
+   "type": "text",
+   "md": "### BenchmarkSuite.__init__: Setting Up Multi-Metric Evaluation\n\nThe BenchmarkSuite constructor creates the evaluation infrastructure, including\na Benchmark instance for measurements and an output directory for reports and plots.\nIt also forwards `warmup_runs` and `measurement_runs` to that Benchmark, which is\nthe only knob that trades measurement wall-clock time against confidence-interval\nwidth. A suite that hard-coded the defaults would leave a CI pipeline no way to run\na fast smoke configuration and a slow nightly one from the same code."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class BenchmarkSuite:\n    \"\"\"\n    Comprehensive benchmark suite for ML systems evaluation.\n\n    Orchestrates multiple benchmark types (latency, accuracy, memory, energy)\n    and generates reports with visualizations and recommendations.\n\n    EXAMPLE:\n    >>> suite = BenchmarkSuite(models, datasets)\n    >>> report = suite.run_full_benchmark()\n    >>> suite.generate_report(report)\n    \"\"\"\n\n    def __init__(self, models: List[Any], datasets: List[Any],\n                 output_dir: str = \"benchmark_results\",\n                 warmup_runs: int = DEFAULT_WARMUP_RUNS,\n                 measurement_runs: int = DEFAULT_MEASUREMENT_RUNS):\n        \"\"\"\n        Initialize comprehensive benchmark suite.\n\n        TODO: Set up the suite with models, datasets, output directory, and a Benchmark instance\n\n        APPROACH:\n        1. Store models and datasets\n        2. Create output directory (use Path, mkdir with exist_ok)\n        3. Create Benchmark instance for measurements, forwarding the run counts\n        4. Initialize empty results dict\n\n        HINTS:\n        - Use Path(output_dir) for cross-platform paths\n        - The Benchmark instance handles individual model measurements\n        - Forward warmup_runs and measurement_runs; a suite that swallows them\n          leaves no way to trade measurement time against interval width\n        \"\"\"\n        self.models = models\n        self.datasets = datasets\n        self.output_dir = Path(output_dir)\n        self.output_dir.mkdir(parents=True, exist_ok=True)\n\n        self.benchmark = Benchmark(models, datasets,\n                                   warmup_runs=warmup_runs,\n                                   measurement_runs=measurement_runs)\n        self.results = {}"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: BenchmarkSuite.__init__\n\n**What we're testing**: Suite initialization with output directory and Benchmark instance\n**Why it matters**: Proper setup ensures results can be saved and compared\n**Expected**: All attributes initialized, output directory created"
+  },
+  {
+   "type": "text",
+   "md": "### BenchmarkSuite.run_full_benchmark: Orchestrating All Measurements\n\nThe `run_full_benchmark` method runs all four benchmark categories (latency, accuracy,\nmemory, energy) in sequence, assembling comprehensive empirical results for each candidate model:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Evaluation Phase",
+    "Invoked Subsystem",
+    "Metric Output",
+    "Result Dictionary Key"
+   ],
+   "rows": [
+    [
+     "**1. Latency**",
+     "`Benchmark.run_latency_benchmark()`",
+     "Inference duration (\\$\\text{ms}\\$) with warmup discard",
+     "`results['latency']`"
+    ],
+    [
+     "**2. Accuracy**",
+     "`Benchmark.run_accuracy_benchmark()`",
+     "Empirical evaluation accuracy score (\\$[0, 1]\\$)",
+     "`results['accuracy']`"
+    ],
+    [
+     "**3. Memory**",
+     "`Benchmark.run_memory_benchmark()`",
+     "Traced peak memory allocator allocation (\\$\\text{MB}\\$)",
+     "`results['memory']`"
+    ],
+    [
+     "**4. Energy**",
+     "`_estimate_energy_efficiency()`",
+     "Relative hardware energy proxy score",
+     "`results['energy']`"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def benchsuite_run_full_benchmark(self, simulate: bool = False,\n                                 input_shape: Tuple[int, ...] = (1, 28, 28)) -> Dict[str, Dict[str, BenchmarkResult]]:\n    \"\"\"\n    Run all benchmark categories using input_shape for latency and memory.\n\n    Choose the shape of a representative inference batch for your model.\n\n    TODO: Orchestrate latency, accuracy, memory, and energy benchmarks\n\n    APPROACH:\n    1. Run self.benchmark.run_latency_benchmark()\n    2. Run self.benchmark.run_accuracy_benchmark()\n    3. Run self.benchmark.run_memory_benchmark()\n    4. Run self._estimate_energy_efficiency()\n    5. Store all results in self.results dict\n\n    HINTS:\n    - Print progress messages for each benchmark type\n    - Return the complete results dict\n    \"\"\"\n    print(\"🧪 Running comprehensive benchmark suite...\")\n\n    # Run all benchmark types\n    print(\"  📊 Measuring latency...\")\n    self.results['latency'] = self.benchmark.run_latency_benchmark(input_shape=input_shape)\n\n    print(\"  🎯 Measuring accuracy...\")\n    self.results['accuracy'] = self.benchmark.run_accuracy_benchmark(simulate=simulate)\n\n    print(\"  💾 Measuring memory usage...\")\n    self.results['memory'] = self.benchmark.run_memory_benchmark(input_shape=input_shape)\n\n    # Simulate energy benchmark (would require specialized hardware)\n    print(\"  ⚡ Estimating energy efficiency...\")\n    self.results['energy'] = self._estimate_energy_efficiency()\n\n    return self.results\n\nBenchmarkSuite.run_full_benchmark = benchsuite_run_full_benchmark"
+  },
+  {
+   "type": "text",
+   "md": "### BenchmarkSuite._estimate_energy_efficiency: Energy Modeling\n\nSince direct energy measurement requires specialized hardware (power meters, RAPL),\nwe estimate energy from latency and memory usage. The model is a sum of three terms,\nnot a product: a fixed cost per inference, an active-power term that is the only one\nmultiplied by time, and a static term charged per megabyte resident.\n\n```\nEnergy Estimation Model:\nenergy = base_cost + (latency/1000) * 2.0 + memory * 0.01   (Joules; illustrative constants)\n         ↑            ↑                      ↑\n         Fixed        Active power x time    Static cost per MB\n         overhead     (the only t term)      (added, not scaled by t)\n```\n\nCharging memory additively rather than as \\$P_{\\text{static}} \\times t\\$ is a\nsimplification, and an inspectable one. A model that is slow and small gets no\nstatic-power credit for finishing quickly. Say so in a report rather than letting a\nreader assume the constants came off a power meter."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _benchsuite_estimate_energy_efficiency(self) -> Dict[str, BenchmarkResult]:\n    \"\"\"\n    Estimate energy efficiency (simplified simulation).\n\n    TODO: Estimate energy from latency and memory measurements\n\n    APPROACH:\n    1. Check if latency and memory results are available\n    2. Combine latency and memory into energy estimate per measurement\n    3. Raise a clear error if the latency or memory results are missing\n    4. Wrap results in BenchmarkResult\n\n    HINTS:\n    - Energy model: ENERGY_BASE_JOULES + (lat/1000) * ENERGY_JOULES_PER_SECOND + mem * ENERGY_JOULES_PER_MB\n    - Use zip() to pair latency and memory measurements\n    \"\"\"\n    energy_results = {}\n\n    for i, model in enumerate(self.models):\n        model_name = self.benchmark.model_names[i]\n\n        # Energy roughly correlates with latency * memory usage\n        if 'latency' in self.results and 'memory' in self.results:\n            latency_result = self.results['latency'].get(model_name)\n            memory_result = self.results['memory'].get(model_name)\n\n            if latency_result and memory_result:\n                # Three additive terms: fixed overhead, active power x time, and a\n                # static per-MB charge. Only the middle term scales with latency.\n                #\n                # zip() pairs the i-th latency with the i-th memory peak, but those\n                # came from two separate sweeps over the model, so the pairing is an\n                # artifact. The MEAN of energy_values is still correct (the mean of a\n                # sum is the sum of the means); its STD is not, because it assumes a\n                # within-run correlation that was never measured.\n                energy_values = []\n                for lat, mem in zip(latency_result.values, memory_result.values):\n                    energy = ENERGY_BASE_JOULES + (lat / 1000) * ENERGY_JOULES_PER_SECOND + mem * ENERGY_JOULES_PER_MB\n                    energy_values.append(energy)\n\n                energy_results[model_name] = BenchmarkResult(\n                    f\"{model_name}_energy_joules\",\n                    energy_values,\n                    metadata={'estimated': True, 'std_is_meaningful': False,\n                              **self.benchmark.system_info}\n                )\n\n    if not energy_results:\n        raise RuntimeError(\n            \"Energy estimation needs latency and memory results first\\n\"\n            \"  💡 Run the latency and memory benchmarks (or run_full_benchmark) before estimating energy\"\n        )\n\n    return energy_results\n\nBenchmarkSuite._estimate_energy_efficiency = _benchsuite_estimate_energy_efficiency"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: BenchmarkSuite._estimate_energy_efficiency\n\n**What we're testing**: Energy estimation from latency and memory data\n**Why it matters**: Energy awareness is critical for edge/mobile deployment\n**Expected**: Positive energy values for each model"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: BenchmarkSuite.run_full_benchmark\n\n**What we're testing**: Orchestration of all four benchmark types\n**Why it matters**: Complete evaluation requires all metrics measured consistently\n**Expected**: Results dict with keys for latency, accuracy, memory, energy"
+  },
+  {
+   "type": "text",
+   "md": "### BenchmarkSuite.plot_results: Visualization\n\nThe plot_results method generates a 2x2 grid of bar charts comparing models\nacross all four metrics. The best performer in each category is highlighted green."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 82 lines of code (starting with `def benchsuite_plot_results(self, save_plots: bool = True):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: BenchmarkSuite.plot_results\n\n**What we're testing**: That plot_results actually writes a comparison chart, and stays quiet when there is nothing to plot\n**Why it matters**: A visualization step that silently produces no file is worse than none at all, because the report still claims a chart exists\n**Expected**: benchmark_comparison.png exists and is non-empty after a run; an empty suite prints a message instead of raising"
+  },
+  {
+   "type": "text",
+   "md": "### pareto_frontier: Filtering Out the Dominated Variants\n\nThe dominance definition from 📐 is one function. A variant is on the frontier when\nno other variant matches it on every objective and beats it on at least one. Nothing\nis weighted, nothing is normalized, and no single winner is produced. The frontier is\na **set**, and its size is the honest answer to \"how many real choices do I have?\""
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Input",
+    "Meaning",
+    "Example"
+   ],
+   "rows": [
+    [
+     "`points`",
+     "One metric vector per variant, all in the same order",
+     "`{'small': (5.0, 0.80), 'big': (40.0, 0.94)}`"
+    ],
+    [
+     "`lower_is_better`",
+     "One flag per objective, in that same order",
+     "`(True, False)` for (latency ms, accuracy)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "With those two inputs, `small` and `big` are both on the frontier: `small` wins on\nlatency, `big` wins on accuracy, and neither dominates. Add `{'bad': (40.0, 0.70)}`\nand it drops out, because `big` is no slower and more accurate.\n\nThe cost is \\$O(n^2 m)\\$ for \\$n\\$ variants and \\$m\\$ objectives, which is the right\nalgorithm here. \\$n\\$ is the number of variants you are choosing between, so it is\nsingle digits, and the \\$O(n \\log n)\\$ divide-and-conquer alternatives only pay off in\nthe thousands."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def pareto_frontier(points: Dict[str, Tuple[float, ...]],\n                    lower_is_better: Tuple[bool, ...]) -> List[str]:\n    \"\"\"\n    Return the names of the non-dominated points, in input order.\n\n    TODO: Implement Pareto dominance filtering over measured metric vectors\n\n    APPROACH:\n    1. Write a dominates(a, b) predicate straight from the 📐 definition:\n       a is at least as good as b on EVERY objective, and strictly better on ONE\n    2. Respect lower_is_better per objective, so latency and accuracy can mix\n    3. Keep a point when nothing else dominates it\n\n    Args:\n        points: {name: metric vector}, every vector the same length\n        lower_is_better: one flag per objective, in the vectors' order\n\n    Returns:\n        List of names on the frontier, in the order they appeared in `points`\n\n    EXAMPLE:\n    >>> pareto_frontier({'a': (5.0, 0.80), 'b': (40.0, 0.94), 'c': (40.0, 0.70)},\n    ...                 (True, False))\n    ['a', 'b']\n\n    HINTS:\n    - \"At least as good\" is <= for a minimized objective and >= for a maximized one\n    - Both conditions are required. Without the strict part, two identical points\n      would dominate each other and the frontier would come back empty\n    \"\"\"\n    width = len(lower_is_better)\n    if any(len(vector) != width for vector in points.values()):\n        raise ValueError(f\"Every metric vector must carry {width} objectives\")\n\n    def dominates(a: Tuple[float, ...], b: Tuple[float, ...]) -> bool:\n        no_worse = all((x <= y) if low else (x >= y)\n                       for x, y, low in zip(a, b, lower_is_better))\n        better_somewhere = any((x < y) if low else (x > y)\n                               for x, y, low in zip(a, b, lower_is_better))\n        return no_worse and better_somewhere\n\n    return [name for name, vector in points.items()\n            if not any(dominates(other, vector)\n                       for rival, other in points.items() if rival != name)]"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: pareto_frontier\n\n**What we're testing**: Dominance filtering, including the strictness condition and mixed objective directions\n**Why it matters**: A frontier is the claim this module makes seven times; an implementation that returns everything (or nothing) makes the claim vacuous\n**Expected**: Dominated variants are dropped, tied variants both survive, and a single objective reduces to the best value"
+  },
+  {
+   "type": "text",
+   "md": "### BenchmarkSuite.generate_report: Actionable Insights\n\nThe `generate_report` method compiles all benchmark results into a structured\nmarkdown report with system information, per-metric summaries, best performers,\ntrade-off analysis, and deployment recommendations."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Report Generation Stage",
+    "Input Data",
+    "Generated Section",
+    "Key Technical Content"
+   ],
+   "rows": [
+    [
+     "**1. System Metadata**",
+     "`system_info`",
+     "Environment Header",
+     "OS, CPU architecture, core count, Python runtime"
+    ],
+    [
+     "**2. Per-Metric Summaries**",
+     "`results[metric]`",
+     "Score Breakdown",
+     "Mean with its unit, standard deviation, 95% CI, best performer"
+    ],
+    [
+     "**3. Trade-Off Analysis**",
+     "Cross-metric vectors",
+     "Non-dominated filtering",
+     "The Pareto frontier over (latency, accuracy) from `pareto_frontier()`"
+    ],
+    [
+     "**4. Recommendations**",
+     "Per-axis winners",
+     "Deployment Guidance",
+     "Fastest and most accurate variant, drawn from the frontier"
+    ],
+    [
+     "**5. File Persistence**",
+     "Formatted report buffer",
+     "Markdown Artifact",
+     "Saved to `output_dir / \"benchmark_report.md\"`"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "We will construct this in three modular steps: formatting the per-metric results summary,\ncomputing trade-off recommendations, and composing the complete report."
+  },
+  {
+   "type": "text",
+   "md": "#### Step 1: Format Per-Metric Results Summary\n\nFor each metric type, identify the best performer and list all model scores."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 68 lines of code (starting with `def _benchsuite_format_results_summary(self) -> List[str]:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "#### Step 2: Report the Trade-off Space, Then the Per-Axis Winners\n\nThis step reports the Pareto frontier over (latency, accuracy) and names the winner\non each axis. It deliberately does **not** compute a \"best overall\" score.\n\nThe tempting alternative is to min-max normalize both metrics and average them. Do not.\nWith two models where each is worst on the other's axis, the fastest normalizes to\n\\$(1, 0)\\$ and the most accurate to \\$(0, 1)\\$, so both score exactly \\$0.500\\$ and the\nwinner is whichever the dictionary happens to yield first. A tie broken by insertion\norder, printed to three decimals, reads as a measurement. It is not one.\n\nWeighing latency against accuracy needs weights, and weights come from the deployment,\nnot from the benchmark. `_generate_recommendations` in 🔧 Integration is the one place\nin this module that applies weights, and it states them. Here we narrow the field and\nstop."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 65 lines of code (starting with `def _benchsuite_format_recommendations(self) -> List[str]:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "#### Step 3: Compose the Full Report\n\nCombine system info, results summary, and recommendations into a complete\nmarkdown report and save it to disk."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def benchsuite_generate_report(self) -> str:\n    \"\"\"\n    Generate comprehensive benchmark report.\n\n    TODO: Compose _format_results_summary and _format_recommendations into a full report\n\n    APPROACH:\n    1. Add report header and system information\n    2. Call self._format_results_summary() for per-metric data\n    3. Call self._format_recommendations() for trade-off analysis\n    4. Save to output_dir/benchmark_report.md\n    \"\"\"\n    if not self.results:\n        return \"No benchmark results available. Run benchmark first.\"\n\n    report_lines = []\n    report_lines.append(\"# ML Model Benchmark Report\")\n    report_lines.append(\"=\" * 50)\n    report_lines.append(\"\")\n\n    # System information\n    report_lines.append(\"## System Information\")\n    system_info = self.benchmark.system_info\n    for key, value in system_info.items():\n        report_lines.append(f\"- {key}: {value}\")\n    report_lines.append(\"\")\n\n    # Results summary (from helper)\n    report_lines.extend(self._format_results_summary())\n\n    # Recommendations (from helper)\n    report_lines.extend(self._format_recommendations())\n\n    report_lines.append(\"\")\n    report_lines.append(\"---\")\n    report_lines.append(\"Report generated by TinyTorch Benchmarking Suite\")\n\n    # Save report\n    report_text = \"\\n\".join(report_lines)\n    report_path = self.output_dir / 'benchmark_report.md'\n    with open(report_path, 'w', encoding='utf-8') as f:\n        f.write(report_text)\n\n    print(f\"📄 Report saved to {report_path}\")\n    return report_text\n\nBenchmarkSuite.generate_report = benchsuite_generate_report"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: BenchmarkSuite._format_results_summary\n\n**What we're testing**: Per-metric results formatting with best performer identification\n**Why it matters**: Correct summaries help engineers quickly identify winners\n**Expected**: Markdown lines with metric headers, best performers, and model scores"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: BenchmarkSuite._format_recommendations\n\n**What we're testing**: Both paths, the synthetic-probe bail-out and the measured path that computes the frontier and names the per-axis winners\n**Why it matters**: Wrong recommendations lead to wrong deployment decisions, and a test that only runs the bail-out never sees the recommendation code at all\n**Expected**: Probe results yield no recommendations; measured results name the frontier, drop the dominated model, and pick the right winner on each axis"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: BenchmarkSuite (Full Class Integration)\n\nThis test validates our BenchmarkSuite runs comprehensive multi-metric evaluation\nand generates valid reports with recommendations.\n\n**What we're testing**: Full benchmark suite with report generation\n**Why it matters**: Comprehensive evaluation enables informed optimization decisions\n**Expected**: Complete results across all metrics with valid reports"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Benchmark Suite: Multi-Metric Evaluation and Reporting."
+   ]
+  }
+ ]
+}

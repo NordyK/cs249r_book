@@ -1,0 +1,98 @@
+{
+ "title": "Data Poisoning Defenses",
+ "summary": "Compare availability and backdoor poisoning objectives and analyze the detection asymmetry in production pipelines.",
+ "source": {
+  "chapter": "v2-14",
+  "sections": [
+   "Data Poisoning Defenses",
+   "Ingress and anomaly controls",
+   "Robust training objectives",
+   "Post-training behavioral checks",
+   "Self-supervised representations for robustness"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare availability and backdoor poisoning objectives and analyze the detection asymmetry in production pipelines\n- Explain why sophisticated clean-label poisoning evades naive outlier and label validation checks\n- Analyze the mathematical mechanism of spectral signatures in isolating backdoor poisoning via activation covariance\n- Identify data provenance and lineage tracking as the forensic pipeline mechanism for data poisoning recovery\n- Calculate and explain how Huber loss bounds outlier gradient influence in poisoned training datasets"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Robust AI, § Data Poisoning Defenses",
+   "md": "A recommendation model may retain its overall accuracy while promoting an attacker's chosen item to a small group of users. Defending against that failure requires testing the targeted behavior as well as securing the integrity of the training supply chain. Source permissions set the security boundary, and robustness evaluation measures what happens when poisoned records or updates cross it anyway."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Ingress and anomaly controls\n- Robust training objectives\n- Post-training behavioral checks\n- Self-supervised representations for robustness\n\nPay attention to: which post-training evidence exposes availability versus backdoor poisoning; why naive cleaning fails against statistically-blended poison samples; spectral signatures detecting backdoors via top-singular-vector anomaly without trigger knowledge; data provenance and lineage tracking as forensic capability for supply-chain attacks."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Compare availability poisoning with backdoor poisoning, and explain why an evaluation that checks only aggregate clean accuracy can miss a successful backdoor.",
+   "md": "Availability poisoning aims to degrade overall utility, which can produce an aggregate validation signal. Backdoor poisoning aims to induce the attacker’s output when a trigger appears and can preserve clean accuracy, so ordinary clean tests may miss it. Neither a fixed poison dose nor admission of a record guarantees that training learns the attack. Trigger-specific and consequential-slice evaluation complement provenance and contributor checks; a missed aggregate signal does not make a backdoor inherently undetectable."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-14-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A machine learning team relies on standard Z-score outlier filtering and label-consistency checks on its crowdsourced training data, yet finds its deployed model contains a severe backdoor vulnerability. Why do naive data-cleaning filters fail against sophisticated poisoning attacks?",
+     "explanation": "The correct answer is B. Clean-label attacks preserve correct labels, and their modified features can pass univariate Z-score and range checks. Passing those tests does not establish agreement with the full joint distribution or with learned representations. Poisoning attacks target training data during ingestion rather than modifying weights at inference. Z-score filtering is a general numerical statistical method, not text-only. Regularization changes the optimization objective; it does not inherently disable ingestion validation.",
+     "hint": "Think about: explain why sophisticated clean-label poisoning evades naive outlier and label validation checks",
+     "type": "single",
+     "options": [
+      "Poisoning attacks only modify model weights during inference and leave training data untouched.",
+      "Poisoned samples can have valid feature ranges and correct labels while passing the pipeline’s univariate checks.",
+      "Z-score filtering only works on text data and cannot be applied to numerical or image features.",
+      "Standard regularization during training completely disables all data validation checks."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Following an incident where an unauthorized training batch degraded a recommendation model, an audit team must identify the origin of the poisoned records, the pipeline transformation steps applied, and all downstream model artifacts trained on that batch. Which system capability provides this audit trail?",
+     "explanation": "The correct answer is D. Provenance and lineage records connect source batches, transformations, and downstream model artifacts when those dependencies were captured. They support investigation of candidate compromised contributions and targeted recovery after confirmation; the record alone does not prove causal responsibility. Smoothing certifies a perturbation radius, dropout estimates uncertainty, and Huber loss bounds the residual derivative rather than supplying a source audit trail.",
+     "hint": "Think about: identify data provenance and lineage tracking as the forensic pipeline mechanism for data poisoning recovery",
+     "type": "single",
+     "options": [
+      "Randomized smoothing certificates",
+      "Monte Carlo dropout sampling",
+      "Huber loss gradient clipping",
+      "Data provenance and lineage tracking"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In training pipelines susceptible to data poisoning, replacing standard mean squared error loss with Huber loss prevents extreme outliers from exerting unbounded derivative with respect to the residual, because Huber loss transitions from quadratic to linear error growth beyond a threshold $\\delta$.",
+     "explanation": "True. Mean squared error scales quadratically (e^2) with residual error, meaning a single poisoned sample with \\$100× normal error generates \\$10,000× loss and \\$100× residual gradient magnitude, increasing its potential influence on an update. Huber loss transitions from quadratic to linear error growth beyond delta, bounding the loss derivative with respect to the residual. The parameter gradient also contains the model Jacobian, so Huber loss alone does not bound every parameter update or prevent targeted poisoning.",
+     "hint": "Think about: calculate and explain how Huber loss bounds outlier gradient influence in poisoned training datasets",
+     "type": "truefalse",
+     "answer": true
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain how spectral signatures detect backdoor-poisoned samples in activation space without requiring the defender to know what the trigger pattern looks like.",
+   "md": "Spectral signatures search for sufficient separation between clean and poisoned representations within a class. In the studied backdoor attacks, centered activations projected onto the top singular vector gave high scores to many poisoned samples, without requiring the trigger’s appearance in advance. A successful backdoor does not guarantee that separation. The filter must measure missed poisons and discarded clean records for the evaluated attack and representation."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: The chapter argues that secure data sourcing, least-privilege pipeline access, and signed model registries are first-class robustness defenses rather than generic security hygiene. Justify this claim by identifying the failure modes that algorithmic data-cleaning methods cannot prevent.",
+   "md": "Statistical filters and robust objectives can miss poisons that blend into legitimate variation. Access limits, authenticated artifacts, and provenance constrain particular unauthorized contribution and promotion paths and preserve evidence for investigation. They do not establish that an authorized contributor or signed artifact is benign. Behavioral evaluation and downstream defenses still need to test what happens when harmful contributions cross the permitted boundary."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Poisoning defenses**: Layered controls on source provenance, incoming data, training, and post-training behavior that reduce specified poisoning risks."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Poisoning defenses",
+   "def": "Layered controls on source provenance, incoming data, training, and post-training behavior that reduce specified poisoning risks."
+  }
+ ]
+}

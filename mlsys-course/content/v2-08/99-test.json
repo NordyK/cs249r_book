@@ -1,0 +1,151 @@
+{
+ "title": "Test: Fleet Orchestration",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-08-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "In cloud orchestration environments such as AWS and GCP, a user specifies a ____ to request close placement of virtual machine instances for high-bandwidth, low-latency communication.",
+     "explanation": "placement group. A cluster placement policy requests nearby, high-bandwidth placement under the provider’s documented contract. It is not a universal guarantee of identical bisection bandwidth or a substitute for measuring collective performance.",
+     "hint": "Think about: identify the cloud-native abstraction used to enforce low-latency, high-bandwidth network proximity.",
+     "type": "fill",
+     "answer": [
+      "placement group"
+     ]
+    },
+    {
+     "q": "A hypothetical per-device annual hardware-fault probability of 0.001 is sufficient to conclude that all-cause interruptions will remain rare during multi-week jobs on a 10,000-GPU fleet.",
+     "explanation": "False. That hypothetical probability covers only the stated device-fault event. Job interruptions also depend on worker count, runtime faults, links, hosts, and shared power or storage domains. A fleet interruption model must include those causes and their dependencies; a device-level annual figure does not establish a measured all-cause job failure rate.",
+     "hint": "Think about: evaluate the mathematical relationship between individual component reliability and aggregate fleet failure frequency in large GPU clusters.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Because each VM instance in a cloud provider has an independent lifecycle, placing worker nodes of a 64-node distributed training job across different instance types within the same Availability Zone guarantees that preemption events will remain uncorrelated and statistically independent.",
+     "explanation": "False. Cloud capacity pressures and spot revocations are driven by macroeconomic cluster demand spikes and provider-level resource reclamation within a datacenter or Availability Zone. Preemption events for high-demand GPU types (e.g., A100/H100) are heavily correlated within an AZ; when capacity becomes scarce, providers reclaim multiple instances simultaneously, invalidating assumptions of independent failure.",
+     "hint": "Think about: evaluate the assumption of statistical independence in cloud spot instance preemption events.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Topology-aware placement**?",
+     "options": [
+      "Mean queue wait is a load factor rho/(1-rho) times a variability factor (1+C_s^2)/2, so waiting time bends sharply upward as offered load nears capacity, and a mixed ML queue whose job durations vary widely pays several times more wait at the same utilization than a uniform one.",
+      "Elasticity replaces keep-or-kill with a declared size range, valid increments, a measured transition cost, and a scaling-efficiency curve, and each resize must be amortized over the run and judged by time to target quality.",
+      "A fair share of accelerators a job cannot run on delivers nothing, so the scheduler first filters feasible bundles (every resource dimension, gang atomicity, topology, memory) and only then applies dominant-resource fairness, while multi-dimensional packing strands capacity.",
+      "Equal-size allocations deliver different throughput because bandwidth steps down from NVLink to leaf to spine, so placement minimizes a locality cost over the job's actual traffic, judged by completion time including the wait for a compact placement."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Topology-aware placement itself, not a neighbouring idea.",
+     "explanation": "**Topology-aware placement:** Equal-size allocations deliver different throughput because bandwidth steps down from NVLink to leaf to spine, so placement minimizes a locality cost over the job's actual traffic, judged by completion time including the wait for a compact placement."
+    },
+    {
+     "q": "The custom ML scheduler Themis optimizes for ____ fairness, ensuring that each job completes in a time comparable to what it would achieve in a dedicated cluster share, thereby preventing gaming and multi-resource allocation monopolies.",
+     "explanation": "finish-time (or finish-time fairness, finish time). Themis designs an auction-based, finish-time fairness metric that balances resource allocation based on how much a scheduler's decision affects the actual completion time of competing jobs.",
+     "hint": "Think about: identify the fairness concept implemented by Themis to prevent users from gaming cluster resource allocators.",
+     "type": "fill",
+     "answer": [
+      "finish time (or finish time fairness, finish time)",
+      "finish-time",
+      "finish-time (or finish-time fairness, finish time)"
+     ]
+    },
+    {
+     "q": "Order the dependencies in this illustrative launch path for a Kubernetes training job configured with a compatible training operator and Volcano group admission:",
+     "explanation": "The correct order is (2) -> (5) -> (1) -> (3) -> (4). Submission supplies the desired job, the configured integration represents its workers and group, and the scheduler checks minimum-group feasibility before authorizing placement. Node launches can complete at different times; group admission does not make them simultaneous. RDMA access requires separate device, driver, permission, and fabric configuration. The framework then forms the communication group before training proceeds.",
+     "hint": "Think about: order the operational stages of launching a distributed PyTorch training job via the Kubeflow Training Operator and Volcano.",
+     "type": "order",
+     "items": [
+      "The developer submits the training-job manifest defining workers and resource requirements.",
+      "The operator and configured scheduling integration create worker pods and their PodGroup.",
+      "Volcano verifies a feasible placement for the PodGroup's minimum viable membership.",
+      "Volcano authorizes group placement, and node agents launch the admitted workers using the separately configured device and network resources.",
+      "Launched workers establish their communication group through rendezvous before synchronized training begins."
+     ]
+    },
+    {
+     "q": "A persistent degraded switch path lowers measured end-to-end training throughput by 30 percent. A checkpoint-and-migration pause would take 10 minutes, healthy replacement capacity is available, and days of training remain. What is the appropriate orchestration response?",
+     "explanation": "The correct answer is C. Quarantine the degraded path and migrate onto verified healthy capacity. At a measured 30-percent end-to-end throughput loss, recovering the work forgone during a 10-minute pause takes about 23 minutes of subsequent healthy execution relative to staying on the degraded placement, or about 33 minutes counting the pause. This payback uses job throughput, not merely a collective microbenchmark, and assumes the slowdown would persist.",
+     "hint": "Think about: evaluate scheduler diagnostic mechanisms and migration economics for degraded network hardware.",
+     "type": "single",
+     "options": [
+      "Continue running the job indefinitely because a 10-minute checkpoint-and-reschedule migration would cost more compute than a 30% slowdown over a multi-week run.",
+      "Rely on the GPU driver to disable NVLink and route all tensor-parallel traffic through host memory over PCIe.",
+      "Trigger a performance-aware topology quarantine via taints or drain states, checkpoint the running job, and migrate it to healthy nodes where the break-even time is under an hour.",
+      "Terminate the job and permanently de-allocate all 10,000 GPUs in the datacenter until all network transceivers are manually replaced."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "An administrator observes that average GPU compute utilization across a 1,000-GPU cluster is only \\$55\\%, yet users experience multi-day queue wait times for 64-GPU jobs. Which diagnostic finding points to the primary root cause?",
+     "explanation": "The correct answer is B. Moderate average utilization can coexist with long waits when small jobs hold one or two GPUs on many nodes. Hundreds of GPUs sit idle in aggregate, but no 64-GPU gang can assemble within the placement constraints. A capacity shortfall would not leave hundreds of GPUs idle while jobs wait, so adding hardware treats a placement-feasibility problem as a demand problem. At a load of 0.55 the factor ServingUtilization/(1-ServingUtilization) is only about 1.2, far from the steep part of the curve. Admission depends on whether a complete allocation is feasible, not on the SM activity of jobs already running.",
+     "hint": "Think about: analyze the root causes of high queue wait times coexisting with moderate average cluster utilization.",
+     "type": "single",
+     "options": [
+      "Demand exceeds the cluster's capacity, so the queue can shrink only after more GPUs are purchased.",
+      "Severe resource fragmentation and strict gang scheduling constraints prevent 64-GPU contiguous blocks from forming, while short jobs hold scattered GPUs across nodes without filling them.",
+      "At 55 percent load, the queueing factor ServingUtilization/(1-ServingUtilization) alone already makes multi-day waits unavoidable.",
+      "Input-pipeline stalls lower SM activity on running jobs, and low SM activity is what keeps the scheduler from admitting the 64-GPU jobs."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "An organization runs steady 24/7 inference, urgent retraining with tight deadlines, and a large hyperparameter sweep. Which assignment of these workloads to reserved, on-demand, and spot capacity matches each workload's deadline and recovery contract?",
+     "explanation": "The correct answer is B. Reserved capacity suits predictable continuous load such as steady inference. On-demand capacity avoids long-term commitment for urgent work that cannot tolerate reclamation, at full price and with admission and startup delay. Spot capacity suits restart-tolerant work such as independent sweep trials. Placing inference or deadline-bound retraining on reclaimable capacity, or reserving capacity for a bursty sweep, mismatches the tier to the workload's contract.",
+     "hint": "Think about: map workloads to reserved, on-demand, and spot capacity tiers by deadline and restart tolerance.",
+     "type": "single",
+     "options": [
+      "Inference on spot, retraining on reserved, sweep on on-demand.",
+      "Inference on reserved, retraining on on-demand, sweep on spot.",
+      "All three on spot, because the discount outweighs any interruption risk.",
+      "Inference on on-demand, retraining on spot, sweep on reserved."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Under a two-dimensional attained-service policy with service bins of less than 1, 1 to 10, 10 to 100, and more than 100 GPU-hours, order these running jobs from highest to lowest scheduling priority:",
+     "explanation": "The correct order is: (2) 1 GPU for 30 minutes, (3) 8 GPUs for 1 hour, (4) 16 GPUs for 4 hours, (1) 64 GPUs for 2 hours. Attained service multiplies GPU count by elapsed time, giving 0.5, 8, 64, and 128 GPU-hours, which fall in four successive bins, and lower-service bins run first. Ranking by elapsed time alone would place the 64-GPU job ahead of the 16-GPU job and miss that it has already consumed twice the GPU-time. Under heavy-tailed durations, low attained service predicts a short job, and a starvation guard can still promote a job that has waited too long.",
+     "hint": "Think about: apply two-dimensional attained service to rank jobs by scheduling priority and explain why GPU count must enter the ranking.",
+     "type": "order",
+     "items": [
+      "1 GPU for 30 minutes",
+      "8 GPUs for 1 hour",
+      "16 GPUs for 4 hours.",
+      "64 GPUs for 2 hours"
+     ]
+    },
+    {
+     "q": "A training job moves from on-demand to spot capacity at the chapter's scenario discount. According to the effective-cost relation, in which effective cost equals the spot price times billed allocation time divided by retained productive time, what determines whether the discount survives?",
+     "explanation": "The correct answer is B. Effective cost is the spot price scaled by billed time over retained progress. Checkpointing, recovery, and discarded work all add billed time without adding retained progress, so frequent or expensive interruptions can erase the discount. A notice gives an opportunity to save state but does not make the interruption free, and a placement score estimates whether a request will succeed, not how often the job will be interrupted.",
+     "hint": "Think about: apply the spot effective-cost relation to decide whether a discount survives interruption overhead.",
+     "type": "single",
+     "options": [
+      "Only the advertised discount, because interruptions are free once a provider sends a notice.",
+      "The ratio of billed allocation time to retained productive time, which grows with checkpoint overhead, restart time, and work replayed after each interruption.",
+      "The number of GPUs in the job, because larger jobs always receive deeper spot discounts.",
+      "The provider's capacity-placement score, which predicts how many interruptions the job will see per day."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "What is the fundamental difference in control philosophy between Slurm and Kubernetes when managing distributed ML training workloads?",
+     "explanation": "The correct answer is C. Slurm originates from HPC batch systems and uses an imperative model (sbatch requests explicit resources like `--gres=gpu:8 --nodes=4`), providing authoritative upfront allocation. Kubernetes uses a declarative model where controllers continuously observe actual state and execute reconciliation loops to converge toward desired state (e.g., Pods, Deployments). The option swapping Slurm and Kubernetes mechanisms reverses their core architectures. The gossip protocol alternative invents a non-existent scheduling model for Slurm. The containerization claim reverses the platforms' primary native workload types.",
+     "hint": "Think about: compare the core architectural control mechanisms of Slurm and Kubernetes for ML training workflows.",
+     "type": "single",
+     "options": [
+      "Slurm relies on continuous reconciliation loops against desired state stored in etcd, whereas Kubernetes executes imperative one-time allocation scripts via a centralized daemon.",
+      "Slurm uses peer-to-peer gossip protocols to schedule tasks across nodes, whereas Kubernetes enforces hierarchical master-slave token ring passing.",
+      "Slurm employs an imperative allocation model where users request explicit physical resources guaranteed at launch, whereas Kubernetes uses a declarative model where controllers continuously reconcile observed cluster state toward declared desired state.",
+      "Slurm schedules containerized microservices with dynamic horizontal auto-scaling, whereas Kubernetes only supports uncontainerized bare-metal MPI processes."
+     ],
+     "answer": 2
+    }
+   ]
+  }
+ ]
+}

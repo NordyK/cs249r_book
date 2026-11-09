@@ -1,0 +1,102 @@
+{
+ "title": "Monitoring at Scale",
+ "summary": "Analyze the systemic impact of hardware gray failures on synchronous distributed training efficiency.",
+ "source": {
+  "chapter": "v2-12",
+  "sections": [
+   "Monitoring at Scale",
+   "Fleet telemetry and hardware observability",
+   "The alert fatigue problem",
+   "Hierarchical monitoring architecture",
+   "Anomaly detection across the fleet",
+   "Model-type specific monitoring",
+   "Observability architecture",
+   "Dashboard design"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the systemic impact of hardware gray failures on synchronous distributed training efficiency\n- Apply spatial correlation analysis to localize datacenter hardware telemetry anomalies\n- Calculate the mathematical rate of false positive alert generation across a multi-model fleet\n- Design a hierarchical observability architecture that eliminates alert fatigue while maintaining system visibility\n- Justify the use of automated hardware preflight diagnostics prior to distributed training allocation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, ML Operations at Scale, § Monitoring at Scale",
+   "md": "Preserving a release contract after promotion requires knowing whether a production regression comes from shifting data, an upstream dependency, or the hardware underneath the model. Because application-layer drift and latency checks depend on a healthy physical substrate, where a degraded NVLink connection or a thermally throttling GPU can masquerade as a software timeout, fleet monitoring starts bottom-up with hardware telemetry and climbs through alert aggregation, model-quality signals, and dashboards so operators can route each symptom to the layer that can repair it."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Fleet telemetry and hardware observability\n- The alert fatigue problem\n- Hierarchical monitoring architecture\n- Anomaly detection across the fleet\n- Model-type specific monitoring\n- Observability architecture\n- Dashboard design\n\nPay attention to: Hardware gray failures and synchronous distributed stragglers; Datacenter spatial correlation telemetry analysis; Mathematical basis of alert fatigue and hierarchical monitoring."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In a fleet of 100 models with 10 metrics each, checked every 5 minutes at a threshold with false positive rate $\\alpha = 0.003$, calculate expected raw false threshold crossings per day. How should monitoring distinguish these crossings from operator pages?",
+   "md": "The expectation is \\$288,000 × 0.003 = 864 raw false threshold crossings per day under the stated marginal rate. These are not necessarily distinct incidents or pages. Grouping, persistence checks, deduplication, and calibrated alert policies reduce page burden; hierarchical monitoring routes evidence to responsible owners while retaining urgent local alerts."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-12-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why are 'gray failures' (e.g., an accelerator whose GEMM arithmetic throughput drops by 20% or an NVLink connection suffering intermittent packet retries) exceptionally damaging in large synchronous distributed training runs?",
+     "explanation": "The correct answer is B. A gray failure can lengthen the step critical path without crashing a process. Gradient communication can overlap computation as buckets become ready; ranks need not finish all local computation before any collective begins. The effect depends on placement and the collective schedule, rather than implying a datacenter-wide power failure.",
+     "hint": "Think about: analyze the systemic impact of hardware gray failures on synchronous distributed training efficiency.",
+     "type": "single",
+     "options": [
+      "Gray failures trigger automatic emergency power-off sequences across the entire datacenter hall.",
+      "A degraded rank or link on the communication critical path can delay collective completion and the next training step while ordinary availability checks remain healthy.",
+      "Gray failures cause the training loss optimizer to invert gradient signs during backpropagation.",
+      "The Kubernetes control plane immediately unmounts shared file systems when a GPU runs slowly."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "If 8 GPUs in one server chassis show elevated junction temperatures while adjacent nodes remain normal, which local cooling hypothesis should the investigation prioritize?",
+     "explanation": "The correct answer is C. The pattern prioritizes node-level cooling investigation. Compare workload, power, clocks, and cooling telemetry with adjacent nodes before confirming a cause; spatial correlation does not establish a fan or coolant fault by itself.",
+     "hint": "Think about: apply spatial correlation analysis to localize datacenter hardware telemetry anomalies.",
+     "type": "single",
+     "options": [
+      "Failure of the building's central chiller cooling plant.",
+      "An optical transceiver failure on the top-of-rack InfiniBand switch.",
+      "A localized node-level failure, such as a chassis fan malfunction or a cold-plate coolant flow restriction.",
+      "A software bug in the Prometheus time-series database metric scraper."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Automated hardware preflight checks necessarily reduce overall training productivity because they add job startup latency.",
+     "explanation": "False. Preflight checks can recover more useful work than their startup cost by detecting faults before a long run. The net benefit depends on avoided failed work, diagnostic coverage, startup overhead, and false exclusions; matched workload baselines help assess that trade-off.",
+     "hint": "Think about: justify the use of automated hardware preflight diagnostics prior to distributed training allocation.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Hardware memory errors corrected automatically without crashing an application are called ____ errors; an elevated rate can warrant investigation before an uncorrectable failure.",
+     "explanation": "correctable ECC. Error-Correcting Code (ECC) telemetry records corrected memory errors. Such errors can precede uncorrectable failures, but their predictive value requires validation for the device and workload; the count alone does not establish impending failure.",
+     "hint": "Think about: identify the hardware memory error telemetry used for predictive accelerator diagnostics.",
+     "type": "fill",
+     "answer": [
+      "correctable ECC"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Describe the four levels of a hierarchical monitoring architecture for ML platforms and identify the primary owner and operational role of each level.",
+   "md": "(1) Business metrics, such as revenue or conversion attributed to recommendations, are owned by the incident lead and raise the few high-confidence alerts that indicate product impairment. (2) Portfolio metrics, such as engagement lift or fraud caught and false-positive rate, are owned by domain teams and route the investigation to the model family that owns the shared objective. (3) Model metrics, such as task quality, latency distributions, and recent deployment state, are owned by model owners and support local diagnosis. (4) Infrastructure metrics, such as GPU cluster availability, feature store latency, networking, and storage, are owned by the platform team and route failures that need capacity or control-plane repair."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the systemic impact of hardware gray failures on synchronous distributed training efficiency.",
+    "You can now apply spatial correlation analysis to localize datacenter hardware telemetry anomalies.",
+    "You can now calculate the mathematical rate of false positive alert generation across a multi-model fleet.",
+    "You can now design a hierarchical observability architecture that eliminates alert fatigue while maintaining system visibility."
+   ]
+  }
+ ]
+}

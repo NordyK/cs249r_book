@@ -1,0 +1,103 @@
+{
+ "title": "Program Goodput",
+ "summary": "Apply the iron law to bound the speedup of a hardware change that shortens one term.",
+ "source": {
+  "chapter": "v2-09",
+  "sections": [
+   "Program Goodput",
+   "The iron law and the Fleet Law terms",
+   "Exposed communication at fleet scale",
+   "Drilling into the step",
+   "Common bottleneck patterns"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Apply the iron law to bound the speedup of a hardware change that shortens one term\n- Calculate the efficiency cost of scale from node and fleet MFU and report program goodput without double counting\n- Diagnose aligned-rank traces to separate a straggler from exposed communication\n- Synthesize the profiling hierarchy for a program goodput loss and account for trace perturbation\n- Place a profiled kernel on the roofline from counter data and select the lever that can move it"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Efficiency, § Program Goodput",
+   "md": "Even when a job holds a complete allocation and retains every step it executes, it can still waste most of its capacity if each retained step runs far below the speed its hardware allows. Within the held time of our Llama 2 70B training job, program goodput is the single largest source of loss—even though scheduling losses consume a larger share of the shared pool as a whole (a later section)."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The iron law and the Fleet Law terms\n- Exposed communication at fleet scale\n- Drilling into the step\n- Common bottleneck patterns\n\nPay attention to: Iron law terms and their mapping onto the Fleet Law; Exposed communication from one node to 128 GPUs and the scaling efficiency split; Straggler versus exposed-communication evidence in a step trace; Top-down drill-down, trace perturbation, and roofline placement by measured arithmetic intensity."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Synchronized per-rank traces record the same collective in otherwise matched steps. In the baseline, every rank enters at 8 ms and all finish at 10 ms. In case A, all ranks but one enter at 8 ms, the last enters at 12 ms, and all finish at 14 ms. In case B, every rank enters at 8 ms and all finish at 14 ms. Which Fleet Law term does each case lengthen, and why do both lower the same goodput factor while pointing to different lever owners?",
+   "md": "Case A adds 4 ms of waiting for one late rank while the others wait at the barrier, the signature of a straggler in the synchronization term; the next step is to trace that rank's preceding computation, input, and host work beside a healthy peer. Case B stretches the collective itself from 2 ms to 6 ms with every rank present, exposed communication in the communication term not covered by overlap. Both occur inside retained steps on a complete allocation, so both are program goodput losses. The straggler may be fixed by node replacement in the reliability layer, while exposed communication is addressed by layout and overlap. The trace localizes the interval but does not by itself prove a network fault."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-09-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A training step's wall-clock time is decomposed with the iron law ($T = D_{\\text{vol}}/\\text{BW} + O/(R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}) + L_{\\text{lat}}$) into 60% memory traffic, 30% compute, and 10% dispatch and latency overhead. A hardware upgrade doubles peak compute $R_{\\text{peak}}$ while leaving memory bandwidth and overhead unchanged. What is the maximum speedup this upgrade can achieve on this workload?",
+     "explanation": "The correct answer is C. Doubling R_peak affects only the compute term, halving it from 0.30 to 0.15 of the baseline time. The new normalized time is \\$0.60 + 0.15 + 0.10 = 0.85, a speedup of \\$1/0.85 approx 1.18×. A local change helps only through the term it shortens, and only by the part of that term that was exposed; expecting \\$2× ignores that 70% of the step is governed by memory traffic and overhead.",
+     "hint": "Think about: apply the iron law to bound the speedup of a hardware change that shortens one term.",
+     "type": "single",
+     "options": [
+      "\\$2.00×, because doubling peak compute halves the execution time of the matrix multiplications",
+      "\\$1.67×, because the compute and overhead fractions are both accelerated by the faster arithmetic",
+      "About \\$1.18×, because doubling compute only reduces the 30% compute slice to 15% while the 70% non-compute time remains",
+      "\\$1.43×, because the memory-bound portion is compressed by the faster arithmetic units"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "The running example reaches 65% MFU on one 8-GPU node and 48% fleet MFU on 128 GPUs with the same work on each device, its step time rising from 180 ms to 245 ms. How much of the node's efficiency does scale cost, and how should a report state the job's program goodput?",
+     "explanation": "The correct answer is B. Because each device does the same work, the MFU ratio equals the step-time ratio, \\$180/245 approx 0.74, so scale costs about 26% of the node's efficiency; 17 points is an absolute difference. Both MFUs are per-microbatch values of the constructed example; amortizing the data-axis gradient reduction over the accumulated microbatches lowers program goodput to about 0.456 over a full optimizer step. The fleet MFU already contains the exposed time, so multiplying it by the scaling efficiency would charge that time twice. The 65 ms added per step, about 27% of the fleet step, bounds what exposed communication and synchronization can claim, but only a step trace attributes it, since offload, kernel shapes, and barrier waits can also change between the two configurations.",
+     "hint": "Think about: calculate the efficiency cost of scale from node and fleet MFU and report program goodput without double counting.",
+     "type": "single",
+     "options": [
+      "17%, the direct difference in MFU points, and program goodput is \\$0.65 × 0.74 multiplied again by the fleet MFU",
+      "About 26% (a scaling efficiency of about 74%), and program goodput is either the fleet MFU of 0.48 or the node MFU times the scaling efficiency, never the fleet MFU times the scaling efficiency",
+      "About 52%, the unused share of peak, all of which is exposed communication",
+      "About 26%, and program goodput is \\$0.48 × 0.74 approx 0.36 because the scale loss must be charged separately"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Counters for a LayerNorm kernel on an H100 report 5 TFLOP/s of achieved arithmetic and 2.8 TB/s of achieved memory bandwidth, against a peak bandwidth of 3.35 TB/s and an FP16 ridge of about 295 FLOP/byte. Which lever can deliver a material gain?",
+     "explanation": "The correct answer is D. Measured intensity is \\$5 / 2.8 approx 1.8 FLOP/byte, far below the ridge, so the kernel's bound lies on the bandwidth slope, and it already achieves about 83.6% of peak bandwidth. Faster arithmetic cannot raise a bandwidth ceiling, and a better schedule recovers only the small remaining gap. Fusion keeps the intermediate out of HBM. A low FLOP rate alone does not indicate dispatch, which appears instead as idle gaps between short kernels.",
+     "hint": "Think about: place a profiled kernel on the roofline from counter data and select the lever that can move it.",
+     "type": "single",
+     "options": [
+      "Faster arithmetic units, because the kernel achieves only a tiny fraction of peak FLOP/s",
+      "A better memory schedule inside the kernel, because achieved bandwidth is far below peak",
+      "Graph replay, because a low FLOP rate always indicates host dispatch overhead",
+      "Moving fewer bytes, by fusing the normalization with the operation that produces its input or by a supported smaller representation"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A profiled kernel's measured arithmetic intensity always equals the algorithmic intensity of its operation, so the kernel can be placed on the roofline from the model's FLOP and byte counts alone.",
+     "explanation": "False. Measured intensity divides the operations a kernel actually executes by the bytes observed crossing a named memory boundary, so it includes tiling, cache behavior, fusion, padding, and redundant transfers. A measured value below the algorithmic estimate exposes traffic the algorithm did not require, and a roofline point is interpretable only when its FLOP convention and memory boundary match the ceilings on the same plot.",
+     "hint": "Think about: distinguish measured from algorithmic arithmetic intensity in roofline diagnosis.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Describe the top-down drill-down from a fleet measure to a hardware root cause for a program goodput loss, and explain why the step's duration is read from the untraced job timeline rather than from the trace.",
+   "md": "Fleet measures such as step time against plan, MFU of retained steps, and per-rank step timers detect the loss. Framework and distributed traces associate step time with model operations across ranks, where a lagging rank or exposed collective first appears. Kernel timelines on one rank show launch gaps and the overlap of compute and communication streams, and hardware counters report achieved bandwidth, occupancy, and instruction mix for one kernel. Each level is taken only for the ranks and window the level above selected, and the descent stops at the level that names the term. Tracing adds host work, memory, and synchronization, so a traced step can run slower or overlap differently; the trace is evidence about structure, and the duration comes from the untraced timeline."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the iron law to bound the speedup of a hardware change that shortens one term.",
+    "You can now calculate the efficiency cost of scale from node and fleet MFU and report program goodput without double counting.",
+    "You can now diagnose aligned-rank traces to separate a straggler from exposed communication.",
+    "You can now synthesize the profiling hierarchy for a program goodput loss and account for trace perturbation."
+   ]
+  }
+ ]
+}

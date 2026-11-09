@@ -1,0 +1,69 @@
+{
+ "title": "The H·S·A Exposure Space",
+ "summary": "Work through The H·S·A Exposure Space.",
+ "source": {
+  "chapter": "v3-01",
+  "sections": [
+   "The H·S·A Exposure Space",
+   "Four lighthouse workloads"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **The H·S·A Exposure Space**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Introduction, § The H·S·A Exposure Space",
+   "md": "A single model call reads a static prompt, returns one completion, and leaves the outside world untouched. When a runtime instead stretches execution across dozens of turns, carries files and memory forward, and invokes tools that modify external systems, a single mistaken proposal can compound across steps, corrupt shared state, or trigger an irreversible outage. Sizing the runtime's defenses to a task therefore starts from the book's central runtime artifact, the trajectory, which records the complete sequence of steps the runtime must govern."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Cost per accepted task matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Under retry-until-accept, C_eff = E[C_attempt]/p_acc, so acceptance divides the whole attempt cost and any mechanism pays for its overhead only if it lowers this ratio."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-01-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The H·S·A Exposure Space** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Self-report, static analysis, visible tests, sealed tests, and formal verification form a default ordering of acceptance evidence that coverage can override, and every check is a bounded claim narrower than the task.",
+      "A model-directed loop is justified only where open-ended evidence must be interpreted and it raises acceptance by more than it inflates attempt cost under the same contract and verifier.",
+      "With independent unchecked steps Pr(success) = (1-eps)^H, so the product eps*H rather than step accuracy sets reliability, and a check plus restoration that shortens the unchecked segment is the cheaper lever.",
+      "Under retry-until-accept, C_eff = E[C_attempt]/p_acc, so acceptance divides the whole attempt cost and any mechanism pays for its overhead only if it lowers this ratio."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Cost per accepted task**: Under retry-until-accept, C_eff = E[C_attempt]/p_acc, so acceptance divides the whole attempt cost and any mechanism pays for its overhead only if it lowers this ratio."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Execution horizon**: The number of decision turns over which errors, costs, and recovery obligations can accumulate.",
+    "**Carried state**: Files, records, or execution state persist between invocations and can be corrupted or become stale.",
+    "**Effect authority**: The permitted reach of tool actions exposes resources to effects, including disclosure through read access."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Execution horizon",
+   "def": "The number of decision turns over which errors, costs, and recovery obligations can accumulate."
+  },
+  {
+   "term": "Carried state",
+   "def": "Files, records, or execution state persist between invocations and can be corrupted or become stale."
+  },
+  {
+   "term": "Effect authority",
+   "def": "The permitted reach of tool actions exposes resources to effects, including disclosure through read access."
+  }
+ ]
+}

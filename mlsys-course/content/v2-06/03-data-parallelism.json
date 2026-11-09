@@ -1,0 +1,107 @@
+{
+ "title": "Data Parallelism",
+ "summary": "Calculate per-GPU static memory reduction under ZeRO-3 parameter, gradient, and optimizer state sharding.",
+ "source": {
+  "chapter": "v2-06",
+  "sections": [
+   "Data Parallelism",
+   "Data parallelism implementation",
+   "Data parallelism trade-offs",
+   "Memory-efficient data parallelism with ZeRO and FSDP"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate per-GPU static memory reduction under ZeRO-3 parameter, gradient, and optimizer state sharding\n- Compare gradient accumulation on high-speed intra-node fabrics against naive scale-out across bandwidth-constrained networks\n- Classify the memory sharding stages of ZeRO and FSDP by depth of partitioned state\n- Evaluate the communication throughput overhead of FSDP when device memory is not the binding constraint\n- Compare centralized and decentralized synchronization topologies in terms of bandwidth bottlenecks for dense gradient traffic"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Distributed Training, § Data Parallelism",
+   "md": "When a model fits on one accelerator but training takes weeks, replicating its computation lets several workers process examples concurrently. The initial data-parallel baseline gives each worker the same model state and a local portion of one global minibatch. Combining those local contributions before the optimizer update preserves the intended global-batch estimator; the sampling and weighting conditions below explain when that equivalence holds."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Data parallelism implementation\n- Data parallelism trade-offs\n- Memory-efficient data parallelism with ZeRO and FSDP\n\nPay attention to: SGD equivalence: replicated model, partitioned minibatch, aggregated gradient; ZeRO-1/2/3 and FSDP memory sharding economics (16 bytes/param vs 0.25 bytes/param); gradient accumulation vs scale-out across commodity networks; throughput trade-offs of FSDP collectives vs DDP."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: An 8-GPU node can use four-step gradient accumulation to match the effective batch of 32 GPUs connected by 10 Gb/s Ethernet. Explain why the smaller allocation can cost less even when the larger allocation completes the fixed-sample workload sooner.",
+   "md": "Four accumulation microsteps synchronize once per optimizer update, keeping collective traffic inside the fast local interconnect while matching the effective global batch. The 32-GPU allocation adds arithmetic capacity but pays inter-node communication overhead and rents four nodes. Compare node-hours at the same sample budget and target quality: lower hourly capacity cost can outweigh longer elapsed time, so better cost efficiency does not imply higher throughput."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-06-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A 7B-parameter transformer in mixed precision requires 112 GB of static memory for standard replicated DDP (14 GB for FP16 weights, 14 GB for FP16 gradients, and 84 GB for FP32 Adam master weights, momentum, and variance). Under ZeRO Stage 3 (or FSDP Full Shard) across 64 GPUs, what is the resulting static training memory per GPU?",
+     "explanation": "The correct answer is C. ZeRO-3 / FSDP partitions all three components of static training state, namely FP16 model weights (2 bytes/param), FP16 gradients (2 bytes/param), and FP32 Adam states (12 bytes/param), across the $N=64$ ranks (\\$16\\text{ bytes/param} / 64 = 0.25\\text{ bytes/param}$ per device). For a 7B model (\\$7 \\times 10^9 \\times 0.25\\text{ bytes} = 1.75\\text{ GB}$ per GPU), this leaves substantial HBM headroom for dynamic activations. Asserting that state remains 112 GB ignores parameter and optimizer sharding. ZeRO-1 retains 28 GB of weights and gradients plus its optimizer shard, so its total is greater than 28 GB. Claiming INT4 compression confuses precision quantization with state sharding.",
+     "hint": "Think about: calculate per-GPU static memory reduction under ZeRO-3 parameter, gradient, and optimizer state sharding",
+     "type": "single",
+     "options": [
+      "\\$112 GB, because ZeRO-3 only reduces dynamic activation memory rather than model state",
+      "\\$28 GB, because only optimizer states are sharded while parameters and gradients remain fully replicated",
+      "\\$1.75 GB, because weights, gradients, and optimizer states are each partitioned equally across all 64 workers",
+      "\\$0.25 GB, because INT4 quantization eliminates floating-point representation entirely"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "If a model's parameters, gradients, optimizer state, activations, and working buffers already fit comfortably within single-GPU memory with high compute utilization under standard DDP, what is the expected throughput impact of enabling ZeRO-3 / FSDP Full Sharding?",
+     "explanation": "The correct answer is B. With full resharding, FSDP adds parameter AllGathers before forward and backward computation and uses ReduceScatter for gradients. When memory savings do not enable a better execution configuration, exposed extra communication can reduce throughput. The penalty depends on overlap and topology; neither linear speedup nor perfect hiding follows from sharding alone.",
+     "hint": "Think about: evaluate the communication throughput overhead of FSDP when device memory is not the binding constraint",
+     "type": "single",
+     "options": [
+      "Throughput will increase linearly by $N\\times$ because sharding reduces per-GPU gradient memory",
+      "Throughput can decrease because FSDP introduces additional AllGather collectives before forward and backward passes and ReduceScatter on the critical path",
+      "Throughput will remain exactly identical because NCCL automatically hides all collective communication overhead",
+      "Throughput will double because parameter sharding eliminates the backward pass entirely"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Why did modern distributed training frameworks replace centralized parameter servers with decentralized AllReduce collective topologies for dense synchronous training?",
+     "explanation": "The correct answer is D. A centralized server must service the dense gradient and parameter streams of all workers, concentrating traffic at its interfaces. AllReduce distributes that exchange among participants. For an ideal ring, each worker transfers \\$2(N-1)/N × M_grad bytes; tree schedules have their own transfer and startup accounting. Whether either design meets the step budget depends on sustained bandwidth, topology, readiness, and overlap. Parameter servers can implement valid SGD on CPU or GPU hosts, and AllReduce still requires communication.",
+     "hint": "Think about: compare centralized and decentralized synchronization topologies in terms of bandwidth bottlenecks for dense gradient traffic",
+     "type": "single",
+     "options": [
+      "Parameter servers cannot execute stochastic gradient descent updates with mathematical validity",
+      "Parameter servers are restricted to CPU hosts and cannot interface with GPU accelerators",
+      "AllReduce eliminates all network traffic by updating weights locally without exchanging data",
+      "Centralized parameter servers create an $\\mathcal{O}(N)$ network bottleneck at the server's network interface, whereas AllReduce distributes communication symmetrically across all workers"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In standard PyTorch DistributedDataParallel, each worker uses a ____ to partition dataset indices deterministically and assign rank-specific shards based on process rank and epoch seed.",
+     "explanation": "DistributedSampler. It assigns rank-specific dataset indices using the rank and epoch seed. When the dataset size is not divisible by the worker count, padding can repeat samples unless the remainder is dropped; the sampler and loss accounting must handle that boundary explicitly.",
+     "hint": "Think about: identify deterministic rank-specific dataset partitioning and account for repeated or dropped remainder samples",
+     "type": "fill",
+     "answer": [
+      "DistributedSampler"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Data parallelism**: Replicating a model across workers that process distinct portions of a batch and combine their updates.",
+    "**Training-state sharding**: Partitioning optimizer state, gradients, or parameters among data-parallel workers instead of keeping every state replicated."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Data parallelism",
+   "def": "Replicating a model across workers that process distinct portions of a batch and combine their updates."
+  },
+  {
+   "term": "Training-state sharding",
+   "def": "Partitioning optimizer state, gradients, or parameters among data-parallel workers instead of keeping every state replicated."
+  }
+ ]
+}

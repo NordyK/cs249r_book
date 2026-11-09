@@ -1,0 +1,139 @@
+{
+ "title": "Test: Data Engineering",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-04-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "In the chapter's KWS dataset release, each clip's split is assigned by hashing its speaker key rather than by drawing splits at random each time a release is built. What failure does this prevent?",
+     "explanation": "The correct answer is A. A deterministic speaker-keyed assignment keeps every clip from a speaker in the same split in every release, so rebuilding or relabeling the dataset cannot leak test speakers into training. Hashing a key does not compress audio, balance classes, or replace consent records, which the release tracks as a separate field.",
+     "hint": "Think about: explain how deterministic, speaker-keyed split assignment prevents leakage across dataset releases.",
+     "type": "single",
+     "options": [
+      "A later release or relabeling pass could move some of a test speaker's clips into training, so evaluation would reward memorization of that voice instead of generalization to new speakers.",
+      "Hashing compresses the audio so that each split fits in less storage.",
+      "Hashing guarantees equal numbers of keyword and non-keyword clips in every split.",
+      "Hashing removes the need to record a consent reference for each clip."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An ML systems architect must select storage backends for three distinct workloads: (1) Millisecond point lookups of user feature vectors during real-time online serving; (2) High-throughput sequential scans over tabular fraud features during batch training; (3) Storing petabytes of raw, unstructured multi-modal audio and video recordings. Which mapping of storage architectures to workloads is optimal?",
+     "explanation": "The correct answer is A. (1) Low-latency transactional database / key-value store; (2) Columnar data warehouse; (3) Scalable cloud data lake (object storage). Storage architectures optimize for specific access patterns: online serving requires high IOPS and millisecond random access provided by transactional key-value databases; batch training over structured tables requires high sequential read throughput and column projection provided by columnar data warehouses; and petabyte-scale multi-modal raw data requires the cheap capacity and schema-on-read flexibility of cloud data lakes (object storage). The other mappings mismatch access patterns to storage strengths, causing high latency or extreme costs.",
+     "hint": "Think about: evaluate storage systems (databases, data warehouses, data lakes) based on IOPS, sequential throughput, and schema flexibility requirements.",
+     "type": "single",
+     "options": [
+      "(1) Low-latency transactional database / key-value store; (2) Columnar data warehouse; (3) Scalable cloud data lake (object storage).",
+      "(1) Cloud object storage (S3); (2) Key-value database; (3) Columnar data warehouse.",
+      "(1) Columnar data warehouse; (2) Cloud data lake; (3) Low-latency transactional database.",
+      "(1) Scalable cloud data lake; (2) Low-latency transactional database; (3) Columnar data warehouse."
+     ],
+     "answer": 0
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Data as code practice**?",
+     "options": [
+      "Drift decomposes into covariate, label, and concept shift (the last detectable only with labels), and PSI, KL divergence, and the two-sample K-S statistic flag divergence as a prompt for investigation and outcome evidence, not proof of degradation.",
+      "A data defect entered early passes schemas and tests, is converted by each later stage into new derived state, and surfaces only at evaluation or deployment, so remediation cost scales with the downstream artifacts that consumed it and prevention belongs at the source.",
+      "Data debt is the accumulated cost of implicit coupling and missing documentation across documentation, schema, quality, and freshness, measured against thresholds and paid down deliberately rather than carried unconsciously.",
+      "Because the pipeline that produces a dataset is the system's build and every retraining a rebuild, datasets need the disciplines code has: immutable lineage, executable validation suites, versioned releases, and debugging by controlled comparison of versions."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Data as code practice itself, not a neighbouring idea.",
+     "explanation": "**Data as code practice:** Because the pipeline that produces a dataset is the system's build and every retraining a rebuild, datasets need the disciplines code has: immutable lineage, executable validation suites, versioned releases, and debugging by controlled comparison of versions."
+    },
+    {
+     "q": "Trace the propagation sequence of a data cascade as described in the chapter, from its root cause to user-facing impact:",
+     "explanation": "The correct order is: (2) Upstream sensor or schema change without contract notification -> (3) Silent distortion of extracted features passing syntactic checks -> (1) Downstream model optimization on distorted representations -> (4) Degraded real-world predictions and costly post-deployment rollback. A data cascade begins with an uncoordinated upstream source or schema change. Because the data passes basic syntactic tests, it enters feature extraction and silently distorts intermediate representations. Downstream model training optimizes over these corrupted features, ultimately manifesting as degraded production predictions and requiring expensive system rollback.",
+     "hint": "Think about: analyze the multi-stage propagation of data cascades from upstream defects to production degradation.",
+     "type": "order",
+     "items": [
+      "Upstream sensor or schema change without contract notification",
+      "Silent distortion of extracted features passing syntactic checks",
+      "Downstream model optimization on distorted representations",
+      "Degraded real-world predictions and costly post-deployment rollback"
+     ]
+    },
+    {
+     "q": "Order the following gap-closing acquisition steps into a sensible workflow:",
+     "explanation": "The correct order is: (2) define the coverage gap the model must close, (4) audit what existing sources and provenance already provide, (1) choose an acquisition source for the remaining gap under budget and governance constraints, (3) validate that the acquired data actually improves the missing coverage and meets quality requirements. The sequence matters because the team must know what is missing before it can judge whether reusable data already covers it, and only then can it choose a new source for the residual gap. Swapping source selection ahead of the audit would spend money before measuring what is already available, while skipping the final validation would mistake acquired volume for actual coverage and quality improvement.",
+     "hint": "Think about: design a gap-closing acquisition workflow that moves from missing-coverage definition through source audit, targeted acquisition, and post-acquisition validation.",
+     "type": "order",
+     "items": [
+      "define the coverage gap the model must close",
+      "audit what existing sources and provenance already provide.",
+      "choose an acquisition source for the remaining gap under budget and governance constraints",
+      "validate that the acquired data actually improves the missing coverage and meets quality requirements"
+     ]
+    },
+    {
+     "q": "A deployed fraud detection model suddenly exhibits a severe drop in production precision. The latest training run had near-zero training loss, and held-out validation loss was also low. Following the chapter's debugging guidance, what should an engineer investigate first?",
+     "explanation": "The correct answer is C. The chapter's debugging flow starts with data-side hypotheses when offline metrics look healthy but production performance drops: compare production artifacts against training baselines, test for distribution shift, and verify that training and serving compute equivalent features. The architecture-first answer skips the prescribed triage, while the label-only answer overcommits to one cause and incorrectly excludes code, hardware, and numerical issues that the section says data checks should precede, not permanently replace.",
+     "hint": "Think about: apply the chapter's debugging flow by prioritizing drift, skew, and evaluation-path checks before changing model architecture.",
+     "type": "single",
+     "options": [
+      "Immediately redesign the model with a much larger architecture, because low training and validation loss rules out the data pipeline.",
+      "Recompile the inference kernels first, because production metric regressions are usually caused by low-level accelerator code changes rather than data conditions.",
+      "Check data-side hypotheses first, such as drift, training-serving skew, or leakage in the evaluation setup, by comparing artifacts and feature distributions before changing the model.",
+      "Assume the root cause is almost certainly corrupted labels in production and ignore code, hardware, and numerical possibilities until retraining is complete."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "The chapter specifies its keyword spotter by a keyword detection rate measured at a threshold that holds the expected false-wake budget, rather than by overall accuracy. Why is overall accuracy the wrong target for an always-on detector?",
+     "explanation": "The correct answer is A. Wake words are rare among the windows the detector evaluates, so overall accuracy is dominated by easy non-keyword windows and rewards a detector that never fires. Evaluation runs offline, so the device's ability to compute a metric is irrelevant. More data does not raise accuracy automatically, and the two metrics differ: accuracy averages over all windows, while detection rate counts only the windows that contain the wake word.",
+     "hint": "Think about: explain why rare-event detectors are specified by detection rate at a false-alarm operating point rather than by aggregate accuracy.",
+     "type": "single",
+     "options": [
+      "Almost every one-second window contains no wake word, so a detector that never fires scores near-perfect overall accuracy while missing every command; the meaningful targets are the fraction of spoken wake words caught and the false-wake rate at the chosen threshold.",
+      "Overall accuracy cannot be computed for a model that runs on a microcontroller, so the target must use a metric the device can calculate itself.",
+      "Overall accuracy rises automatically with more training data, so it cannot distinguish one data plan from another.",
+      "Detection rate and overall accuracy are the same quantity for a binary classifier; the scenario only renames it."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Using the identical Python preprocessing function in both training and serving code repositories is sufficient to eliminate training-serving skew.",
+     "explanation": "False. Sharing code logic is necessary but insufficient. Training-serving skew also arises from state desynchronization (using different normalization constants or vocabulary encodings), temporal dependencies (using current clock time rather than fixed reference timestamps), timing differences (batch aggregations over historical tables vs. live event streams), and environmental library version mismatches.",
+     "hint": "Think about: analyze the root causes of training-serving skew beyond shared source code.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An engineer normalizes a numerical feature by computing standard $z$-scores: $x' = (x - \\mu)/\\sigma$. During production serving, how must the parameters $\\mu$ and $\\sigma$ be handled to satisfy the consistency imperative and prevent training-serving skew?",
+     "explanation": "The correct answer is A. Persist the exact $\\mu$ and $\\sigma$ computed on the training dataset alongside the model artifact, loading and applying those fixed constants to live serving inputs. The consistency imperative requires state synchronization across training and serving: transformation parameters computed during training (means, standard deviations, one-hot vocabularies, embedding lookups) must be persisted and reused during serving. Recomputing statistics dynamically over live batches or rolling windows alters the feature scale relative to what the model learned, creating training-serving skew and causing silent prediction degradation. Relying on neural batch normalization does not resolve pre-network input feature scaling.",
+     "hint": "Think about: apply the consistency imperative by synchronizing stateful transformation parameters between training and serving.",
+     "type": "single",
+     "options": [
+      "Persist the exact $\\mu$ and $\\sigma$ computed on the training dataset alongside the model artifact, loading and applying those fixed constants to live serving inputs.",
+      "Recompute $\\mu$ and $\\sigma$ dynamically over each incoming serving batch to ensure the live data is always centered at zero.",
+      "Discard $\\mu$ and $\\sigma$ entirely at inference time and rely on batch normalization layers inside the neural network.",
+      "Compute $\\mu$ and $\\sigma$ independently over a rolling 1-hour window of serving traffic to track seasonal shifts."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Achieving state-of-the-art benchmark accuracy on a curated dataset (such as ImageNet or Common Voice) guarantees that an ML model is ready for deployment in real-world production environments.",
+     "explanation": "False. Curated benchmarks provide standardized baselines for research comparison, but their distributions rarely capture the full variety of real-world deployment conditions (e.g., microphone hardware variations, regional acoustic noise, adversarial inputs, or demographic shifts). Models tuned specifically to benchmark distributions frequently suffer severe performance drops when exposed to uncurated production data.",
+     "hint": "Think about: explain why benchmark performance fails to guarantee real-world generalization across deployment distributions.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The silent divergence between the training data distribution and the live production distribution that accumulates when changing deployment conditions outpace validated data and model updates is termed ____.",
+     "explanation": "The correct answer is freshness debt. Freshness debt concerns unaddressed changes in deployment conditions; calendar age alone does not establish degraded quality. Drift monitoring prompts investigation, and outcomes determine whether updates are needed.",
+     "hint": "Think about: explain the operational risks and system characteristics of freshness debt in production ML systems.",
+     "type": "fill",
+     "answer": [
+      "The correct answer is freshness debt"
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,84 @@
+{
+ "title": "Lab: where does the energy go?",
+ "summary": "Split a workload's energy into data movement and arithmetic and see why on-chip reuse matters.",
+ "minutes": 15,
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Energy follows the same split as time: $E \\approx D_{vol} E_{move} + O\\,E_{op}$. The coefficients used in this lab are illustrative orders of magnitude: about 100 pJ per byte from DRAM, about 10 pJ per byte from on-chip SRAM, and about 1 pJ for a 16-bit multiply-add. The exact values depend on the chip; the ratio is what drives design."
+  },
+  {
+   "type": "widget",
+   "id": "v2-15-lab-energy-widget",
+   "widget": "energy",
+   "title": "Try it: DRAM against on-chip reuse",
+   "params": {
+    "dvol": 1000000000000.0,
+    "emove": 100,
+    "ops": 10000000000000.0,
+    "eop": 1
+   },
+   "challenge": {
+    "md": "The workload moves 1 TB and performs 10¹³ operations. Serve the bytes from **on-chip SRAM** (10 pJ/byte) instead of DRAM. What is the total energy in joules?",
+    "answer": 20,
+    "tolerance": 0.1,
+    "unit": "J",
+    "hint": "10¹² × 10 pJ plus 10¹³ × 1 pJ.",
+    "explanation": "10 J for movement plus 10 J for compute = 20 J, down from 110 J with DRAM. Same arithmetic, 5.5x less energy."
+   }
+  },
+  {
+   "type": "playground",
+   "id": "v2-15-lab-energy-play",
+   "title": "Energy model",
+   "md": "Complete `energy_j` and `movement_share`.",
+   "code": "def energy_j(bytes_moved, pj_per_byte, ops, pj_per_op):\n    # TODO: total joules\n    return None\n\n\ndef movement_share(bytes_moved, pj_per_byte, ops, pj_per_op):\n    # TODO: fraction of the energy spent moving data\n    return None\n\n\nprint(energy_j(1e12, 100, 1e13, 1), movement_share(1e12, 100, 1e13, 1))\n",
+   "check": "assert abs(energy_j(1e12, 100, 1e13, 1) - 110) < 1e-9\nassert abs(energy_j(1e12, 10, 1e13, 1) - 20) < 1e-9\nassert abs(movement_share(1e12, 100, 1e13, 1) - 100 / 110) < 1e-9",
+   "hint": "pJ are 10⁻¹² J: `(bytes_moved * pj_per_byte + ops * pj_per_op) * 1e-12`.",
+   "solution": "def energy_j(bytes_moved, pj_per_byte, ops, pj_per_op):\n    return (bytes_moved * pj_per_byte + ops * pj_per_op) * 1e-12\n\n\ndef movement_share(bytes_moved, pj_per_byte, ops, pj_per_op):\n    move = bytes_moved * pj_per_byte\n    return move / (move + ops * pj_per_op)\n\n\nprint(energy_j(1e12, 100, 1e13, 1), 'J,', round(100 * movement_share(1e12, 100, 1e13, 1)), '% moving data')\n"
+  },
+  {
+   "type": "quiz",
+   "id": "v2-15-lab-energy-quiz",
+   "title": "Check your numbers",
+   "questions": [
+    {
+     "type": "numeric",
+     "q": "With DRAM at 100 pJ/byte, what percentage of the lab workload's energy is data movement (whole number)?",
+     "answer": 91,
+     "tolerance": 1,
+     "unit": "%",
+     "hint": "100 J of 110 J.",
+     "explanation": "100 / 110 = 91%: arithmetic is the small part."
+    },
+    {
+     "type": "single",
+     "q": "Which design change attacks the largest energy term here?",
+     "options": [
+      "Faster arithmetic units",
+      "Keeping operands on chip and reusing them (tiling, systolic arrays)",
+      "A higher clock",
+      "More DRAM capacity"
+     ],
+     "answer": 1,
+     "hint": "Look at the 91%.",
+     "explanation": "Reuse cuts the bytes fetched from DRAM; that is the motivation behind tiling, systolic arrays and operator fusion."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "E ≈ bytes × energy per byte + ops × energy per op.",
+    "An off-chip byte costs on the order of 100x a 16-bit multiply-add.",
+    "On-chip reuse saves energy as well as time."
+   ]
+  }
+ ],
+ "source": {
+  "chapter": "v2-15",
+  "sections": [
+   "hands-on lab"
+  ]
+ }
+}

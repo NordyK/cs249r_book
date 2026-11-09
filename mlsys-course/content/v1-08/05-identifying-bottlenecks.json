@@ -1,0 +1,79 @@
+{
+ "title": "Identifying Bottlenecks",
+ "summary": "Differentiate Model FLOPs Utilization (MFU) from raw GPU busy utilization and explain which overheads MFU exposes.",
+ "source": {
+  "chapter": "v1-08",
+  "sections": [
+   "Identifying Bottlenecks"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Differentiate Model FLOPs Utilization (MFU) from raw GPU busy utilization and explain which overheads MFU exposes\n- Apply D·A·M reasoning to profile signatures while distinguishing likely bottlenecks from confirmed diagnoses\n- Order the systematic profile-diagnose-fix-reprofile optimization cycle\n- Select the appropriate class of profiler (kernel-level counters versus timeline traces) based on the granularity of the performance investigation\n- Analyze staged-pipeline signals to distinguish likely input starvation from other host-side causes of accelerator bubbles"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Training, § Identifying Bottlenecks",
+   "md": "An accelerator can report near-100 percent activity in `nvidia-smi` while spending half its cycles stalled on memory traffic, padding, or recomputing discarded activations. Knowing what each operation costs on paper does not show which resource actually saturates during a run, and raw device busy-time percentages cannot separate useful training arithmetic from overhead. Model FLOPs utilization (MFU) supplies that comparison by measuring achieved model arithmetic against the hardware's peak rate."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: MFU versus raw hardware utilization percentage; D·A·M bottleneck classification and profiler signatures; systematic profile-diagnose-fix-reprofile workflow; profiler tool selection (Nsight Compute vs Nsight Systems / PyTorch Profiler)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: An engineer profiles two training workloads. Workload A shows 92 percent GPU busy time, near-saturated HBM bandwidth, low CPU activity, and continuous kernel timelines. Workload B shows 20 percent GPU busy time with regular 50 ms idle gaps, low HBM bandwidth, and 100 percent CPU utilization. Apply the D·A·M taxonomy to classify each workload's likely bottleneck and state the next optimization category for each.",
+   "md": "Workload A supports a bandwidth-bound hypothesis on the Machine side: kernels are running continuously and HBM is heavily used, so the next step is to confirm that critical kernels are limited by memory traffic and then target traffic reduction or fusion. Workload B is consistent with a Data-side bottleneck only if the GPU gaps correlate with batch preparation rather than host dispatch or synchronization, so the next step is stage correlation and then input-pipeline optimization if starvation is confirmed. The practical consequence is that D·A·M categories are diagnostic guides, not exclusive labels you can assign from one metric alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-08-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why is Model FLOPs Utilization (MFU) a more reliable metric than raw GPU busy percentage (reported by tools like `nvidia-smi`) when evaluating training systems efficiency?",
+     "explanation": "The correct answer is C. Raw GPU utilization measures the percentage of time GPU execution units or kernels are active. A GPU can show 95% utilization while spending half its time stalling on memory bandwidth or recomputing activations during gradient checkpointing. In contrast, MFU ($\\text{MFU} = \\frac{O_{\\text{model}}}{R_{\\text{peak}} \\times T_{\\text{step}}}$) includes only the useful forward and backward model FLOPs in the numerator, explicitly penalizing recomputation, padding FLOPs, memory stalls, and pipeline bubbles. MFU is an accelerator metric, not a CPU metric. MFU is not fixed to 100%; reported values depend on workload, hardware, precision, and the FLOP-counting convention. MFU measures hardware efficiency, not loss convergence per dollar.",
+     "hint": "Think about: differentiate Model FLOPs Utilization (MFU) from raw GPU busy utilization and explain which overheads MFU exposes.",
+     "type": "single",
+     "options": [
+      "MFU is measured directly from host CPU clock cycles, eliminating GPU driver instrumentation overhead.",
+      "MFU is mathematically fixed to 100% on any healthy accelerator cluster regardless of software overhead.",
+      "MFU counts only the theoretical forward and backward FLOPs required by the model architecture divided by the product of peak hardware throughput and measured step time, whereas raw GPU busy percentage also counts time spent on recomputation, padding, and memory stalls outside that model-FLOP numerator.",
+      "MFU measures training loss convergence speed per dollar rather than floating-point operations."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "An engineering team suspects that an individual custom LayerNorm kernel has poor arithmetic intensity and low register occupancy, while another team suspects their DataLoader is causing host-to-device PCIe transfer stalls. Which combination of profiling tool classes from the chapter is best suited to investigate each respective issue?",
+     "explanation": "The correct answer is A. The chapter distinguishes two classes of profilers. Kernel-level GPU profilers record per-kernel counters such as achieved memory throughput and arithmetic-unit occupancy, making them right for the custom LayerNorm kernel. Framework-level and system-level timeline profilers (for example PyTorch Profiler or NVIDIA Nsight Systems) record timeline traces capturing CPU thread execution, CUDA API dispatches, PCIe memory copies, and GPU stream synchronization, making them ideal for diagnosing DataLoader and PCIe stalls. `nvidia-smi` provides coarse device-wide polling rather than kernel-level roofline analysis. Linux `top` monitors host OS processes, not GPU internal instruction pipelines.",
+     "hint": "Think about: select the appropriate class of profiler (kernel-level counters versus timeline traces) based on the granularity of the performance investigation.",
+     "type": "single",
+     "options": [
+      "A kernel-level GPU profiler with per-kernel counters for the arithmetic intensity and occupancy analysis; a framework-level or system-level timeline profiler for the DataLoader and PCIe transfers.",
+      "`nvidia-smi` for kernel-level arithmetic intensity; TensorBoard loss curves for DataLoader PCIe transfer stalls.",
+      "NVIDIA Nsight Compute for cluster-wide inter-node network bandwidth; PyTorch Profiler for register allocation analysis.",
+      "Linux `top` command for GPU kernel instruction analysis; NVIDIA Nsight Systems for CPU register spill tracking."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A team's profiler shows the GPU at 18 percent utilization with periodic drops to zero, while one CPU core is pinned near 100 percent and the PCIe link is mostly idle. Using the section's staged-pipeline framework, explain how to diagnose the bubble's source and what fix should be targeted.",
+   "md": "This pattern suggests the input side of the staged pipeline may be starving the accelerator, because the GPU has bubbles while host work is active and PCIe is not the limiting stage. To confirm the source, correlate the GPU idle gaps with batch-preparation time versus host dispatch or synchronization delays; if the gaps line up with preprocessing, then the right fix is input-pipeline work such as additional workers or prefetching. The practical implication is that high CPU usage alone is not enough to blame tokenization or the GIL with certainty—the stage correlation must come first."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now differentiate Model FLOPs Utilization (MFU) from raw GPU busy utilization and explain which overheads MFU exposes.",
+    "You can now apply D·A·M reasoning to profile signatures while distinguishing likely bottlenecks from confirmed diagnoses.",
+    "You can now order the systematic profile-diagnose-fix-reprofile optimization cycle.",
+    "You can now select the appropriate class of profiler (kernel-level counters versus timeline traces) based on the granularity of the performance investigation."
+   ]
+  }
+ ]
+}

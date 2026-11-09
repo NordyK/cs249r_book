@@ -1,0 +1,68 @@
+{
+ "title": "Prefix Caching Across Turns",
+ "summary": "Work through Prefix Caching Across Turns.",
+ "source": {
+  "chapter": "v3-05",
+  "sections": [
+   "Prefix Caching Across Turns",
+   "Prefix compatibility",
+   "Radix prefix lookup",
+   "Retention and eviction under pressure",
+   "Prefix hit rate and the reuse contract"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Prefix Caching Across Turns**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, KV Cache Management, § Prefix Caching Across Turns",
+   "md": "In the connection-pool repair scenario, the agent invocation that processes an integration-test result often begins with the identical system prompt, tool definitions, and historical observations present in the preceding turn. If the serving engine retained the corresponding key-value (KV) activations from that earlier call, it can attach those existing tensors directly to the new request, prefilling only the newly arrived tokens."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Prefix compatibility\n- Radix prefix lookup\n- Retention and eviction under pressure\n- Prefix hit rate and the reuse contract"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Radix prefix cache matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A content-keyed radix tree finds the longest retained common prefix, leaf-first eviction keeps residency prefix-closed, and efficacy is the token-weighted hit rate after availability, permission, and block rounding."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-05-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Prefix Caching Across Turns** develops one of the chapter's claims. Which one?",
+     "options": [
+      "By Little's law a fixed pool of slots sustains a turn rate inversely proportional to residence, so holding state through a synchronous tool wait divides the memory-bound turn rate by 1 + T_tool/T_model.",
+      "During a tool wait the engine keeps, moves, or drops only uniquely reclaimable blocks, and offloading pays only when the wait exceeds the transfer round trip and memory is contested.",
+      "A content-keyed radix tree finds the longest retained common prefix, leaf-first eviction keeps residency prefix-closed, and efficacy is the token-weighted hit rate after availability, permission, and block rounding.",
+      "A reusable prefix must be compatible, available, and permitted, and none of the three says whether the evidence is current, so freshness is enforced by the harness rewriting the prompt."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Radix prefix cache**: A content-keyed radix tree finds the longest retained common prefix, leaf-first eviction keeps residency prefix-closed, and efficacy is the token-weighted hit rate after availability, permission, and block rounding."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Prefix reuse**: Compatible exact token prefixes can reuse attention computation; source authorization and current applicability remain separate checks."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Prefix reuse",
+   "def": "Compatible exact token prefixes can reuse attention computation; source authorization and current applicability remain separate checks."
+  }
+ ]
+}

@@ -1,0 +1,59 @@
+{
+ "title": "ML Systems Reflection Questions",
+ "summary": "TinyTorch benchmarking: ML Systems Reflection Questions",
+ "source": {
+  "chapter": "tt-19",
+  "sections": [
+   "ML Systems Reflection Questions"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🤔 ML Systems Reflection Questions\n\nAnswer these to deepen your understanding of benchmarking and performance engineering:\n\n### Question 1: Statistical Confidence in Measurements\nYou implemented `BenchmarkResult` with confidence intervals for measurements.\nIf you run 20 trials and get mean latency \\$\\mu = 5.2\\text{ ms}\\$ with sample standard deviation \\$s = 0.8\\text{ ms}\\$:\n\n- **What's the 95% confidence interval for the true mean?**\n  \\$\\$\\text{SE} = \\frac{s}{\\sqrt{n}} = \\frac{0.8}{\\sqrt{20}} = \\frac{0.8}{4.4721} \\approx 0.1789\\text{ ms}\\$\\$\n  \\$s\\$ is estimated from the same 20 samples, so the critical value is Student's \\$t\\$\n  with \\$\\nu = 19\\$ degrees of freedom, \\$t_{0.975, 19} = 2.093\\$:\n  \\$\\$\\text{Margin of Error} = 2.093 \\times 0.1789 \\approx 0.3744\\text{ ms} \\implies \\mathbf{[4.83\\text{ ms},\\ 5.57\\text{ ms}]}\\$\\$\n  *(Substituting the normal \\$z_{0.975} = 1.96\\$ gives margin \\$0.3506\\text{ ms}\\$ and\n  \\$[4.85, 5.55]\\$, an interval \\$6.4\\%\\$ too narrow. `BenchmarkResult` uses the \\$t\\$\n  value, which is why `t_critical_95()` carries a table rather than a constant.)*\n- **How many more trials would you need to halve the confidence interval width?**\n  \\$\\$\\text{Width} \\propto \\frac{1}{\\sqrt{n}} \\implies \\frac{\\text{Width}_{\\text{new}}}{\\text{Width}_{\\text{old}}} = \\frac{1}{2} \\implies \\sqrt{\\frac{n_{\\text{new}}}{n_{\\text{old}}}} = 2 \\implies n_{\\text{new}} = 4 \\times n_{\\text{old}} = 4 \\times 20 = \\mathbf{80\\text{ total trials}}\\$\\$\n  *(You would need \\$80 - 20 = \\mathbf{60\\text{ additional trials}}\\$).*\n\n---\n\n### Question 2: Measurement Overhead Analysis\n`precise_timer` samples `time.perf_counter()` twice per measurement. On this machine a\nsingle `perf_counter()` call costs about \\$35\\text{ ns}\\$ (see the timing table in 🏗️),\nso the overhead a measurement pays is \\$\\delta_{\\text{timer}} \\approx 70\\text{ ns}\\$.\n\n- **For a model that takes \\$1.0\\text{ ms}\\$, what's the relative error?**\n  \\$\\$\\text{Relative Error} = \\frac{\\delta_{\\text{timer}}}{T_{\\text{exec}}} = \\frac{0.07\\text{ }\\mu\\text{s}}{1000\\text{ }\\mu\\text{s}} \\times 100\\% = \\mathbf{0.007\\%}\\$\\$\n  Negligible, and this is the usual case. Timer overhead is almost never what\n  distorts a benchmark; OS scheduling (\\$\\delta_{\\text{OS}}\\$, microseconds to\n  milliseconds) is, and it is three to five orders of magnitude larger.\n- **Below what execution time does timer overhead exceed \\$1\\%\\$?**\n  \\$\\$T_{\\text{exec}}  100\\text{ ms}\\$). Note which half of that is a real MLPerf rule. The accuracy target is; the latency ceiling is ours. In official MLPerf Tiny this submission misses the quality target and is simply reported with its latency, whatever that latency is.\n- **Which constraint is more critical for edge deployment?** **Latency**. Latency on edge devices is a hard real-time physical deadline dictated by sensor sampling rates (e.g. 10 fps camera stream requires \\$< 100\\text{ ms}\\$ processing), UI responsiveness, or watchdog timeouts. Dropping below the latency ceiling causes dropped sensor frames or system lockup, whereas an accuracy delta of \\$1\\%\\$ is typically tolerable.\n- **How would you prioritize optimization?** **Latency-first**. First compress/accelerate the model to reliably meet the \\$\\le 100\\text{ ms}\\$ deadline with buffer room, then tune hyper-parameters or calibration datasets to recover the remaining accuracy gap.\n\n---\n\n### Question 5: Optimization Comparison Analysis\nYour `analyze_optimization_techniques()` generates recommendations for different use cases.\nStart from an FP32 baseline measuring \\$120\\text{ MB}\\$ and \\$180\\text{ ms}\\$, and three\noptimized variants:\n- **Quantized** (INT8 from FP32): \\$0.25\\times\\$ memory footprint (75% reduction, the exact \\$4\\times\\$ ratio of 4 bytes to 1), \\$2.0\\times\\$ speedup, \\$0.95\\times\\$ accuracy\n- **Pruned**: \\$0.3\\times\\$ memory footprint (70% reduction), \\$1.5\\times\\$ speedup, \\$0.98\\times\\$ accuracy\n- **Distilled**: \\$0.6\\times\\$ memory footprint (40% reduction), \\$1.8\\times\\$ speedup, \\$0.92\\times\\$ accuracy\n\nFor a mobile app with a \\$50\\text{ MB}\\$ model size limit and a strict \\$< 100\\text{ ms}\\$ latency requirement:\n- **Which optimization offers best memory reduction?** **Quantized** (\\$0.25\\times\\$, a \\$75\\%\\$ reduction). INT8 from FP32 stores one byte where four were stored, so the ratio is exactly \\$4\\times\\$ and not a tunable number. Pruning's \\$0.3\\times\\$ is close but is a *modeled* figure, because zeroed weights still occupy dense storage unless you also change the format, which is why `analyze_optimization_tradeoffs()` above reports the same payload bytes for baseline and pruned.\n- **Which variants actually satisfy both constraints?** Apply them:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Variant",
+    "Size",
+    "\\$\\le 50\\text{ MB}\\$?",
+    "Latency",
+    "\\$< 100\\text{ ms}\\$?"
+   ],
+   "rows": [
+    [
+     "Quantized",
+     "\\$120 \\times 0.25 = 30\\text{ MB}\\$",
+     "✅",
+     "\\$180 / 2.0 = 90\\text{ ms}\\$",
+     "✅"
+    ],
+    [
+     "Pruned",
+     "\\$120 \\times 0.3 = 36\\text{ MB}\\$",
+     "✅",
+     "\\$180 / 1.5 = 120\\text{ ms}\\$",
+     "❌"
+    ],
+    [
+     "Distilled",
+     "\\$120 \\times 0.6 = 72\\text{ MB}\\$",
+     "❌",
+     "\\$180 / 1.8 = 100\\text{ ms}\\$",
+     "❌ (not strictly under)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Only **Quantized** clears both, so the answer is Quantized despite Pruned retaining\n  more accuracy. This is what a hard constraint does: it removes candidates from\n  consideration before any trade-off is weighed, and the \\$0.98\\$ retention that would\n  have won an unconstrained comparison never gets to compete.\n- **What's the key insight about optimization trade-offs?** **The frontier filters,\n  constraints filter again, and only then do weights choose.** Run\n\n  ```python\n  pareto_frontier({'Quantized': (0.25, 2.0, 0.95),\n                   'Pruned':    (0.30, 1.5, 0.98),\n                   'Distilled': (0.60, 1.8, 0.92)},\n                  (True, False, False))   # minimize memory, maximize speedup and accuracy\n  ```\n\n  and you get `['Quantized', 'Pruned']`. **Distilled is dominated**: Quantized is\n  smaller *and* faster *and* more accurate, so nothing about any deployment could\n  make Distilled the right answer, and no weighting needs to be argued about. That is\n  what the frontier is for. It does not rank Quantized against Pruned, because\n  neither beats the other on every axis; the \\$50\\text{ MB}\\$ and \\$100\\text{ ms}\\$\n  constraints do that, and they remove Pruned. Had both survived, you would still owe\n  an explicit weighting, and the weights would be a statement about your deployment\n  rather than a fact about the models."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ML Systems Reflection Questions."
+   ]
+  }
+ ]
+}

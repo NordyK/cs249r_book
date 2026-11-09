@@ -1,0 +1,230 @@
+{
+ "title": "Implementation: Building the Profiler Class",
+ "summary": "TinyTorch profiling: Implementation: Building the Profiler Class",
+ "source": {
+  "chapter": "tt-14",
+  "sections": [
+   "Implementation: Building the Profiler Class"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Building the Profiler Class\n\nLet us now implement the complete `Profiler` class. We structure the profiling harness into four core telemetry engines and two multi-pass synthesis pipelines.\n\n### Profiler Architectural Specification"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Component Method",
+    "Telemetry Category",
+    "Measurement Mechanism",
+    "Systems Output"
+   ],
+   "rows": [
+    [
+     "`count_parameters()`",
+     "Static Footprint",
+     "Recursive weight and bias buffer enumeration",
+     "Learnable parameter count and persistent VRAM budget"
+    ],
+    [
+     "`count_flops()`",
+     "Arithmetic Complexity",
+     "Theoretical multiply-accumulate formulations",
+     "Hardware-agnostic compute work (\\$2 \\cdot M \\cdot K \\cdot N\\$)"
+    ],
+    [
+     "`measure_memory()`",
+     "Memory Dynamics",
+     "Python `tracemalloc` peak heap allocation snapshots",
+     "Activation memory, peak memory, and allocation efficiency"
+    ],
+    [
+     "`measure_latency()`",
+     "Temporal Latency",
+     "High-precision monotonic timestamps (`perf_counter`)",
+     "Warmup-filtered median latency in milliseconds"
+    ],
+    [
+     "`profile_forward_pass()`",
+     "Runtime Synthesis",
+     "Fused latency, FLOP, and activation analysis",
+     "Throughput (\\$\\text{samp/s}\\$), GFLOP/s, bandwidth, bottleneck"
+    ],
+    [
+     "`profile_backward_pass()`",
+     "Training Synthesis",
+     "2x FLOP scaling, gradient tracking, optimizer estimation",
+     "Total training latency, gradient memory, and Adam states"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Layer Parameters: The Atom of Model Size\n\nParameter count is the first number anyone quotes about a model, and it is the\none every memory estimate starts from. A layer's parameters are whatever arrays\nit learns: the weight matrix, plus a bias vector when it has one. Nothing else\ncounts, because activations are recomputed each forward pass and belong to a different\nbudget.\n\nThe reason this is a separate function rather than a line inside the traversal\nis that \"does this thing have parameters\" is a question about an object, not\nabout a model. Keeping it small lets `Profiler.count_parameters`, the model-wide\ntraversal later in this module, stay a plain traversal."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _count_layer_parameters(layer) -> int:\n    \"\"\"\n    Count the learnable parameters in a single layer.\n\n    ```\n    Parameters = weight.size + bias.size (when a bias exists)\n    ```\n\n    TODO: Sum the sizes of the layer's learnable arrays.\n\n    APPROACH:\n    1. Start a running total at zero\n    2. If the layer has a weight, add weight.data.size\n    3. If it also has a non-None bias, add bias.data.size\n    4. Return the total\n\n    EXAMPLE:\n    >>> layer = MockLinear(128, 64)   # weight only, no bias\n    >>> _count_layer_parameters(layer)\n    8192\n\n    HINTS:\n    - Use hasattr(layer, 'weight'), since not every layer has parameters\n    - A bias attribute can exist and still be None; check both\n    - .data.size gives the element count, which is what we want here\n\n    Args:\n        layer: Any layer object, with or without parameters\n\n    Returns:\n        int: Number of learnable parameters (0 for parameterless layers)\n    \"\"\"\n    params = 0\n    if hasattr(layer, 'weight') and layer.weight is not None:\n        params += layer.weight.data.size\n    if hasattr(layer, 'bias') and layer.bias is not None:\n        params += layer.bias.data.size\n    return params"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _count_layer_parameters\n\nThis test validates the helper that counts parameters from a single layer's weight and bias.\n\n**What we're testing**: Single-layer parameter counting from weight/bias attributes\n**Why it matters**: This is the atomic unit of parameter counting that count_parameters delegates to\n**Expected**: Correct weight + bias element counts"
+  },
+  {
+   "type": "text",
+   "md": "### Convolution FLOPs: Where Parameters and Compute Diverge\n\nA convolution costs far more than its parameter count suggests, and the gap is\nthe whole point. A Linear layer uses each weight once. A convolution slides the\nsame small kernel across every output position, so each weight is reused\n`out_H x out_W` times, and the FLOP count multiplies by that same factor.\n\nThat is why a 3x3 conv with a few thousand parameters can dominate a network's\narithmetic while a Linear layer with a million parameters barely registers.\nParameters measure what you store; FLOPs measure what you compute. Convolution\nis where the two diverge most sharply, and noticing that divergence is the point\nof counting them separately."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _count_conv_flops(model, input_shape: Tuple[int, ...]) -> int:\n    \"\"\"\n    Count FLOPs for a Conv2d layer forward pass.\n\n    ```\n    Conv2d FLOP Formula:\n    FLOPs = out_H x out_W x kernel_H x kernel_W x in_C x out_C x 2\n              |       |        |          |         |       |      |\n          Output spatial    Kernel spatial     Channel dims   Mul+Add\n    ```\n\n    TODO: Compute the forward FLOP count for a Conv2d layer.\n\n    APPROACH:\n    1. Bail out with 0 if the layer lacks conv attributes\n    2. Normalize kernel_size, which may be an int or a pair\n    3. Derive the output spatial dims: (in + 2*pad - kernel) // stride + 1\n    4. Multiply output area, kernel area, both channel counts, and 2\n\n    EXAMPLE:\n    >>> conv = MockConv2d(in_channels=3, out_channels=16, kernel_size=3)\n    >>> _count_conv_flops(conv, (1, 3, 32, 32))\n    777600\n\n    HINTS:\n    - The output-shape formula is the same one Module 09 derived\n    - Use hasattr for stride and padding; they may not be set\n    - Every kernel position does one multiply and one add, hence the 2\n\n    Args:\n        model: A Conv2d layer with kernel_size, in_channels, out_channels\n        input_shape: Input tensor shape (batch, channels, height, width)\n\n    Returns:\n        int: FLOP count for one forward pass\n    \"\"\"\n    if not (hasattr(model, 'kernel_size') and hasattr(model, 'in_channels') and hasattr(model, 'out_channels')):\n        return 0\n\n    in_channels = model.in_channels\n    out_channels = model.out_channels\n    kernel_h = model.kernel_size if isinstance(model.kernel_size, int) else model.kernel_size[0]\n    kernel_w = model.kernel_size if isinstance(model.kernel_size, int) else model.kernel_size[1]\n\n    input_h, input_w = input_shape[-2], input_shape[-1]\n    stride = model.stride if hasattr(model, 'stride') else 1\n    stride_h = stride if isinstance(stride, int) else stride[0]\n    stride_w = stride if isinstance(stride, int) else stride[1]\n    padding = model.padding if hasattr(model, 'padding') else 0\n    pad_h = padding if isinstance(padding, int) else padding[0]\n    pad_w = padding if isinstance(padding, int) else padding[1]\n    output_h = (input_h + 2 * pad_h - kernel_h) // stride_h + 1\n    output_w = (input_w + 2 * pad_w - kernel_w) // stride_w + 1\n\n    return output_h * output_w * kernel_h * kernel_w * in_channels * out_channels * 2"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _count_conv_flops\n\nThis test validates the helper that computes FLOPs for a Conv2d layer.\n\n**What we're testing**: Conv2d FLOP formula: out_H x out_W x k^2 x in_C x out_C x 2\n**Why it matters**: Convolutions are the most compute-intensive operations in vision models\n**Expected**: Correct FLOPs accounting for kernel size and channel dimensions"
+  },
+  {
+   "type": "text",
+   "md": "### Linear FLOPs: The Cost of One Matrix Multiply\n\nA Linear layer is a single matrix multiply, so its arithmetic cost is fixed by\ntwo numbers: how wide the input is and how wide the output is. Producing one\noutput element means multiplying `in_features` values by their weights and\nsumming them, which is `in_features` multiplies plus `in_features` adds. Across\nall `out_features` outputs that gives `in x out x 2` floating point operations.\n\nTwo consequences are worth carrying forward. The count is per-sample, so\nbatching changes total work but never this number. And because cost grows with\nthe PRODUCT of the two widths, doubling a layer's width quadruples its FLOPs,\nwhich is why a handful of wide layers usually dominate a network's FLOP budget."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _count_linear_flops(model, input_shape: Tuple[int, ...]) -> int:\n    \"\"\"\n    Count FLOPs for a Linear layer forward pass.\n\n    ```\n    Linear FLOP Formula:\n    FLOPs = in_features x out_features x 2\n                 |              |            |\n          Input dimension  Output dimension  Multiply + Add\n    ```\n\n    TODO: Compute the per-sample forward FLOP count for a Linear layer.\n\n    APPROACH:\n    1. Read in_features from the last axis of input_shape\n    2. Read out_features from model.weight.shape[1]\n    3. Multiply by positions per sample (e.g., sequence length), excluding batch\n    4. Return positions * in_features * out_features * 2\n\n    EXAMPLE:\n    >>> layer = MockLinear(128, 64)\n    >>> _count_linear_flops(layer, (32, 128))\n    16384\n\n    HINTS:\n    - Use input_shape[-1] so the function works for any batch dimension\n    - Guard the missing-weight case with hasattr(model, 'weight')\n    - The factor of 2 is the multiply and the add, not the batch\n\n    Args:\n        model: A Linear layer with a .weight attribute\n        input_shape: Input tensor shape (batch, in_features)\n\n    Returns:\n        int: FLOP count for one forward pass (batch-independent)\n    \"\"\"\n    in_features = input_shape[-1]\n    out_features = model.weight.shape[1] if hasattr(model, 'weight') else 1\n    positions = int(np.prod(input_shape[1:-1])) if len(input_shape) > 2 else 1\n    return positions * in_features * out_features * 2"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _count_linear_flops\n\nThis test validates the helper that computes FLOPs for a single Linear layer.\n\n**What we're testing**: Linear layer FLOP formula: in_features x out_features x 2\n**Why it matters**: Linear layers dominate FLOP counts in most ML models\n**Expected**: Exact FLOP count matching the formula"
+  },
+  {
+   "type": "text",
+   "md": "### Arithmetic Intensity: Placing a Workload on the Roofline\n\n📐 defined arithmetic intensity as FLOPs performed per byte moved, and the ridge point\nas the intensity where a machine's memory ceiling meets its compute ceiling. Those two\nnumbers are all you need to say which ceiling a workload is under, so they are worth\nwriting down as code rather than carrying in your head.\n\nThe function below is three lines and it is the most reused thing in this module.\nQuantization, pruning, fusion, and KV caching are all arguments about one of its two\ninputs, and every one of them is judged by which side of the ridge the result lands on.\nNote what it does not do. It takes the byte count as given, because nothing in a NumPy\nframework can observe real DRAM traffic. You supply the bytes an ideal kernel would\nmove, and the answer is an upper bound on intensity."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def arithmetic_intensity(flops: int, bytes_moved: float,\n                         ridge_point: float) -> Dict[str, Any]:\n    \"\"\"\n    Compute arithmetic intensity and place it against a machine's ridge point.\n\n    ```\n    I          = flops / bytes_moved                 (FLOP per byte)\n    I_ridge    = peak_compute / peak_bandwidth       (supplied by the caller)\n    regime     = 'memory' if I < I_ridge else 'compute'\n    ```\n\n    TODO: Divide work by traffic, then compare against the ridge point.\n\n    APPROACH:\n    1. Divide flops by bytes_moved, guarding a zero denominator\n    2. Compare the result against ridge_point\n    3. Return the intensity, the ridge point, and the regime label\n\n    EXAMPLE:\n    >>> # A Linear(1000, 500) at batch 1 moves its whole weight matrix for 1 MFLOP\n    >>> r = arithmetic_intensity(flops=1_000_000, bytes_moved=2_000_000, ridge_point=9.56)\n    >>> r['intensity'], r['regime']\n    (0.5, 'memory')\n\n    HINTS:\n    - Use max(bytes_moved, 1e-9) so a zero byte count cannot raise\n    - The boundary case belongs to compute, matching 📐's $I \\\\ge I_{ridge}$\n    - Return the ridge point back to the caller so a printed table can show both\n\n    Args:\n        flops: Floating point operations the kernel performs\n        bytes_moved: Bytes the kernel must move to perform them\n        ridge_point: The machine's peak FLOP/s divided by its peak bytes/s\n\n    Returns:\n        dict with intensity, ridge_point, and a regime label of 'memory' or 'compute'\n    \"\"\"\n    intensity = flops / max(bytes_moved, 1e-9)\n    return {\n        'intensity': intensity,\n        'ridge_point': ridge_point,\n        'regime': 'compute' if intensity >= ridge_point else 'memory'\n    }"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: arithmetic_intensity\n\nThis test validates the roofline placement the rest of the curriculum argues from.\n\n**What we're testing**: \\$I = \\text{FLOPs}/\\text{Bytes}\\$ and its comparison against a ridge point\n**Why it matters**: Every optimization in Modules 15 to 19 claims to move a workload across this line\n**Expected**: \\$0.5\\text{ FLOP/B}\\$ at batch 1 and \\$16\\text{ FLOP/B}\\$ at batch 32, straddling the A100 ridge"
+  },
+  {
+   "type": "text",
+   "md": "### Bottleneck Classification: Compute-Bound or Memory-Bound\n\nEvery optimization decision starts with one question. Is this workload waiting on\narithmetic, or waiting on data? The two answers point in opposite directions. A\ncompute-bound layer gets faster from lower precision or a better kernel. A\nmemory-bound layer ignores both and responds only to moving fewer bytes, whether by\nfusion, caching, or quantizing the weights that have to travel.\n\nThe classifier below is deliberately crude. It compares achieved memory\nbandwidth against achieved compute throughput and calls a lopsided ratio\nmemory-bound. That is a screening heuristic, not the real analysis. The rigorous\nversion is the `arithmetic_intensity` you just wrote, read against the hardware's\nridge point. What we need here is a fast first read that needs no byte count and is\nhonest about being a screen."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _analyze_bottleneck(gflops_per_second: float,\n                       memory_bandwidth_mbs: float) -> Dict[str, Any]:\n    \"\"\"\n    Illustrate a heuristic memory/compute classification.\n\n    This is not a hardware diagnosis: allocation footprint is not transferred\n    bytes, and this classifier has no measured machine bandwidth or compute peak.\n\n    ```\n    Bottleneck Decision:\n    If bandwidth >> GFLOP/s x 100 -> Memory-bound (data movement dominates)\n    Otherwise                     -> Compute-bound (arithmetic dominates)\n    ```\n\n    TODO: Classify the workload and report the result.\n\n    APPROACH:\n    1. Compare memory_bandwidth_mbs against gflops_per_second * 100\n    2. If bandwidth is larger, the workload is memory-bound\n    3. Return a dict with is_memory_bound, is_compute_bound, and a label\n\n    EXAMPLE:\n    >>> _analyze_bottleneck(gflops_per_second=1.0, memory_bandwidth_mbs=10000.0)\n    {'is_memory_bound': True, 'is_compute_bound': False, 'bottleneck': 'memory'}\n\n    HINTS:\n    - The two boolean flags are mutually exclusive, so derive one from the other\n    - The 100 is a rule-of-thumb scale factor, not a physical constant\n    - Return the label as a plain string so callers can print it directly\n\n    Args:\n        gflops_per_second: Achieved compute throughput\n        memory_bandwidth_mbs: Achieved memory bandwidth in MB/s\n\n    Returns:\n        dict with is_memory_bound, is_compute_bound, and a bottleneck label\n    \"\"\"\n    is_memory_bound = memory_bandwidth_mbs > gflops_per_second * 100\n    return {\n        'is_memory_bound': is_memory_bound,\n        'is_compute_bound': not is_memory_bound,\n        'bottleneck': 'memory' if is_memory_bound else 'compute'\n    }"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _analyze_bottleneck\n\nThis test validates the helper that identifies memory-bound vs compute-bound workloads.\n\n**What we're testing**: Bottleneck classification based on bandwidth/compute ratio\n**Why it matters**: Knowing the bottleneck determines the right optimization strategy\n**Expected**: Correct classification of memory-bound and compute-bound workloads"
+  },
+  {
+   "type": "text",
+   "md": "### Memory Efficiency: Useful Bytes vs. Peak Bytes\n\nPeak memory is almost never the memory you asked for. Allocators round up,\nintermediate buffers outlive their use, fragmentation strands free blocks that\nare individually too small to reuse. The ratio of useful bytes to peak bytes is\nthe cheapest available signal for how much of that overhead you are carrying.\n\nA low ratio does not tell you which cause is responsible, and it is not a\nverdict on the model. It tells you where to look next, and whether the answer\nto an out-of-memory error is a smaller model or a better allocation pattern."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _calculate_memory_efficiency(useful_memory_mb: float, peak_memory_mb: float) -> float:\n    \"\"\"\n    Compute the fraction of peak memory that was actually useful.\n\n    ```\n    efficiency = useful_memory / peak_memory, clamped to at most 1.0\n    ```\n\n    TODO: Return the useful-to-peak memory ratio.\n\n    APPROACH:\n    1. Divide useful by peak, guarding against a zero denominator\n    2. Clamp the result to 1.0 so rounding cannot report over 100 percent\n\n    EXAMPLE:\n    >>> _calculate_memory_efficiency(useful_memory_mb=80.0, peak_memory_mb=100.0)\n    0.8\n\n    HINTS:\n    - Use max(peak, 0.001) rather than an if-statement for the zero guard\n    - min(ratio, 1.0) is the clamp; efficiency above 1.0 is a measurement error\n\n    Args:\n        useful_memory_mb: Memory attributable to parameters and activations\n        peak_memory_mb: Highest memory actually held at once\n\n    Returns:\n        float: Efficiency in [0.0, 1.0]\n    \"\"\"\n    ratio = useful_memory_mb / max(peak_memory_mb, 0.001)\n    return min(ratio, 1.0)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _calculate_memory_efficiency\n\nThis test validates the helper that computes useful-to-total memory ratio.\n\n**What we're testing**: Efficiency = useful_memory / peak_memory, clamped to [0, 1]\n**Why it matters**: Low efficiency means memory fragmentation or allocator overhead\n**Expected**: Values between 0 and 1, with division-by-zero safety"
+  },
+  {
+   "type": "text",
+   "md": "### Derived Metrics: Turning Counts into Rates\n\nRaw measurements are not yet insight. A FLOP count and a latency are two\nunrelated numbers until you divide them, at which point they become throughput\nand can be compared against hardware that has a known ceiling. The same is true\nof memory over time, which becomes bandwidth.\n\nOne value below deserves suspicion. The theoretical peak is hard-coded at 100\nGFLOP/s. That stands in for a real hardware number the profiler has no way to\nquery from pure NumPy, so the efficiency figure it produces is a relative\nindicator, not a hardware utilization percentage. Treat a rising number as\nprogress and ignore its absolute value."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _compute_derived_metrics(flops: int, latency_ms: float,\n                             peak_memory_mb: float) -> Dict[str, float]:\n    \"\"\"\n    Turn raw counts and timings into comparable rates.\n\n    The bandwidth field is a footprint/time proxy, not measured memory traffic.\n    Neither it nor the assumed compute peak establishes a hardware bottleneck.\n\n    ```\n    GFLOP/s   = (flops / 1e9) / seconds\n    MB/s      = peak_memory_mb / seconds\n    efficiency = GFLOP/s / theoretical_peak\n    ```\n\n    TODO: Convert measurements into throughput, bandwidth, and efficiency.\n\n    APPROACH:\n    1. Convert latency from milliseconds to seconds\n    2. Divide GFLOPs by seconds for compute throughput\n    3. Divide peak memory by seconds for effective bandwidth\n    4. Divide throughput by the assumed peak, clamped to 1.0\n\n    EXAMPLE:\n    >>> m = _compute_derived_metrics(flops=1_000_000, latency_ms=1.0, peak_memory_mb=10.0)\n    >>> round(m['gflops_per_second'], 3)\n    1.0\n\n    HINTS:\n    - Guard every division with max(seconds, 1e-6); a zero latency is possible\n    - theoretical_peak_gflops is a placeholder constant, not a measured value\n    - Return a dict so callers can name what they read\n\n    Args:\n        flops: Total floating point operations\n        latency_ms: Measured wall-clock latency in milliseconds\n        peak_memory_mb: Peak memory held during the measurement\n\n    Returns:\n        dict with gflops_per_second, memory_bandwidth_mbs, computational_efficiency\n    \"\"\"\n    latency_seconds = latency_ms / 1000.0\n    gflops_per_second = (flops / 1e9) / max(latency_seconds, 1e-6)\n    memory_bandwidth = peak_memory_mb / max(latency_seconds, 1e-6)\n    theoretical_peak_gflops = 100.0\n    computational_efficiency = min(gflops_per_second / theoretical_peak_gflops, 1.0)\n\n    return {\n        'gflops_per_second': gflops_per_second,\n        'memory_bandwidth_mbs': memory_bandwidth,\n        'computational_efficiency': computational_efficiency\n    }"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _compute_derived_metrics\n\nThis test validates the helper that converts raw FLOPs and latency into throughput metrics.\n\n**What we're testing**: GFLOP/s, memory bandwidth, and computational efficiency calculations\n**Why it matters**: These derived metrics determine whether a workload is memory-bound or compute-bound\n**Expected**: Correct throughput calculations from known FLOP counts and latencies"
+  },
+  {
+   "type": "text",
+   "md": "### Backward Pass Cost: Why Training Is 3x Inference\n\nTraining costs roughly three times what inference costs, and the split is worth\nknowing precisely, one unit forward and two units backward. The backward pass is\ntwice the forward because it computes two gradients at every layer, one with\nrespect to the inputs, so the chain rule can continue downstream, and one with\nrespect to the weights, so the optimizer has something to apply.\n\nThis 2x is a rule of thumb, not a measurement. It holds well for the dense\nmatrix multiplies that dominate the networks in this course, and it is exactly\nthe kind of estimate you want before committing to a training run rather than\nafter."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _estimate_backward_costs(forward_flops: int,\n                             forward_latency_ms: float) -> Dict[str, float]:\n    \"\"\"\n    Estimate backward-pass cost from forward-pass measurements.\n\n    ```\n    backward ~= 2 x forward\n      (one gradient w.r.t. inputs, one w.r.t. weights)\n    ```\n\n    TODO: Apply the 2x rule to both FLOPs and latency.\n\n    APPROACH:\n    1. Multiply forward FLOPs by 2\n    2. Multiply forward latency by 2\n    3. Return both under descriptive keys\n\n    EXAMPLE:\n    >>> _estimate_backward_costs(forward_flops=1000, forward_latency_ms=5.0)\n    {'backward_flops': 2000, 'backward_latency_ms': 10.0}\n\n    HINTS:\n    - The factor is 2, not 3 (the 3x figure is forward PLUS backward)\n    - This is an estimate; a real measurement would time an actual backward call\n\n    Args:\n        forward_flops: FLOPs measured for the forward pass\n        forward_latency_ms: Latency measured for the forward pass\n\n    Returns:\n        dict with backward_flops and backward_latency_ms\n    \"\"\"\n    return {\n        'backward_flops': forward_flops * 2,\n        'backward_latency_ms': forward_latency_ms * 2\n    }"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _estimate_backward_costs\n\nThis test validates the helper that estimates backward pass FLOPs and latency from forward measurements.\n\n**What we're testing**: Backward costs = 2x forward costs (standard ML heuristic)\n**Why it matters**: Training cost = forward + backward; backward is typically 2x forward\n**Expected**: Backward FLOPs and latency are exactly 2x the forward values"
+  },
+  {
+   "type": "text",
+   "md": "### Optimizer Memory: The Hidden Cost of Adam\n\nOptimizer state is the memory cost people forget. SGD keeps nothing between\nsteps, so it adds nothing. Adam keeps two running averages per parameter, the\nfirst and second moments built in Module 07, which doubles the gradient-sized\nfootprint before a single activation is stored.\n\nFor a large model that difference decides whether training fits at all. It is\nalso why the choice of optimizer is a systems decision and not only a\nconvergence one. Switching from Adam to SGD can buy back more memory than any\nbatch-size reduction you were considering."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _estimate_optimizer_memory(gradient_memory_mb: float) -> Dict[str, float]:\n    \"\"\"\n    Estimate per-optimizer state memory.\n\n    ```\n    SGD   : no persistent state             -> 0\n    Adam  : first + second moment           -> 2 x gradient memory\n    AdamW : same state as Adam              -> 2 x gradient memory\n    ```\n\n    TODO: Report the extra memory each optimizer holds between steps.\n\n    APPROACH:\n    1. SGD stores no state, so its cost is 0\n    2. Adam stores two moment buffers, each the size of the gradients\n    3. AdamW stores the same state as Adam; only its decay differs\n\n    EXAMPLE:\n    >>> _estimate_optimizer_memory(gradient_memory_mb=100.0)\n    {'sgd': 0, 'adam': 200.0, 'adamw': 200.0}\n\n    HINTS:\n    - This is state held BETWEEN steps, not transient working memory\n    - AdamW differs from Adam in its weight decay, not its memory\n    - Momentum-SGD would be 1x, but plain SGD is 0\n\n    Args:\n        gradient_memory_mb: Memory occupied by one full set of gradients\n\n    Returns:\n        dict mapping optimizer name to its extra memory in MB\n    \"\"\"\n    return {\n        'sgd': 0,\n        'adam': gradient_memory_mb * 2,\n        'adamw': gradient_memory_mb * 2,\n    }"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _estimate_optimizer_memory\n\nThis test validates the helper that estimates memory requirements for different optimizers.\n\n**What we're testing**: Per-optimizer memory multipliers (SGD: 0x, Adam: 2x gradient memory)\n**Why it matters**: Adam uses 2x extra memory vs SGD; this affects hardware requirements\n**Expected**: SGD = 0 extra, Adam = 2x gradient memory, AdamW = 2x gradient memory"
+  },
+  {
+   "type": "text",
+   "md": "### Profiler: The Object That Ties the Measurements Together\n\nEvery helper above answers one narrow question: how many parameters, how many\nFLOPs, how much memory, how long. The Profiler is the object that runs them\nagainst a real model and returns one report."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Profiler Probe",
+    "Analytical Domain",
+    "Measurement Mechanism"
+   ],
+   "rows": [
+    [
+     "**`count_parameters()`**",
+     "Static Model Topology",
+     "Iterates tensor weights and biases to sum total element count"
+    ],
+    [
+     "**`count_flops()`**",
+     "Computational Work",
+     "Arithmetic operations (\\$2 \\times M \\times K \\times N\\$ for GEMMs)"
+    ],
+    [
+     "**`estimate_memory()`**",
+     "Memory Footprint",
+     "Parameter bytes, activation tensors, gradients, and optimizer buffers"
+    ],
+    [
+     "**`measure_latency()`**",
+     "Temporal Wall-Clock",
+     "Monotonic interval timer across warm and active forward executions"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "These four diagnostic probes are orchestrated by `Profiler.profile_forward_pass(model, input)` into a unified report dictionary.\n\nRead the class through one concrete call: `profile_forward_pass(model,\ninput_tensor)`. It uses the supplied input for warmup runs and timed forward\npasses, then combines their summary with size estimates. Follow `count_parameters` separately\nto see a quantity computed from tensor sizes, then `count_flops` to see an\noperation-count estimate. These are different kinds of evidence; a FLOP count\ndoes not measure elapsed time. The memory helpers add estimates of activations,\ngradients, and optimizer state once that distinction is clear.\n\nThe complete class is kept together to show how these measurements share state.\nIts individual methods are exercised in the parameter, FLOP, memory, and\nlatency sections below. Module 19 will add comparisons across repeated runs\nand candidate models."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 467 lines of code (starting with `class Profiler:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Implementation: Building the Profiler Class."
+   ]
+  }
+ ]
+}

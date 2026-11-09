@@ -1,0 +1,61 @@
+{
+ "title": "Contention for Shared Resources",
+ "summary": "Work through Contention for Shared Resources.",
+ "source": {
+  "chapter": "v4-13",
+  "sections": [
+   "Contention for Shared Resources",
+   "DRAM bank conflicts, AXI4 burst slicing, and arbiter starvation",
+   "Which interference mechanism threatens the declared bound",
+   "Power-rail interference"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Contention for Shared Resources**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Workload Placement, § Contention for Shared Resources",
+   "md": "Had the mobile manipulator placed its permission path on the application SoC, camera DMA, neural weight fetches, telemetry writes, cache writebacks, and enforcement reads would compete for memory service. Their simultaneous bursts determine the queue seen by the enforcer. On the selected machine, those host-side bursts delay the observation and chunk rather than the permission tick. The permission path encounters their effects as evidence age, refusing stale evidence and entering fallback if no admitted chunk renews the lease."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- DRAM bank conflicts, AXI4 burst slicing, and arbiter starvation\n- Which interference mechanism threatens the declared bound\n- Power-rail interference"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Placement record matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: The placement record binds the declared WCET and deadline to the execution domain, privilege, period, unloaded and loaded maxima, bus QoS, droop and thermal limits, mitigations, and the conditions left untested."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-13-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Contention for Shared Resources** develops one of the chapter's claims. Which one?",
+     "options": [
+      "The placement record binds the declared WCET and deadline to the execution domain, privilege, period, unloaded and loaded maxima, bus QoS, droop and thermal limits, mitigations, and the conditions left untested.",
+      "A separate core or chip is not independent by construction, because memory protection governs where a transaction may go, not when it is served, so independence is argued row by row over every shared resource, including supply, clock, and reset.",
+      "On a shared die sustained inference drives the junction past the trip point, the governor cuts the clock so every tick overruns its bound, and hysteresis holds the clock down for seconds after the burst ends.",
+      "A refuted placement forces a remedy matched to the coupling (static reservation, spatial partitioning, separate silicon), each paid in a different currency and leaving a named residual."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Placement record**: The placement record binds the declared WCET and deadline to the execution domain, privilege, period, unloaded and loaded maxima, bus QoS, droop and thermal limits, mitigations, and the conditions left untested."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Contention for Shared Resources."
+   ]
+  }
+ ]
+}

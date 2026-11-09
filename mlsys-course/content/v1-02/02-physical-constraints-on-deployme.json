@@ -1,0 +1,93 @@
+{
+ "title": "Physical Constraints on Deployment",
+ "summary": "Calculate the physical latency floor imposed by the speed of light in optical fiber for distributed ML workloads.",
+ "source": {
+  "chapter": "v1-02",
+  "sections": [
+   "Physical Constraints on Deployment",
+   "The light barrier",
+   "The power wall",
+   "The memory wall"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate the physical latency floor imposed by the speed of light in optical fiber for distributed ML workloads\n- Explain the cubic relationship between clock frequency and dynamic power in CMOS circuits and its impact on hardware scaling\n- Analyze the quantitative divergence between processor compute growth and memory bandwidth growth that creates the memory wall\n- Evaluate the thermal throttling mechanism on mobile devices and its operational impact on sustained inference throughput\n- Explain the transistor power-scaling law whose breakdown led to domain-specific ML accelerators"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, System Paradigms, § Physical Constraints on Deployment",
+   "md": "A safety system with a 10 ms reaction budget cannot wait for a cross-country round trip, and a billion-parameter model cannot be squeezed into a microcontroller by better code alone. Both follow directly from the physical laws governing the speed of light, power thermodynamics, and memory signaling. The light barrier limits remote responsiveness, the power wall restricts sustained throughput, and the memory wall caps data transfer. Where a system runs therefore changes the terms of its silicon contract, and with them what the hardware can offer the model."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The light barrier\n- The power wall\n- The memory wall\n\nPay attention to: The light barrier and speed-of-light propagation latency floors; The power wall, cubic power scaling, and Dennard scaling breakdown; The memory wall and the compounding divergence between compute and bandwidth growth."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: What causes thermal throttling on passively cooled mobile devices running sustained ML inference, and how does it affect continuous model execution?",
+   "md": "Passively cooled mobile devices have a limited thermal dissipation capacity (typically 3–5 W TDP). When sustained ML computation generates heat faster than the chassis can dissipate it, the internal temperature rises until it reaches the hardware thermal trip point (e.g., 80 °C). The operating system then throttles clock frequencies and duty cycles to protect the hardware, which can cause frame rates and inference throughput to drop precipitously (e.g., from 60 FPS down to 15 FPS)."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-02-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A safety-critical autonomous braking system requires an end-to-end decision latency budget of 10 ms. A cloud data center is located 1,500 km away. Given that light travels through optical fiber at approximately \\$200,000 km/s, why is offloading inference to this cloud data center physically impossible?",
+     "explanation": "The correct answer is C. The minimum round-trip propagation time over optical fiber is $\\frac{2 \\times 1{,}500\\text{ km}}{200{,}000\\text{ km/s}} = 0.015\\text{ s} = 15\\text{ ms}$. This propagation delay alone exceeds the 10 ms budget by 5 ms before accounting for network routing, packet queuing, or model inference. The option citing a fixed 25 ms server queue latency confuses operational queuing with an invariant physical floor. The option claiming a 5 ms round trip miscalculates the distance-speed formula. The option attributing the failure to wireless handshakes references protocol overhead rather than the primary speed-of-light constraint.",
+     "hint": "Think about: calculate the physical latency floor imposed by the speed of light in optical fiber for distributed ML workloads.",
+     "type": "single",
+     "options": [
+      "The cloud server queue latency always adds at least 25 ms regardless of server load.",
+      "The speed of light in fiber allows a round trip in 5 ms, but serialization of model weights requires 15 ms.",
+      "The minimum speed-of-light round-trip propagation time alone is 15 ms, consuming the entire 10 ms budget before compute begins.",
+      "Wireless transmission protocols require a minimum 50 ms handshake before transmitting sensor packets."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Under dynamic CMOS power scaling where supply voltage scales proportionally with clock frequency ($V \\propto f$), doubling the processor clock frequency increases dynamic power dissipation by a factor of 8 ($f^3$).",
+     "explanation": "True. Dynamic CMOS power follows Power propto C × V^2 × f. When supply voltage V must scale proportionally with frequency f to support faster switching, substituting V propto f yields Power propto C × f^3. Consequently, doubling clock frequency (\\$2×) results in an \\$8× (\\$2^3) increase in dynamic power, which explains why frequency scaling stalled when Dennard scaling broke down.",
+     "hint": "Think about: explain the cubic relationship between clock frequency and dynamic power in CMOS circuits and its impact on hardware scaling.",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "How does the memory wall manifest in modern computing hardware according to the historical growth rates of compute capacity versus memory bandwidth?",
+     "explanation": "The correct answer is D. The memory wall is defined by the widening gap between compute growth (doubling roughly every 18 months, ~60% annual growth) and memory bandwidth growth (~20% annual growth), yielding a growth factor ratio of approximately $\\frac{1.6}{1.2} \\approx 1.33$. This divergence makes data movement an increasingly dominant bottleneck across successive hardware generations. The option reversing compute and memory bandwidth growth contradicts historical scaling trends. The option claiming identical growth rates ignores the core definition of the memory wall. The option claiming memory signaling energy has dropped to near zero contradicts the physics of memory bus signaling.",
+     "hint": "Think about: analyze the quantitative divergence between processor compute growth and memory bandwidth growth that creates the memory wall.",
+     "type": "single",
+     "options": [
+      "Memory bandwidth doubles every 18 months while compute throughput increases by only 20% annually, causing compute starvation.",
+      "Both compute throughput and memory bandwidth grow at identical 60% annual rates, but memory capacity limits model size.",
+      "Processors have reached absolute thermal limits while memory signaling energy has dropped to near-zero levels.",
+      "Compute capacity historically doubles roughly every 18 months (~60% annually), whereas memory bandwidth grows by only ~20% annually, causing the compute-to-bandwidth gap to widen compounding over time."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "The historical scaling relationship under which shrinking MOSFET transistor dimensions allowed reducing voltage and current while keeping power density constant is known as ____ scaling.",
+     "explanation": "Dennard. Dennard scaling (formulated by Robert Dennard in 1974) held that as transistors shrank, power density remained constant because operating voltage and current scaled downward proportionally. Its breakdown in the mid-2000s ended free clock frequency scaling and forced the computing industry toward multicore parallelism and domain-specific accelerators.",
+     "hint": "Think about: explain the transistor power-scaling law whose breakdown led to domain-specific ML accelerators.",
+     "type": "fill",
+     "answer": [
+      "Dennard"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate the physical latency floor imposed by the speed of light in optical fiber for distributed ML workloads.",
+    "You can now explain the cubic relationship between clock frequency and dynamic power in CMOS circuits and its impact on hardware scaling.",
+    "You can now analyze the quantitative divergence between processor compute growth and memory bandwidth growth that creates the memory wall.",
+    "You can now evaluate the thermal throttling mechanism on mobile devices and its operational impact on sustained inference throughput."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,143 @@
+{
+ "title": "Test: Fault Tolerance",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-07-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Fleet failure rate**?",
+     "options": [
+      "A protection is worth buying while it removes more expected failure cost than it adds, so the same hot spare that pays for itself beside a 10,000-GPU job is waste beside an 8-GPU one.",
+      "ECC and link CRCs protect stored and transmitted bits but never arithmetic, so a live worker can feed a wrong gradient into a correct AllReduce, and because full redundancy costs 100 to 200 percent of compute, fleets use selective check-and-verify.",
+      "A distributed checkpoint is recoverable only when its shards form a consistent cut and a manifest naming every shard is published last, so training uses coordinated checkpoints whose stage-then-publish protocol is a two-phase commit.",
+      "Independent constant-rate failures compose in series, so system MTBF = MTTF/N turns a 50,000-hour GPU into an interruption every few hours on a 10,000-GPU cluster, and correlated hazards over shared power, switches, and cooling come on top."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Fleet failure rate itself, not a neighbouring idea.",
+     "explanation": "**Fleet failure rate:** Independent constant-rate failures compose in series, so system MTBF = MTTF/N turns a 50,000-hour GPU into an interruption every few hours on a 10,000-GPU cluster, and correlated hazards over shared power, switches, and cooling come on top."
+    },
+    {
+     "q": "How does sharded checkpointing (such as in ZeRO-3 or PyTorch FSDP) differ from centralized checkpointing in terms of I/O parallelism and recovery requirements?",
+     "explanation": "The correct answer is C. Under ZeRO-3/FSDP sharded checkpointing, each worker saves only its local partition of weights and optimizer states (e.g., $\\approx 10$ GB per worker instead of 10 TB total), parallelizing write bandwidth across the cluster. The trade-off is recovery complexity: all worker shards must be present, and changing the worker count upon restart requires remapping and resharding state. Broadcasting state to all peers describes redundant replication. Writing a monolithic file from Rank 0 describes centralized checkpointing. Discarding optimizer state would prevent deterministic optimizer resumption.",
+     "hint": "Think about: compare sharded checkpointing with centralized checkpointing in terms of I/O parallelism and recovery complexity.",
+     "type": "single",
+     "options": [
+      "Sharded checkpointing requires every worker to broadcast its state to all peers before writing, doubling network communication overhead.",
+      "Sharded checkpointing writes a single monolithic file from Rank 0, minimizing storage metadata operations.",
+      "Each worker writes only its locally partitioned parameter and optimizer shard directly to storage in parallel, aggregating storage fabric bandwidth but requiring all shards to be present and consistent during recovery.",
+      "Sharded checkpointing stores only model weights, discarding optimizer state to achieve sub-second write times."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Why does adding more GPUs ($N$) to a distributed training job eventually encounter a 'reliability ceiling' where total wall-clock training time increases rather than decreases?",
+     "explanation": "The correct answer is D. Under independent failures, adding workers increases the aggregate failure rate. Recovery and replay can eventually cost more than the marginal compute speedup, and this reliability ceiling applies on top of the Amdahl ceiling. Whole-run useful goodput must count only retained progress and include recovery time in the denominator, so its reliability penalty grows with the number of workers.",
+     "hint": "Think about: evaluate the reliability ceiling where aggregate cluster failure overhead outpaces parallel compute scaling.",
+     "type": "single",
+     "options": [
+      "Because GPUs consume more electrical power than data center transformers can supply.",
+      "Because floating-point numbers lose precision when divided across more than 1,000 workers.",
+      "Because the Python interpreter cannot spawn more than 512 concurrent threads.",
+      "Because aggregate cluster failure rate scales linearly ($N\\lambda$), shrinking system MTBF until the cumulative time lost to failure detection, job restarts, checkpoint loading, and rework exceeds the marginal compute speedup of additional parallelism."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Sequence the six sequential operational stages executed by the chapter’s stated cold-restart recovery path after classifying a hard worker failure:",
+     "explanation": "The correct sequence is (2) -> (1) -> (5) -> (3) -> (6) -> (4).\n- (2) Job Termination: Tear down dead communicator across surviving workers.\n- (1) Resource Reclamation: Isolate and drain failed node; provision replacement.\n- (5) Job Restart: Launch replacement container and re-initialize execution runtime.\n- (3) Checkpoint Loading: Workers load durable parameter and optimizer shards.\n- (6) State Synchronization: Reconstruct NCCL communicators and verify step parity.\n- (4) Training Resumption: Restore the recorded input-stream position and sampling state, then resume training.",
+     "hint": "Think about: design the end-to-end operational stages of an automated failure recovery pipeline.",
+     "type": "order",
+     "items": [
+      "Job Termination: Broadcast termination signal to tear down invalidated communicator",
+      "Resource Reclamation: Scheduler marks defective node as draining and requests spare node",
+      "Job Restart: Launch fresh container processes and re-initialize training runtime binary",
+      "Checkpoint Loading: Workers read local partition state shards from distributed storage",
+      "State Synchronization: Workers execute rendezvous and re-initialize NCCL communicators",
+      "Training Resumption: Data loaders restore recorded position and sampling state, and training resumes"
+     ]
+    },
+    {
+     "q": "How does a permanent stuck-at fault in a specialized accelerator's Tensor Core multiply-accumulate unit manifest differently during training compared to a traditional processor crash?",
+     "explanation": "The correct answer is D. A stuck-at datapath defect can repeatedly corrupt affected computations without raising a process exception. The visible effect depends on which instructions, values and lanes use the faulty circuit, and whether later operations mask the error. It need not affect every matrix multiplication or always cause divergence. The other choices incorrectly require a crash, bus reset or automatic CPU fallback.",
+     "hint": "Think about: compare the manifestation of permanent datapath faults in specialized accelerator matrix units against scalar processor faults.",
+     "type": "single",
+     "options": [
+      "It causes an immediate kernel execution timeout that terminates the local process group within milliseconds.",
+      "It corrupts operating system page tables, forcing an immediate kernel panic and node reboot.",
+      "It triggers a PCIe bus reset that automatically redirects subsequent GEMM operations to host CPU memory.",
+      "It can produce repeatable incorrect values in computations using the defective datapath while the process remains alive."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Sequence the 6 steps of a standard distributed sharded checkpoint coordination protocol in chronological order:",
+     "explanation": "The correct sequence is (4) -> (5) -> (2) -> (6) -> (1) -> (3).\n- (4) Coordinator broadcasts checkpoint initiation request with checkpoint ID.\n- (5) Workers reach consistent step boundary via barrier synchronization.\n- (2) Workers write their respective state shards in parallel.\n- (6) Workers report write completion to the coordinator.\n- (1) Coordinator commits metadata once all shards are verified.\n- (3) Coordinator broadcasts completion signal so normal training resumes.",
+     "hint": "Think about: design the operational phases of a distributed sharded checkpoint protocol.",
+     "type": "order",
+     "items": [
+      "Coordinator broadcasts checkpoint initiation request with a unique checkpoint ID",
+      "Each worker reaches a consistent execution state via barrier synchronization",
+      "Each worker writes its local state shard directly to persistent storage",
+      "Each worker reports shard write completion back to the coordinator",
+      "Coordinator confirms all writes and commits checkpoint metadata",
+      "Coordinator broadcasts checkpoint completion signal, allowing next barrier clearance"
+     ]
+    },
+    {
+     "q": "A component that remains active but sends arbitrary, corrupted, or conflicting data requires ____ fault tolerance reasoning rather than only fail-stop detection.",
+     "explanation": "Byzantine. Such faults require explicit assumptions about faulty participants and independent validation; ordinary byte-integrity checks alone cannot prove that a local gradient was computed correctly.",
+     "hint": "Think about: apply Byzantine fault tolerance principles to protect parameter updates against silent data corruption.",
+     "type": "fill",
+     "answer": [
+      "Byzantine"
+     ]
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Young-Daly checkpoint interval**?",
+     "options": [
+      "A recovery path is trustworthy only for the fault model it has been exercised against, so tests inject faults where recovery decisions are made and assert the invariant each decision depends on.",
+      "When redundancy cannot meet the latency budget the service descends a ladder validated before the incident (model fallback, feature fallback, load shedding, admission control) with hysteresis and monitoring of the quality it trades.",
+      "Elastic recovery turns a permanent capacity loss into a pause plus reduced throughput only if the resize preserves effective batch size or a validated learning-rate policy, exactly-once data coverage, and reconstructable state for every lost shard.",
+      "Expected waste delta/tau + tau/(2M) is minimized at tau* = sqrt(2 delta M), a shallow optimum that tightens only by sqrt(2) when MTBF halves, while the optimized overhead sqrt(2 delta/M) grows as sqrt(N) because M falls as 1/N."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Young-Daly checkpoint interval itself, not a neighbouring idea.",
+     "explanation": "**Young-Daly checkpoint interval:** Expected waste delta/tau + tau/(2M) is minimized at tau* = sqrt(2 delta M), a shallow optimum that tightens only by sqrt(2) when MTBF halves, while the optimized overhead sqrt(2 delta/M) grows as sqrt(N) because M falls as 1/N."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Consistent checkpoint cut**?",
+     "options": [
+      "A distributed checkpoint is recoverable only when its shards form a consistent cut and a manifest naming every shard is published last, so training uses coordinated checkpoints whose stage-then-publish protocol is a two-phase commit.",
+      "Expected waste delta/tau + tau/(2M) is minimized at tau* = sqrt(2 delta M), a shallow optimum that tightens only by sqrt(2) when MTBF halves, while the optimized overhead sqrt(2 delta/M) grows as sqrt(N) because M falls as 1/N.",
+      "When redundancy cannot meet the latency budget the service descends a ladder validated before the incident (model fallback, feature fallback, load shedding, admission control) with hysteresis and monitoring of the quality it trades.",
+      "Each failure pays T_detect + T_restart + T_load + T_warmup on top of lost rework, which comes to dominate as clusters grow, and epochs, leases, and write fencing stop a stale worker from corrupting the recovered state."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Consistent checkpoint cut itself, not a neighbouring idea.",
+     "explanation": "**Consistent checkpoint cut:** A distributed checkpoint is recoverable only when its shards form a consistent cut and a manifest naming every shard is published last, so training uses coordinated checkpoints whose stage-then-publish protocol is a two-phase commit."
+    },
+    {
+     "q": "Graceful degradation is an automatic emergent property of standard microservice architectures that requires no explicit pre-engineering or offline fallback validation.",
+     "explanation": "False. Graceful degradation requires extensive pre-engineering: fallback models must be pre-deployed or precomputed, default feature stores populated, degradation triggers (latency, error rate) instrumented, fallback accuracy validated against reduced SLOs, and hysteresis policies implemented to prevent oscillation.",
+     "hint": "Think about: justify the requirement for proactive architectural design and validation in graceful degradation systems.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In heartbeat failure detection ($T_{\\text{timeout}} = H + k\\sigma_d$), reducing the safety multiplier $k$ to a very small value (e.g., $k=1$) is universally optimal because it minimizes detection latency $T_{\\text{detect}}$ without any operational downsides.",
+     "explanation": "False. A smaller multiplier shortens the waiting threshold but can increase false failure declarations when healthy workers are delayed. The resulting recovery can discard useful work. Whether those costs exceed faster detection benefits depends on measured delay tails, failure rates and recovery costs; there is no universally optimal multiplier.",
+     "hint": "Think about: analyze the trade-off between detection latency and false positive failure declarations in heartbeat monitoring.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,68 @@
+{
+ "title": "Selecting from a Candidate Pool",
+ "summary": "Work through Selecting from a Candidate Pool.",
+ "source": {
+  "chapter": "v3-03",
+  "sections": [
+   "Selecting from a Candidate Pool",
+   "Useful variation among candidates",
+   "Choosing a selection rule",
+   "Candidate availability under pass@$\\IndependentAttemptCount$",
+   "Balancing pool size against checking cost"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Selecting from a Candidate Pool**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Test-Time Compute, § Selecting from a Candidate Pool",
+   "md": "Sampling eight candidate patches for the connection pool helps nothing if seven of them repeat the same broken timeout workaround and the selector picks one of the seven over the single patch that fixes the notification bug. In a typical pool, one candidate might lengthen an acquisition timeout, another might add exponential retries, and a third might change how the connection-return path wakes waiting threads."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Useful variation among candidates\n- Choosing a selection rule\n- Candidate availability under pass@IndependentAttemptCount\n- Balancing pool size against checking cost"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Revisable candidate plans matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Recording a candidate as a dependency graph of artifacts with evidence provenance lets a refuting observation invalidate exactly its descendants while retained branches keep their support."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-03-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Selecting from a Candidate Pool** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A step check that rejects a fraction r of b children gives an effective branching factor b(1-r), so a tree stays finite on its own only when r > 1-1/b and otherwise needs hard caps.",
+      "A search tracks money, non-interchangeable work, wall time, and peak live state in separate accounts and reserves each request's maximum charge before dispatch, releasing it only on settlement.",
+      "Recording a candidate as a dependency graph of artifacts with evidence provenance lets a refuting observation invalidate exactly its descendants while retained branches keep their support.",
+      "pass@k = 1-(1-p)^k caps any selector that returns an unchanged pool member, while realized accuracy is set by the selector, so coverage near 98 percent can coexist with a vote that plateaus near half."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Revisable candidate plans**: Recording a candidate as a dependency graph of artifacts with evidence provenance lets a refuting observation invalidate exactly its descendants while retained branches keep their support."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Candidate selection**: A selection procedure chooses among generated candidates; candidate availability alone does not guarantee that the chosen result is valid."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Candidate selection",
+   "def": "A selection procedure chooses among generated candidates; candidate availability alone does not guarantee that the chosen result is valid."
+  }
+ ]
+}

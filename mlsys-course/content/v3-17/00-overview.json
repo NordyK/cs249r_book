@@ -1,0 +1,275 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v3-17",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Reinforcement Learning from Verifiable Rewards** (Vol III). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Reinforcement Learning from Verifiable Rewards, Purpose",
+   "md": "Curated demonstrations give an agent a starting policy, but they cover only the decisions someone recorded, and long-horizon tasks keep producing decisions that no demonstration anticipated. Reinforcement learning with verifiable rewards replaces the demonstration with a programmatic check, such as a unit test suite, a compiler, or a proof checker, that scores each sampled attempt and turns the score into a weight update without a human label. That substitution changes what the check is."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Learning from a Check",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Foundations of Verifiable Rewards",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Verifiable Rewards",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Credit Across Turns",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Group Relative Policy Optimization",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Multi-Turn Agentic RL",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Verifier Isolation",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Sampled reward contrast**",
+     "RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal."
+    ],
+    [
+     "**Reward hacking**",
+     "Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability."
+    ],
+    [
+     "**Reward as measurement**",
+     "The false-accept share of rewarded rollouts moves with the policy's current pass rate rather than being a fixed verifier property, so reward shaping must preserve the priority of correct outcomes."
+    ],
+    [
+     "**Credit assignment**",
+     "A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost."
+    ],
+    [
+     "**GRPO coefficients**",
+     "GRPO replaces the learned critic with G rollouts per task and broadcasts one standardized coefficient to every sampled token of a rollout, and its clipping and KL estimator choices change how that signal is weighted."
+    ],
+    [
+     "**Zero-contrast groups**",
+     "A group whose rewards all tie carries no reward gradient, occurring with probability p^G + (1-p)^G, so the rollout cost of one informative group is G/C and difficulty targeting toward p near 0.5 lowers it."
+    ],
+    [
+     "**Faithful rollout records**",
+     "Ratios and gradients are valid only on per-invocation records of the delivered prefix token IDs, sampled token IDs, and behavior log probabilities under the actual sampling transforms."
+    ],
+    [
+     "**Rollout loop sizing**",
+     "Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup."
+    ],
+    [
+     "**Entropy collapse**",
+     "Symmetric ratio clipping is asymmetric in probability space, so early successes sharpen the policy until groups converge and contrast vanishes, which outcome statistics can diagnose."
+    ],
+    [
+     "**Verifier isolation**",
+     "Grader isolation placed on the reward path protects the verdict from both the acting policy and the candidate code it submits, so a reward reflects executed tests rather than tampering."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v3-17-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Sampled reward contrast",
+     "back": "RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal."
+    },
+    {
+     "front": "Reward hacking",
+     "back": "Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability."
+    },
+    {
+     "front": "Reward as measurement",
+     "back": "The false-accept share of rewarded rollouts moves with the policy's current pass rate rather than being a fixed verifier property, so reward shaping must preserve the priority of correct outcomes."
+    },
+    {
+     "front": "Credit assignment",
+     "back": "A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost."
+    },
+    {
+     "front": "GRPO coefficients",
+     "back": "GRPO replaces the learned critic with G rollouts per task and broadcasts one standardized coefficient to every sampled token of a rollout, and its clipping and KL estimator choices change how that signal is weighted."
+    },
+    {
+     "front": "Zero-contrast groups",
+     "back": "A group whose rewards all tie carries no reward gradient, occurring with probability p^G + (1-p)^G, so the rollout cost of one informative group is G/C and difficulty targeting toward p near 0.5 lowers it."
+    },
+    {
+     "front": "Faithful rollout records",
+     "back": "Ratios and gradients are valid only on per-invocation records of the delivered prefix token IDs, sampled token IDs, and behavior log probabilities under the actual sampling transforms."
+    },
+    {
+     "front": "Rollout loop sizing",
+     "back": "Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup."
+    },
+    {
+     "front": "Entropy collapse",
+     "back": "Symmetric ratio clipping is asymmetric in probability space, so early successes sharpen the policy until groups converge and contrast vanishes, which outcome statistics can diagnose."
+    },
+    {
+     "front": "Verifier isolation",
+     "back": "Grader isolation placed on the reward path protects the verdict from both the acting policy and the candidate code it submits, so a reward reflects executed tests rather than tampering."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v3-17-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Sampled reward contrast**?",
+     "options": [
+      "RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal.",
+      "A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost.",
+      "Symmetric ratio clipping is asymmetric in probability space, so early successes sharpen the policy until groups converge and contrast vanishes, which outcome statistics can diagnose.",
+      "Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Sampled reward contrast itself, not a neighbouring idea.",
+     "explanation": "**Sampled reward contrast:** RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Reward hacking**?",
+     "options": [
+      "Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability.",
+      "Symmetric ratio clipping is asymmetric in probability space, so early successes sharpen the policy until groups converge and contrast vanishes, which outcome statistics can diagnose.",
+      "A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost.",
+      "Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Reward hacking itself, not a neighbouring idea.",
+     "explanation": "**Reward hacking:** Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Reward as measurement**?",
+     "options": [
+      "Grader isolation placed on the reward path protects the verdict from both the acting policy and the candidate code it submits, so a reward reflects executed tests rather than tampering.",
+      "Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup.",
+      "Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability.",
+      "The false-accept share of rewarded rollouts moves with the policy's current pass rate rather than being a fixed verifier property, so reward shaping must preserve the priority of correct outcomes."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Reward as measurement itself, not a neighbouring idea.",
+     "explanation": "**Reward as measurement:** The false-accept share of rewarded rollouts moves with the policy's current pass rate rather than being a fixed verifier property, so reward shaping must preserve the priority of correct outcomes."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Credit assignment**?",
+     "options": [
+      "A group whose rewards all tie carries no reward gradient, occurring with probability p^G + (1-p)^G, so the rollout cost of one informative group is G/C and difficulty targeting toward p near 0.5 lowers it.",
+      "RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal.",
+      "A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost.",
+      "GRPO replaces the learned critic with G rollouts per task and broadcasts one standardized coefficient to every sampled token of a rollout, and its clipping and KL estimator choices change how that signal is weighted."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Credit assignment itself, not a neighbouring idea.",
+     "explanation": "**Credit assignment:** A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **GRPO coefficients**?",
+     "options": [
+      "Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup.",
+      "Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability.",
+      "GRPO replaces the learned critic with G rollouts per task and broadcasts one standardized coefficient to every sampled token of a rollout, and its clipping and KL estimator choices change how that signal is weighted.",
+      "A group whose rewards all tie carries no reward gradient, occurring with probability p^G + (1-p)^G, so the rollout cost of one informative group is G/C and difficulty targeting toward p near 0.5 lowers it."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is GRPO coefficients itself, not a neighbouring idea.",
+     "explanation": "**GRPO coefficients:** GRPO replaces the learned critic with G rollouts per task and broadcasts one standardized coefficient to every sampled token of a rollout, and its clipping and KL estimator choices change how that signal is weighted."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Sampled reward contrast: RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal.",
+    "Reward hacking: Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability.",
+    "Reward as measurement: The false-accept share of rewarded rollouts moves with the policy's current pass rate rather than being a fixed verifier property, so reward shaping must preserve the priority of correct outcomes.",
+    "Credit assignment: A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Sampled reward contrast",
+   "def": "RLVR scores sampled rollouts with a programmatic check, so the update learns only what the sampler reaches and the reward distinguishes, and a task the policy never solves gives zero signal."
+  },
+  {
+   "term": "Reward hacking",
+   "def": "Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability."
+  },
+  {
+   "term": "Reward as measurement",
+   "def": "The false-accept share of rewarded rollouts moves with the policy's current pass rate rather than being a fixed verifier property, so reward shaping must preserve the priority of correct outcomes."
+  },
+  {
+   "term": "Credit assignment",
+   "def": "A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost."
+  },
+  {
+   "term": "GRPO coefficients",
+   "def": "GRPO replaces the learned critic with G rollouts per task and broadcasts one standardized coefficient to every sampled token of a rollout, and its clipping and KL estimator choices change how that signal is weighted."
+  },
+  {
+   "term": "Zero-contrast groups",
+   "def": "A group whose rewards all tie carries no reward gradient, occurring with probability p^G + (1-p)^G, so the rollout cost of one informative group is G/C and difficulty targeting toward p near 0.5 lowers it."
+  },
+  {
+   "term": "Faithful rollout records",
+   "def": "Ratios and gradients are valid only on per-invocation records of the delivered prefix token IDs, sampled token IDs, and behavior log probabilities under the actual sampling transforms."
+  },
+  {
+   "term": "Rollout loop sizing",
+   "def": "Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup."
+  },
+  {
+   "term": "Entropy collapse",
+   "def": "Symmetric ratio clipping is asymmetric in probability space, so early successes sharpen the policy until groups converge and contrast vanishes, which outcome statistics can diagnose."
+  },
+  {
+   "term": "Verifier isolation",
+   "def": "Grader isolation placed on the reward path protects the verdict from both the acting policy and the candidate code it submits, so a reward reflects executed tests rather than tampering."
+  }
+ ]
+}

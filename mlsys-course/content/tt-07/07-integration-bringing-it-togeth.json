@@ -1,0 +1,159 @@
+{
+ "title": "Integration: Bringing It Together",
+ "summary": "TinyTorch optimizers: Integration: Bringing It Together",
+ "source": {
+  "chapter": "tt-07",
+  "sections": [
+   "Integration: Bringing It Together"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Bringing It Together\n\nAll four update rules answer the same `step()` call, so a training loop can swap one for another without changing a line. Each embodies a distinct geometric approach to resolving loss curvature, and the two Systems Analysis cells that follow measure the two costs that difference carries, resident memory and progress on an ill-conditioned landscape."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Algorithm",
+    "Trajectory Dynamic",
+    "Effective Step Scaling",
+    "Regularization Coupling"
+   ],
+   "rows": [
+    [
+     "**SGD**",
+     "Steepest descent along local slope",
+     "Global scalar \\$\\alpha\\$",
+     "None (or coupled \\$L_2\\$ gradient penalty)"
+    ],
+    [
+     "**SGD + Momentum**",
+     "Heavy-ball physical inertia",
+     "Accumulated velocity \\$\\frac{\\alpha}{1 - \\beta}\\$",
+     "None"
+    ],
+    [
+     "**Adam**",
+     "Directional & variance EMA tracking",
+     "Coordinate-wise \\$\\frac{\\alpha}{\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon}\\$",
+     "Coupled to gradient before moment estimation"
+    ],
+    [
+     "**AdamW**",
+     "Directional & variance EMA tracking",
+     "Coordinate-wise \\$\\frac{\\alpha}{\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon}\\$",
+     "**Decoupled**: Direct parameter shrinkage \\$(1 - \\alpha \\lambda)\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Optimizer Performance and Memory\n\nIn production machine learning systems, optimizer state buffers often dominate the total resident memory of hardware accelerators. Understanding the arithmetic and memory bandwidth trade-offs is essential for scaling models to large architectures.\n\n### Memory Usage Patterns: The 16-Byte Parameter Rule\n\nFor single-precision (FP32) training, each model parameter incurs substantial secondary state allocations.\n\n**What the multipliers count.** Every \\$\\times\\$ figure in this module is quoted against the 4 bytes of the weight itself, and it counts the entire resident training footprint: the weight, the gradient buffer the backward pass fills, and any optimizer state. That is why stateless SGD is already \\$2\\times\\$ before a single byte of optimizer state exists."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Buffer Role",
+    "Precision & Size",
+    "Resident Lifespan",
+    "SGD (\\$\\beta=0\\$)",
+    "SGD + Momentum",
+    "Adam / AdamW"
+   ],
+   "rows": [
+    [
+     "**Model Weight (\\$\\boldsymbol{\\theta}\\$)**",
+     "FP32 (4 Bytes)",
+     "Permanent",
+     "4 Bytes",
+     "4 Bytes",
+     "4 Bytes"
+    ],
+    [
+     "**Loss Gradient (\\$\\mathbf{g}\\$)**",
+     "FP32 (4 Bytes)",
+     "Transient (backward pass)",
+     "4 Bytes",
+     "4 Bytes",
+     "4 Bytes"
+    ],
+    [
+     "**First Moment Buffer (\\$\\mathbf{m}\\$)**",
+     "FP32 (4 Bytes)",
+     "Permanent state",
+     "0 Bytes",
+     "4 Bytes (`momentum_buffers`)",
+     "4 Bytes (`m_buffers`)"
+    ],
+    [
+     "**Second Moment Buffer (\\$\\mathbf{v}\\$)**",
+     "FP32 (4 Bytes)",
+     "Permanent state",
+     "0 Bytes",
+     "0 Bytes",
+     "4 Bytes (`v_buffers`)"
+    ],
+    [
+     "**Total Resident Memory**",
+     "—",
+     "—",
+     "**8 B / param (\\$2\\times\\$)**",
+     "**12 B / param (\\$3\\times\\$)**",
+     "**16 B / param (\\$4\\times\\$)**"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "> **Systems Takeaway**: Training a 7-billion parameter language model in FP32 requires \\$7 \\times 10^9 \\times 16\\text{ Bytes} = 112\\text{ GB}\\$ of memory solely for weights, gradients, and AdamW moments, before allocating a single byte for activation tensors or KV caches!\n\n### Computational Complexity & Memory Bandwidth\n\nBecause optimizer steps execute element-wise over the entire parameter set, their execution speed is bound by memory bandwidth rather than compute throughput (FLOP/s):"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Optimizer",
+    "Arithmetic FLOPs / Parameter",
+    "Dominant Vector Math Kernel",
+    "Memory Bandwidth (Bytes / Param)"
+   ],
+   "rows": [
+    [
+     "**Vanilla SGD**",
+     "2 FLOPs (\\$\\boldsymbol{\\theta} - \\alpha \\mathbf{g}\\$)",
+     "Scaled axpy",
+     "8 B Read (\\$\\boldsymbol{\\theta}, \\mathbf{g}\\$) + 4 B Write (\\$\\boldsymbol{\\theta}\\$) = 12 B"
+    ],
+    [
+     "**SGD + Momentum**",
+     "4 FLOPs (\\$\\mathbf{v} \\leftarrow \\beta \\mathbf{v} + \\mathbf{g}; \\boldsymbol{\\theta} \\leftarrow \\boldsymbol{\\theta} - \\alpha \\mathbf{v}\\$)",
+     "Compound axpy",
+     "12 B Read (\\$\\boldsymbol{\\theta}, \\mathbf{g}, \\mathbf{v}\\$) + 8 B Write (\\$\\mathbf{v}, \\boldsymbol{\\theta}\\$) = 20 B"
+    ],
+    [
+     "**Adam / AdamW**",
+     "~14 FLOPs (2 EMA, 2 bias div, sqrt, div, decay, axpy)",
+     "Fused point-wise kernel",
+     "16 B Read (\\$\\boldsymbol{\\theta}, \\mathbf{g}, \\mathbf{m}, \\mathbf{v}\\$) + 12 B Write (\\$\\mathbf{m}, \\mathbf{v}, \\boldsymbol{\\theta}\\$) = 28 B"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 66 lines of code (starting with `def analyze_optimizer_memory_usage():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 80 lines of code (starting with `def analyze_optimizer_convergence_behavior():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Integration: Bringing It Together."
+   ]
+  }
+ ]
+}

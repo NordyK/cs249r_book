@@ -1,0 +1,81 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Distinguish the predictable systems costs of scaling parameter count from the uncertain effect on final model quality.",
+ "source": {
+  "chapter": "v1-08",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Distinguish the predictable systems costs of scaling parameter count from the uncertain effect on final model quality\n- Explain why batch-size scaling can invalidate a previously successful optimization recipe even when hardware utilization looks strong\n- Recognize optimizing kernels before profiling the input pipeline as a major operational pitfall in training optimization\n- Evaluate why communication overhead and operational complexity both limit the developer-velocity gains of distributed training"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Training, § Fallacies and Pitfalls",
+   "md": "The approach developed throughout this chapter quantifies costs through the iron law, diagnoses bottlenecks through profiling, applies targeted optimizations, and scales only when necessary. The following fallacies and pitfalls are the errors that most often waste training compute."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: model scaling without matched data scaling (cost guarantee vs validation uncertainty); hyperparameter transfer failures under batch size scaling; pipeline neglect and data-side blind spots; distributed training complexity and non-linear velocity scaling."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why directly transferring hyperparameters such as learning rate and weight decay from a batch-size 512 baseline to a batch-size 4,096 distributed run can cause training to underperform, even when raw GPU busy time stays above 90 percent.",
+   "md": "An eightfold batch increase means eight times fewer parameter updates per fixed epoch, and it also changes the gradient statistics seen by the optimizer, so the old hyperparameters no longer operate in the same regime. High GPU busy time only shows that hardware is active; it does not prove that the optimizer is making equally effective progress per unit data. The practical response is to validate the learning-rate schedule, warmup, and target quality metric on the larger-batch run instead of assuming the small-batch recipe transfers unchanged."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-08-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team scales a dense model from 7 billion to 20 billion parameters while keeping the same training-token budget, precision recipe, and optimizer structure. Under the chapter's fallacies discussion, what is the most defensible conclusion?",
+     "explanation": "The correct answer is D. Under the chapter's dense-model accounting with fixed precision and optimizer assumptions, a larger parameter count clearly raises memory and leading FLOP requirements, so systems cost goes up in a predictable direction. But the scientific outcome is not guaranteed: keeping the same token budget does not prove either improvement or collapse in validation quality. The \"must improve\" answer mistakes model size for a universal quality guarantee, while the CPU answer invents a hardware consequence the chapter does not state.",
+     "hint": "Think about: distinguish the predictable systems costs of scaling parameter count from the uncertain effect on final model quality.",
+     "type": "single",
+     "options": [
+      "Validation accuracy must improve in proportion to parameter count because the larger model can represent more functions.",
+      "The run will necessarily move to CPU execution because 20B parameters cannot be trained on accelerators.",
+      "The larger model guarantees worse accuracy because fixed-token training always causes catastrophic interference at higher parameter counts.",
+      "The training-state and compute budgets rise substantially under the same dense-model accounting, but model quality is not guaranteed to improve because it still depends on data, optimization, and evaluation."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Which engineering mistake exemplifies the input-pipeline pitfall described in the chapter's fallacies and pitfalls?",
+     "explanation": "The correct answer is B. The chapter's pitfall of optimizing kernels before profiling the input pipeline occurs when engineers focus exclusively on accelerator-side compute optimizations (such as custom CUDA kernels, mixed precision, or Tensor Core utilization) while neglecting end-to-end profiling. If the upstream data pipeline (CPU tokenization, disk I/O, or augmentation) is bottlenecked, the GPU will starve, rendering kernel-level speedups useless at the system level. BF16, DataLoader worker and pinned-memory settings, and checkpointing are candidate interventions whose value depends on the diagnosed constraint and validation results.",
+     "hint": "Think about: recognize optimizing kernels before profiling the input pipeline as a major operational pitfall in training optimization.",
+     "type": "single",
+     "options": [
+      "Using BF16 mixed precision instead of FP16 on NVIDIA Ampere GPUs.",
+      "Spending weeks hand-tuning custom CUDA attention kernels to achieve 95% peak arithmetic throughput, only to discover in production that the GPU sits idle 50% of the time waiting for single-threaded Python CPU tokenization.",
+      "Setting `pin_memory=True` and `num_workers=8` in a PyTorch DataLoader.",
+      "Checkpointing activations every $\\sqrt{N_L}$ layers to reduce peak memory."
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A team proposes moving a single-GPU training job to a 16-GPU cluster to achieve a \\$16\\times$ reduction in development cycle time. Explain two reasons why distributed training rarely delivers a linear \\$16\\times$ improvement in developer velocity.",
+   "md": "First, distributed execution adds communication and synchronization overhead, so throughput rarely scales linearly with GPU count even when the code is correct. Second, developer velocity depends on more than throughput: distributed jobs bring extra debugging, launch, checkpointing, and failure-handling overhead that can delay iteration even if step time improves. The practical consequence is that cluster scaling should be justified by measured end-to-end iteration gains, not by hardware count alone."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now distinguish the predictable systems costs of scaling parameter count from the uncertain effect on final model quality.",
+    "You can now explain why batch-size scaling can invalidate a previously successful optimization recipe even when hardware utilization looks strong.",
+    "You can now recognize optimizing kernels before profiling the input pipeline as a major operational pitfall in training optimization.",
+    "You can now evaluate why communication overhead and operational complexity both limit the developer-velocity gains of distributed training."
+   ]
+  }
+ ]
+}

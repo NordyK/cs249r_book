@@ -1,0 +1,122 @@
+{
+ "title": "Introduction: What is Automatic Differentiation?",
+ "summary": "TinyTorch autograd: Introduction: What is Automatic Differentiation?",
+ "source": {
+  "chapter": "tt-06",
+  "sections": [
+   "Introduction: What is Automatic Differentiation?"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: What is Automatic Differentiation?\n\nAutomatic differentiation (autograd) is the computational engine that makes neural networks learn. Instead of manually computing analytical gradients for every parameter, autograd tracks operations during the forward pass and automatically evaluates gradients via reverse-mode accumulation.\n\n### The Challenge\n\nIn previous modules, you implemented layers and loss functions. To optimize deep architectures, we evaluate:\n\n\\$\\$\\mathcal{L} = f_3\\big(\\mathbf{W}_3, f_2(\\mathbf{W}_2, f_1(\\mathbf{W}_1, \\mathbf{x}))\\big)\\$\\$\n\n\\$\\$\\frac{\\partial \\mathcal{L}}{\\partial \\mathbf{W}_1} = ?, \\quad \\frac{\\partial \\mathcal{L}}{\\partial \\mathbf{W}_2} = ?, \\quad \\frac{\\partial \\mathcal{L}}{\\partial \\mathbf{W}_3} = ?\\$\\$\n\nManual gradient calculation becomes impossible for multi-layer models with millions of parameters.\n\n### The Solution: Computational Graphs\n\n\\$\\$\\begin{aligned}\n\\text{Forward Pass:} \\quad & \\mathbf{x} \\longrightarrow \\text{Linear}_1 \\longrightarrow \\text{ReLU} \\longrightarrow \\text{Linear}_2 \\longrightarrow \\mathcal{L} \\\\\n\\text{Backward Pass:} \\quad & \\nabla_{\\mathbf{x}} \\longleftarrow \\nabla_{\\text{Linear}_1} \\longleftarrow \\nabla_{\\text{ReLU}} \\longleftarrow \\nabla_{\\text{Linear}_2} \\longleftarrow \\nabla_{\\mathcal{L}}\n\\end{aligned}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Phase",
+    "Primary Function",
+    "State Stored",
+    "Gradient Action"
+   ],
+   "rows": [
+    [
+     "**Forward Pass**",
+     "Evaluates outputs \\$\\mathbf{y} = f(\\mathbf{x})\\$",
+     "Inputs / activations required for backward",
+     "Records operation tape & builds pointer DAG"
+    ],
+    [
+     "**Backward Pass**",
+     "Applies chain rule \\$\\nabla_{\\mathbf{x}} = \\nabla_{\\mathbf{y}} J_f\\$",
+     "Reads saved forward tensors",
+     "Accumulates \\$\\nabla \\mathbf{x} \\mathrel{+}= \\text{VJP}\\$ in reverse topological order"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Each operation records how to compute its backward pass. The chain rule connects them all."
+  },
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: The Chain Rule in Action\n\n### Two Ways to Differentiate\n\nThe chain rule multiplies a chain of Jacobians together, and a product can be\nevaluated from either end. **Forward mode** starts at an input and pushes\nderivatives along with the values, carrying \\$\\partial (\\cdot) / \\partial w_i\\$\nbeside every intermediate, so by the time it arrives at the loss it holds\n\\$\\partial \\mathcal{L} / \\partial w_i\\$ for the one parameter \\$w_i\\$ it set out\nfrom. **Reverse mode** starts at the loss and pulls derivatives back toward the\ninputs, carrying \\$\\partial \\mathcal{L} / \\partial (\\cdot)\\$ beside every\nintermediate, so by the time it reaches the leaves it holds\n\\$\\partial \\mathcal{L} / \\partial w_i\\$ for *every* parameter at once."
+  },
+  {
+   "type": "text",
+   "md": "Training has exactly the shape that makes those two costs diverge, with many\ninputs and one output. A model with \\$N\\$ parameters produces a single scalar\nloss, so forward mode needs \\$N\\$ sweeps to fill in the gradient vector while\nreverse mode needs one. At \\$N = 1{,}000{,}000\\$ and one millisecond per sweep,\nforward mode spends about 17 minutes differentiating a single training step,\nwhere reverse mode spends about 2 milliseconds. Reverse mode is not a cleverer\nchain rule. It is\nthe same chain rule, associated in the direction that fits the problem. (Flip\nthe shape to one input and many outputs, say the sensitivity of a whole\ntrajectory to one initial condition, and forward mode wins by the same\nargument.)"
+  },
+  {
+   "type": "text",
+   "md": "Nothing is free. Forward mode needs no history, because values and derivatives\ntravel together and neither has to wait. Reverse mode cannot begin until the\nforward pass finishes, so every intermediate its gradient rules will read has\nto stay alive in the meantime. That stored history is the tape this module\nbuilds, and what it costs is what 📊 Systems Analysis measures at the end.\n\n### Mathematical Foundation\n\nFor composite functions \\$f\\big(g(x)\\big)\\$, the chain rule states:\n\n\\$\\$\\frac{df}{dx} = \\frac{df}{dg} \\cdot \\frac{dg}{dx}\\$\\$\n\n### Computational Graph Example\n\nConsider the composite scalar function \\$\\mathcal{L} = (x \\cdot y + 5)^2\\$ evaluated at \\$x = 2, \\, y = 3\\$:"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\begin{aligned}\n\\mathbf{\\text{Forward Pass:}} \\quad & z = x \\cdot y = 2 \\cdot 3 = 6 \\\\\n& w = z + 5 = 6 + 5 = 11 \\\\\n& \\mathcal{L} = w^2 = 11^2 = 121 \\\\[0.5em]\n\\mathbf{\\text{Backward Pass:}} \\quad & \\frac{\\partial \\mathcal{L}}{\\partial \\mathcal{L}} = 1.0 \\\\\n& \\frac{\\partial \\mathcal{L}}{\\partial w} = 2w = 2(11) = 22 \\\\\n& \\frac{\\partial \\mathcal{L}}{\\partial z} = \\frac{\\partial \\mathcal{L}}{\\partial w} \\frac{\\partial w}{\\partial z} = 22 \\cdot 1 = 22 \\\\\n& \\frac{\\partial \\mathcal{L}}{\\partial x} = \\frac{\\partial \\mathcal{L}}{\\partial z} \\frac{\\partial z}{\\partial x} = 22 \\cdot y = 22 \\cdot 3 = 66 \\\\\n& \\frac{\\partial \\mathcal{L}}{\\partial y} = \\frac{\\partial \\mathcal{L}}{\\partial z} \\frac{\\partial z}{\\partial y} = 22 \\cdot x = 22 \\cdot 2 = 44\n\\end{aligned}\\$\\$\n\n### Memory Layout During Backpropagation"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Node ID",
+    "Expression",
+    "Op",
+    "Saved Data",
+    "Inputs",
+    "Gradient Accumulation"
+   ],
+   "rows": [
+    [
+     "`0x10`",
+     "\\$x = 2\\$",
+     "Leaf",
+     "None",
+     "None",
+     "\\$\\nabla_x = 66\\$"
+    ],
+    [
+     "`0x20`",
+     "\\$y = 3\\$",
+     "Leaf",
+     "None",
+     "None",
+     "\\$\\nabla_y = 44\\$"
+    ],
+    [
+     "`0x30`",
+     "\\$z = x \\cdot y\\$",
+     "`Mul`",
+     "\\$x=2, y=3\\$",
+     "\\$[x, y]\\$",
+     "\\$\\nabla_z = 22\\$"
+    ],
+    [
+     "`0x40`",
+     "\\$w = z + 5\\$",
+     "`Add`",
+     "None",
+     "\\$[z]\\$",
+     "\\$\\nabla_w = 22\\$"
+    ],
+    [
+     "`0x50`",
+     "\\$\\mathcal{L} = w^2\\$",
+     "`Mul`",
+     "\\$w=11\\$",
+     "\\$[w]\\$",
+     "\\$\\nabla_{\\mathcal{L}} = 1.0\\$ (seed)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\text{Memory Overhead} \\approx 2 \\times \\text{parameters (values} + \\text{gradients)} + \\mathcal{O}(\\text{DAG nodes})\\$\\$"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Introduction: What is Automatic Differentiation?."
+   ]
+  }
+ ]
+}

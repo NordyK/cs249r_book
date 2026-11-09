@@ -1,0 +1,67 @@
+{
+ "title": "Optimistic Concurrency Control",
+ "summary": "Work through Optimistic Concurrency Control.",
+ "source": {
+  "chapter": "v3-18",
+  "sections": [
+   "Optimistic Concurrency Control",
+   "Shared workspace hazards",
+   "Dependency validation at integration",
+   "Leases for external resources"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Optimistic Concurrency Control**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Multi-Agent Coordination, § Optimistic Concurrency Control",
+   "md": "In `migration_task_01`, both `worker_interface_01` and `worker_caller_01` branch from the same baseline commit, `repo_base_01`, to edit their respective files. When the interface worker finishes first, the integration service accepts its patch as `repo_head_02`. Because the caller worker modifies a different file, a standard three-way textual merge succeeds cleanly without merge conflicts. The caller's patch, however, still targets the obsolete interface. Modifying separate files prevented a textual collision, but it left the semantic dependency behind the caller's code unchecked."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Shared workspace hazards\n- Dependency validation at integration\n- Leases for external resources"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Clean merge is not a valid change matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Shared working directories produce lost updates and torn reads, and write sets collide with probability 1 - exp(-N(N-1)w^2/2F), so isolation is provided per worker and a merge is validated, not trusted."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-18-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Optimistic Concurrency Control** develops one of the chapter's claims. Which one?",
+     "options": [
+      "An all-results barrier meets a deadline with probability F(t)^N, and a k-of-N rule recovers most of it only when results are interchangeable.",
+      "Shared working directories produce lost updates and torn reads, and write sets collide with probability 1 - exp(-N(N-1)w^2/2F), so isolation is provided per worker and a merge is validated, not trusted.",
+      "Dynamic spawning makes the execution graph nondeterministic, so the runtime enforces fan-out, concurrency, depth, and deadline bounds and reserves each child's maximum liability before it starts.",
+      "The dependency graph, the communication topology, and the supervision tree are separate structures, and conflating them hides quadratic communication cost and orphaned lifecycles."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Clean merge is not a valid change**: Shared working directories produce lost updates and torn reads, and write sets collide with probability 1 - exp(-N(N-1)w^2/2F), so isolation is provided per worker and a merge is validated, not trusted."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Integration validation**: Returned work must be checked against its dependencies and the current integration state; a clean merge does not certify a valid result."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Integration validation",
+   "def": "Returned work must be checked against its dependencies and the current integration state; a clean merge does not certify a valid result."
+  }
+ ]
+}

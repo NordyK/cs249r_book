@@ -1,0 +1,99 @@
+{
+ "title": "Design Constraints",
+ "summary": "Analyze the sources of memory amplification in edge training compared to inference-only execution.",
+ "source": {
+  "chapter": "v2-11",
+  "sections": [
+   "Design Constraints",
+   "Quantifying training overhead on edge devices",
+   "Model constraints",
+   "Data constraints",
+   "Compute constraints",
+   "Energy, heat, and background admission",
+   "Matching edge constraints to adaptation pillars"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the sources of memory amplification in edge training compared to inference-only execution\n- Analyze why memory bandwidth, rather than peak TOPS, is the binding constraint for on-device autoregressive transformer decoding\n- Calculate battery energy consumption of background on-device training and justify opportunistic scheduling constraints\n- Evaluate the compute, memory, and energy trade-offs of gradient checkpointing in edge training\n- Analyze the chronological memory allocation and deallocation stages of an on-device backpropagation training step"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Edge Intelligence, § Design Constraints",
+   "md": "Fine-tuning a neural network on a smartphone is constrained by power and heat: a GPU training cluster may consume megawatts in a controlled facility, whereas a smartphone sustains only a few watts before throttling. Across the edge spectrum, memory ranges from a few gigabytes on phones down to hundreds of kilobytes on microcontrollers, sustained power ranges from a few watts down to milliwatts, and network connectivity may be intermittent or entirely absent."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Quantifying training overhead on edge devices\n- Model constraints\n- Data constraints\n- Compute constraints\n- Energy, heat, and background admission\n- Matching edge constraints to adaptation pillars\n\nPay attention to: Training overhead: configuration-dependent memory relative to weight storage, compute per update versus forward pass, and energy for a complete adaptation versus one inference; Memory hierarchy limits from microcontrollers (SRAM) to mobile LPDDR5X; Mobile memory wall: LPDDR5X (64-100 GB/s) vs datacenter HBM3 (3,350 GB/s) and decode bottleneck; Battery drain, thermal envelopes (2-5W sustained, 5-10W burst), and opportunistic scheduling."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A proposed background personalization task on a smartphone draws \\$4.5\\text{ W}$ of sustained SoC power and requires 30 minutes to complete. Calculate the total energy consumed (in $\\text{Wh}$) and the percentage drain on an idealized \\$15\\text{ Wh}$ smartphone battery. Explain why this result mandates opportunistic scheduling.",
+   "md": "The task consumes \\$4.5\\text{ W}\\times0.5\\text{ h}=2.25\\text{ Wh}$, or \\$15\\%$ of the idealized battery. That is a substantial background cost, motivating charging, idle, and thermal eligibility gates. Network restrictions are needed when the workflow communicates; the exact scheduling policy depends on the deployment rather than following from the energy calculation alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-11-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A mobile engineering team observes that fine-tuning a 10M parameter vision model on a smartphone with 8 GB of RAM causes the background training process to be killed by the operating system's out-of-memory (OOM) killer during backpropagation. Why does training memory demand spike so severely compared to inference for the exact same model?",
+     "explanation": "The correct answer is C. Training can retain activations needed for backward computation, gradients, and optimizer state in addition to weights. Their simultaneous peak can exceed a background process budget even when total device RAM is much larger. The amplification is configuration-dependent; inference also requires activation buffers and workspace, not necessarily only one layer of activations.",
+     "hint": "Think about: analyze the sources of memory amplification in edge training compared to inference-only execution.",
+     "type": "single",
+     "options": [
+      "The base model weights dynamically expand by \\$100× during the forward pass due to weight unpacking.",
+      "Floating-point units on mobile SoCs automatically convert all INT8 weights to FP64 double precision during training.",
+      "Training adds gradients, optimizer state, and saved backward activations to the weights; the simultaneous peak can exceed the app’s budget even when inference fits.",
+      "The mobile operating system creates a separate virtual machine sandbox for every individual neuron in the neural network."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A quantized 7B-parameter language model achieves 12 tokens/sec on a mobile SoC advertised at 45 peak TOPS. Profiling shows that low-batch decode saturates available DRAM bandwidth while arithmetic units wait. Which hardware resource is the binding constraint?",
+     "explanation": "The correct answer is D. Low-batch autoregressive decode often streams a large weight volume per token, so limited mobile DRAM bandwidth can dominate despite high peak TOPS. The stated peak rates alone do not prove the measured bottleneck: profiling must check achieved bandwidth, operator support, and thermal limits. Tokenizer initialization and loss computation do not explain steady-state decode throughput.",
+     "hint": "Think about: analyze why memory bandwidth, rather than peak TOPS, is the binding constraint for on-device autoregressive transformer decoding.",
+     "type": "single",
+     "options": [
+      "Insufficient CPU integer arithmetic capacity for calculating cross-entropy loss.",
+      "Thermal throttling of the wireless 5G modem during token generation.",
+      "Flash storage read latency when loading the token tokenizer vocabulary.",
+      "Mobile LPDDR5/LPDDR5X memory bandwidth (\\$51\\text{–}77\\text{ GB/s}$), which is roughly \\$44\\text{–}65\\times$ lower than data-center HBM3, causing the memory streaming term $(D_{\\text{vol}} / \\text{BW})$ to dominate execution time per token."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Gradient checkpointing reduces the total electrical energy consumed by an on-device training workload because it reduces peak SRAM/DRAM memory allocation.",
+     "explanation": "False. Checkpointing trades saved activations for recomputation. The extra arithmetic can increase energy, while reduced memory traffic or avoiding spill may offset that cost. Lower peak allocation alone therefore does not determine energy per update; measure the complete workload on the target device.",
+     "hint": "Think about: evaluate the compute, memory, and energy trade-offs of gradient checkpointing in edge training.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Consider the end-to-end memory lifecycle of a single gradient update during on-device backpropagation for a convolutional layer. Order the following operational stages from first to last in execution sequence:",
+     "explanation": "The correct order is (3) -> (2) -> (4) -> (1).\nFirst, (3) Fetch batch inputs into SRAM buffer prepares the raw or preprocessed batch tensors in accessible working memory.\nSecond, (2) Forward pass computes and caches layer activations sequentially through the network layers, saving feature maps needed for gradient calculation.\nThird, (4) Loss evaluation and backward pass calculates layer gradients using cached activations, traversing backward from the loss through the computation graph.\nFinally, (1) Discard intermediate activations and compute parameter updates in optimizer state applies the optimizer step (e.g., SGD or Adam) to update weights, freeing cached activations and gradients.",
+     "hint": "Think about: analyze the chronological memory allocation and deallocation stages of an on-device backpropagation training step.",
+     "type": "order",
+     "items": [
+      "Fetch batch inputs into SRAM buffer",
+      "Forward pass computes and caches layer activations",
+      "Loss evaluation and backward pass calculates layer gradients using cached activations",
+      "Discard intermediate activations and compute parameter updates in optimizer state"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the sources of memory amplification in edge training compared to inference-only execution.",
+    "You can now analyze why memory bandwidth, rather than peak TOPS, is the binding constraint for on-device autoregressive transformer decoding.",
+    "You can now calculate battery energy consumption of background on-device training and justify opportunistic scheduling constraints.",
+    "You can now evaluate the compute, memory, and energy trade-offs of gradient checkpointing in edge training."
+   ]
+  }
+ ]
+}

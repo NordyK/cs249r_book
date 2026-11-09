@@ -1,0 +1,88 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Apply Amdahl's Law to calculate end-to-end speedup when optimizing isolated pipeline stages and identify when unaccelerated preprocessing bounds system throughput.",
+ "source": {
+  "chapter": "v1-16",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Apply Amdahl's Law to calculate end-to-end speedup when optimizing isolated pipeline stages and identify when unaccelerated preprocessing bounds system throughput\n- Critique single-metric accuracy evaluation and apply the Pareto Frontier to assess production models across latency, memory, energy, and subgroup fairness\n- Analyze why software abstractions manage complexity rather than eliminating physical hardware constraints\n- Differentiate between release regressions and external distribution drift to select appropriate operational remediations\n- Synthesize the shared systems misconception (reductionism and isolated optimization) underlying common ML systems failures"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Conclusion, § Fallacies and Pitfalls",
+   "md": "Fallacies and pitfalls in ML systems arise from one common source, which is treating the system as decomposable into independent parts. Each item below is the cross-boundary form of a mistake an earlier chapter met inside one layer, where optimizing one dimension, one metric, or one stage looks sufficient until that assumption meets production reality."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Amdahl's Law in end-to-end ML pipelines (the 10x kernel speedup yielding 1.1x system speedup); the fallacy of single-metric aggregate accuracy evaluation vs. Pareto frontier; tools and abstractions hiding vs. eliminating physical hardware constraints; the operational pitfall of unconditional automated rollback upon receiving drift alarms."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A production drift alarm fires due to seasonal changes in user shopping patterns. Explain why triggering an automated rollback to a model checkpoint trained three months earlier is an operational pitfall, and state the appropriate remediation.",
+   "md": "Automated rollback is effective for software bugs or bad releases, but external real-world distribution drift cannot be repaired by restoring an older model trained on an even staler distribution. Restoring the older checkpoint will perform just as poorly or worse. The appropriate remediation is a diagnosed response: alerting the team, temporarily routing traffic to fallback heuristics or reducing traffic, collecting fresh ground-truth labels from the new distribution, and retraining/adapting the model."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-16-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An engineer profiles an image classification serving pipeline and finds that host CPU-bound image decoding, resizing, and normalization consume 90% of end-to-end request latency (f_serial = 0.90), while GPU neural network inference consumes the remaining 10% (f_accelerated = 0.10). The engineer rewrites the GPU kernel to achieve a \\$10× inference speedup (S = 10). What is the resulting overall system-level speedup, and which systems principle explains this outcome?",
+     "explanation": "The correct answer is D. Approximately \\$1.10× overall speedup; according to Amdahl's Law, the unaccelerated 90% serial preprocessing fraction strictly caps end-to-end speedup to Speedup = frac10.90 + frac0.1010 = frac10.91 approx 1.10×. Amdahl's Law (principle 8) governs end-to-end ML pipelines. When 90% of execution time remains unaccelerated on the host CPU (e.g., JPEG decoding, tokenization, or database feature lookups), even an infinite (S = infty) speedup on the GPU inference kernel would yield at most frac10.90 approx 1.11× overall system speedup. Optimizing without profiling where time actually goes is guessing, and Amdahl's Law severely penalizes optimizations that target the non-dominant term. The other options violate Amdahl's Law arithmetic.",
+     "hint": "Think about: apply Amdahl's Law to calculate end-to-end speedup when optimizing isolated pipeline stages and identify when unaccelerated preprocessing bounds system throughput.",
+     "type": "single",
+     "options": [
+      "\\$10.0× overall speedup; accelerator improvements dominate user-perceived performance.",
+      "\\$5.5× overall speedup; system improvement is the average of the two pipeline stage speedups.",
+      "\\$0.90× overall speedup; kernel compilation overhead causes net performance regression.",
+      "Approximately \\$1.10× overall speedup; according to Amdahl's Law, the unaccelerated 90% serial preprocessing fraction strictly caps end-to-end speedup to Speedup = frac10.90 + frac0.1010 = frac10.91 approx 1.10×."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A team selects Model Alpha over Model Beta because Alpha achieves 94.8% top-1 accuracy on a static benchmark versus Beta's 93.2%. When deployed, Model Alpha violates the 100 ms P99 serving latency SLO by taking 420 ms, consumes \\$4× more memory, and exhibits a 16% error rate on an underrepresented user demographic. Which systems concept explains why single-metric evaluation led to this production failure?",
+     "explanation": "The correct answer is A. The Pareto Frontier; production ML systems operate across a multi-dimensional objective space (accuracy, tail latency, memory, energy, cost, and subgroup fairness), where optimizing aggregate accuracy in isolation can select an infeasible, costly, or discriminatory operating point. Evaluating models solely along a single accuracy dimension inhabits a one-dimensional fantasy. In production, models must satisfy multi-objective constraints along the Pareto Frontier (principle 5): meeting P99 latency budgets (principle 12), fitting hardware memory capacity, respecting energy/cost limits, and ensuring equitable error rates across demographic subgroups (principle 13). A model with 1.6% higher aggregate accuracy that violates latency SLOs and exhibits extreme subgroup disparity is an engineering failure. The other options misapply unrelated systems concepts.",
+     "hint": "Think about: critique single-metric accuracy evaluation and apply the Pareto Frontier to assess production models across latency, memory, energy, and subgroup fairness.",
+     "type": "single",
+     "options": [
+      "The Pareto Frontier; production ML systems operate across a multi-dimensional objective space (accuracy, tail latency, memory, energy, cost, and subgroup fairness), where optimizing aggregate accuracy in isolation can select an infeasible, costly, or discriminatory operating point.",
+      "The Silicon Contract; models with higher accuracy automatically violate hardware execution contracts.",
+      "Data Gravity; higher accuracy models physically pull network packets away from edge caches.",
+      "Amdahl's Law; aggregate accuracy scales inversely with the number of parallel workers."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "High-level software frameworks, AutoML tools, and compiler abstractions eliminate underlying physical ML systems constraints (such as memory bandwidth bottlenecks, thermal dissipation limits, and Amdahl's Law ceilings), allowing software engineers to ignore low-level hardware characteristics.",
+     "explanation": "False. Tools and abstractions hide and manage complexity; they do not eliminate physical constraints. A framework that abstracts memory management still transfers bytes across physical buses and consumes memory capacity; an AutoML engine tuning hyperparameters still operates on the Pareto frontier; and a compiler optimizing GPU kernels remains strictly bounded by Amdahl's Law and memory wall physics. Engineers who assume tools eliminate physical constraints are routinely surprised when those constraints resurface at scale as mysterious OOM errors, tail latency spikes, or thermal throttling.",
+     "hint": "Think about: analyze why software abstractions manage complexity rather than eliminating physical hardware constraints.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Looking across all seven fallacies and pitfalls detailed in the chapter (tools hiding complexity, untraced displaced costs, component-only mastery, untraced data-scaling costs, single-metric accuracy evaluation, unconditional rollbacks, and unprofiled stage optimization), identify the shared intellectual root cause that unites them and state the corrective systems engineering posture.",
+   "md": "The shared root cause is the reductionist temptation to treat an ML system as decomposable into independent, isolated parts—optimizing one dimension, one metric, one pipeline stage, or one moment in time as if the surrounding system were static. The corrective systems engineering posture is holistic boundary reasoning: measuring the end-to-end request path, profiling where time and bytes actually go before optimizing, tracing how decisions in one layer displace costs to other layers (conservation-of-complexity heuristic), and evaluating performance across the full multi-dimensional Pareto surface under real-world operational constraints."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply Amdahl's Law to calculate end-to-end speedup when optimizing isolated pipeline stages and identify when unaccelerated preprocessing bounds system throughput.",
+    "You can now critique single-metric accuracy evaluation and apply the Pareto Frontier to assess production models across latency, memory, energy, and subgroup fairness.",
+    "You can now analyze why software abstractions manage complexity rather than eliminating physical hardware constraints.",
+    "You can now differentiate between release regressions and external distribution drift to select appropriate operational remediations."
+   ]
+  }
+ ]
+}

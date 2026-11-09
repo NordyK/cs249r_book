@@ -1,0 +1,2012 @@
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.17.1
+#   kernelspec:
+#     display_name: Python 3 (ipykernel)
+#     language: python
+#     name: python3
+# ---
+
+# %% [markdown]
+r"""
+# Module 08: Training - Complete Learning Loops
+
+Welcome to Module 08! You're about to build the complete training infrastructure that coordinates data loaders, forward computation, autograd graphs, and optimizers into an end-to-end learning engine.
+
+## 🔗 Prerequisites & Progress
+**You've Built**: Tensors, activations, layers, losses, DataLoader, autograd gradients, and optimizers (Modules 01–07)  
+**You'll Build**: The `Trainer` state machine, cosine learning rate schedules, global norm clipping, atomic checkpointing, and gradient accumulation  
+**You'll Enable**: Full-scale model training pipelines for every downstream milestone and architecture
+
+<div align="center">
+  <img src="training_blueprint.svg" alt="Training Blueprint: You Are Here" width="360px">
+</div>
+
+$$\underbrace{\text{Modules 01–07}}_{\text{Tensors, Autograd and Optimizers}} \longrightarrow \underbrace{\mathbf{\text{Training Harness}}}_{\mathbf{\text{Mod 08 (Active)}}} \longrightarrow \underbrace{\text{Architectures and Scale}}_{\text{Mods 09–20}}$$
+
+## 🎯 Learning Objectives
+By the end of this module, you will:
+1. **The Training State Machine**: Implement a robust `Trainer` orchestrator managing mode transitions (`training_mode = True/False`).
+2. **Dynamic Learning Rate Schedules**: Construct cosine annealing schedules with smooth decay and boundary preservation.
+3. **Exploding Gradient Mitigation**: Implement global gradient norm clipping across heterogeneous parameter lists.
+4. **Resilient Persistence**: Build atomic checkpoint serialization and full-state resumption across models and optimizers.
+5. **Memory-Invariant Scaling**: Execute sample-weighted gradient accumulation across microbatch partitions.
+
+## 📦 Where This Code Lives in the Final Package
+
+<div align="center">
+  <img src="training_margin_source.svg" alt="Source Code Mapping" width="220px">
+</div>
+
+**Learning Side:** You work in `modules/08_training/training.ipynb`  
+**Building Side:** Code exports to `tinytorch.core.training`
+
+```python
+# How to use this module:
+from tinytorch.core.training import Trainer, CosineSchedule, clip_grad_norm
+```
+
+**Why this matters:**
+- **Framework Orchestration**: Matches PyTorch's idiomatic training workflows, encapsulating the forward $\to$ backward $\to$ step $\to$ zero-grad contract. The `Trainer` zeroes once at the start of an epoch and then again immediately after each step, which is exactly what lets several batches accumulate into one update.
+- **Production Safety**: Atomic file writes prevent corrupted checkpoint files from crashing long-running cluster jobs.
+- **Hardware Optimization**: Decouples physical GPU batch memory limits from mathematical optimization batch sizes.
+"""
+
+# %% [markdown]
+r"""
+## 📋 Module Dependencies
+
+**Prerequisites**: Modules 01, 02, 03, 04, 06, and 07 must be complete and passing tests.
+Module 05 is not imported: `Trainer` accepts any iterable of `(inputs, targets)`
+batches, so a Module 05 `DataLoader` and a plain Python list both work.
+
+**External Dependencies**:
+- `numpy` (for array operations and numerical computing)
+- `pickle` and `os` (for checkpoints: `pickle.dump` writes a temporary file and `os.replace` swaps it in atomically)
+- `pathlib` (for checkpoint paths)
+- `inspect` (to check whether a model's `forward` accepts a `training` flag)
+- `typing` (for type hints)
+
+**TinyTorch Dependencies**:
+
+| Subsystem Component | Upstream Source | Role in Training Harness |
+| :--- | :--- | :--- |
+| **`Tensor`** | Module 01 (`tinytorch.core.tensor`) | Memory buffers holding model weights, activations, and gradient accumulators |
+| **`ReLU`** | Module 02 (`tinytorch.core.activations`) | Nonlinearity in the small models the tests train |
+| **`Linear` / Layers** | Module 03 (`tinytorch.core.layers`) | Trainable layer modules defining `.forward()` and yielding `.parameters()`; `set_training_mode` flips the `training` flag on a model and every layer inside it |
+| **`MSELoss`, `CrossEntropyLoss`, `BinaryCrossEntropyLoss`** | Module 04 (`tinytorch.core.losses`) | Objective penalty scalar computation and backward seed generation |
+| **`DataLoader`** | Module 05 (`tinytorch.core.dataloader`), not imported | Mini-batch generator providing batch slicing, permutation, and iteration; `Trainer` only iterates over whatever batch source it is given |
+| **`autograd`, `no_grad`** | Module 06 (`tinytorch.core.autograd`) | Reverse-mode topological traversal propagating gradient vectors into `.grad`; `no_grad` switches graph recording off during evaluation |
+| **`SGD`** | Module 07 (`tinytorch.core.optimizers`) | Parameter update engine executing step mechanics and zeroing gradients; `Trainer` accepts any Module 07 optimizer, including `Adam` and `AdamW` |
+
+**Dependency Flow**:
+$$\mathbf{x}, \mathbf{y} \xrightarrow{\text{Mod 05}} \text{Model}(\mathbf{x}) \xrightarrow{\text{Mod 03}} \mathcal{L}(\hat{\mathbf{y}}, \mathbf{y}) \xrightarrow{\text{Mod 04}} \nabla_{\boldsymbol{\theta}} \mathcal{L} \xrightarrow{\text{Mod 06}} \boldsymbol{\theta}_{t+1} \xrightarrow{\text{Mod 07}} \text{Trainer} \text{ (Mod 08)}$$
+"""
+
+# %% nbgrader={"grade": false, "grade_id": "imports", "solution": false}
+#| default_exp core.training
+#| export
+
+import numpy as np
+import pickle
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+from pathlib import Path
+import os
+import inspect
+
+rng = np.random.default_rng(7)
+
+# Import dependencies from other modules
+from tinytorch.core.tensor import Tensor
+from tinytorch.core.layers import Linear, set_training_mode
+from tinytorch.core.activations import ReLU
+from tinytorch.core.losses import MSELoss, CrossEntropyLoss, BinaryCrossEntropyLoss
+from tinytorch.core.optimizers import SGD
+
+# Enable autograd for gradient tracking (required for training)
+import tinytorch.core.autograd  # completes every operation with its backward half
+from tinytorch.core.autograd import no_grad
+
+# Constants for learning rate scheduling defaults
+DEFAULT_MAX_LR = 0.1  # Default maximum learning rate for cosine schedule
+DEFAULT_MIN_LR = 0.01  # Default minimum learning rate for cosine schedule
+DEFAULT_TOTAL_EPOCHS = 100  # Default total epochs for learning rate schedule
+
+# %% [markdown]
+"""
+## 💡 Introduction: What is Training?
+
+Training is the loop that turns a randomly initialized neural network into one that solves the problem. Nothing mysterious happens inside it. You show the model examples, it predicts, you measure how wrong it was, and you adjust its parameters so the next prediction lands closer. Every framework's training code is that sequence plus bookkeeping, and this module builds the bookkeeping.
+
+The training process follows a consistent pattern across all machine learning:
+
+1. **Forward Pass**: Input flows through the model to produce predictions
+2. **Loss Calculation**: Compare predictions to true answers
+3. **Backward Pass**: Compute gradients showing how to improve
+4. **Parameter Update**: Adjust model weights using an optimizer
+5. **Repeat**: Continue until the model learns the pattern
+
+But production training systems need much more than this basic loop. They need learning rate scheduling (starting fast, slowing down), gradient clipping (preventing exploding gradients), checkpointing (saving progress), and evaluation modes (testing without learning).
+
+**What we're building today:**
+- A complete `Trainer` class that orchestrates the entire learning process
+- Learning rate scheduling that adapts during training
+- Gradient clipping that prevents training instability
+- Checkpointing system for saving and resuming training
+- Train/eval modes for proper model behavior
+
+**What this harness will still be missing**, so you know where the gap is when you read a production trainer:
+- **No early stopping**, so nothing halts a run whose validation loss has turned around
+- **No best-checkpoint tracking**, so the file on disk is the latest state and not the best one
+- **No warmup**, so the first step lands at the full `max_lr`
+- **No per-step scheduling**, since the learning rate is read once per epoch and not once per optimizer step
+- **No RNG state and no dataloader position in the checkpoint**, so a resumed run continues the weights exactly but not the data order
+
+Each of those is bookkeeping on top of the loop you are about to build, not a change to the loop itself.
+"""
+
+# %% [markdown]
+r"""
+## 📐 Foundations: Mathematical Background
+
+The `Trainer` orchestrates the mathematical lifecycle of neural network learning, binding forward passes, loss functions, autograd backpropagation, gradient accumulation, and optimizer updates into an atomic state machine.
+
+<div align="center">
+  <img src="training_loop_lifecycle.svg" alt="Training Loop Lifecycle: Accumulation Windows and Updates" width="680px">
+</div>
+
+### Mathematical Core of the Training Harness
+
+1. **Parameter Descent Dynamics**:
+   Model weights $\boldsymbol{\theta}$ are iteratively updated by stepping opposite to the loss surface gradient:
+   $$\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta_t \mathbf{u}(\mathbf{g}_t, \mathbf{s}_t)$$
+   where $\eta_t$ is the dynamic learning rate at epoch $t$, $\mathbf{g}_t = \nabla_{\boldsymbol{\theta}} \mathcal{L}$ is the accumulated gradient, and $\mathbf{s}_t$ represents optimizer momentum buffers.
+
+2. **Cosine Annealing Learning Rate Schedule**:
+   Rather than keeping step size constant, cosine decay transitions smoothly from $\eta_{\max}$ to $\eta_{\min}$ over total epochs $T$:
+   $$\eta(t) = \eta_{\min} + \frac{1}{2}(\eta_{\max} - \eta_{\min})\left(1 + \cos\left(\frac{\pi t}{T}\right)\right)$$
+
+3. **Global Gradient Norm Clipping**:
+   To prevent catastrophic parameter divergence when traversing non-convex loss cliffs, the global gradient $\ell_2$ norm across all parameters $\mathcal{P}$ is bounded:
+   $$\|\mathbf{g}\|_2 = \sqrt{\sum_{p \in \mathcal{P}} \|\mathbf{g}_p\|_2^2} \implies \mathbf{g} \leftarrow \mathbf{g} \cdot \min\left(1.0, \frac{\text{max-norm}}{\|\mathbf{g}\|_2}\right)$$
+
+4. **Sample-Weighted Gradient Accumulation**:
+   For $K$ microbatches with batch sizes $n_1, \dots, n_K$ summing to effective batch size $B_{\text{eff}} = \sum_{i=1}^K n_i$:
+   $$\nabla_{\boldsymbol{\theta}} \mathcal{L}_{\text{accum}} = \frac{1}{B_{\text{eff}}} \sum_{i=1}^K n_i \nabla_{\boldsymbol{\theta}} \mathcal{L}_{\text{batch}, i}$$
+   Because loss functions return sample-averaged means, weighting each microbatch backward seed by $n_i$ preserves exact numerical equivalence to full-batch optimization regardless of batch sizing.
+
+### Train vs Evaluation Mode Semantics
+
+Neural network architectures contain layers whose forward mathematics depend strictly on training context:
+
+| Architectural Subsystem | Training Mode (`training_mode = True`) | Evaluation Mode (`training_mode = False`) |
+| :--- | :--- | :--- |
+| **Stochastic Layers (Dropout)** | Active (random neuron masking at dropout rate $p$) | Inactive (deterministic identity pass-through) |
+| **Normalization Layers** | Update running batch statistics ($\mu_B, \sigma_B^2$) | Freeze running statistics (use historical moving averages) |
+
+That is the whole of what the flag does. Two things are routinely described as if `training_mode` controlled them, and it does not. The backward tape is switched off by `no_grad()`, which `evaluate` wraps around its forward pass, and weights are frozen by simply not calling `optimizer.step()`. Flipping `training_mode` to `False` on its own leaves the tape recording and leaves `step()` free to mutate weights. The flag routes layer behavior; the caller controls gradients and updates. It reaches the layers through Module 03's `set_training_mode`, which sets `training` on the model and on every layer stored inside it, so a Dropout buried in a hand-written model switches off just as one inside a `Sequential` does.
+"""
+
+# %% [markdown]
+r"""
+## 🏗️ Implementation: Building Training Infrastructure
+
+Now let's implement the complete training system. We'll build each component step by step: learning rate scheduling, gradient utilities, and finally the complete `Trainer` class.
+
+Each component follows the pattern: **Explanation → Implementation → Test** so you understand what you're building before you build it.
+"""
+
+# %% [markdown]
+r"""
+### Learning Rate Scheduling: Adaptive Training Speed
+
+Learning rate scheduling governs optimization velocity across training epochs. Starting with a large learning rate enables rapid escape from suboptimal local basins, while decaying to a small learning rate enables fine-grained convergence into sharp loss minima.
+
+#### Why Cosine Scheduling Works
+
+Cosine annealing (Loshchilov & Hutter, 2016) provides three mathematical advantages over step-decay schedules:
+- **Zero Initial Derivative ($\frac{d\eta}{dt}\big|_{t=0} = 0$)**: Prevents sudden shock during the earliest optimization steps.
+- **Smooth Mid-Training Descent**: Linear-like monotonic decay across intermediate epochs.
+- **Zero Terminal Derivative ($\frac{d\eta}{dt}\big|_{t=T} = 0$)**: Asymptotes gracefully to $\eta_{\min}$, allowing parameters to settle without late-stage oscillations.
+
+$$\eta(t) = \eta_{\min} + \frac{1}{2}(\eta_{\max} - \eta_{\min})\left(1 + \cos\left(\frac{\pi t}{T}\right)\right)$$
+
+| Epoch Progress | Normalized Step | Cosine Multiplier | Effective Learning Rate | Convergence Regime |
+| :--- | :--- | :--- | :--- | :--- |
+| **Epoch $0$ (Start)** | $0.00$ | $1.000$ | $0.1000$ | Broad non-convex basin exploration |
+| **Epoch $T/4$** | $0.25$ | $\frac{1 + \sqrt{2}/2}{2} \approx 0.854$ | $0.0868$ | Steady descent along high-curvature ravines |
+| **Epoch $T/2$ (Midpoint)** | $0.50$ | $0.500$ | $0.0550$ | Balanced transition into local minimum |
+| **Epoch $3T/4$** | $0.75$ | $\frac{1 - \sqrt{2}/2}{2} \approx 0.146$ | $0.0232$ | Asymptotic settling into sharp valley floors |
+| **Epoch $T$ (End)** | $1.00$ | $0.000$ | $0.0100$ | High-precision fine-tuning |
+"""
+
+# %% nbgrader={"grade": false, "grade_id": "scheduler", "solution": true}
+#| export
+class CosineSchedule:
+    """
+    Cosine annealing learning rate schedule.
+
+    Starts at max_lr, decreases following a cosine curve to min_lr over T epochs.
+    This provides aggressive learning initially, then fine-tuning at the end.
+
+    TODO: Implement cosine annealing schedule
+
+    APPROACH:
+    1. Store max_lr, min_lr, and total_epochs
+    2. In get_lr(), compute cosine factor: (1 + cos(π * epoch / total_epochs)) / 2
+    3. Interpolate: min_lr + (max_lr - min_lr) * cosine_factor
+
+    EXAMPLE:
+    >>> schedule = CosineSchedule(max_lr=0.1, min_lr=0.01, total_epochs=100)
+    >>> print(schedule.get_lr(0))    # Start: 0.1
+    >>> print(schedule.get_lr(50))   # Middle: ~0.055
+    >>> print(schedule.get_lr(100))  # End: 0.01
+
+    HINT: Use np.cos() and np.pi for the cosine calculation, and return a
+          Python float so the learning rate never promotes float32 weights
+    """
+    def __init__(self, max_lr: float = DEFAULT_MAX_LR, min_lr: float = DEFAULT_MIN_LR, total_epochs: int = DEFAULT_TOTAL_EPOCHS):
+        self.max_lr = max_lr
+        self.min_lr = min_lr
+        self.total_epochs = total_epochs
+
+    def get_lr(self, epoch: int) -> float:
+        """Get learning rate for current epoch."""
+        if epoch >= self.total_epochs:
+            return self.min_lr
+
+        # Cosine annealing formula
+        cosine_factor = (1 + np.cos(np.pi * epoch / self.total_epochs)) / 2
+        # Return a plain Python float: an np.float64 lr would promote float32 weights
+        return float(self.min_lr + (self.max_lr - self.min_lr) * cosine_factor)
+
+# %% [markdown]
+"""
+### 🧪 Unit Test: CosineSchedule
+
+This test validates our learning rate scheduling implementation.
+
+**What we're testing**: Cosine annealing produces correct learning rates
+**Why it matters**: Proper scheduling often makes the difference between convergence and failure
+**Expected**: Smooth decrease from max_lr to min_lr following cosine curve
+"""
+
+# %% nbgrader={"grade": true, "grade_id": "test_scheduler", "locked": true, "points": 10}
+def test_unit_cosine_schedule():
+    """🧪 Test CosineSchedule implementation."""
+    print("🧪 Unit Test: CosineSchedule...")
+
+    # Test basic schedule
+    schedule = CosineSchedule(max_lr=0.1, min_lr=0.01, total_epochs=100)
+
+    # Test start, middle, and end
+    lr_start = schedule.get_lr(0)
+    lr_middle = schedule.get_lr(50)
+    lr_end = schedule.get_lr(100)
+
+    print(f"Learning rate at epoch 0: {lr_start:.4f}")
+    print(f"Learning rate at epoch 50: {lr_middle:.4f}")
+    print(f"Learning rate at epoch 100: {lr_end:.4f}")
+
+    # Validate behavior
+    assert abs(lr_start - 0.1) < 1e-6, f"Expected 0.1 at start, got {lr_start}"
+    assert abs(lr_end - 0.01) < 1e-6, f"Expected 0.01 at end, got {lr_end}"
+    assert 0.01 < lr_middle < 0.1, f"Middle LR should be between min and max, got {lr_middle}"
+
+    # Test monotonic decrease in first half
+    lr_quarter = schedule.get_lr(25)
+    assert lr_quarter > lr_middle, "LR should decrease monotonically in first half"
+
+    print("✅ CosineSchedule works correctly!")
+
+if __name__ == "__main__":
+    test_unit_cosine_schedule()
+
+# %% [markdown]
+r"""
+### Gradient Clipping: Preventing Training Explosions
+
+In deep architectures and recurrent computation paths, repeated matrix multiplications during backward propagation can cause gradient magnitudes to explode exponentially ($\|\mathbf{g}\|_2 \to \infty$). A single uncontrolled step can catapult parameters into flat, saturated regions where loss diverges permanently.
+
+#### Global $\ell_2$ Norm Rescaling
+
+Rather than clipping coordinates independently (which alters the descent direction), global norm clipping scales the entire collective gradient vector uniformly, preserving its geometric orientation:
+
+$$\|\mathbf{g}\|_2 = \sqrt{\sum_{p \in \mathcal{P}} \sum_{i} (g_{p, i})^2}$$
+
+$$\text{scale} = \min\left(1.0, \frac{\text{max-norm}}{\|\mathbf{g}\|_2}\right) \implies \mathbf{g}_p \leftarrow \mathbf{g}_p \times \text{scale} \quad \forall p \in \mathcal{P}$$
+
+The division is guarded by the branch, not by an epsilon in the denominator. The code rescales only when $\|\mathbf{g}\|_2 > \text{max-norm}$, so the denominator is never zero and the clipped norm lands on $\text{max-norm}$ exactly.
+
+If $\|\mathbf{g}\|_2 \le \text{max-norm}$, the scale factor evaluates to $1.0$ and gradients remain untouched. If $\|\mathbf{g}\|_2 > \text{max-norm}$, gradients are shrunk proportionally:
+
+| Parameter Buffer | Raw Gradient Vector | Local Norm | Clipped Vector | Preserved Ratio |
+| :--- | :--- | :--- | :--- | :--- |
+| **Weight Buffer $W_1$** | $[100.0, 200.0]$ | $\sqrt{100^2 + 200^2} \approx 223.61$ | $[0.436, 0.873]$ | $\frac{0.873}{0.436} = 2.00$ (exact) |
+| **Bias Buffer $b_1$** | $[50.0]$ | $50.00$ | $[0.218]$ | $\frac{0.218}{0.436} = 0.50$ (exact) |
+| **Global Ensemble** | — | **$\|\mathbf{g}\|_2 \approx 229.13$** | — | **$\|\mathbf{g}_{\text{clipped}}\|_2 = 1.000$** |
+"""
+
+# %% nbgrader={"grade": false, "grade_id": "gradient_clipping", "solution": true}
+#| export
+
+def clip_grad_norm(parameters: List, max_norm: float = 1.0) -> float:
+    """
+    Clip gradients by global norm to prevent exploding gradients.
+
+    This is crucial for training stability, especially with RNNs and deep networks.
+    Instead of clipping each gradient individually, we compute the global norm
+    across all parameters and scale uniformly if needed.
+
+    TODO: Implement gradient clipping by global norm
+
+    APPROACH:
+    1. Compute total norm: sqrt(sum of squared gradients across all parameters)
+    2. If total_norm > max_norm, compute clip_coef = max_norm / total_norm
+    3. Scale all gradients by clip_coef: grad *= clip_coef
+    4. Return the original norm for monitoring
+
+    EXAMPLE:
+    >>> params = [Tensor([1, 2, 3], requires_grad=True)]
+    >>> params[0].grad = Tensor([10, 20, 30])  # Large gradients
+    >>> original_norm = clip_grad_norm(params, max_norm=1.0)
+    >>> print(f"Clipped norm: {np.linalg.norm(params[0].grad.data):.2f}")  # Should be ≤ 1.0
+
+    HINTS:
+    - Use np.linalg.norm() to compute norms
+    - Only clip if total_norm > max_norm
+    - Modify gradients in-place for efficiency
+    - Make clip_coef a Python float so float32 gradients stay float32
+    """
+    if not np.isfinite(max_norm) or max_norm < 0:
+        raise ValueError("max_norm must be finite and nonnegative")
+    parameters = list(parameters)
+    if not parameters:
+        return 0.0
+
+    # Collect all gradients and compute global norm
+    total_norm = 0.0
+    for param in parameters:
+        if param.grad is not None:
+            # Handle both Tensor gradients and numpy array gradients
+            if isinstance(param.grad, np.ndarray):
+                grad_data = param.grad
+            else:
+                # grad set by hand as a Tensor; take its array
+                grad_data = param.grad.data
+            # Accumulate in float64 so large finite float32 gradients do not
+            # overflow when squared and incorrectly get clipped to zero.
+            total_norm += np.sum(grad_data.astype(np.float64) ** 2)
+
+    total_norm = np.sqrt(total_norm)
+
+    # Clip if necessary
+    if total_norm > max_norm:
+        # A Python float scales float32 gradients without promoting them to float64
+        clip_coef = float(max_norm / total_norm)
+        for param in parameters:
+            if param.grad is not None:
+                # Handle both Tensor gradients and numpy array gradients
+                if isinstance(param.grad, np.ndarray):
+                    param.grad = param.grad * clip_coef
+                else:
+                    # grad set by hand as a Tensor; take its array
+                    param.grad.data = param.grad.data * clip_coef
+
+    return float(total_norm)
+
+# %% [markdown]
+"""
+### 🧪 Unit Test: Gradient Clipping
+
+This test validates our gradient clipping implementation.
+
+**What we're testing**: Global norm clipping properly rescales large gradients
+**Why it matters**: Prevents exploding gradients that can destroy training
+**Expected**: Gradients scaled down when norm exceeds threshold
+"""
+
+# %% nbgrader={"grade": true, "grade_id": "test_clipping", "locked": true, "points": 10}
+def test_unit_clip_grad_norm():
+    """🧪 Test clip_grad_norm implementation."""
+    print("🧪 Unit Test: Gradient Clipping...")
+
+    # Test case 1: Large gradients that need clipping
+    param1 = Tensor([1.0, 2.0], requires_grad=True)
+    param1.grad = np.array([3.0, 4.0])  # norm = 5.0
+
+    param2 = Tensor([3.0, 4.0], requires_grad=True)
+    param2.grad = np.array([6.0, 8.0])  # norm = 10.0
+
+    params = [param1, param2]
+    # Total norm = sqrt(5² + 10²) = sqrt(125) ≈ 11.18
+
+    original_norm = clip_grad_norm(params, max_norm=1.0)
+
+    # Check original norm was large
+    assert original_norm > 1.0, f"Original norm should be > 1.0, got {original_norm}"
+
+    # Check gradients were clipped
+    new_norm = 0.0
+    for param in params:
+        if isinstance(param.grad, np.ndarray):
+            grad_data = param.grad
+        else:
+            # grad set by hand as a Tensor; take its array
+            grad_data = param.grad.data
+        new_norm += np.sum(grad_data ** 2)
+    new_norm = np.sqrt(new_norm)
+
+    print(f"Original norm: {original_norm:.2f}")
+    print(f"Clipped norm: {new_norm:.2f}")
+
+    assert abs(new_norm - 1.0) < 1e-6, f"Clipped norm should be 1.0, got {new_norm}"
+
+    # Test case 2: Small gradients that don't need clipping
+    small_param = Tensor([1.0, 2.0], requires_grad=True)
+    small_param.grad = np.array([0.1, 0.2])
+    small_params = [small_param]
+    original_small = clip_grad_norm(small_params, max_norm=1.0)
+
+    assert original_small < 1.0, "Small gradients shouldn't be clipped"
+
+    print("✅ Gradient clipping works correctly!")
+
+if __name__ == "__main__":
+    test_unit_clip_grad_norm()
+
+# %% [markdown]
+r"""
+### The Trainer Class: Orchestrating Complete Training
+
+The `Trainer` class coordinates all the components you've built (model, optimizer, loss function, scheduler) into a unified, deterministic training harness. You will implement each core method incrementally:
+
+| Subsystem Role | Method Signature | Operational Responsibility |
+| :--- | :--- | :--- |
+| **State Initialization** | `__init__(model, optimizer, loss_fn, ...)` | Binds compute engines, validates interfaces, allocates telemetry logs |
+| **Training State Loop** | `train_epoch(dataloader, accumulation_steps)` | Runs forward, sample-weighted backward, accumulation window updates |
+| **Inference Evaluation** | `evaluate(dataloader)` | Executes forward pass under `training_mode = False`, computes top-1 accuracy |
+| **Atomic Checkpointing** | `save_checkpoint(path)` | Serializes parameters, moments, and metadata atomically to disk |
+| **Full State Restoration** | `load_checkpoint(path)` | Rebuilds exact model weights, optimizer buffers, and history for resume |
+| **Serialization Plumbing** | `_get_*_state()` / `_set_*_state()` | Internal helpers for hardware-independent NumPy buffer transfer |
+
+You will implement the public lifecycle methods. The serialization helpers are provided as foundational plumbing.
+"""
+
+# %% nbgrader={"grade": false, "grade_id": "trainer-class-def", "solution": false}
+#| export
+class Trainer:
+    """
+    Complete training orchestrator for neural networks.
+
+    Handles the full training lifecycle: forward pass, loss computation,
+    backward pass, optimization, scheduling, checkpointing, and evaluation.
+
+    This is the central class that brings together all the components
+    you've built in previous modules.
+    """
+
+    # ── Private serialization helpers (provided, not student-implemented) ──
+    # These are pickle plumbing for checkpoint save/load. The training
+    # concepts you'll implement are in the public methods below.
+
+    def _get_model_state(self) -> Dict[int, np.ndarray]:
+        """Extract model parameters for checkpointing."""
+        return {i: param.data.copy() for i, param in enumerate(self.model.parameters())}
+
+    def _set_model_state(self, state: Dict[int, np.ndarray]) -> None:
+        """Restore model parameters from checkpoint."""
+        parameters = list(self.model.parameters())
+        if set(state) != set(range(len(parameters))):
+            raise ValueError("Checkpoint parameter count does not match model")
+        if any(state[i].shape != param.shape for i, param in enumerate(parameters)):
+            raise ValueError("Checkpoint parameter shapes do not match model")
+        for i, param in enumerate(parameters):
+            param.data = state[i].copy()
+
+    def _get_optimizer_state(self) -> Dict[str, Any]:
+        """Extract optimizer state for checkpointing."""
+        state = {}
+        # Moment estimates and their age must resume together. Hyperparameters
+        # also belong to the saved run, not the freshly constructed optimizer.
+        for name in ('lr', 'step_count', 'momentum', 'beta1', 'beta2', 'eps', 'weight_decay'):
+            if hasattr(self.optimizer, name):
+                state[name] = getattr(self.optimizer, name)
+        if hasattr(self.optimizer, 'update_counts'):
+            state['update_counts'] = self.optimizer.update_counts.copy()
+        if hasattr(self.optimizer, 'has_momentum') and self.optimizer.has_momentum():
+            momentum_state = self.optimizer.get_momentum_state()
+            if momentum_state is not None:
+                state['momentum_buffers'] = momentum_state
+        return state
+
+    def _set_optimizer_state(self, state: Dict[str, Any]) -> None:
+        """Restore optimizer state from checkpoint."""
+        for name in ('lr', 'step_count', 'momentum', 'beta1', 'beta2', 'eps', 'weight_decay'):
+            if name in state and hasattr(self.optimizer, name):
+                setattr(self.optimizer, name, state[name])
+        if 'update_counts' in state and hasattr(self.optimizer, 'update_counts'):
+            self.optimizer.update_counts = state['update_counts'].copy()
+        if 'momentum_buffers' in state:
+            if hasattr(self.optimizer, 'has_momentum') and self.optimizer.has_momentum():
+                self.optimizer.set_momentum_state(state['momentum_buffers'])
+
+    def _get_scheduler_state(self) -> Optional[Dict[str, Any]]:
+        """Extract scheduler state for checkpointing."""
+        if self.scheduler is None:
+            return None
+        return {
+            'max_lr': getattr(self.scheduler, 'max_lr', None),
+            'min_lr': getattr(self.scheduler, 'min_lr', None),
+            'total_epochs': getattr(self.scheduler, 'total_epochs', None)
+        }
+
+    def _set_scheduler_state(self, state: Optional[Dict[str, Any]]) -> None:
+        """Restore scheduler state from checkpoint."""
+        if state is None or self.scheduler is None:
+            return
+        for key, value in state.items():
+            if hasattr(self.scheduler, key):
+                setattr(self.scheduler, key, value)
+
+    def _forward(self, inputs: Tensor) -> Tensor:
+        """Run the model, passing the training flag to a forward() that accepts one.
+
+        Module 03's Sequential takes training= so that Dropout knows which path
+        to run; a bare layer or a GPT (which Module 13 will build) takes only the inputs.
+        """
+        try:
+            takes_flag = 'training' in inspect.signature(self.model.forward).parameters
+        except (TypeError, ValueError):
+            takes_flag = False
+        if takes_flag:
+            return self.model.forward(inputs, training=self.training_mode)
+        return self.model.forward(inputs)
+
+# %% [markdown]
+r"""
+### Trainer.__init__: Setting Up the Training System
+
+The constructor binds all computational modules, stores hyperparameter policies, and initializes execution telemetry into a predictable state schema:
+
+| State Field | Attribute Identifier | Initial Value | Architectural Role |
+| :--- | :--- | :--- | :--- |
+| **Bound Engines** | `self.model`, `self.optimizer`, `self.loss_fn` | Constructor arguments | Computation modules driving execution |
+| **Optional Policies** | `self.scheduler`, `self.grad_clip_norm` | Passed instance or `None` | Optimization hyperparameter policies |
+| **Lifecycle State** | `self.epoch`, `self.step`, `self.training_mode` | `0`, `0`, `True` | Monotonic counters and active execution mode |
+| **Telemetry History** | `self.history` | Dict of empty lists | Historical logs (`train_loss`, `eval_loss`, `learning_rates`) |
+"""
+
+# %% nbgrader={"grade": false, "grade_id": "trainer-init", "solution": true}
+#| exporti
+def trainer_init(self, model: Any, optimizer: Any, loss_fn: Any,
+                 scheduler: Optional[Any] = None,
+                 grad_clip_norm: Optional[float] = None) -> None:
+    """
+    Initialize trainer with model and training components.
+
+    Args:
+        model: Neural network to train (must have .forward() and .parameters())
+        optimizer: Parameter update strategy (SGD, Adam, etc.)
+        loss_fn: Loss function (CrossEntropy, MSE, etc.)
+        scheduler: Optional learning rate scheduler (e.g., CosineSchedule)
+        grad_clip_norm: Optional max gradient norm for clipping (float)
+
+    TODO: Store all components and initialize training state
+
+    APPROACH:
+    1. Store model, optimizer, loss_fn, scheduler, and grad_clip_norm as attributes
+    2. Enable gradient tracking: set requires_grad=True on all model.parameters()
+    3. Initialize epoch=0, step=0, training_mode=True
+    4. Create history dict with keys: 'train_loss', 'eval_loss', 'learning_rates'
+       (each mapping to an empty list)
+
+    EXAMPLE:
+    >>> trainer = Trainer(model, optimizer, MSELoss())
+    >>> print(trainer.epoch)     # 0
+    >>> print(trainer.step)      # 0
+    >>> print(trainer.history)   # {'train_loss': [], 'eval_loss': [], 'learning_rates': []}
+
+    HINT: This is straightforward assignment. The key insight is WHAT state
+    a training system needs to track across epochs.
+    """
+    self.model = model
+    self.optimizer = optimizer
+    self.loss_fn = loss_fn
+    self.scheduler = scheduler
+    self.grad_clip_norm = grad_clip_norm
+
+    # Training state
+    self.epoch = 0
+    self.step = 0
+    self.training_mode = True
+
+    # History tracking
+    self.history = {
+        'train_loss': [],
+        'eval_loss': [],
+        'learning_rates': []
+    }
+
+Trainer.__init__ = trainer_init
+
+# %% [markdown]
+"""
+### 🧪 Unit Test: Trainer.__init__
+
+**What we're testing**: Trainer stores all components and initializes state correctly
+**Why it matters**: Every training run depends on proper initialization
+**Expected**: All attributes set, counters at zero, empty history
+"""
+
+# %% nbgrader={"grade": true, "grade_id": "test-trainer-init", "locked": true, "points": 5}
+def test_unit_trainer_init():
+    """🧪 Test Trainer.__init__ implementation."""
+    print("🧪 Unit Test: Trainer.__init__...")
+
+    class DummyModel:
+        def __init__(self):
+            self.training = True
+        def forward(self, x):
+            return x
+        def parameters(self):
+            return []
+
+    model = DummyModel()
+    optimizer = SGD([], lr=0.01)
+    loss_fn = MSELoss()
+    scheduler = CosineSchedule(max_lr=0.1, min_lr=0.01, total_epochs=10)
+
+    trainer = Trainer(model, optimizer, loss_fn, scheduler, grad_clip_norm=1.0)
+
+    # Verify components stored
+    assert trainer.model is model, "Model not stored"
+    assert trainer.optimizer is optimizer, "Optimizer not stored"
+    assert trainer.loss_fn is loss_fn, "Loss function not stored"
+    assert trainer.scheduler is scheduler, "Scheduler not stored"
+    assert trainer.grad_clip_norm == 1.0, "Grad clip norm not stored"
+
+    # Verify state initialization
+    assert trainer.epoch == 0, f"Expected epoch=0, got {trainer.epoch}"
+    assert trainer.step == 0, f"Expected step=0, got {trainer.step}"
+    assert trainer.training_mode is True, "Expected training_mode=True"
+
+    # Verify history
+    assert 'train_loss' in trainer.history, "Missing train_loss in history"
+    assert 'eval_loss' in trainer.history, "Missing eval_loss in history"
+    assert 'learning_rates' in trainer.history, "Missing learning_rates in history"
+    assert len(trainer.history['train_loss']) == 0, "train_loss should be empty"
+
+    # Test without optional args
+    trainer2 = Trainer(model, optimizer, loss_fn)
+    assert trainer2.scheduler is None, "Scheduler should default to None"
+    assert trainer2.grad_clip_norm is None, "Grad clip should default to None"
+
+    print("✅ Trainer.__init__ works correctly!")
+
+if __name__ == "__main__":
+    test_unit_trainer_init()
+
+# %% [markdown]
+r"""
+### Trainer.train_epoch: The Core Learning Loop
+
+`train_epoch()` executes the forward-backward-update cycle across the entire dataset. To support large effective batch sizes without exhausting hardware memory, it implements sample-weighted gradient accumulation across multi-batch windows:
+
+| Phase | Operation | Mathematical Role | Implementation Vector |
+| :--- | :--- | :--- | :--- |
+| **1. Forward** | Model Prediction | $\hat{\mathbf{y}}_i = f_{\boldsymbol{\theta}}(\mathbf{x}_i)$ | `outputs = self._forward(inputs)` |
+| **2. Loss** | Batch Objective Mean | $\bar{\mathcal{L}}_i = \frac{1}{n_i}\sum_{j=1}^{n_i} \ell(\hat{y}_{ij}, y_{ij})$ | `loss = self.loss_fn.forward(outputs, targets)` |
+| **3. Backward** | Seeded Sample Scaling | $\mathbf{g}_{\text{accum}} \mathrel{+}= \sum_{j=1}^{n_i} \nabla_{\boldsymbol{\theta}} \ell_j$ | `loss.backward(np.ones_like(loss.data) * n_i)` |
+| **4. Update** | Window Normalization & Step | $\boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \eta \frac{\mathbf{g}_{\text{accum}}}{\sum n_i}$ | `self._optimizer_update(window_samples)` |
+| **5. Anneal** | Epoch Boundary Scheduling | $\eta \leftarrow \text{schedule}(t_{\text{epoch}})$ | `self.scheduler.get_lr(self.epoch)` |
+
+We implement this in three modular steps: processing a single batch, executing an optimizer update at the accumulation boundary, and composing them into the epoch loop.
+"""
+
+# %% [markdown]
+"""
+#### Step 1: Process a Single Batch
+
+The loss function returns a mean over the batch. Multiply it and its gradient
+by the batch's sample count to accumulate a sum. At the optimizer step, divide
+by the number of samples actually seen in the window. A final batch of one
+sample then contributes one sample's weight, even if earlier batches were larger.
+"""
+
+# %% nbgrader={"grade": false, "grade_id": "trainer-process-batch", "solution": true}
+#| exporti
+def _trainer_process_batch(self, inputs: Tensor, targets: Tensor) -> float:
+    """
+    Process one batch: forward pass, loss computation, backward pass.
+
+    Args:
+        inputs: Input tensor for this batch
+        targets: Target tensor for this batch
+
+    Returns:
+        Sum of per-sample losses (float); gradients accumulate the same sum.
+
+    TODO: Implement the forward-backward cycle for a single batch
+
+    APPROACH:
+    1. Forward pass: self._forward(inputs), which passes the training flag to models that take one
+    2. Compute loss: loss_fn.forward(outputs, targets)
+    3. Multiply the mean loss by the batch's sample count
+    4. Backward pass with the same sample-count weight
+
+    HINT: The loss function must return a scalar batch mean. Multiplying by
+          inputs.shape[0] undoes its batch averaging without retaining batches.
+    """
+    batch_size = inputs.shape[0]
+    if batch_size == 0:
+        raise ValueError("Training batches must contain at least one sample")
+
+    # Forward pass (training flag on, so Dropout draws a mask)
+    outputs = self._forward(inputs)
+
+    # For sequence models (e.g. language models where outputs is [B, S, V] and targets is [B, S]),
+    # flatten sequence and batch dimensions to compute per-token loss.
+    if outputs.data.ndim == 3 and targets.data.ndim == 2:
+        vocab_size = outputs.data.shape[-1]
+        loss = self.loss_fn.forward(outputs.reshape(-1, vocab_size), targets.reshape(-1))
+    else:
+        loss = self.loss_fn.forward(outputs, targets)
+
+    # Accumulate sample sums; the optimizer update will form the window mean.
+    loss.backward(np.ones_like(loss.data) * batch_size)
+    return float(loss.data) * batch_size
+
+Trainer._process_batch = _trainer_process_batch
+
+# %% [markdown]
+"""
+#### Step 2: Perform Optimizer Update
+
+When enough gradients have accumulated, divide their sum by the actual sample
+count, clip the mean gradient (if configured), step the optimizer, and reset
+gradients for the next accumulation window. Normalization comes before clipping
+so changing the batch partition does not change the clipping threshold.
+"""
+
+# %% nbgrader={"grade": false, "grade_id": "trainer-optimizer-update", "solution": true}
+#| exporti
+def _trainer_optimizer_update(self, sample_count: int = 1) -> None:
+    """
+    Average accumulated gradients, clip if enabled, and step the optimizer.
+
+    TODO: Implement the average + clip + optimizer step + zero_grad cycle
+
+    APPROACH:
+    1. Divide each parameter gradient by sample_count
+    2. If grad_clip_norm is set, call clip_grad_norm on model parameters
+    3. Call optimizer.step() to update weights
+    4. Call optimizer.zero_grad() to reset gradients
+    """
+    if sample_count <= 0:
+        raise ValueError("An optimizer update needs a positive sample count")
+    # Reuse the same parameters for normalization and clipping, even when
+    # parameters() returns a generator.
+    params = list(self.model.parameters())
+    for param in params:
+        if param.grad is not None:
+            param.grad /= sample_count
+    if self.grad_clip_norm is not None:
+        clip_grad_norm(params, self.grad_clip_norm)
+
+    self.optimizer.step()
+    self.optimizer.zero_grad()
+
+Trainer._optimizer_update = _trainer_optimizer_update
+
+# %% [markdown]
+"""
+#### Step 3: Compose the Full Epoch Loop
+
+Now combine `_process_batch` and `_optimizer_update` into the complete
+training epoch with accumulation, scheduling, and history tracking.
+"""
+
+# %% nbgrader={"grade": false, "grade_id": "trainer-train-epoch", "solution": true}
+#| exporti
+def trainer_train_epoch(self, dataloader: Iterable[Tuple[Tensor, Tensor]],
+                        accumulation_steps: int = 1) -> float:
+    """
+    Train for one epoch through the dataset.
+
+    Args:
+        dataloader: Iterable yielding (inputs, targets) batches
+        accumulation_steps: Number of batches to accumulate before update
+
+    Returns:
+        Sample-weighted average loss for the epoch (float)
+
+    TODO: Compose _process_batch and _optimizer_update into the epoch loop
+
+    APPROACH:
+    1. Call set_training_mode(self.model, True) (Module 03), which flags the model
+       and every layer inside it, and set self.training_mode = True
+    2. Reset gradients and set the scheduler's learning rate for this epoch
+    3. Process batches, counting both batches and samples in the current window
+    4. After accumulation_steps batches, update using the actual sample count;
+       do the same for a partial window at the end of the epoch
+    5. Divide total loss by total samples, record it, and increment epoch
+
+    HINT: The batch counter decides WHEN to step. The sample counter decides
+          HOW to average, including a partial window or unequal batch sizes.
+    """
+    # TODO(1): implement this part (see the docstring above and the lesson).
+    raise NotImplementedError("TODO 1: not implemented yet")
+
+Trainer.train_epoch = trainer_train_epoch
+
+# %% [markdown]
+"""
+### 🧪 Unit Test: Trainer._process_batch
+
+**What we're testing**: A single forward-backward pass accumulates sample sums
+**Why it matters**: This is the atomic unit of training. If one batch does not work, nothing will
+**Expected**: Returns a float loss, model parameters have gradients after the call
+"""
+
+# %% nbgrader={"grade": true, "grade_id": "test-trainer-process-batch", "locked": true, "points": 5}
+def test_unit_trainer_process_batch():
+    """🧪 Test Trainer._process_batch implementation."""
+    print("🧪 Unit Test: Trainer._process_batch...")
+
+    class SimpleModel:
+        def __init__(self):
+            self.layer = Linear(2, 1)
+            self.training = True
+        def forward(self, x):
+            return self.layer.forward(x)
+        def parameters(self):
+            return self.layer.parameters()
+
+    model = SimpleModel()
+    optimizer = SGD(model.parameters(), lr=0.01)
+    loss_fn = MSELoss()
+    trainer = Trainer(model, optimizer, loss_fn)
+
+    inputs = Tensor([[1.0, 0.5]])
+    targets = Tensor([[2.0]])
+
+    scaled_loss = trainer._process_batch(inputs, targets)
+
+    # Should return a float
+    assert isinstance(scaled_loss, float), f"Expected float, got {type(scaled_loss)}"
+    # Loss should be non-negative
+    assert scaled_loss >= 0, f"Expected non-negative loss, got {scaled_loss}"
+
+    print("✅ Trainer._process_batch works correctly!")
+
+if __name__ == "__main__":
+    test_unit_trainer_process_batch()
+
+# %% [markdown]
+"""
+### 🧪 Unit Test: Trainer._optimizer_update
+
+**What we're testing**: Gradient clipping + optimizer step + zero_grad cycle
+**Why it matters**: Incorrect update logic causes training to diverge or stall
+**Expected**: Parameters change after update, gradients are zeroed
+"""
+
+# %% nbgrader={"grade": true, "grade_id": "test-trainer-optimizer-update", "locked": true, "points": 5}
+def test_unit_trainer_optimizer_update():
+    """🧪 Test Trainer._optimizer_update implementation."""
+    print("🧪 Unit Test: Trainer._optimizer_update...")
+
+    class SimpleModel:
+        def __init__(self):
+            self.layer = Linear(2, 1)
+            self.training = True
+        def forward(self, x):
+            return self.layer.forward(x)
+        def parameters(self):
+            return self.layer.parameters()
+
+    model = SimpleModel()
+    optimizer = SGD(model.parameters(), lr=0.01)
+    loss_fn = MSELoss()
+    trainer = Trainer(model, optimizer, loss_fn)
+
+    # Do a forward-backward to create gradients
+    inputs = Tensor([[1.0, 0.5]])
+    targets = Tensor([[2.0]])
+    trainer._process_batch(inputs, targets)
+
+    # Record params before update
+    params_before = [p.data.copy() for p in model.parameters()]
+
+    # Perform update
+    trainer._optimizer_update()
+
+    # Parameters should have changed
+    params_after = [p.data for p in model.parameters()]
+    changed = any(not np.allclose(b, a) for b, a in zip(params_before, params_after))
+    assert changed, "Parameters should change after optimizer update"
+
+    print("✅ Trainer._optimizer_update works correctly!")
+
+if __name__ == "__main__":
+    test_unit_trainer_optimizer_update()
+
+# %% [markdown]
+"""
+### 🧪 Unit Test: Trainer.train_epoch
+
+**What we're testing**: The core training loop processes batches and updates parameters
+**Why it matters**: This is the single most important function in any ML system
+**Expected**: Loss is computed, epoch increments, history records loss
+"""
+
+# %% nbgrader={"grade": true, "grade_id": "test-trainer-train-epoch", "locked": true, "points": 15}
+def test_unit_trainer_train_epoch():
+    """🧪 Test Trainer.train_epoch implementation."""
+    print("🧪 Unit Test: Trainer.train_epoch...")
+
+    class SimpleModel:
+        def __init__(self):
+            self.layer = Linear(2, 1)
+            self.training = True
+        def forward(self, x):
+            return self.layer.forward(x)
+        def parameters(self):
+            return self.layer.parameters()
+
+    model = SimpleModel()
+    optimizer = SGD(model.parameters(), lr=0.01)
+    loss_fn = MSELoss()
+
+    trainer = Trainer(model, optimizer, loss_fn)
+
+    dataloader = [
+        (Tensor([[1.0, 0.5]]), Tensor([[2.0]])),
+        (Tensor([[0.5, 1.0]]), Tensor([[1.5]]))
+    ]
+
+    # Train one epoch
+    loss = trainer.train_epoch(dataloader)
+
+    # Verify return type
+    assert isinstance(loss, (float, np.floating)), f"Expected float loss, got {type(loss)}"
+
+    # Verify epoch incremented
+    assert trainer.epoch == 1, f"Expected epoch=1, got {trainer.epoch}"
+
+    # Verify history recorded
+    assert len(trainer.history['train_loss']) == 1, "Should have 1 loss recorded"
+
+    # Verify model was in training mode
+    assert trainer.training_mode is True, "Should be in training mode"
+
+    # Train another epoch - loss should still be a valid number
+    loss2 = trainer.train_epoch(dataloader)
+    assert isinstance(loss2, (float, np.floating)), f"Second epoch loss should be float"
+    assert trainer.epoch == 2, f"Expected epoch=2, got {trainer.epoch}"
+    assert len(trainer.history['train_loss']) == 2, "Should have 2 losses recorded"
+
+    # A one-sample tail must have the same weight as a one-sample batch.
+    tail_model = Linear(1, 1)
+    tail_model.weight.data[:] = 1.0
+    tail_model.bias.data[:] = 0.0
+    tail_trainer = Trainer(tail_model, SGD(tail_model.parameters(), lr=0.1), MSELoss())
+    tail_loss = tail_trainer.train_epoch(
+        [(Tensor([[1.0]]), Tensor([[0.0]]))], accumulation_steps=4
+    )
+    assert np.allclose(tail_model.weight.data, [[0.8]]), "Normalize by the actual tail size"
+    assert np.isclose(tail_loss, 1.0), "Accumulation must not scale the reported loss"
+
+    # Test with scheduler
+    model2 = SimpleModel()
+    optimizer2 = SGD(model2.parameters(), lr=0.1)
+    scheduler = CosineSchedule(max_lr=0.1, min_lr=0.01, total_epochs=10)
+    trainer2 = Trainer(model2, optimizer2, loss_fn, scheduler=scheduler)
+
+    trainer2.train_epoch(dataloader)
+    assert len(trainer2.history['learning_rates']) == 1, "Should record LR with scheduler"
+
+    # Test with gradient clipping
+    model3 = SimpleModel()
+    optimizer3 = SGD(model3.parameters(), lr=0.01)
+    trainer3 = Trainer(model3, optimizer3, loss_fn, grad_clip_norm=0.5)
+
+    loss3 = trainer3.train_epoch(dataloader)
+    assert isinstance(loss3, (float, np.floating)), "Training with grad clip should work"
+
+    print(f"  Epoch 1 loss: {loss:.4f}")
+    print(f"  Epoch 2 loss: {loss2:.4f}")
+    print("✅ Trainer.train_epoch works correctly!")
+
+if __name__ == "__main__":
+    test_unit_trainer_train_epoch()
+
+# %% [markdown]
+r"""
+### Trainer.evaluate: Measuring Model Performance
+
+Evaluation executes the network in inference mode: forward pass only, with autograd recording disabled (`with no_grad():`) and parameters frozen. This reveals true out-of-sample generalization without training contamination.
+
+| Architectural Property | Training Mode (`train_epoch`) | Evaluation Mode (`evaluate`) |
+| :--- | :--- | :--- |
+| **Execution State** | `self.training_mode = True` | `self.training_mode = False` |
+| **Dropout Layers** | Active (random neuron mask at probability $p$) | Inactive (deterministic identity pass-through) |
+| **Autograd Graph Tracking** | Enabled (backward execution tape recorded) | Disabled (`with no_grad():` tape allocation skipped) |
+| **Parameter Mutation** | In-place optimizer update (`opt.step()`) | Strictly read-only (parameters unchanged) |
+| **Loss Calculation** | Sample-weighted cross-entropy / BCE / MSE | Sample-weighted cross-entropy / BCE / MSE |
+| **Metrics Evaluated** | Training loss progression | Evaluation loss and top-1 accuracy |
+"""
+
+# %% nbgrader={"grade": false, "grade_id": "trainer-evaluate", "solution": true}
+#| exporti
+def trainer_evaluate(self, dataloader: Iterable[Tuple[Tensor, Tensor]]) -> Tuple[float, float]:
+    """
+    Evaluate model on dataset without updating parameters.
+
+    Args:
+        dataloader: Iterable yielding (inputs, targets) batches
+
+    Returns:
+        Tuple of (sample-weighted average loss, accuracy), both Python floats.
+        CrossEntropyLoss uses argmax class accuracy. BinaryCrossEntropyLoss
+        uses element-wise binary accuracy, thresholding probabilities and
+        targets at >= 0.5 (including multilabel outputs). Regression and custom
+        losses return 0.0 as an unused accuracy placeholder, regardless of
+        output shape.
+
+    TODO: Implement evaluation loop (forward pass only, no gradient updates)
+
+    APPROACH:
+    1. Call set_training_mode(self.model, False), so Dropout inside any model
+       (Sequential or hand-written) switches off, and set self.training_mode = False
+    2. For each batch: forward pass only through self._forward (flag off, so Dropout is the identity),
+       inside no_grad() so no graph is recorded; accumulate loss times sample count
+    3. Choose accuracy by loss type: argmax for cross-entropy, threshold for BCE;
+       other losses leave accuracy at its unused 0.0 placeholder
+    4. Record average loss in self.history['eval_loss']
+    5. Return (avg_loss, accuracy)
+
+    EXAMPLE:
+    >>> eval_loss, accuracy = trainer.evaluate(test_data)
+    >>> print(f"Eval loss: {eval_loss:.4f}, Accuracy: {accuracy:.2%}")
+
+    HINTS:
+    - For multi-class: predictions = np.argmax(outputs.data, axis=-1)
+    - CrossEntropyLoss expects integer targets; BCE compares each binary label
+    - accuracy = correct / total if total > 0 else 0.0
+    """
+    set_training_mode(self.model, False)  # model and every layer inside it
+    self.training_mode = False
+
+    total_loss = 0.0
+    correct = 0
+    total = 0
+    total_samples = 0
+
+    for inputs, targets in dataloader:
+        # Forward pass only, with the training flag off and no graph recorded
+        with no_grad():
+            outputs = self._forward(inputs)
+            loss = self.loss_fn.forward(outputs, targets)
+
+        batch_size = inputs.shape[0]
+        total_loss += float(loss.data) * batch_size
+        total_samples += batch_size
+
+        # The loss defines the task: multiple outputs can also be regression.
+        if isinstance(self.loss_fn, CrossEntropyLoss):
+            predictions = np.argmax(outputs.data, axis=-1)
+            correct += np.sum(predictions == targets.data)
+            total += predictions.size
+        elif isinstance(self.loss_fn, BinaryCrossEntropyLoss):
+            predictions = outputs.data >= 0.5
+            correct += np.sum(predictions == (targets.data >= 0.5))
+            total += predictions.size
+
+    avg_loss = total_loss / total_samples if total_samples > 0 else 0.0
+    # correct is a NumPy integer sum, so the division yields np.float64.
+    # Cast it so both returned values are plain Python floats.
+    accuracy = float(correct / total) if total > 0 else 0.0
+
+    self.history['eval_loss'].append(avg_loss)
+
+    return avg_loss, accuracy
+
+Trainer.evaluate = trainer_evaluate
+
+# %% [markdown]
+"""
+### 🧪 Unit Test: Trainer.evaluate
+
+**What we're testing**: Evaluation computes loss and accuracy without modifying the model
+**Why it matters**: Proper evaluation prevents overfitting and validates generalization
+**Expected**: Returns valid loss and accuracy, model set to eval mode
+"""
+
+# %% nbgrader={"grade": true, "grade_id": "test-trainer-evaluate", "locked": true, "points": 10}
+def test_unit_trainer_evaluate():
+    """🧪 Test Trainer.evaluate implementation."""
+    print("🧪 Unit Test: Trainer.evaluate...")
+
+    # --- Regression case: MSE has no classification accuracy ---
+    class RegressionModel:
+        def __init__(self):
+            self.layer = Linear(2, 1)
+            self.training = True
+        def forward(self, x):
+            return self.layer.forward(x)
+        def parameters(self):
+            return self.layer.parameters()
+
+    reg_model = RegressionModel()
+    reg_trainer = Trainer(reg_model, SGD(reg_model.parameters(), lr=0.01), MSELoss())
+
+    reg_dataloader = [
+        (Tensor([[1.0, 0.5]]), Tensor([[2.0]])),
+        (Tensor([[0.5, 1.0]]), Tensor([[1.5]]))
+    ]
+
+    eval_loss, accuracy = reg_trainer.evaluate(reg_dataloader)
+
+    assert isinstance(eval_loss, (float, np.floating)), f"Expected float eval_loss, got {type(eval_loss)}"
+    assert isinstance(accuracy, (float, np.floating)), f"Expected float accuracy, got {type(accuracy)}"
+    # Regression: accuracy must be 0.0 (no classification branch entered)
+    assert accuracy == 0.0, (
+        f"Regression evaluate() returned accuracy={accuracy:.4f} instead of 0.0. "
+        "MSE outputs must not enter the argmax classification branch."
+    )
+
+    assert reg_trainer.training_mode is False, "Should be in eval mode after evaluate()"
+    assert reg_model.training is False, "Model should be in eval mode"
+    assert len(reg_trainer.history['eval_loss']) == 1, "Should have 1 eval loss recorded"
+    assert np.isfinite(eval_loss), f"Eval loss should be finite, got {eval_loss}"
+
+    # --- Classification case: cross-entropy computes argmax accuracy ---
+    class ClassificationModel:
+        def __init__(self):
+            self.layer = Linear(2, 3)  # 3-class output
+            self.training = True
+        def forward(self, x):
+            return self.layer.forward(x)
+        def parameters(self):
+            return self.layer.parameters()
+
+    cls_model = ClassificationModel()
+    cls_trainer = Trainer(cls_model, SGD(cls_model.parameters(), lr=0.01), CrossEntropyLoss())
+
+    cls_dataloader = [
+        (Tensor([[1.0, 0.5]]), Tensor([0])),   # integer class label
+        (Tensor([[0.5, 1.0]]), Tensor([2]))
+    ]
+
+    _, cls_accuracy = cls_trainer.evaluate(cls_dataloader)
+    assert isinstance(cls_accuracy, (float, np.floating)), "Classification accuracy must be a float"
+    # accuracy is 0.0 or 1.0 here -- just verify it was actually computed (total > 0)
+    assert 0.0 <= cls_accuracy <= 1.0, f"Classification accuracy out of range: {cls_accuracy}"
+
+    print(f"  Regression  - loss: {eval_loss:.4f}, accuracy: {accuracy:.4f} (expected 0.0)")
+    print(f"  Classification - accuracy: {cls_accuracy:.4f} (range check passed)")
+    print("✅ Trainer.evaluate works correctly!")
+
+if __name__ == "__main__":
+    test_unit_trainer_evaluate()
+
+# %% [markdown]
+r"""
+### Trainer.save_checkpoint: Persisting Training State
+
+Checkpointing serializes the complete training state to persistent storage, enabling atomic resumption of long training jobs. The serialized dictionary captures the full state schema:
+
+| Dictionary Key | Value Type | Semantic Payload | Recovery Invariant |
+| :--- | :--- | :--- | :--- |
+| `'epoch'` | `int` | Current completed epoch counter | Preserves training progress index |
+| `'step'` | `int` | Cumulative global optimizer steps | Preserves learning schedule age |
+| `'model_state'` | `Dict[int, np.ndarray]` | Deep copy of all parameter buffers | Restores exact floating-point weights |
+| `'optimizer_state'` | `Dict[str, Any]` | Moment buffers, update counts, betas, eps | Guarantees identical next gradient step |
+| `'scheduler_state'` | `Optional[Dict]` | Learning rate schedule bounds | Resumes continuous decay curve |
+| `'history'` | `Dict[str, List[float]]` | Telemetry logs (`train_loss`, `eval_loss`) | Preserves loss curves for analysis |
+| `'training_mode'` | `bool` | Active lifecycle mode | Restores runtime execution mode |
+| `'grad_clip_norm'` | `Optional[float]` | Maximum global norm ceiling | Enforces consistent stability threshold |
+
+To ensure fault-tolerant writes, checkpoints are written to a temporary sibling file (`.tmp`) before being atomically replaced via `os.replace()`, preventing half-written corrupted files upon process interruption.
+"""
+
+# %% nbgrader={"grade": false, "grade_id": "trainer-save-checkpoint", "solution": true}
+#| exporti
+def trainer_save_checkpoint(self, path: str) -> None:
+    """
+    Save parameters, optimizer, scheduler, and epoch history for resumption.
+
+    Args:
+        path: File path to save checkpoint (.pkl)
+
+    TODO: Serialize all training state to disk using pickle
+
+    APPROACH:
+    1. Build a checkpoint dict with keys: epoch, step, model_state,
+       optimizer_state, scheduler_state, history, training_mode, grad_clip_norm
+    2. Use self._get_model_state(), self._get_optimizer_state(),
+       self._get_scheduler_state() to extract component states
+    3. Create parent directory if needed: Path(path).parent.mkdir(parents=True, exist_ok=True)
+    4. Write with pickle.dump(), but write to a temp path beside the target
+       and os.replace() it onto the target once the write has finished
+
+    EXAMPLE:
+    >>> trainer.save_checkpoint('/tmp/checkpoint.pkl')
+    >>> # Later: trainer.load_checkpoint('/tmp/checkpoint.pkl')
+
+    HINTS:
+    - The private _get_*_state() helpers are already provided.
+    - Pickling straight into the target path is the tempting version and it is
+      unsafe: a crash, a full disk, or an error partway through pickling leaves
+      a half-written file where a good checkpoint used to be. Training jobs are
+      exactly the workload that gets killed mid-write.
+    - os.replace() is atomic on POSIX and Windows, so the target is always
+      either the old complete checkpoint or the new one, never a partial write.
+    - Clean the temp file up if the write fails, so a failed save leaves nothing
+      behind.
+    """
+    checkpoint = {
+        'epoch': self.epoch,
+        'step': self.step,
+        'model_state': self._get_model_state(),
+        'optimizer_state': self._get_optimizer_state(),
+        'scheduler_state': self._get_scheduler_state(),
+        'history': self.history,
+        'training_mode': self.training_mode,
+        'grad_clip_norm': self.grad_clip_norm
+    }
+
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    # Write to a temp file first, then atomically replace the target.
+    # Writing directly to `path` would leave a partially-written (corrupt)
+    # checkpoint in place if the process is killed, the disk fills up, or
+    # pickling fails partway through, silently destroying whatever good
+    # checkpoint was there before. os.replace() is atomic on both POSIX
+    # and Windows: `path` is always either the old complete checkpoint or
+    # the new one, never a partial write.
+    tmp_path = f"{path}.tmp"
+    try:
+        with open(tmp_path, 'wb') as f:
+            pickle.dump(checkpoint, f)
+        os.replace(tmp_path, path)
+    except BaseException:
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+        raise
+
+Trainer.save_checkpoint = trainer_save_checkpoint
+
+# %% [markdown]
+"""
+### 🧪 Unit Test: Trainer.save_checkpoint
+
+**What we're testing**: Checkpoint file is created and contains all required state
+**Why it matters**: Lost training progress on a long run is costly
+**Expected**: File created on disk with correct contents
+"""
+
+# %% nbgrader={"grade": true, "grade_id": "test-trainer-save-checkpoint", "locked": true, "points": 5}
+def test_unit_trainer_save_checkpoint():
+    """🧪 Test Trainer.save_checkpoint implementation."""
+    print("🧪 Unit Test: Trainer.save_checkpoint...")
+
+    class DummyModel:
+        def __init__(self):
+            self.layer = Linear(2, 1)
+            self.training = True
+        def forward(self, x):
+            return self.layer.forward(x)
+        def parameters(self):
+            return self.layer.parameters()
+
+    model = DummyModel()
+    optimizer = SGD(model.parameters(), lr=0.05)
+    trainer = Trainer(model, optimizer, MSELoss())
+
+    # Set some state to verify it persists
+    trainer.epoch = 5
+    trainer.step = 100
+    trainer.history['train_loss'].append(0.5)
+
+    checkpoint_path = "/tmp/test_save_checkpoint.pkl"
+    trainer.save_checkpoint(checkpoint_path)
+
+    # Verify file exists
+    assert os.path.exists(checkpoint_path), "Checkpoint file should exist"
+
+    # Verify contents
+    with open(checkpoint_path, 'rb') as f:
+        checkpoint = pickle.load(f)
+
+    assert checkpoint['epoch'] == 5, f"Expected epoch=5, got {checkpoint['epoch']}"
+    assert checkpoint['step'] == 100, f"Expected step=100, got {checkpoint['step']}"
+    assert 'model_state' in checkpoint, "Missing model_state"
+    assert 'optimizer_state' in checkpoint, "Missing optimizer_state"
+    assert 'history' in checkpoint, "Missing history"
+    assert len(checkpoint['history']['train_loss']) == 1, "History should have 1 entry"
+
+    # Clean up
+    os.remove(checkpoint_path)
+
+    print("✅ Trainer.save_checkpoint works correctly!")
+
+if __name__ == "__main__":
+    test_unit_trainer_save_checkpoint()
+
+# %% [markdown]
+r"""
+### Trainer.load_checkpoint: Resuming Training
+
+Loading restores model parameters, epoch counts, optimizer moment buffers, and learning rate telemetry. Given the same pseudo-random seed and next batch, resumed training produces bit-for-bit identical updates to an uninterrupted run:
+
+$$\text{checkpoint.pkl} \xrightarrow{\text{pickle.load()}} \mathcal{D}_{\text{checkpoint}} \implies \begin{cases} (t_{\text{epoch}}, t_{\text{step}}) \leftarrow (\mathcal{D}[\text{'epoch'}], \mathcal{D}[\text{'step'}]) \\ \boldsymbol{\Theta} \leftarrow \_ \text{set\_model\_state}(\mathcal{D}[\text{'model\_state'}]) \\ \mathbf{S}_{\text{opt}} \leftarrow \_ \text{set\_optimizer\_state}(\mathcal{D}[\text{'optimizer\_state'}]) \\ \text{policy}_{\text{lr}} \leftarrow \_ \text{set\_scheduler\_state}(\mathcal{D}[\text{'scheduler\_state'}]) \\ \mathcal{H} \leftarrow \mathcal{D}[\text{'history'}] \end{cases}$$
+
+Validation safeguards ensure that if model parameter shapes or optimizer buffer lengths do not match the checkpoint, a clear error is raised before mutating any in-memory state.
+"""
+
+# %% nbgrader={"grade": false, "grade_id": "trainer-load-checkpoint", "solution": true}
+#| exporti
+def trainer_load_checkpoint(self, path: str) -> None:
+    """
+    Load training state from checkpoint.
+
+    Args:
+        path: File path to load checkpoint from (.pkl)
+
+    TODO: Deserialize training state from disk and restore all components
+
+    APPROACH:
+    1. Open and unpickle the checkpoint file
+    2. Restore self.epoch, self.step, self.history, self.training_mode, grad_clip_norm
+       (older checkpoints retain the current clipping configuration)
+    3. Call self._set_model_state() if 'model_state' in checkpoint
+    4. Call self._set_optimizer_state() if 'optimizer_state' in checkpoint
+    5. Call self._set_scheduler_state() if 'scheduler_state' in checkpoint
+
+    EXAMPLE:
+    >>> trainer.save_checkpoint('/tmp/checkpoint.pkl')
+    >>> trainer.epoch = 999  # Some change
+    >>> trainer.load_checkpoint('/tmp/checkpoint.pkl')
+    >>> print(trainer.epoch)  # Restored to original value
+
+    HINT: The private _set_*_state() helpers are already provided.
+    """
+    with open(path, 'rb') as f:
+        checkpoint = pickle.load(f)
+
+    self.epoch = checkpoint['epoch']
+    self.step = checkpoint['step']
+    self.history = checkpoint['history']
+    self.training_mode = checkpoint['training_mode']
+    self.grad_clip_norm = checkpoint.get('grad_clip_norm', self.grad_clip_norm)
+    set_training_mode(self.model, self.training_mode)
+
+    # Restore states
+    if 'model_state' in checkpoint:
+        self._set_model_state(checkpoint['model_state'])
+    if 'optimizer_state' in checkpoint:
+        self._set_optimizer_state(checkpoint['optimizer_state'])
+    if 'scheduler_state' in checkpoint:
+        self._set_scheduler_state(checkpoint['scheduler_state'])
+
+Trainer.load_checkpoint = trainer_load_checkpoint
+
+# %% [markdown]
+"""
+### 🧪 Unit Test: Trainer.load_checkpoint
+
+**What we're testing**: Checkpoint loading restores exact training state
+**Why it matters**: Resuming training must produce the same result as uninterrupted training
+**Expected**: All state (epoch, step, model weights, history) restored correctly
+"""
+
+# %% nbgrader={"grade": true, "grade_id": "test-trainer-load-checkpoint", "locked": true, "points": 5}
+def test_unit_trainer_load_checkpoint():
+    """🧪 Test Trainer.load_checkpoint implementation."""
+    print("🧪 Unit Test: Trainer.load_checkpoint...")
+
+    class DummyModel:
+        def __init__(self):
+            self.layer = Linear(2, 1)
+            self.training = True
+        def forward(self, x):
+            return self.layer.forward(x)
+        def parameters(self):
+            return self.layer.parameters()
+
+    model = DummyModel()
+    optimizer = SGD(model.parameters(), lr=0.05)
+    trainer = Trainer(model, optimizer, MSELoss())
+
+    # Set distinctive state
+    trainer.epoch = 7
+    trainer.step = 200
+    trainer.history['train_loss'].extend([0.9, 0.7, 0.5])
+    trainer.training_mode = False
+
+    # Save original model weights for comparison
+    original_weights = model.parameters()[0].data.copy()
+
+    checkpoint_path = "/tmp/test_load_checkpoint.pkl"
+    trainer.save_checkpoint(checkpoint_path)
+
+    # Corrupt state
+    trainer.epoch = 999
+    trainer.step = 0
+    trainer.history = {'train_loss': [], 'eval_loss': [], 'learning_rates': []}
+    trainer.training_mode = True
+
+    # Restore
+    trainer.load_checkpoint(checkpoint_path)
+
+    # Verify restoration
+    assert trainer.epoch == 7, f"Expected epoch=7, got {trainer.epoch}"
+    assert trainer.step == 200, f"Expected step=200, got {trainer.step}"
+    assert trainer.training_mode is False, "training_mode should be restored to False"
+    assert len(trainer.history['train_loss']) == 3, "History should have 3 entries"
+    assert trainer.history['train_loss'] == [0.9, 0.7, 0.5], "History values should match"
+
+    # Verify model weights restored
+    restored_weights = model.parameters()[0].data
+    assert np.allclose(restored_weights, original_weights), "Model weights should be restored"
+
+    # Clean up
+    os.remove(checkpoint_path)
+
+    print("✅ Trainer.load_checkpoint works correctly!")
+
+if __name__ == "__main__":
+    test_unit_trainer_load_checkpoint()
+
+# %% [markdown]
+r"""
+## 🔧 Integration: Complete Training Example
+
+Here we compose every subsystem built across Modules 01 through 08 into a complete, deterministic neural network training pipeline:
+
+| Stage | Component | Instantiation & Configuration | Operational Handoff |
+| :--- | :--- | :--- | :--- |
+| **1. Model Definition** | Custom Module / `Linear` | Define layers and forward pass | Yields parameter list $\mathcal{P}$ |
+| **2. Optimizer Setup** | `SGD` / `AdamW` | Bind parameter buffers and configure learning rate | Holds reference to parameter `.grad` |
+| **3. Objective Selection** | `MSELoss` / `CrossEntropy` | Define target loss function | Produces scalar loss and backward seeds |
+| **4. Rate Schedule** | `CosineSchedule` | Set $\eta_{\max}, \eta_{\min}$, and total epochs | Updates `optimizer.lr` at epoch boundaries |
+| **5. Trainer Harness** | `Trainer` | Bind model, optimizer, loss, scheduler, and clipping threshold | Manages complete state lifecycle |
+| **6. Execution & Recovery** | `train_epoch` + `evaluate` | Loop over epochs, evaluate metrics, save checkpoint | Emits loss history and serialized checkpoint |
+"""
+
+# %% nbgrader={"grade": false, "grade_id": "integration_example", "solution": false}
+def demonstrate_complete_training_pipeline():
+    """
+    Complete end-to-end training example using all components.
+
+    This demonstrates how Trainer, scheduler, gradient clipping,
+    and checkpointing work together in a real training scenario.
+    """
+    print("🏗️ Building Complete Training Pipeline...")
+    print("=" * 60)
+
+    # Step 1: Create model using REAL Linear layer
+    class SimpleNN:
+        def __init__(self):
+            self.layer1 = Linear(3, 5)
+            self.relu = ReLU()
+            self.layer2 = Linear(5, 2)
+            self.training = True
+
+        def forward(self, x):
+            x = self.layer1.forward(x)
+            x = self.relu.forward(x)   # through the operation object, so gradients reach layer1
+            x = self.layer2.forward(x)
+            return x
+
+        def parameters(self):
+            return self.layer1.parameters() + self.layer2.parameters()
+
+    print("✓ Model created: 3 → 5 → 2 network")
+
+    # Step 2: Create optimizer
+    model = SimpleNN()
+    optimizer = SGD(model.parameters(), lr=0.1, momentum=0.9)
+    print("✓ Optimizer: SGD with momentum")
+
+    # Step 3: Create loss function
+    loss_fn = MSELoss()
+    print("✓ Loss function: MSE")
+
+    # Step 4: Create scheduler
+    scheduler = CosineSchedule(max_lr=0.1, min_lr=0.001, total_epochs=5)
+    print("✓ Scheduler: Cosine annealing (0.1 → 0.001)")
+
+    # Step 5: Create trainer with gradient clipping
+    trainer = Trainer(
+        model=model,
+        optimizer=optimizer,
+        loss_fn=loss_fn,
+        scheduler=scheduler,
+        grad_clip_norm=1.0
+    )
+    print("✓ Trainer initialized with gradient clipping")
+
+    # Step 6: Create synthetic training data
+    train_data = [
+        (Tensor(rng.standard_normal((4, 3))), Tensor(rng.standard_normal((4, 2)))),
+        (Tensor(rng.standard_normal((4, 3))), Tensor(rng.standard_normal((4, 2)))),
+        (Tensor(rng.standard_normal((4, 3))), Tensor(rng.standard_normal((4, 2))))
+    ]
+    print("✓ Training data: 3 batches of 4 samples")
+
+    # Step 7: Train for multiple epochs
+    print("\n🚀 Starting Training...")
+    print("-" * 60)
+    print(f"{'Epoch':<8} {'Train Loss':<12} {'Learning Rate':<15}")
+    print("-" * 60)
+
+    for epoch in range(3):
+        loss = trainer.train_epoch(train_data)
+        lr = scheduler.get_lr(epoch)
+        print(f"{epoch:<8} {loss:<12.6f} {lr:<15.6f}")
+
+    # Step 8: Save checkpoint
+    checkpoint_path = "/tmp/training_example_checkpoint.pkl"
+    trainer.save_checkpoint(checkpoint_path)
+    print(f"\n✓ Checkpoint saved: {checkpoint_path}")
+
+    # Step 9: Evaluate
+    eval_loss, _ = trainer.evaluate(train_data)
+    print(f"✓ Regression evaluation - MSE loss: {eval_loss:.6f}")
+
+    # Clean up
+    if os.path.exists(checkpoint_path):
+        os.remove(checkpoint_path)
+
+    print("\n" + "=" * 60)
+    print("✅ Complete training pipeline executed successfully!")
+    print("\n💡 This pipeline demonstrates:")
+    print("   • Model → Optimizer → Loss → Scheduler → Trainer integration")
+    print("   • Training loop with scheduling and gradient clipping")
+    print("   • Checkpointing for training persistence")
+    print("   • Evaluation mode for model assessment")
+
+if __name__ == "__main__":
+    demonstrate_complete_training_pipeline()
+
+# %% [markdown]
+r"""
+## 📊 Systems Analysis: Training Performance and Memory
+
+In deep learning infrastructure, memory limits dictate model scale far more frequently than compute bounds. Understanding activation lifecycles, optimizer state footprints, and gradient accumulation economics allows ML engineers to train state-of-the-art models without hitting Out-Of-Memory (OOM) failures.
+
+<div align="center">
+  <img src="microbatch_memory_timeline.svg" alt="Micro-Batching Memory Timeline: Avoiding VRAM OOM" width="680px">
+</div>
+
+<div align="center">
+  <img src="training_margin_timeline.svg" alt="Activation Lifecycle Timeline" width="280px">
+</div>
+
+### Training Memory Allocation Budget
+
+During an end-to-end training step in single-precision (FP32), memory consumption transitions through distinct phases:
+
+| Memory Partition | Tensor Lifespan | Typical Scaling | Memory Footprint (FP32) | Hardware Residency |
+| :--- | :--- | :--- | :--- | :--- |
+| **Model Parameters ($\boldsymbol{\theta}$)** | Permanent | $P$ parameters | $4 \times P$ bytes | GPU VRAM (static baseline) |
+| **Gradients ($\mathbf{g}$)** | Backward pass to step | $P$ parameters | $4 \times P$ bytes | GPU VRAM (accumulated) |
+| **Optimizer States ($\mathbf{m}, \mathbf{v}$)** | Permanent | $2P$ (Adam/AdamW) | $8 \times P$ bytes | GPU VRAM (static baseline) |
+| **Activation Tensors ($\mathbf{a}$)** | Forward pass until backward | $B \times L \times D$ elements | $4 \times B \times L \times D$ bytes | GPU VRAM (transient peak) |
+| **Total Peak Memory** | — | — | **$16P + \text{Activations}$ bytes** | **Hardware VRAM Ceiling** |
+
+> **Systems Takeaway**: While model parameters and optimizer states establish a static baseline ($16\text{ bytes/parameter}$), transient activations scale directly with batch size $B$ and sequence length $L$. As shown in the timeline above, a large batch ($B=256$) easily breaches GPU hardware ceilings (e.g. 16 GB), crashing training.
+
+### Gradient Accumulation Systems Economics
+
+Gradient accumulation resolves the hardware memory wall by subdividing an effective batch $B_{\text{eff}}$ into $K$ microbatches of size $B_{\text{micro}} = B_{\text{eff}} / K$:
+
+| Optimization Factor | Large Batch ($B=256$) | Micro-Batched ($4 \times 64$) | Systems Implication |
+| :--- | :--- | :--- | :--- |
+| **Peak Activation Memory** | $4\times$ footprint | $1\times$ footprint | Eliminates OOM crashes on constrained GPUs |
+| **Static State Memory** | $16\text{ B / param}$ | $16\text{ B / param}$ | Unchanged (weights, moments, gradients) |
+| **Mathematical Equivalence** | Exact sum over 256 samples | Exact sample-weighted sum | Identical descent trajectory and convergence |
+| **Execution Trade-off** | Fewer kernel launches | $4\times$ sequential forward/backwards | Trades small kernel launch latency for memory viability |
+"""
+
+# %%
+def analyze_training_memory():
+    """📊 Analyze memory overhead of training components."""
+    print("📊 Analyzing Training Memory Overhead...")
+
+    # Create models of different sizes
+    model_sizes = [
+        ("Small", 100),    # 100 parameters
+        ("Medium", 1000),  # 1K parameters
+        ("Large", 10000)   # 10K parameters
+    ]
+
+    print("\nTraining Memory Analysis:")
+    print("=" * 90)
+    print(f"{'Model':<10} {'Params':<10} {'Gradients':<12} {'SGD State':<12} {'Adam State':<12} {'Total':<10}")
+    print("-" * 90)
+
+    for name, param_count in model_sizes:
+        # Base memory: parameters
+        param_memory = param_count * 4  # 4 bytes per float32
+
+        # Gradients: same as parameters
+        grad_memory = param_count * 4
+
+        # SGD optimizer state: momentum buffer
+        sgd_memory = param_count * 4
+
+        # Adam optimizer state: 2 buffers (m and v)
+        adam_memory = param_count * 2 * 4
+
+        # Total with Adam (worst case)
+        total_memory = param_memory + grad_memory + adam_memory
+
+        # Convert to human-readable
+        def format_memory(nbytes):
+            if nbytes < 1000:
+                return f"{nbytes} B"
+            elif nbytes < 1_000_000:
+                return f"{nbytes/1000:.1f} KB"
+            else:
+                return f"{nbytes/1_000_000:.1f} MB"
+
+        print(f"{name:<10} {format_memory(param_memory):<10} "
+              f"{format_memory(grad_memory):<12} {format_memory(sgd_memory):<12} "
+              f"{format_memory(adam_memory):<12} {format_memory(total_memory):<10}")
+
+    print("\n💡 Key Insights:")
+    print("- Training memory = Parameters + Gradients + Optimizer State")
+    print("- SGD: 3× parameter memory (params + grads + momentum)")
+    print("- Adam: 4× parameter memory (params + grads + 2 moment buffers)")
+    print("- Gradient accumulation reduces memory but increases training time")
+
+def analyze_checkpoint_overhead():
+    """📊 Analyze checkpoint size and overhead."""
+    print("\n📊 Analyzing Checkpoint Overhead...")
+
+    # Create a simple model
+    class TinyModel:
+        def __init__(self, size):
+            self.layer = Linear(size, size)
+            self.training = True
+
+        def forward(self, x):
+            return self.layer.forward(x)
+
+        def parameters(self):
+            return self.layer.parameters()
+
+    sizes = [10, 50, 100]
+
+    print("\nCheckpoint Size Analysis:")
+    print("=" * 70)
+    print(f"{'Model Size':<12} {'Raw Params':<15} {'Checkpoint':<15} {'Overhead':<10}")
+    print("-" * 70)
+
+    def format_size(nbytes):
+        if nbytes < 1000:
+            return f"{nbytes} B"
+        return f"{nbytes/1000:.1f} KB"
+
+    for size in sizes:
+        # Create model and trainer
+        model = TinyModel(size)
+        optimizer = SGD(model.parameters(), lr=0.01)
+        trainer = Trainer(model, optimizer, MSELoss())
+
+        # Estimate raw parameter size
+        param_count = size * size + size  # W + b
+        raw_size = param_count * 4  # 4 bytes per float32
+
+        # Create checkpoint and measure size
+        checkpoint_path = f"/tmp/checkpoint_test_{size}.pkl"
+        trainer.save_checkpoint(checkpoint_path)
+
+        checkpoint_size = os.path.getsize(checkpoint_path)
+        overhead = (checkpoint_size / raw_size - 1) * 100
+
+        # Clean up
+        os.remove(checkpoint_path)
+
+        print(f"{size}×{size:<8} {format_size(raw_size):<15} "
+              f"{format_size(checkpoint_size):<15} {overhead:.1f}%")
+
+    print("\n💡 Key Insights:")
+    print("- Checkpoints include model state + optimizer state + training metadata")
+    print("- Pickle's framing and metadata cost a roughly FIXED ~440 bytes here, not a percentage")
+    print("  The same 439-442 B sits on top of 440 B of weights (99.8%) and of 39.5 KB (1.1%)")
+    print("- So serialization overhead is a small-model problem; it vanishes as the model grows")
+    print("- This run used SGD(lr=0.01) with no momentum, so there is no optimizer state to save.")
+    print("  Adam's two moment buffers would triple the parameter bytes, saved via get_momentum_state()")
+    print("- Use checkpoint frequency wisely in production (memory vs fault tolerance)")
+
+if __name__ == "__main__":
+    analyze_training_memory()
+    analyze_checkpoint_overhead()
+
+# %% [markdown]
+"""
+## 🧪 Module Integration Test
+
+Final validation that everything works together correctly.
+"""
+
+# %% nbgrader={"grade": true, "grade_id": "test_module", "locked": true, "points": 20}
+def test_module():
+    """🧪 Module Test: Complete Integration
+
+    Comprehensive test of entire module functionality.
+
+    This final test runs before module summary to ensure:
+    - All unit tests pass
+    - Functions work together correctly
+    - Module is ready for integration with TinyTorch
+    """
+    print("🧪 RUNNING MODULE INTEGRATION TEST")
+    print("=" * 50)
+
+    # Run all unit tests
+    print("Running unit tests...")
+    test_unit_cosine_schedule()
+    test_unit_clip_grad_norm()
+    test_unit_trainer_init()
+    test_unit_trainer_process_batch()
+    test_unit_trainer_optimizer_update()
+    test_unit_trainer_train_epoch()
+    test_unit_trainer_evaluate()
+    test_unit_trainer_save_checkpoint()
+    test_unit_trainer_load_checkpoint()
+
+    print("\nRunning integration scenarios...")
+
+    # Test complete training pipeline integration with REAL components
+    print("🧪 Integration Test: Complete Training Pipeline...")
+
+    # Use REAL components from previous modules (already imported at module level)
+
+    # Create a simple model using REAL Linear layer
+    class SimpleModel:
+        def __init__(self):
+            self.layer = Linear(2, 1)  # Real Linear from Module 03
+            self.training = True
+
+        def forward(self, x):
+            return self.layer.forward(x)
+
+        def parameters(self):
+            return self.layer.parameters()
+
+    # Create integrated system with REAL components
+    model = SimpleModel()
+    optimizer = SGD(model.parameters(), lr=0.01)  # Real SGD from Module 07
+    loss_fn = MSELoss()  # Real MSELoss from Module 04
+    scheduler = CosineSchedule(max_lr=0.1, min_lr=0.001, total_epochs=3)
+
+    trainer = Trainer(
+        model=model,
+        optimizer=optimizer,
+        loss_fn=loss_fn,
+        scheduler=scheduler,
+        grad_clip_norm=0.5
+    )
+
+    # Test data using REAL Tensors
+    data = [
+        (Tensor([[1.0, 0.5]]), Tensor([[0.8]])),
+        (Tensor([[0.5, 1.0]]), Tensor([[0.2]]))
+    ]
+
+    # Test training
+    initial_loss = trainer.train_epoch(data)
+    assert isinstance(initial_loss, (float, np.floating)), "Training should return float loss"
+    assert trainer.epoch == 1, "Epoch should increment"
+
+    # Test evaluation
+    eval_loss, accuracy = trainer.evaluate(data)
+    assert isinstance(eval_loss, (float, np.floating)), "Evaluation should return float loss"
+    assert isinstance(accuracy, (float, np.floating)), "Evaluation should return float accuracy"
+
+    # Test scheduling
+    lr_epoch_0 = scheduler.get_lr(0)
+    lr_epoch_1 = scheduler.get_lr(1)
+    assert lr_epoch_0 > lr_epoch_1, "Learning rate should decrease"
+
+    # Test gradient clipping with large gradients using real Tensor
+    large_param = Tensor([1.0, 2.0], requires_grad=True)
+    large_param.grad = np.array([100.0, 200.0])
+    large_params = [large_param]
+
+    original_norm = clip_grad_norm(large_params, max_norm=1.0)
+    assert original_norm > 1.0, "Original norm should be large"
+
+    if isinstance(large_params[0].grad, np.ndarray):
+        grad_data = large_params[0].grad
+    else:
+        # grad set by hand as a Tensor; take its array
+        grad_data = large_params[0].grad.data
+    new_norm = np.linalg.norm(grad_data)
+    assert abs(new_norm - 1.0) < 1e-6, "Clipped norm should equal max_norm"
+
+    # Test checkpointing
+    checkpoint_path = "/tmp/integration_test_checkpoint.pkl"
+    trainer.save_checkpoint(checkpoint_path)
+
+    original_epoch = trainer.epoch
+    trainer.epoch = 999
+    trainer.load_checkpoint(checkpoint_path)
+
+    assert trainer.epoch == original_epoch, "Checkpoint should restore state"
+
+    # Clean up
+    if os.path.exists(checkpoint_path):
+        os.remove(checkpoint_path)
+
+    print("✅ End-to-end training pipeline works!")
+
+    print("\n" + "=" * 50)
+    print("🎉 ALL TESTS PASSED! Module ready for export.")
+    print("Run: tito module complete 08")
+
+# %% [markdown]
+"""
+## 🤔 ML Systems Reflection Questions
+
+Answer these to deepen your understanding of training systems and their implications:
+
+### Question 1: Memory Trade-offs
+**Question**: If you have a model with 1 million parameters and use Adam optimizer, what's the total training memory required?
+
+**Consider**:
+- Parameters: 1M parameters at 4 bytes each
+- Gradients: Same size as parameters
+- Adam state: 2 buffers (momentum and variance) per parameter
+- How does gradient accumulation help when you want batch_size=128 but only batch_size=32 fits?
+
+---
+
+### Question 2: Gradient Clipping
+**Question**: Why do we clip gradients by *global norm* rather than clipping each gradient independently?
+
+**Consider**:
+- What happens if each parameter's gradient is clipped to 1.0 separately?
+- How does global norm preserve the gradient direction?
+- What does it signal when gradients consistently exceed max_norm?
+
+---
+
+### Question 3: Learning Rate Scheduling
+**Question**: Why does cosine annealing start with high learning rate and end with low learning rate?
+
+**Consider**:
+- What phase of optimization benefits from large vs. small updates?
+- Compare: fixed lr=0.1 vs cosine schedule (0.1 to 0.01)
+- When might a fixed learning rate actually be better?
+
+---
+
+### Question 4: Checkpointing Strategy
+**Question**: You're training for 100 epochs with 1GB checkpoints. How often should you save?
+
+**Consider**:
+- Disk space: 100 checkpoints = 100GB
+- Recovery time: If training crashes at epoch 95, how much work is lost?
+- What information MUST be in a checkpoint to resume training exactly?
+
+---
+
+### Question 5: Mode Switches and Gradient Zeroing
+**Question**: Both of the Trainer's bookkeeping flags decide correctness rather than speed. What breaks when each one is wrong?
+
+**Consider**:
+- `set_training_mode` sets `training` on the model and on every layer stored inside it. Which layers read that flag, and what does each one do differently when it is `False`? (Think about dropout.)
+- Flipping `training_mode` does not disable the backward tape or freeze the weights. What does each of those?
+- What would happen if you forgot to zero gradients between training steps?
+- How does gradient accumulation intentionally exploit not zeroing?
+"""
+
+# %% [markdown]
+"""
+## ⭐ Aha Moment: Training Just Works
+
+**What you built:** A complete training infrastructure with Trainer, schedulers, and checkpoints.
+
+**Why it matters:** You've assembled all the pieces: tensors → layers → losses → autograd →
+optimizers → training loop. This is the complete ML training pipeline! The Trainer orchestrates
+forward pass, loss computation, backward pass, and weight updates, just like PyTorch Lightning.
+
+In the milestones, you'll use this training infrastructure to train real models on real data!
+"""
+
+# %%
+def demo_training():
+    """🎯 See the training loop in action."""
+    print("🎯 AHA MOMENT: Training Just Works")
+    print("=" * 45)
+
+    # Its own generator, so this demo prints the same numbers whether you run
+    # the whole module top to bottom or just this one cell.
+    demo_rng = np.random.default_rng(0)
+
+    # Simple linear regression: learn y = 2x + 1
+    X = Tensor(demo_rng.standard_normal((20, 1)))
+    y = Tensor(X.data * 2 + 1)  # True relationship
+
+    # Smallest possible model: one weight, one bias, both starting at zero.
+    class LineFitter:
+        def __init__(self):
+            self.w = Tensor(np.array([[0.0]]), requires_grad=True)
+            self.b = Tensor(np.array([0.0]), requires_grad=True)
+            self.training = True
+
+        def forward(self, x):
+            return x.matmul(self.w) + self.b
+
+        def parameters(self):
+            return [self.w, self.b]
+
+    model = LineFitter()
+
+    # The Trainer you just built drives the whole thing. One batch per epoch,
+    # so `train_epoch` runs exactly one forward, backward, and step.
+    trainer = Trainer(model, SGD(model.parameters(), lr=0.2), MSELoss())
+    dataloader = [(X, y)]
+
+    print("Learning y = 2x + 1:")
+    total_epochs = 60
+    for epoch in range(total_epochs):
+        loss = trainer.train_epoch(dataloader)
+        if epoch + 1 in (1, 10, 20, 30, 45, total_epochs):
+            print(f"  Epoch {epoch+1:2d}: w={model.w.data[0,0]:.4f}, "
+                  f"b={model.b.data[0]:.4f}, loss={loss:.6f}")
+
+    print(f"\nLearned: y = {model.w.data[0,0]:.2f}x + {model.b.data[0]:.2f}")
+    print("Target:  y = 2.00x + 1.00")
+    print(f"Final loss: {loss:.2e}")
+
+    print("\n✨ Your training loop learned the pattern!")
+
+# %%
+if __name__ == "__main__":
+    test_module()
+    print("\n")
+    demo_training()
+
+# %% [markdown]
+"""
+## 🚀 MODULE SUMMARY: Training
+
+Congratulations! You've built the complete training infrastructure that orchestrates neural network learning!
+
+### Key Accomplishments
+- **Built a complete Trainer class** with training/evaluation loops and gradient management
+- **Implemented CosineSchedule** for adaptive learning rate management
+- **Created clip_grad_norm** for training stability via global norm clipping
+- **Added checkpointing** for training persistence and resumption
+- **All tests pass** (validated by `test_module()`)
+
+### Systems Insights Discovered
+- **Memory scaling**: Training costs 3x the model in bytes with SGD plus momentum and 4x with Adam (params + grads + optimizer state), which is the 16 bytes per parameter the budget table names for FP32
+- **Gradient accumulation**: Trades time for memory, enabling larger effective batch sizes
+- **Checkpoint overhead**: Pickle's framing and metadata cost a fixed ~440 bytes, so the same overhead reads as 99.8% on a 440-byte model and 1.1% on a 39.5 KB one. Adam's two moment buffers, when the run has them, triple the parameter bytes on disk
+- **Scheduling behavior**: Cosine annealing balances aggressive initial learning with fine-tuning
+
+### Ready for Next Steps
+Your training loop closes the circle: data in, gradients out, parameters
+updated, repeat. Everything from here on is about making that loop faster,
+smaller, or applicable to a new kind of data.
+
+Export with: `tito module complete 08`
+
+**Next**: Module 09 will add convolution operations for spatial neural network processing!
+"""

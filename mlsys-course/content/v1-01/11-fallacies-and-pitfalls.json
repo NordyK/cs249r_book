@@ -1,0 +1,83 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Calculate end-to-end pipeline speedup under Amdahl's Law when optimizing individual ML system components.",
+ "source": {
+  "chapter": "v1-01",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate end-to-end pipeline speedup under Amdahl's Law when optimizing individual ML system components\n- Analyze the fallacies of relying exclusively on benchmark accuracy to assess production readiness\n- Explain why traditional CI/CD pipelines cannot detect silent degradation in deployed ML systems\n- Evaluate model selection trade-offs between incremental accuracy gains and production execution budgets"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Introduction, § Fallacies and Pitfalls",
+   "md": "Every chapter in this book closes with a section like this one. A **fallacy** is a belief that sounds right but is false, a **pitfall** is a practice that is easy to fall into and costly to recover from, and each entry corrects the mistake with evidence from the chapter."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Amdahl's law pitfall in ML inference pipelines; benchmark fallacy vs production distribution shift; deploy once fallacy and silent drift; algorithmic superiority fallacy vs latency budgets."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why can code and infrastructure checks in a standard CI/CD pipeline fail to detect a loss of predictive quality, and how should drift and outcome monitoring guide the response?",
+   "md": "Compilation, unit tests, and container health can remain healthy while the operating population changes and predictive quality falls. Drift monitoring warns that the input distribution has changed; outcome measurements establish whether relevant quality has declined. Engineers then diagnose the cause and select a repair, which may involve the pipeline, data, model, or deployment requirements. Neither degradation nor retraining follows inevitably from a drift signal."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-01-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An inference pipeline consists of three sequential stages: data preprocessing taking 60 ms, model inference taking 45 ms, and output postprocessing taking 25 ms (total latency = 130 ms). An engineering team applies kernel fusion and quantization to achieve a \\$3× speedup on the model inference stage alone (reducing it from 45 ms to 15 ms). What is the resulting end-to-end pipeline latency and approximate overall system speedup, and what principle does this demonstrate?",
+     "explanation": "The correct answer is A. Total initial time is \\$60 + 45 + 25 = 130\\text{ ms}$. With a \\$3\\times$ speedup on inference alone (\\$45 / 3 = 15\\text{ ms}$), the new total latency is \\$60 + 15 + 25 = 100\\text{ ms}$. The overall speedup is \\$130 / 100 = 1.30\\times$, representing a 23% overall latency reduction $(1 - 1/1.30 = 0.231)$. This is a classic demonstration of Amdahl's Law: because the inference component accounted for only \\$45/130 \\approx 34.6\\%$ of total execution time, even a dramatic \\$3\\times$ component improvement yields a modest 23% end-to-end gain. Assuming a \\$3\\times$ overall pipeline speedup commits the pitfall of ignoring system interactions.",
+     "hint": "Think about: calculate end-to-end pipeline speedup under Amdahl's Law when optimizing individual ML system components.",
+     "type": "single",
+     "options": [
+      "New latency is 100 ms (an overall speedup of $\\approx 1.30\\times$, or a 23% reduction in execution time), illustrating Amdahl's Law that component-level speedups yield only marginal end-to-end gains when non-optimized stages dominate.",
+      "New latency is 43.3 ms (a \\$3.0× overall speedup, or 67% reduction), illustrating linear speedup scaling across modular microservices.",
+      "New latency is 15 ms, illustrating that hardware acceleration bypasses pre- and post-processing stages.",
+      "New latency is 115 ms, illustrating that quantization overhead cancels out inference gains."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Why does high accuracy on curated benchmark datasets (such as ImageNet or GLUE) frequently fail to guarantee production readiness in real-world deployments?",
+     "explanation": "The correct answer is D. Curated benchmarks evaluate accuracy on fixed, preprocessed test distributions in unconstrained compute environments. Production deployments encounter domain shifts, slang, sensor noise, demographic variations, strict real-time latency budgets, and hardware precision/memory constraints that offline benchmarks never capture. Explanations regarding CPU execution, synthetic benchmark data, or weight erasure during export are factually inaccurate.",
+     "hint": "Think about: analyze the fallacies of relying exclusively on benchmark accuracy to assess production readiness.",
+     "type": "single",
+     "options": [
+      "Benchmarks are evaluated on GPUs, whereas all production models run on CPUs.",
+      "Benchmark datasets contain only synthetic, computer-generated data that lacks realistic labels.",
+      "Neural networks automatically lose their learned weights when exported to production formats.",
+      "Benchmarks evaluate models on static, clean distributions without operational constraints (e.g., sub-100 ms latency budgets, memory limits, noise, and ongoing distribution shift), whereas production systems face uncurated edge cases, shifting user behavior, and hardware precision limits."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In production ML systems engineering, selecting a model that provides a 1% higher benchmark accuracy is always preferable, even if it requires doubling inference latency and memory footprint beyond the client application's SLA.",
+     "explanation": "False. Production model selection is a constrained multi-objective optimization problem where task accuracy must be balanced against latency, memory, power, and cost budgets; a model that violates a real-time SLA has effectively zero utility regardless of its benchmark accuracy.",
+     "hint": "Think about: evaluate model selection trade-offs between incremental accuracy gains and production execution budgets.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate end-to-end pipeline speedup under Amdahl's Law when optimizing individual ML system components.",
+    "You can now analyze the fallacies of relying exclusively on benchmark accuracy to assess production readiness.",
+    "You can now explain why traditional CI/CD pipelines cannot detect silent degradation in deployed ML systems.",
+    "You can now evaluate model selection trade-offs between incremental accuracy gains and production execution budgets."
+   ]
+  }
+ ]
+}

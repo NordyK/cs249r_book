@@ -1,0 +1,35 @@
+{
+ "title": "⭐ Aha Moment: Transformer Processes Sequences",
+ "summary": "TinyTorch transformers: ⭐ Aha Moment: Transformer Processes Sequences",
+ "source": {
+  "chapter": "tt-13",
+  "sections": [
+   "⭐ Aha Moment: Transformer Processes Sequences"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: Transformer Processes Sequences\n\n**What you built:** A complete transformer block with attention, MLPs, and residual connections.\n\n**Why it matters:** This is THE architecture behind GPT, Claude, LLaMA, and every modern\nlanguage model. The transformer block combines attention (for relationships) with MLPs\n(for processing) and residual connections (for trainability).\n\nIn the milestones, you'll stack these blocks to build a working language model!"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_transformers():\n    \"\"\"🎯 See a transformer block process a sequence.\"\"\"\n    print(\"🎯 AHA MOMENT: Transformer Processes Sequences\")\n    print(\"=\" * 45)\n\n    # Create a small transformer block (using concrete parameters)\n    embed_dim = 64\n    num_heads = 4\n    block = TransformerBlock(embed_dim=embed_dim, num_heads=num_heads, mlp_ratio=4)\n\n    # Input: batch of 2 sequences, 8 tokens each, 64 dims.\n    # The values must VARY across the feature axis. An all-ones token vector has zero\n    # feature variance, so LayerNorm returns exactly 0, both sublayers return 0, and the\n    # whole block collapses to the identity (a silent, very convincing non-demo).\n    demo_rng = np.random.default_rng(13)\n    x = Tensor(demo_rng.standard_normal((2, 8, embed_dim)))\n\n    # Forward pass through transformer block\n    output = block.forward(x)\n\n    # Show transformation\n    print(f\"Input shape:  {x.shape}  (2 sequences, 8 tokens, 64 dimensions)\")\n    print(f\"Output shape: {output.shape}\")\n\n    # Verify the transformation actually occurred. Compare element by element rather\n    # than by summing. Two opposite-signed deltas cancel in a sum, so a dead block can\n    # report a matching total and look alive.\n    delta = np.abs(output.data - x.data)\n    print(\"\\nData transformation:\")\n    print(f\"  Max |output - input|:  {np.max(delta):.4f}  (per-element change)\")\n    print(f\"  Mean |output - input|: {np.mean(delta):.4f}  (after attention + MLP)\")\n\n    print(\"\\nTransformerBlock architecture:\")\n    print(f\"  - Multi-head attention ({num_heads} heads)\")\n    print(\"  - Layer normalization (before operations)\")\n    print(f\"  - MLP ({embed_dim} -> {4*embed_dim} -> {embed_dim} with GELU)\")\n    print(\"  - Residual connections (preserve information flow)\")\n\n    print(\"\\n✨ The building block of GPT, Claude, and modern language models!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Transformers\n\nCongratulations! You've built the complete transformer architecture that powers modern language models like GPT, Claude, and ChatGPT!\n\n### Key Accomplishments\n- Built LayerNorm for stable training across deep transformer networks\n- Implemented MLP (feed-forward) networks with GELU activation and 4x expansion\n- Created complete TransformerBlock with self-attention, residual connections, and pre-norm architecture\n- Implemented decoupled autoregressive token generation with temperature scaling\n- Discovered attention memory scaling and parameter distribution patterns\n- All tests pass ✅ (validated by `test_module()`)\n\n### Systems Insights Discovered\n- **Attention memory scales quadratically**: the score matrix is seq_len^2 per\n  head, which is why context length is expensive and not merely inconvenient\n- **Parameters concentrate in the MLP**: the 4x expansion means the feed-forward\n  block holds roughly two thirds of a transformer block's weights\n- **Pre-norm is a systems decision**: normalizing before each sublayer keeps the\n  residual path clean, so gradients reach early layers without vanishing\n- **Generation is memory-bound, not compute-bound**: each new token re-reads the\n  entire model, which is the problem Module 18 exists to solve\n\n### Ready for Next Steps\nYour transformer implementation is the capstone of the language modeling pipeline.\nExport with: `tito module complete 13`"
+  },
+  {
+   "type": "text",
+   "md": "**Next**: Module 14 will add profiling and optimization techniques to make your transformers production-ready!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: Transformer Processes Sequences."
+   ]
+  }
+ ]
+}

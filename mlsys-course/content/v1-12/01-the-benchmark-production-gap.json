@@ -1,0 +1,80 @@
+{
+ "title": "The Benchmark–Production Gap",
+ "summary": "Compare how system, model, and data benchmarking provide complementary diagnostic lenses for different failure modes in deployed ML systems.",
+ "source": {
+  "chapter": "v1-12",
+  "sections": [
+   "The Benchmark–Production Gap"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare how system, model, and data benchmarking provide complementary diagnostic lenses for different failure modes in deployed ML systems\n- Evaluate whether ML benchmark scores represent permanent performance baselines or time-stamped proxy measurements\n- Explain Model FLOPs Utilization (MFU) as useful model FLOPs per second relative to the matching hardware peak\n- Justify why benchmarks act as proxies rather than ground truth and explain how Goodhart's Law distorts single-metric optimization"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Benchmarking, § The Benchmark–Production Gap",
+   "md": "A model quantized to INT8 can post a large speedup on a synthetic workload and show none under real traffic with variable input sizes and concurrent requests. A pruned model may hold its accuracy on the test set and fail on the edge cases the benchmark never covered."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Three-dimensional benchmarking framework (system, model, data); Benchmark-production gap; Model FLOPs Utilization (MFU); Amdahl's law in end-to-end serving pipelines."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how Goodhart's Law applies to ML systems benchmarking, and describe a concrete scenario where optimizing exclusively for a benchmark metric degrades real-world deployment quality.",
+   "md": "Goodhart's Law states that 'when a measure becomes a target, it ceases to be a good measure.' In ML benchmarking, benchmarks are imperfect proxies for deployment reality. When engineering teams optimize exclusively to maximize a single benchmark metric (such as top-1 validation accuracy or peak offline throughput), they incentivize shortcuts—such as aggressive quantization that damages confidence calibration, or fixed-batch optimizations that spike tail latency under variable traffic. For example, a vision model compressed to maximize ImageNet top-1 accuracy may exploit dataset-specific lighting artifacts while failing completely on real-world factory camera images with novel shadows, demonstrating how optimizing a proxy metric can anti-correlate with production reliability."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-12-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In the three-dimensional ML benchmarking framework, what distinct failure mode does *system benchmarking* isolate compared to *model* and *data benchmarking*?",
+     "explanation": "The correct answer is A. System benchmarking focuses on execution behavior: whether the hardware-software stack delivers the expected throughput, latency, and utilization on the workload being run. Model and data benchmarks examine different lenses, such as calibration loss after compression or coverage gaps in the dataset. These lenses are complementary diagnostics for the same deployed system, not perfectly isolated root causes.",
+     "hint": "Think about: compare how system, model, and data benchmarking provide complementary diagnostic lenses for different failure modes in deployed ML systems.",
+     "type": "single",
+     "options": [
+      "Whether hardware accelerators, memory subsystems, and software runtimes deliver expected computational throughput and latency under workload execution patterns",
+      "Whether model compression techniques preserve confidence calibration and accuracy on rare edge cases",
+      "Whether the training dataset contains sufficient coverage, demographic balance, and resistance to covariate drift",
+      "Whether human labeling errors and noisy annotations degrade model convergence rates"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Because ML benchmarks provide standardized datasets and metric formulas, a top-ranking benchmark score represents a permanent, universal verification of a model's operational capability in production.",
+     "explanation": "False. Unlike traditional computing specifications (such as sorting algorithms where correctness is absolute), ML benchmarks are soft specifications and proxy measurements captured at a specific point in time. As real-world data distributions drift and production traffic patterns vary, a static benchmark score degrades in predictive value, and designing solely to maximize benchmark leaderboards leads to benchmark overfitting.",
+     "hint": "Think about: evaluate whether ML benchmark scores represent permanent performance baselines or time-stamped proxy measurements.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "When benchmarkers compute useful model FLOPs per elapsed second and divide by the matching numerical-path peak throughput of the hardware, the resulting metric is abbreviated as ____.",
+     "explanation": "MFU. MFU measures useful model FLOPs per elapsed second divided by the matching numerical-path peak throughput of the hardware. It is more informative than a generic busy counter because it focuses on achieved model computation rather than all executed FLOPs or mere device activity.",
+     "hint": "Think about: explain Model FLOPs Utilization (MFU) as useful model FLOPs per second relative to the matching hardware peak.",
+     "type": "fill",
+     "answer": [
+      "MFU"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Model quality**: Task-relevant predictive performance evaluated over appropriate distributions and subgroups, with uncertainty."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Model quality",
+   "def": "Task-relevant predictive performance evaluated over appropriate distributions and subgroups, with uncertainty."
+  }
+ ]
+}

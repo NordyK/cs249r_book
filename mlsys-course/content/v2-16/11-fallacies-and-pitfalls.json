@@ -1,0 +1,83 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Calculate the serving capacity expansion required when retrofitting explainability workloads onto low-latency inference fleets.",
+ "source": {
+  "chapter": "v2-16",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate the serving capacity expansion required when retrofitting explainability workloads onto low-latency inference fleets\n- Analyze how proxy variable selection causes systemic bias that cannot be resolved by scaling dataset size or model parameters\n- Justify the requirement for operational ownership and remediation pipelines in production fairness monitoring\n- Evaluate the consequences of group-specific threshold adjustments on positive predictive value and decision semantics"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Responsible AI, § Fallacies and Pitfalls",
+   "md": "Responsible AI involves counterintuitive trade-offs where ethical principles conflict mathematically and technically. Practitioners from traditional software backgrounds often assume ethical guidelines translate directly to implementation without recognizing the impossibility theorems and computational costs involved. These fallacies and pitfalls are misconceptions that hide the structural costs of responsibility or mistake a local technical result for system-level assurance. They lead to deployed systems that appear fair in development but violate fairness criteria in production or impose prohibitive computational overhead."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Bias disappearance fallacy and proxy selection in healthcare; Explainability retrofit capacity penalty sizing; Single-metric optimization fallacy; Monitoring without remediation ownership pitfall."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why launching real-time fairness monitoring dashboards without assigning an operational remediation owner constitutes a dangerous production pitfall ('evidence without action').",
+   "md": "Monitoring dashboards expose metric violations, fairness drift, and subgroup disparities, but they cannot take corrective action. Without an accountable operational owner, clear threshold triggers, and budgeted remediation pathways (such as automated rollback, model recalibration, or human review queues), alerts will simply age out, turning ethical oversight into meaningless log entries that provide a false sense of control."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-16-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A service uses 100 ms of baseline processing per request at 10,000 QPS. Adding inline explanations requires another 50–200 ms of processing. What is the approximate capacity increase needed to preserve throughput, and does it also preserve a 100 ms latency limit?",
+     "explanation": "The correct answer is A. Processing demand rises from 100 ms to 150–300 ms per request, a \\$1.5\\times$–\\$3.0\\times$ capacity ratio under the simplified sizing assumptions. More replicas can preserve throughput but cannot remove serial work from an individual request. A 100 ms deadline therefore requires a cheaper explanation path, caching, selective generation, or asynchronous delivery; a DRAM upgrade alone does not establish that result.",
+     "hint": "Think about: calculate the serving capacity expansion required when retrofitting explainability workloads onto low-latency inference fleets.",
+     "type": "single",
+     "options": [
+      "Approximately \\$1.5\\times$–\\$3.0\\times$ capacity can preserve throughput, but serial request latency rises to 150–300 ms; meeting 100 ms requires reducing or moving explanation work off the critical path.",
+      "No capacity increase is needed because SHAP values are precomputed during compiler optimization",
+      "Serving capacity can be reduced by \\$50\\% because explanations compress network bandwidth",
+      "The system requires upgrading DRAM from DDR4 to DDR5 with zero additional server nodes"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A study of a widely used healthcare risk-prediction algorithm found that predicted healthcare expenditure could reproduce racial disparities in access to care. Why does this example challenge the claim that more data and better algorithms alone eliminate bias?",
+     "explanation": "The correct answer is C. Expenditure was a flawed proxy for health need: patients with similar illness burden could incur different costs because access to care differed. In the study's simulated correction, Black patients' share among those selected for additional care rose from 17.7% to 46.5%. These are shares of the selected group, not nationwide enrollment rates. The roughly 200 million patients estimate describes the broader industry class of tools, not this single algorithm's study population.",
+     "hint": "Think about: analyze how proxy variable selection causes systemic bias that cannot be resolved by scaling dataset size or model parameters.",
+     "type": "single",
+     "options": [
+      "The training dataset contained fewer than 1,000 total medical records",
+      "The deep neural network suffered from gradient vanishing across recurrent layers",
+      "The engineers selected healthcare expenditure as a proxy variable for health need; because Black patients faced historical access barriers and lower healthcare spending, the model inferred they were less sick than white patients with identical medical severity",
+      "An external cyber adversary poisoned the training dataset labels with malicious random noise"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Adjusting post-hoc decision thresholds per group to equalize true positive rates resolves algorithmic unfairness without altering the business risk meaning or calibration of positive predictions.",
+     "explanation": "False. Group-specific thresholds can change which applicants are approved and the predictive value of those approvals, even while the underlying risk scores remain calibrated. Equalizing one error rate does not establish all fairness criteria or identical decision meaning across groups. The threshold policy and resulting trade-offs must be evaluated and documented.",
+     "hint": "Think about: evaluate the consequences of group-specific threshold adjustments on positive predictive value and decision semantics.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate the serving capacity expansion required when retrofitting explainability workloads onto low-latency inference fleets.",
+    "You can now analyze how proxy variable selection causes systemic bias that cannot be resolved by scaling dataset size or model parameters.",
+    "You can now justify the requirement for operational ownership and remediation pipelines in production fairness monitoring.",
+    "You can now evaluate the consequences of group-specific threshold adjustments on positive predictive value and decision semantics."
+   ]
+  }
+ ]
+}

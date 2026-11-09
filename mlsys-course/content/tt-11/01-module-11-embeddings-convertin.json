@@ -1,0 +1,160 @@
+{
+ "title": "Module 11: Embeddings - Converting Tokens to Learnable Representations",
+ "summary": "TinyTorch embeddings: Module 11: Embeddings - Converting Tokens to Learnable Repre",
+ "source": {
+  "chapter": "tt-11",
+  "sections": [
+   "Module 11: Embeddings - Converting Tokens to Learnable Representations"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 11: Embeddings - Converting Tokens to Learnable Representations\n\nWelcome to Module 11! You're about to build embedding layers that convert discrete tokens into dense, learnable vectors, the foundational bridge between symbolic text processing and deep neural representations.\n\n## 🔗 Prerequisites & Progress\n**You've Built**: Complete training pipeline with autograd, optimizers, data loaders, 2D convolutions, and subword tokenization (`Tensor`, `Function`, `Linear`, `Conv2d`, `BPETokenizer`).\n**You'll Build**: Vector table lookups (`Embedding`), trainable and mathematical positional encodings (`PositionalEncoding`, `create_sinusoidal_embeddings`), and an integrated datapath (`EmbeddingLayer`).\n**You'll Enable**: Continuous sequence modeling powering Multi-Head Attention (`12_attention`) and full Transformers (`13_transformers`).\n\n### Architectural Roadmap"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Stage",
+    "Subsystem",
+    "Primitives & Capabilities",
+    "Status"
+   ],
+   "rows": [
+    [
+     "**Modules 01–08**",
+     "Foundation & Training",
+     "`Tensor`, `Function`, `Linear`, `SGD`, `Adam`, `Trainer`",
+     "Completed"
+    ],
+    [
+     "**Modules 09–10**",
+     "Vision & Tokenization",
+     "`Conv2d`, `MaxPool2d`, `BPETokenizer`, `CharTokenizer`",
+     "Completed"
+    ],
+    [
+     "**Module 11**",
+     "**Continuous Embeddings**",
+     "`Embedding`, `PositionalEncoding`, `create_sinusoidal_embeddings`, `EmbeddingLayer`",
+     "**Active Subsystem**"
+    ],
+    [
+     "**Modules 12–13**",
+     "Language & Attention",
+     "`MultiHeadAttention`, `TransformerBlock`, `CausalSelfAttention`",
+     "Downstream Consumers"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 🎯 Learning Objectives\nBy the end of this module, you will:\n1. **Implement efficient token-to-vector table lookups** using tensor indexing without constructing wasteful one-hot matrix multiplications.\n2. **Derive the backward scatter-add gradient route** and understand why repeated token indices need NumPy's unbuffered `np.add.at` instead of a buffered `grad[idx] += g`.\n3. **Build learned positional encodings** that allow neural networks to adaptively represent sequence positions through backpropagation.\n4. **Construct fixed sinusoidal positional encodings** using Vaswani et al. (2017) frequency harmonics for length generalization without added weights.\n5. **Architect an integrated production `EmbeddingLayer`** that handles optional \\$\\sqrt{d_{\\text{embed}}}\\$ scaling, positional injection, and variable batch sequences.\n6. **Analyze memory scaling and bandwidth bottlenecks** governing billion-parameter embedding tables in production LLMs.\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/11_embeddings/embeddings.ipynb`\n**Building Side:** Code exports to `tinytorch.core.embeddings`\n\n```python\n# How to use this module:\nfrom tinytorch.core.embeddings import Embedding, PositionalEncoding, create_sinusoidal_embeddings, EmbeddingLayer\n```\n\n**Why this matters:**\n- **Learning:** Transforms discrete symbol IDs (\\$\\mathbb{Z}^{B \\times T}\\$) into continuous geometry (\\$\\mathbb{R}^{B \\times T \\times D}\\$) where semantic similarity is measured by dot products.\n- **Production:** Directly mirrors PyTorch's `torch.nn.Embedding` with gradient accumulation mechanics and production positional encoding strategies.\n- **Consistency:** Unifies table lookups and temporal coordinates in `tinytorch.core.embeddings` for downstream attention layers."
+  },
+  {
+   "type": "text",
+   "md": "## 📋 Module Dependencies\n\n**Prerequisites**: Modules 01 (Tensor) and 06 (Autograd) must be complete. Module 10 supplies token IDs conceptually but is not imported.\n\n**External Dependencies**:\n- `numpy`: array manipulation, fast vectorized slicing, and math; provides `np.add.at`, the unbuffered scatter-add that keeps duplicate indices\n- `math` and `typing` (for scaling constants and type hints)\n- `time` (used only inside an analysis cell)\n\n**TinyTorch Dependencies**:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dependency",
+    "Origin",
+    "Purpose in Module 11",
+    "Systems Invariant"
+   ],
+   "rows": [
+    [
+     "`Tensor`",
+     "Module 01 (`core.tensor`)",
+     "Wraps embedding weights, token indices, and activations",
+     "Strided memory buffer and gradient storage container"
+    ],
+    [
+     "`Function`",
+     "Module 01 (`core.tensor`)",
+     "Extensible computational graph node base class",
+     "Enforces separation of forward evaluation and backward adjoint"
+    ],
+    [
+     "`autograd`",
+     "Module 06 (`core.autograd`)",
+     "Backward tape and automatic gradient backpropagation",
+     "Accumulates gradients into leaf weight parameter `.grad`"
+    ],
+    [
+     "`BPETokenizer`",
+     "Module 10 (`core.tokenization`), not imported",
+     "Upstream text tokenizer producing discrete token IDs",
+     "Maps variable-length strings into static vocabulary bounds \\$[0, V-1]\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Dependency Flow**: the ingestion and transformation pipeline"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Pipeline Stage",
+    "Subsystem / Operator",
+    "Mathematical Mapping",
+    "Tensor Space & Dimensions"
+   ],
+   "rows": [
+    [
+     "**0. Raw Input**",
+     "Upstream Text Source",
+     "Raw string token stream",
+     "`\"machine learning\"`"
+    ],
+    [
+     "**1. Tokenization**",
+     "`BPETokenizer` (M10)",
+     "Discrete subword vocabulary lookup",
+     "\\$\\mathbf{x}_{\\text{ids}} = [1042, 3819] \\in \\mathbb{Z}^{B \\times T}\\$"
+    ],
+    [
+     "**2. Embedding Gather**",
+     "`EmbeddingLayer` (M11)",
+     "Weight lookup matrix indexing",
+     "\\$\\mathbf{E}_{\\text{token}} \\in \\mathbb{R}^{B \\times T \\times D}\\$"
+    ],
+    [
+     "**3. Positional Encoding**",
+     "Learned / Sinusoidal (M11)",
+     "Coordinate position addition",
+     "\\$\\mathbf{H} = \\mathbf{E}_{\\text{token}} + \\mathbf{P} \\in \\mathbb{R}^{B \\times T \\times D}\\$"
+    ],
+    [
+     "**4. Attention Mixing**",
+     "`MultiHeadAttention` (M12)",
+     "Dynamic contextual routing",
+     "\\$\\mathbf{Z} \\in \\mathbb{R}^{B \\times T \\times D}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import numpy as np\nimport math\nfrom typing import List, Optional, Tuple\n\n# Import from previous modules - following dependency chain\nfrom tinytorch.core.tensor import Tensor\n\n# Module 06: Function base class and autograd, so embedding lookups record their backward pass\nfrom tinytorch.core.tensor import Function\nimport tinytorch.core.autograd  # completes every operation with its backward half"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "# Shared generator for weight initialization. Marked exporti so it travels with\n# the package without appearing in tinytorch.core.embeddings.__all__.\nrng = np.random.default_rng(7)"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "# Constants for the memory analyses further down. These are analysis-only, so they\n# stay out of the exported package entirely. Both use DECIMAL prefixes, matching\n# every memory figure quoted in this module's tables (1 MB = 10^6 bytes, not 2^20).\nBYTES_PER_FLOAT32 = 4  # float32 width in bytes\nBYTES_PER_MB = 1_000_000  # decimal megabyte"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 11: Embeddings - Converting Tokens to Learnable Representations."
+   ]
+  }
+ ]
+}

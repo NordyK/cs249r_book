@@ -1,0 +1,444 @@
+{
+ "title": "Byte Pair Encoding (BPE) Tokenizer: Learning Subwords from Frequency",
+ "summary": "TinyTorch tokenization: Byte Pair Encoding (BPE) Tokenizer: Learning Subwords from F",
+ "source": {
+  "chapter": "tt-10",
+  "sections": [
+   "Byte Pair Encoding (BPE) Tokenizer: Learning Subwords from Frequency",
+   "Integration: Bringing It Together"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Byte Pair Encoding (BPE) Tokenizer: Learning Subwords from Frequency\n\nByte Pair Encoding (BPE) is the industry-standard subword tokenization algorithm utilized by modern Large Language Models, including GPT-2, GPT-6, Llama 3, and Mistral. BPE dynamically constructs a subword vocabulary by iteratively identifying and fusing the most frequently co-occurring adjacent token pairs.\n\n\n  \n\n\nIn our implementation, `` denotes the end-of-word boundary suffix stored internally as `Tokenizer.TOK_EOW = ' '`. Because raw text is pre-segmented on whitespace, this boundary marker cannot collide with literal text. The base alphabet initializes with both interior and word-final variants of every seen character, guaranteeing that unseen word positions still retain recognized character representations.\n\n\n  \n\n\n### The BPE Training Progression\n\nConsider the training corpus \\$\\mathcal{C} = [\\text{\"hello\"}, \\text{\"hello\"}, \\text{\"help\"}]\\$, containing \\$N_{\\text{hello}} = 2\\$ and \\$N_{\\text{help}} = 1\\$:\n\n#### Step 1: Base Alphabet Initialization\nEvery word is decomposed into its individual character tokens, fusing the end-of-word delimiter to the final character:\n\n\\$\\$\\text{\"hello\"} \\implies [\\text{'h'}, \\text{'e'}, \\text{'l'}, \\text{'l'}, \\text{'o'}], \\qquad \\text{\"help\"} \\implies [\\text{'h'}, \\text{'e'}, \\text{'l'}, \\text{'p'}]\\$\\$\n\nBecause every seen character is registered in both its interior and its word-final\nform, the base alphabet is twice the character set, plus ``:\n\n\\$\\$\\mathcal{V}_{\\text{base}} = [\\text{}, \\text{'e'}, \\text{'e'}, \\text{'h'}, \\text{'h'}, \\text{'l'}, \\text{'l'}, \\text{'o'}, \\text{'o'}, \\text{'p'}, \\text{'p'}], \\qquad |\\mathcal{V}_{\\text{base}}| = 11\\$\\$\n\nSeveral of those word-final forms (`'e'`, `'h'`, `'l'`) never occur in this\ntiny corpus. They are stocked anyway so that an unseen word ending in `e`, `h` or `l`\nstill tokenizes without falling back to ``."
+  },
+  {
+   "type": "text",
+   "md": "#### Step 2: Frequency-Weighted Pair Counting\nFor each adjacent pair \\$(t_i, t_{i+1})\\$, accumulate occurrences weighted by the word frequency:\n\n\\$\\$\\operatorname{freq}(p) = \\sum_{w \\in \\mathcal{C}} \\operatorname{count}(p, w) \\times \\operatorname{freq}(w)\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Candidate Pair",
+    "Source Words",
+    "Frequency Calculation",
+    "Weighted Count",
+    "Priority Status"
+   ],
+   "rows": [
+    [
+     "`('h', 'e')`",
+     "`\"hello\"`, `\"help\"`",
+     "\\$1 \\times 2 + 1 \\times 1\\$",
+     "**3**",
+     "**Tied Rank #1 (Selected by first-seen)**"
+    ],
+    [
+     "`('e', 'l')`",
+     "`\"hello\"`, `\"help\"`",
+     "\\$1 \\times 2 + 1 \\times 1\\$",
+     "**3**",
+     "Tied Rank #1"
+    ],
+    [
+     "`('l', 'l')`",
+     "`\"hello\"`",
+     "\\$1 \\times 2\\$",
+     "**2**",
+     "Rank #3"
+    ],
+    [
+     "`('l', 'o</w>')`",
+     "`\"hello\"`",
+     "\\$1 \\times 2\\$",
+     "**2**",
+     "Rank #3"
+    ],
+    [
+     "`('l', 'p</w>')`",
+     "`\"help\"`",
+     "\\$1 \\times 1\\$",
+     "**1**",
+     "Rank #5"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "#### Step 3: Greedy Merge Selection & In-Place Replacement\nThe winning pair `('h', 'e')` is merged into a single atomic token `'he'`:\n\n\\$\\$\\operatorname{merge}((\\text{'h'}, \\text{'e'}) \\to \\text{'he'}): \\quad \\begin{cases} [\\text{'h'}, \\text{'e'}, \\text{'l'}, \\text{'l'}, \\text{'o'}] & \\implies [\\mathbf{\\text{'he'}}, \\text{'l'}, \\text{'l'}, \\text{'o'}] \\\\ [\\text{'h'}, \\text{'e'}, \\text{'l'}, \\text{'p'}] & \\implies [\\mathbf{\\text{'he'}}, \\text{'l'}, \\text{'p'}] \\end{cases}\\$\\$\n\n\\$\\$\\mathcal{V} \\leftarrow \\mathcal{V} \\cup [\\mathbf{\\text{'he'}}]\\$\\$\n\n#### Step 4: Iterative Re-Count and Merge History"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Iteration",
+    "Most Frequent Pair",
+    "Merged Token",
+    "Post-Merge Representations",
+    "Vocab Growth"
+   ],
+   "rows": [
+    [
+     "**Start**",
+     "—",
+     "—",
+     "`['h', 'e', 'l', 'l', 'o</w>']`, `['h', 'e', 'l', 'p</w>']`",
+     "\\$"
+    ],
+    [
+     "**Iter 1**",
+     "`('h', 'e')`",
+     "`'he'`",
+     "`['he', 'l', 'l', 'o</w>']`, `['he', 'l', 'p</w>']`",
+     "\\$"
+    ],
+    [
+     "**Iter 2**",
+     "`('he', 'l')`",
+     "`'hel'`",
+     "`['hel', 'l', 'o</w>']`, `['hel', 'p</w>']`",
+     "\\$"
+    ],
+    [
+     "**Iter 3**",
+     "`('hel', 'l')`",
+     "`'hell'`",
+     "`['hell', 'o</w>']`, `['hel', 'p</w>']`",
+     "\\$"
+    ],
+    [
+     "**Iter 4**",
+     "`('hell', 'o</w>')`",
+     "`'hello</w>'`",
+     "`['hello</w>']`, `['hel', 'p</w>']`",
+     "\\$"
+    ],
+    [
+     "**Iter 5**",
+     "`('hel', 'p</w>')`",
+     "`'help</w>'`",
+     "`['hello</w>']`, `['help</w>']`",
+     "\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Systems Takeaway**: On this two-word corpus, frequent whole words collapse into single atomic tokens (\\$5\\text{ tokens} \\to 1\\text{ token}\\$, an exact **\\$5\\times\\$ compression**). On large-scale pretraining corpora, BPE spends its vocabulary budget discovering common morphological stems, prefixes, and roots!"
+  },
+  {
+   "type": "text",
+   "md": "### Counting Byte Pairs\n\nThe core inner loop of BPE tallies every adjacent token pair \\$(t_i, t_{i+1})\\$ across all tokenized words, scaling each observation by the containing word's empirical corpus frequency:\n\n\\$\\$\\operatorname{freq}(t_i, t_{i+1}) = \\sum_{w \\in \\mathcal{D}} \\operatorname{freq}(w) \\cdot \\sum_{j=0}^{|w|-2} \\mathbb{I}\\Big(w_j = t_i \\;\\land\\; w_{j+1} = t_{i+1}\\Big)\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Word \\$w\\$",
+    "Corpus Count",
+    "Token Sequence",
+    "Extracted Adjacent Pairs",
+    "Pair Contributions"
+   ],
+   "rows": [
+    [
+     "`\"hello\"`",
+     "\\$2\\$",
+     "`['h', 'e', 'l', 'l', 'o</w>']`",
+     "`('h','e'), ('e','l'), ('l','l'), ('l','o</w>')`",
+     "\\$+2\\$ to each pair"
+    ],
+    [
+     "`\"help\"`",
+     "\\$1\\$",
+     "`['h', 'e', 'l', 'p</w>']`",
+     "`('h','e'), ('e','l'), ('l','p</w>')`",
+     "\\$+1\\$ to each pair"
+    ],
+    [
+     "**Totals**",
+     "\\$3\\text{ words}\\$",
+     "—",
+     "—",
+     "**`('h','e')`: 3, `('e','l')`: 3, `('l','l')`: 2, `('l','o</w>')`: 2, `('l','p</w>')`: 1**"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _count_byte_pairs(word_tokens: Dict[str, List[str]], word_freq: Counter) -> Counter:\n    \"\"\"\n    Count frequency of all adjacent token pairs across all words.\n\n    Each pair's count is weighted by how often its containing word appears\n    in the corpus, so frequent words contribute more to pair statistics.\n\n    TODO: Count all adjacent pairs weighted by word frequency\n\n    APPROACH:\n    1. Iterate through each word and its frequency\n    2. Get all adjacent pairs from the word's tokens\n    3. Add the word's frequency to each pair's count\n    4. Return the Counter of pair frequencies\n\n    EXAMPLE:\n    >>> word_tokens = {\"hello\": ['h', 'e', 'l', 'l', 'o'+Tokenizer.TOK_EOW]}\n    >>> word_freq = Counter({\"hello\": 3})\n    >>> counts = _count_byte_pairs(word_tokens, word_freq)\n    >>> counts[('h', 'e')]\n    3\n\n    HINT: For each word, walk i from 0 to len(tokens) - 2 and add freq to the count\n    of (tokens[i], tokens[i + 1])\n    \"\"\"\n    pair_counts = Counter()\n\n    for word, freq in word_freq.items():\n        tokens = word_tokens[word]\n        # Count adjacent pairs\n        for i in range(len(tokens) - 1):\n            pair = (tokens[i], tokens[i + 1])\n            pair_counts[pair] += freq\n\n    return pair_counts"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Count Byte Pairs\n\n**What we're testing**: Frequency-weighted pair counting across multiple words\n**Why it matters**: The most frequent pair determines which merge to perform next\n**Expected**: Pairs appearing in frequent words get higher counts"
+  },
+  {
+   "type": "text",
+   "md": "### Merging a Byte Pair\n\nOnce the highest-frequency pair \\$p = (t_A, t_B)\\$ is identified, it must be atomically merged into a combined token \\$t_{AB} = t_A \\circ t_B\\$ across all active word token sequences.\n\nA single-pass linear scan \\$\\mathcal{O}(L)\\$ inspects adjacent tokens, advancing by \\$2\\$ positions upon a successful match and \\$1\\$ position otherwise:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Scan Index \\$i\\$",
+    "Inspected Tokens",
+    "Match Condition",
+    "Emitted Output",
+    "Pointer Advance"
+   ],
+   "rows": [
+    [
+     "**\\$i = 0\\$**",
+     "`tokens[0]='h'`, `tokens[1]='e'`",
+     "**Match:** `('h', 'e') == ('h', 'e')`",
+     "Append `'he'`",
+     "\\$i \\leftarrow i + 2\\$"
+    ],
+    [
+     "**\\$i = 2\\$**",
+     "`tokens[2]='l'`, `tokens[3]='l'`",
+     "No Match: `('l', 'l') != ('h', 'e')`",
+     "Append `'l'`",
+     "\\$i \\leftarrow i + 1\\$"
+    ],
+    [
+     "**\\$i = 3\\$**",
+     "`tokens[3]='l'`, `tokens[4]='o</w>'`",
+     "No Match: `('l', 'o</w>') != ('h', 'e')`",
+     "Append `'l'`",
+     "\\$i \\leftarrow i + 1\\$"
+    ],
+    [
+     "**\\$i = 4\\$**",
+     "`tokens[4]='o</w>'` (end of word)",
+     "Boundary reached (\\$i = L - 1\\$)",
+     "Append `'o</w>'`",
+     "\\$i \\leftarrow i + 1\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\text{\"hello\"} : \\quad [\\text{'h'}, \\text{'e'}, \\text{'l'}, \\text{'l'}, \\text{'o'}] \\quad \\xrightarrow{\\operatorname{merge}((\\text{'h'}, \\text{'e'}) \\to \\text{'he'})} \\quad [\\mathbf{\\text{'he'}}, \\text{'l'}, \\text{'l'}, \\text{'o'}]\\$\\$"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _merge_pair(word_tokens: Dict[str, List[str]], pair: Tuple[str, str]) -> str:\n    \"\"\"\n    Merge one pair everywhere it occurs in all word token lists.\n\n    The caller decides which pair (during training, the most frequent one;\n    during encoding, each learned merge in order). This function scans every\n    word's tokens and replaces adjacent occurrences of the pair with a single\n    concatenated token. Modifies word_tokens in place and returns the new\n    merged token string.\n\n    TODO: Merge the given pair in all word token sequences\n\n    APPROACH:\n    1. For each word in word_tokens, scan through its token list\n    2. When two adjacent tokens match the pair, replace with concatenation\n    3. Otherwise keep the token as-is\n    4. Update word_tokens in place, return the merged token string\n\n    EXAMPLE:\n    >>> word_tokens = {\"hello\": ['h', 'e', 'l', 'l', 'o'+Tokenizer.TOK_EOW]}\n    >>> merged = _merge_pair(word_tokens, ('h', 'e'))\n    >>> word_tokens[\"hello\"]\n    ['he', 'l', 'l', 'o'+Tokenizer.TOK_EOW]\n    >>> merged\n    'he'\n\n    HINTS:\n    - Use a while loop with index i to scan each word's tokens\n    - When pair matches at position i, append pair[0]+pair[1] and skip 2\n    - Otherwise append tokens[i] and advance by 1\n    \"\"\"\n    merged_token = pair[0] + pair[1]\n\n    for word in word_tokens:\n        tokens = word_tokens[word]\n        new_tokens = []\n        i = 0\n        while i < len(tokens):\n            if (i < len(tokens) - 1 and\n                tokens[i] == pair[0] and\n                tokens[i + 1] == pair[1]):\n                # Merge pair\n                new_tokens.append(merged_token)\n                i += 2\n            else:\n                new_tokens.append(tokens[i])\n                i += 1\n        word_tokens[word] = new_tokens\n\n    return merged_token"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Merge Pair\n\n**What we're testing**: In-place merging of a specific pair across all word token lists\n**Why it matters**: This is the core operation that builds the BPE vocabulary\n**Expected**: Adjacent pair occurrences replaced by concatenated token, non-matching tokens preserved"
+  },
+  {
+   "type": "text",
+   "md": "### BPETokenizer: Assembling the Pieces\n\nYou have implemented the dual operational primitives of BPE:\n1. `_count_byte_pairs`: Identifies the globally dominant adjacent pair \\$\\operatorname{argmax}_{p} \\operatorname{freq}(p)\\$.\n2. `_merge_pair`: Atomically fuses that pair in-place across all tokenized words.\n\nThe complete `BPETokenizer` composes these primitives into an end-to-end tokenizer pipeline:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Pipeline Stage",
+    "Method",
+    "Systems Operation",
+    "Algorithmic Role"
+   ],
+   "rows": [
+    [
+     "**Training**",
+     "`train(corpus)`",
+     "Greedy merge loop",
+     "Alternates pair counting and merging until \\$"
+    ],
+    [
+     "**Encoding**",
+     "`encode(text)`",
+     "Sequential merge replay",
+     "Decomposes text to characters, then applies merges in exact learned order"
+    ],
+    [
+     "**Decoding**",
+     "`decode(tokens)`",
+     "Array lookup & join",
+     "Maps integer IDs to subword strings, resolving space boundaries"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "#### The Strict Replay Ordering Invariant\n\n> **Important:** Merges must be evaluated during `encode()` in the **exact chronological sequence** they were discovered during `train()`. Later subword units are built on top of earlier ones (e.g., `'h' + 'e' \\to 'he'`, followed by `'he' + 'l' \\to 'hel'`). Applying merges out of order disrupts the subword DAG and produces invalid, uncompressed tokenizations!\n\n#### What Round-Tripping Does and Does Not Preserve\n\nUsing a space as the word boundary costs some fidelity. `decode(encode(text))` recovers\nthe words and their order, but it normalizes whitespace, because `encode()` splits on\nwhitespace and `decode()` re-joins with a single space. So `\"hello  world\"` and\n`\"hello\\nworld\"` both come back as `\"hello world\"`, and leading or trailing space is\nstripped. Production byte-level BPE avoids this by folding the space into the token\nitself (GPT-2 emits `\" world\"` as one token). `CharTokenizer` has no such limitation,\nsince it never splits on whitespace."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 305 lines of code (starting with `class BPETokenizer(Tokenizer):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: BPE Tokenizer\n\nThis test validates our BPE tokenizer learns merge rules and correctly encodes/decodes text.\n\n**What we're testing**: BPE training, merge rule application, encoding and decoding\n**Why it matters**: BPE is the standard tokenization for modern language models\n**Expected**: Vocabulary building, proper merging, reasonable round-trip on training data"
+  },
+  {
+   "type": "text",
+   "md": "### Subword Compression Dynamics\n\nBPE establishes a continuous continuum between character-level flexibility and word-level brevity. By extracting high-frequency morphological roots from the corpus, BPE compresses redundant character sequences while retaining universal fallback mechanisms for unseen compound words.\n\n#### Step-by-Step Subword Compression Trace\n\nTrace the progressive compression of `\"tokenization\"` (\\$12\\$ characters):\n\n\\$\\$\\mathbf{x} = \\text{\"tokenization\"} \\implies [\\text{'t'}, \\text{'o'}, \\text{'k'}, \\text{'e'}, \\text{'n'}, \\text{'i'}, \\text{'z'}, \\text{'a'}, \\text{'t'}, \\text{'i'}, \\text{'o'}, \\text{'n'}] \\quad (L = 12)\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Step",
+    "Candidate Merge",
+    "Active Token Sequence",
+    "Length \\$L\\$",
+    "Cumulative Compression"
+   ],
+   "rows": [
+    [
+     "**Initial**",
+     "—",
+     "`['t', 'o', 'k', 'e', 'n', 'i', 'z', 'a', 't', 'i', 'o', 'n</w>']`",
+     "\\$12\\$",
+     "\\$1.0\\times\\$ (baseline)"
+    ],
+    [
+     "**Step 1**",
+     "`('t', 'o') \\to 'to'`",
+     "`['to', 'k', 'e', 'n', 'i', 'z', 'a', 't', 'i', 'o', 'n</w>']`",
+     "\\$11\\$",
+     "\\$1.09\\times\\$"
+    ],
+    [
+     "**Step 2**",
+     "`('i', 'o') \\to 'io'`",
+     "`['to', 'k', 'e', 'n', 'i', 'z', 'a', 't', 'io', 'n</w>']`",
+     "\\$10\\$",
+     "\\$1.20\\times\\$"
+    ],
+    [
+     "**Step 3**",
+     "`('io', 'n</w>') \\to 'ion</w>'`",
+     "`['to', 'k', 'e', 'n', 'i', 'z', 'a', 't', 'ion</w>']`",
+     "\\$9\\$",
+     "\\$1.33\\times\\$"
+    ],
+    [
+     "**Step 4**",
+     "`('to', 'k') \\to 'tok'`",
+     "`['tok', 'e', 'n', 'i', 'z', 'a', 't', 'ion</w>']`",
+     "\\$8\\$",
+     "\\$1.50\\times\\$"
+    ],
+    [
+     "**Step 5**",
+     "\\$\\dots \\text{ (subword merges)}\\$",
+     "`['token', 'iz', 'ation</w>']`",
+     "\\$3\\$",
+     "\\$4.00\\times\\$"
+    ],
+    [
+     "**Final**",
+     "`('iz', 'ation</w>') \\to 'ization</w>'`",
+     "`['token', 'ization</w>']`",
+     "**2**",
+     "**\\$6.00\\times\\$ sequence reduction**"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "#### Subword Engineering Principles"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Principle",
+    "Algorithmic Mechanism",
+    "Systems Benefit"
+   ],
+   "rows": [
+    [
+     "**Data-Driven Vocabulary**",
+     "Extracted from empirical co-occurrence statistics",
+     "No hand-crafted phonetic or grammatical rules required"
+    ],
+    [
+     "**Subword Decomposition**",
+     "Unseen compounds split into familiar morphemes",
+     "Eliminates catastrophic `<UNK>` information loss"
+    ],
+    [
+     "**Sequence Compression**",
+     "Common words collapse into \\$1\\$ token",
+     "Reduces downstream self-attention memory footprint by up to \\$(6)^2 = 36\\times\\$"
+    ],
+    [
+     "**Prefix & Suffix Discovery**",
+     "Naturally isolates common affixes (`un-`, `-ing`, `-tion`)",
+     "Shares semantic representations across inflected word forms"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Bringing It Together\n\nTokenization serves as the front-end CPU ingestion phase of modern deep learning workflows. Before tensors reach the GPU for embedding lookup and matrix multiplication, input texts must undergo tokenization, length normalization, and batch tensor assembly.\n\n### End-to-End NLP Execution Datapath"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Processing Stage",
+    "Input Format",
+    "Output Format",
+    "Systems Implementation"
+   ],
+   "rows": [
+    [
+     "**1. Text Normalization**",
+     "Raw input stream",
+     "Normalized UTF-8 string",
+     "Strips excess whitespace; handles Unicode canonicalization"
+    ],
+    [
+     "**2. Subword Tokenization**",
+     "Cleaned text string",
+     "`list[int]` token IDs",
+     "`BPETokenizer.encode()` applies ordered merge replay"
+    ],
+    [
+     "**3. Batch Truncation**",
+     "Variable `list[list[int]]`",
+     "Bounded `list[list[int]]`, rows \\$\\le T_{\\max}\\$",
+     "`tokenize_dataset()` enforces a length ceiling"
+    ],
+    [
+     "**4. Tensor Ingestion**",
+     "NumPy integer matrix",
+     "`Tensor(B, T)`",
+     "TinyTorch `Tensor` loaded to compute device"
+    ],
+    [
+     "**5. Embedding Lookup**",
+     "Token IDs \\$(B, T)\\$",
+     "Dense Activations \\$(B, T, D)\\$",
+     "Module 11 `Embedding` layer table lookup"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Stage 3 caps the long sequences but leaves the short ones short, so the rows it hands\nto stage 4 are still ragged and `np.array()` on them raises `ValueError: setting an\narray element with a sequence`. Filling out a rectangular \\$(B, T)\\$ buffer needs a pad\ntoken and a mask, which Module 11 will add alongside the embedding table.\n\n### Integration Components Built\n\n- **`create_tokenizer(strategy, vocab_size, corpus)`**: Factory pattern for instantiating and training `CharTokenizer` or `BPETokenizer`.\n- **`tokenize_dataset(texts, tokenizer, max_length)`**: Batch processing engine enforcing an upper bound on sequence length, truncating anything longer.\n- **`analyze_tokenization(texts, tokenizer)`**: Profiling diagnostic reporting compression ratio, sequence length distributions, and vocabulary coverage."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 111 lines of code (starting with `def create_tokenizer(strategy: str = \"char\", vocab_size: int = 1000, corpus: Opt`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Tokenization Utilities\n\nThis test validates our utility functions for tokenizer creation, dataset processing, and analysis.\n\n**What we're testing**: Factory pattern, batch tokenization, and analysis statistics\n**Why it matters**: Essential for building NLP pipelines with consistent preprocessing\n**Expected**: Correct tokenizer creation, length limits respected, meaningful statistics"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Byte Pair Encoding (BPE) Tokenizer: Learning Subwords from Frequency, Integration: Bringing It Together."
+   ]
+  }
+ ]
+}

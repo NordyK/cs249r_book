@@ -1,0 +1,96 @@
+{
+ "title": "Scaling Training Systems",
+ "summary": "Select data parallelism as the first multi-GPU baseline when memory already fits on each device and the main goal is throughput.",
+ "source": {
+  "chapter": "v1-08",
+  "sections": [
+   "Scaling Training Systems",
+   "Single-node multi-GPU training",
+   "Scaling beyond a single node",
+   "When to scale: The physical ceiling"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Select data parallelism as the first multi-GPU baseline when memory already fits on each device and the main goal is throughput\n- Calculate the per-GPU bytes sent in Ring AllReduce and interpret its scaling with device count\n- Analyze how communication overhead limits scaling efficiency as distributed training spans more accelerators\n- Identify the pipeline bubble pathology of naive pipeline parallelism and explain how micro-batch schedules mitigate it\n- Sequence the chapter's single-machine-first process for deciding when distributed scaling is actually justified"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Training, § Scaling Training Systems",
+   "md": "The GPT-2 walkthrough fits the batch-32 step on one H100 and finishes the run in about …. One accelerator cannot finish sooner, and some models cannot fit at all. Spread across the … accelerators of one server with perfect scaling, the same run would take about …. A 70-billion-parameter model needs about … for its FP16 weights alone and far more for full training state, which no single accelerator holds, motivating sharding, offload, or multiple devices."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Single-node multi-GPU training\n- Scaling beyond a single node\n- When to scale: The physical ceiling\n\nPay attention to: Data Parallelism vs Model Parallelism decision boundaries; Ring AllReduce communication volume and scaling asymptotic properties; communication overhead and scaling efficiency degradation; pipeline parallelism bubble overhead and micro-batch mitigation."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain what communication overhead is in distributed training, and analyze why adding more GPUs can lead to diminishing throughput returns.",
+   "md": "Communication overhead is the time spent synchronizing gradients or exchanging partitioned activations and tensors instead of doing local model computation. As more GPUs are added, ideal compute work per device can fall, but communication latency, transfer volume, and incomplete overlap do not disappear, so synchronization becomes a larger fraction of each step. The practical consequence is that scaling efficiency drops once communication and coordination consume enough of the step that extra devices save less compute time than they add in communication cost."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-08-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team trains a 1.5-billion-parameter model that already fits on one 80 GB GPU with batch size 16 and its Adam training state, but one epoch still takes 12 days. The team has an 8-GPU node available. Which strategy is the best first baseline, and why?",
+     "explanation": "The correct answer is C. When the full model and training state already fit on one device, data parallelism is the natural first baseline because each GPU can run the local forward and backward pass without introducing the extra sequential dependencies of pipeline parallelism or the frequent collectives of tensor partitioning. An answer based on splitting layers or tensors solves a memory problem the scenario does not currently have. Sharding may still become useful later, but it is not the first throughput baseline when replication already fits.",
+     "hint": "Think about: select data parallelism as the first multi-GPU baseline when memory already fits on each device and the main goal is throughput.",
+     "type": "single",
+     "options": [
+      "Tensor parallelism, because splitting every weight matrix across the 8 GPUs is always the fastest way to improve training throughput.",
+      "Pipeline parallelism, because dividing layers across devices is the default first step whenever a model is a transformer.",
+      "Data parallelism such as DDP, because the model already fits per device and replication avoids unnecessary pipeline bubbles or intra-layer communication as the initial throughput baseline.",
+      "Full parameter sharding first, because any multi-GPU run should avoid keeping complete replicas even when memory is sufficient."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In distributed data parallel training with $N$ GPUs and a model with $P$ parameters whose gradients use $B_{\\text{bytes}}$ bytes each, what is the number of bytes sent by each GPU during a Ring AllReduce?",
+     "explanation": "The correct answer is A. In a ring AllReduce, each GPU participates in a scatter-reduce phase and an all-gather phase, and the bytes sent per GPU total \\$2 \\times \\frac{N-1}{N} \\times P \\times B_{\\text{bytes}}$. That expression tends toward \\$2 P B_{\\text{bytes}}$ as $N$ becomes large, so the per-GPU sent volume stays bounded rather than growing linearly with the cluster size. The broadcast-style answer describes a different and less efficient mental model of synchronization.",
+     "hint": "Think about: calculate the per-GPU bytes sent in Ring AllReduce and interpret its scaling with device count.",
+     "type": "single",
+     "options": [
+      "\\$2 \\times \\frac{N-1}{N} \\times P \\times B_{\\text{bytes}}$, which approaches \\$2 P B_{\\text{bytes}}$ as $N$ grows.",
+      "$N \\times P \\times B_{\\text{bytes}}$, because each GPU must broadcast the full gradient to every other GPU.",
+      "$\\frac{P \\times B_{\\text{bytes}}}{N^2}$, because the ring divides both the model and the communication quadratically.",
+      "Zero, because GPU replicas synchronize through shared CPU memory rather than explicit data movement."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In pipeline model parallelism, partitioning a network linearly across $K$ stages without micro-batching (naive pipeline parallelism) achieves 100 percent GPU utilization because downstream devices can compute backward gradients while upstream devices run forward passes.",
+     "explanation": "False. In naive pipeline parallelism without micro-batching, downstream devices must wait idle until upstream devices complete their forward passes, and upstream devices must wait idle until downstream devices compute backward loss gradients. This introduces massive idle pipeline bubbles where device utilization collapses to $\\approx 1/K$. Practical pipeline parallelism systems (like GPipe and 1F1B in PipeDream) mitigate this by splitting batches into multiple small micro-batches and interleaving forward and backward passes to fill the pipeline.",
+     "hint": "Think about: identify the pipeline bubble pathology of naive pipeline parallelism and explain how micro-batch schedules mitigate it.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Arrange the following engineering steps in the chapter's preferred order for deciding whether to scale beyond one device, assuming the initial bounds do not already prove that single-device training is infeasible:",
+     "explanation": "The correct order is: (3) Establish a single-device baseline and quantify the current bottleneck, (4) Apply relevant local optimizations such as mixed precision, prefetching, checkpointing, or accumulation, (1) Re-evaluate whether memory or time limits still justify scaling, (2) Add distributed parallelism or sharding if the remaining limit still requires it. This order matters because the chapter's scaling discipline uses baseline measurement first, then local fixes targeted to the observed constraint, then a new decision about whether a hard limit remains. Jumping straight to distributed scaling can add communication and operational complexity before the single-device bottleneck is even understood.",
+     "hint": "Think about: sequence the chapter's single-machine-first process for deciding when distributed scaling is actually justified.",
+     "type": "order",
+     "items": [
+      "Establish a single-device baseline and quantify the current bottleneck.",
+      "Apply relevant local optimizations such as mixed precision, prefetching, checkpointing, or accumulation.",
+      "Re-evaluate whether memory or time limits still justify scaling.",
+      "Add distributed parallelism or sharding if the remaining limit still requires it."
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now select data parallelism as the first multi-GPU baseline when memory already fits on each device and the main goal is throughput.",
+    "You can now calculate the per-GPU bytes sent in Ring AllReduce and interpret its scaling with device count.",
+    "You can now analyze how communication overhead limits scaling efficiency as distributed training spans more accelerators.",
+    "You can now identify the pipeline bubble pathology of naive pipeline parallelism and explain how micro-batch schedules mitigate it."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,263 @@
+{
+ "title": "Integration: Enhancing Tensor with Autograd Capabilities",
+ "summary": "TinyTorch autograd: Integration: Enhancing Tensor with Autograd Capabilities",
+ "source": {
+  "chapter": "tt-06",
+  "sections": [
+   "Integration: Enhancing Tensor with Autograd Capabilities",
+   "Systems Analysis: Computation Graph Memory"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Enhancing Tensor with Autograd Capabilities\n\nNow we'll enhance the existing Tensor class to use these gradient functions and build computation graphs automatically.\n\n**Computation Graph Formation:**\n```\nBefore Autograd:             After Autograd:\n  x → operation → y           x → [Function] → y\n                                     ↓\n                               Stores operation\n                               for backward pass\n```\n\n**The Enhancement Strategy:**\n1. **Add backward() method** - Triggers gradient computation\n2. **Complete operations** - Give every operation from Modules 01-04 its backward() rule\n3. **Track computation graphs** - Each tensor remembers how it was created\n4. **Maintain compatibility** - All existing code continues to work\n\n**Critical Design Decision:**\nWe enhance the EXISTING Tensor class rather than creating a new one.\nThis means:\n- ✅ All previous modules continue working unchanged\n- ✅ No import changes needed\n- ✅ Gradients are \"opt-in\" via requires_grad=True\n- ✅ No confusion between Tensor types"
+  },
+  {
+   "type": "text",
+   "md": "### Gradient Rules for Activations and Losses\n\nThe Function classes above covered arithmetic and shape. This next group covers\nthe two remaining kinds of node in a network's graph: the activations that sit\nbetween layers, and the losses that sit at the very end.\n\nThey share a property the earlier group did not. Every one of them can compute\nits gradient from values it already has -- usually its own output -- so none of\nthem re-runs the forward computation. Watch for that as you write them; it is\nthe difference between an autograd engine that is usable and one that doubles\nthe cost of every backward pass.\n\n```\nReLU     -> gate: gradient passes or it does not\nSigmoid  -> z·(1-z)          from the output alone\nTanh     -> 1-z²             from the output alone\nSoftmax  -> outputs coupled: raising one lowers the others\nGELU     -> smooth gate: both what passes AND how open the gate is\nMSE, BCE -> the losses, where every backward pass begins\n```"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(ReLUFunction)\ndef backward(self, grad_output):\n    \"\"\"\n    Gradient computation for ReLU activation.\n\n    ReLU: f(x) = max(0, x)\n    Derivative: f'(x) = 1 if x > 0, else 0\n\n    Compute gradient for ReLU.\n\n    TODO: Implement gradient computation for ReLU activation.\n\n    APPROACH:\n    1. Extract input tensor from self.inputs\n    2. If tensor requires gradients:\n       - Compute ReLU mask: (tensor.data > 0).astype(np.float32)\n       - Multiply grad_output by mask: grad_output * relu_grad\n       - Return as tuple: (result,)\n    3. Else return (None,)\n\n    EXAMPLE:\n    >>> X = Tensor([-2, -1, 0, 1, 2], requires_grad=True)\n    >>> Y = relu(X)  # [0, 0, 0, 1, 2]\n    >>> # During backward: grad_output = [1, 1, 1, 1, 1]\n    >>> # relu_mask = [0, 0, 0, 1, 1] (1 where x > 0)\n    >>> # grad_X = [0, 0, 0, 1, 1]\n\n    HINTS:\n    - ReLU derivative: 1 if x > 0, else 0\n    - Use boolean mask: tensor.data > 0\n    - Convert to float32 for gradient computation\n    \"\"\"\n    tensor, = self.inputs\n\n    if isinstance(tensor, Tensor) and tensor.requires_grad:\n        # ReLU gradient: 1 if x > 0, else 0\n        relu_grad = (tensor.data > 0).astype(np.float32)\n        return grad_output * relu_grad,\n    return None,"
+  },
+  {
+   "type": "text",
+   "md": "### SigmoidFunction.backward: Gradient Rules for Sigmoid\n\nSigmoid's derivative has a property worth exploiting: it can be written entirely\nin terms of the OUTPUT, so the backward pass never needs the input.\n\n**Mathematical Principle:**\n```\nIf z = σ(a) = 1 / (1 + e^-a), then ∂z/∂a = z · (1 - z)\n```\n\n**Why saving the output beats saving the input:**\n```\nSaving a:  recompute σ(a), then σ(a)·(1-σ(a))   -> one exp per element, again\nSaving z:  z·(1-z) directly                     -> two multiplies, no exp\n```\n\n**The systems consequence**: the gradient peaks at 0.25 (when z = 0.5) and decays\ntoward zero at both tails. Stack ten sigmoid layers and the gradient reaching the\nfirst one is scaled by at most 0.25^10 -- about one in a million. That is the\nvanishing gradient problem, and it is why ReLU replaced sigmoid in hidden layers."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(SigmoidFunction)\ndef backward(self, grad_output):\n    \"\"\"\n    Gradient computation for sigmoid activation.\n\n    Sigmoid: σ(x) = 1/(1 + exp(-x))\n    Derivative: σ'(x) = σ(x) * (1 - σ(x))\n\n    Compute gradient for sigmoid.\n\n    TODO: Implement gradient computation for sigmoid activation.\n\n    APPROACH:\n    1. Extract input tensor from self.inputs\n    2. If tensor requires gradients:\n       - Use saved output: σ(x) = self.output.data\n       - Compute sigmoid derivative: σ'(x) = σ(x) * (1 - σ(x))\n       - Multiply by grad_output: grad_output * sigmoid_grad\n       - Return as tuple: (result,)\n    3. Else return (None,)\n\n    EXAMPLE:\n    >>> X = Tensor([0.0], requires_grad=True)\n    >>> Y = sigmoid(X)  # Y = 0.5\n    >>> # During backward: grad_output = 1\n    >>> # σ'(0) = 0.5 * (1 - 0.5) = 0.25\n    >>> # grad_X = 1 * 0.25 = 0.25\n\n    HINTS:\n    - Sigmoid derivative: σ'(x) = σ(x) * (1 - σ(x))\n    - Output is saved as self.output by apply(), which this module completes further down\n    - This avoids recomputing sigmoid during backward pass\n    \"\"\"\n    tensor, = self.inputs\n\n    if isinstance(tensor, Tensor) and tensor.requires_grad:\n        # σ'(x) = σ(x) * (1 - σ(x)), using the output apply() saved on this node\n        sigmoid_grad = self.output.data * (1 - self.output.data)\n        return grad_output * sigmoid_grad,\n    return None,"
+  },
+  {
+   "type": "text",
+   "md": "### TanhFunction.backward: Gradient Rules for Tanh\n\nTanh is sigmoid's zero-centered cousin, and its gradient is also expressible from\nthe output alone.\n\n**Mathematical Principle:**\n```\nIf z = tanh(a), then ∂z/∂a = 1 - z²\n```\n\n**Compared with sigmoid:**\n```\ntanh max gradient: 1.0   (at z = 0)\nsigmoid max gradient: 0.25\n```\n\nTanh saturates too, but its gradient peaks four times higher, so it vanishes more\nslowly through depth. That is the whole reason tanh outlasted sigmoid inside RNNs\nlong after ReLU had taken over feed-forward networks."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(TanhFunction)\ndef backward(self, grad_output):\n    \"\"\"\n    Gradient computation for tanh activation.\n\n    Tanh: tanh(x) = (eˣ - e⁻ˣ) / (eˣ + e⁻ˣ)\n    Derivative: tanh'(x) = 1 - tanh(x)²\n\n    Compute gradient for tanh.\n\n    TODO: Implement gradient computation for tanh activation.\n\n    APPROACH:\n    1. Extract input tensor from self.inputs\n    2. If tensor requires gradients:\n       - Use saved output: tanh(x) = self.output.data\n       - Compute tanh derivative: tanh'(x) = 1 - tanh(x)²\n       - Multiply by grad_output: grad_output * tanh_grad\n       - Return as tuple: (result,)\n    3. Else return (None,)\n\n    EXAMPLE:\n    >>> X = Tensor([0.0], requires_grad=True)\n    >>> Y = tanh(X)  # Y = 0.0\n    >>> # During backward: grad_output = 1\n    >>> # tanh'(0) = 1 - 0² = 1\n    >>> # grad_X = 1 * 1 = 1\n\n    HINTS:\n    - Tanh derivative: tanh'(x) = 1 - tanh(x)²\n    - Output is saved as self.output by apply(), which this module completes further down\n    - This avoids recomputing tanh during backward pass\n    \"\"\"\n    tensor, = self.inputs\n\n    if isinstance(tensor, Tensor) and tensor.requires_grad:\n        # tanh'(x) = 1 - tanh(x)², using the output apply() saved on this node\n        tanh_grad = 1 - self.output.data ** 2\n        return grad_output * tanh_grad,\n    return None,"
+  },
+  {
+   "type": "text",
+   "md": "### SoftmaxFunction.backward: Gradient Rules for a Coupled Output\n\nSoftmax is the first backward here where outputs are not independent. Raising one\nlogit lowers every other probability, because they must still sum to one. The\ngradient has to account for that coupling.\n\n**Mathematical Principle:**\n```\nIf z = softmax(a), the Jacobian is\n    ∂z_i/∂a_j = z_i · (δ_ij - z_j)\nwhich contracts with an incoming gradient g to\n    grad_a = z · (g - Σ_k g_k · z_k)\n```\n\n**Why the subtraction term exists:**\n```\nΣ_k g_k · z_k  is the probability-weighted average of the incoming gradient.\nSubtracting it removes the component that would push all logits the same way --\nwhich softmax ignores anyway, since adding a constant to every logit changes\nnothing.\n```\n\nComputing the full n×n Jacobian would cost O(n²) per sample. The contracted form\nabove is O(n). For a 50,000-token vocabulary that is the difference between\nfeasible and not."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(SoftmaxFunction)\ndef backward(self, grad_output):\n    \"\"\"\n    Gradient computation for softmax activation.\n\n    Softmax: softmax(x)[i] = exp(x[i]) / sum(exp(x))\n    Derivative: ∂softmax/∂x[i] = softmax[i] * (δ[i,j] - softmax[j])\n\n    For gradient computation:\n    grad_x[i] = softmax[i] * (grad_y[i] - sum(grad_y * softmax))\n\n    **Key Insight:** The gradient depends on all elements of softmax due to\n    the normalization, not just the element being differentiated.\n\n    Compute gradient for softmax.\n\n    Mathematical formula:\n    ∂L/∂x[i] = softmax[i] * (∂L/∂y[i] - sum_j(∂L/∂y[j] * softmax[j]))\n\n    This can be vectorized as:\n    grad_x = softmax * (grad_y - sum(grad_y * softmax, keepdims=True))\n\n    TODO: Implement gradient computation for softmax activation.\n\n    APPROACH:\n    1. Extract input tensor from self.inputs\n    2. If tensor requires gradients:\n       - Compute sum term: np.sum(grad_output * self.output.data, axis=self.dim, keepdims=True)\n       - Compute gradient: self.output.data * (grad_output - sum_term)\n       - Return as tuple: (grad_x,)\n    3. Else return (None,)\n\n    EXAMPLE:\n    >>> X = Tensor([[1.0, 2.0, 3.0]], requires_grad=True)\n    >>> Y = softmax(X)  # [[0.09, 0.24, 0.67]] approximately\n    >>> # During backward: grad_output = [[1, 0, 0]]\n    >>> # sum_term = sum([1*0.09, 0*0.24, 0*0.67]) = 0.09\n    >>> # grad_X[i] = softmax[i] * (grad_output[i] - sum_term)\n\n    HINTS:\n    - Softmax gradient depends on all elements due to normalization\n    - Use keepdims=True in np.sum to maintain dimensions for broadcasting\n    - Vectorized formula: softmax * (grad_output - sum(grad_output * softmax))\n    \"\"\"\n    tensor, = self.inputs\n\n    if isinstance(tensor, Tensor) and tensor.requires_grad:\n        softmax = self.output.data\n        # Compute sum(grad_output * softmax) along the softmax dimension\n        sum_term = np.sum(grad_output * softmax, axis=self.dim, keepdims=True)\n\n        # Softmax gradient: softmax * (grad_output - sum_term)\n        grad_x = softmax * (grad_output - sum_term)\n\n        return (grad_x,)\n    return (None,)"
+  },
+  {
+   "type": "text",
+   "md": "### GELUFunction.backward: Gradient Rules for the Transformer Activation\n\nGELU is the canonical activation inside modern transformer feed-forward blocks (built in Module 13). Unlike ReLU, GELU is smooth everywhere with continuous, non-zero derivatives across negative values.\n\n**Mathematical Formulation (Sigmoid Approximation):**\n\\$\\$\\begin{aligned}\nz &= a \\cdot s, \\quad \\text{where } s = \\sigma(1.702 a) \\\\\n\\frac{\\partial z}{\\partial a} &= \\underbrace{s}_{\\text{pass-through value}} + \\underbrace{a \\cdot 1.702 \\cdot s(1 - s)}_{\\text{gate movement rate}}\n\\end{aligned}\\$\\$\n\n- **ReLU**: Evaluates \\$z = \\max(0, a)\\$ with backward derivative \\$\\bar{a} = \\bar{z} \\cdot \\mathbb{I}(a > 0)\\$. Fast branchless comparison executed in a single memory streaming pass.\n- **GELU**: Evaluates \\$z = a \\cdot \\sigma(1.702 a)\\$ with backward derivative \\$\\bar{a} = \\bar{z} [s + 1.702 a s(1 - s)]\\$. Higher arithmetic intensity requiring 1 exponential, 4 multiplications, and 1 addition per element, which Module 17 will revisit as a kernel-fusion candidate."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(GELUFunction)\ndef backward(self, grad_output):\n    \"\"\"\n    Gradient computation for GELU activation.\n\n    GELU: f(x) = x * Φ(x) where Φ is the CDF of the standard normal.\n    Module 02 implements the sigmoid form gelu(x) ≈ x * σ(1.702x), so this\n    backward differentiates that same expression.\n\n    **Key Insight:** GELU is smooth, so negative inputs still receive a small\n    gradient, unlike ReLU's hard zero.\n\n    TODO: Implement gradient computation for GELU activation.\n\n    APPROACH:\n    1. Extract input tensor from self.inputs\n    2. If tensor requires gradients:\n       - Compute s = σ(1.702 * x) with Module 02's stable sigmoid\n       - Product rule: gelu_grad = s + x * (s * (1 - s)) * 1.702\n       - At negative/positive infinity use the limiting derivatives 0/1\n       - Multiply by grad_output\n    3. Else return (None,)\n\n    HINTS:\n    - SigmoidFunction().forward(1.702 * x) gives a stable σ without rewriting it\n    - The two terms are \"what passes\" and \"how the gate moves\"; both carry gradient\n    \"\"\"\n    tensor, = self.inputs\n\n    if isinstance(tensor, Tensor) and tensor.requires_grad:\n        x = tensor.data\n        # forward: gelu(x) = x * sig(1.702x)   (Module 02)\n        # d/dx [x * sig(1.702x)] = sig(1.702x) + x * 1.702 * sig(1.702x) * (1 - sig(1.702x))\n        # Large finite inputs may overflow the gate, which correctly saturates.\n        with np.errstate(over='ignore'):\n            sig = SigmoidFunction().forward(1.702 * x)\n        # At infinity the correction tends to zero; avoid evaluating inf * 0.\n        finite_x = np.where(np.isinf(x), 0.0, x)\n        gelu_grad = sig + finite_x * (sig * (1.0 - sig)) * 1.702\n\n        return (grad_output * gelu_grad,)\n    return (None,)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Activation Backward Passes\n\nFive activations, five derivatives, and no way to eyeball whether any of them is\nright. So this test does not hardcode the five formulas. It perturbs each input\nslightly, measures how the output actually moves, and checks the backward pass\nagainst that measurement. A derivative that is subtly wrong, a sign flipped or a\nterm dropped, shows up as a mismatch no matter which activation it belongs to.\n\n**What we're testing**: Every activation backward, against central differences\ntaken through its own forward\n**Why it matters**: A wrong activation gradient does not crash. The network\ntrains, slowly and to a worse place, and the cause is invisible in the loss curve\n**Expected**: Analytic and numeric gradients agree to within 1e-3"
+  },
+  {
+   "type": "text",
+   "md": "### MSEFunction.backward: Gradient Rules for Mean Squared Error\n\nLoss functions are where the backward pass begins. MSE has the gentlest gradient\nof the two you will build, and the most obvious.\n\n**Mathematical Principle:**\n```\nIf L = (1/n)·Σ(pred - target)², then ∂L/∂pred = (2/n)·(pred - target)\n```\n\n**Why the gradient is just the scaled error:**\n```\nprediction too high  -> (pred - target) > 0 -> gradient positive -> step down\nprediction too low   -> (pred - target)  gradient negative -> step up\nprediction exact     -> gradient 0          -> no update\n```\n\n**The systems consequence**: the gradient is proportional to the error, so a\nsingle wildly wrong prediction produces a wildly large gradient. That is why MSE\nis sensitive to outliers, and why the training loop in Module 08 will need gradient\nclipping."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(MSEFunction)\ndef backward(self, grad_output):\n    \"\"\"\n    Gradient computation for Mean Squared Error Loss.\n\n    MSE: L = mean((predictions - targets)²)\n    Derivative: ∂L/∂predictions = 2 * (predictions - targets) / N\n\n    Compute gradient for MSE loss.\n\n    TODO: Implement gradient computation for Mean Squared Error loss.\n\n    APPROACH:\n    1. Extract predictions tensor from self.inputs\n    2. Compute the prediction gradient: 2 * (predictions - targets) / N,\n       multiplied by grad_output\n    3. The loss is symmetric in its two inputs, so the target gradient is\n       the negation of the prediction gradient\n    4. Return a gradient only for an input that requires one, None otherwise\n\n    EXAMPLE:\n    >>> predictions = Tensor([2.0, 3.0], requires_grad=True)\n    >>> targets = Tensor([1.0, 2.0])\n    >>> loss = MSE(predictions, targets)  # (1² + 1²)/2 = 1.0\n    >>> # During backward: grad_output = 1\n    >>> # grad = 2 * ([2, 3] - [1, 2]) / 2 = [1, 1]\n\n    HINTS:\n    - MSE derivative: ∂MSE/∂pred = 2 * (pred - target) / N\n    - N = np.size(targets.data) (total number of elements)\n    - Multiply by grad_output for chain rule\n    - Targets usually do not require gradients, but when they do (e.g.\n      matching one network's output to another's), ∂L/∂target = -∂L/∂pred\n    \"\"\"\n    predictions, targets = self.inputs\n\n    # Gradient: 2 * (predictions - targets) / N\n    num_samples = np.size(targets.data)\n    grad = 2.0 * (predictions.data - targets.data) / num_samples * grad_output\n\n    grad_pred = grad if isinstance(predictions, Tensor) and predictions.requires_grad else None\n    grad_target = -grad if isinstance(targets, Tensor) and targets.requires_grad else None\n    return grad_pred, grad_target"
+  },
+  {
+   "type": "text",
+   "md": "### BinaryCrossEntropyFunction.backward: Gradient Rules for Binary Cross-Entropy\n\nBinary cross-entropy is the loss for yes/no predictions. Its gradient looks\nalarming written out, then collapses into something remarkably clean.\n\n**Mathematical Principle:**\n```\nIf L = -[y·log(p) + (1-y)·log(1-p)], then\n    ∂L/∂p = (p - y) / (p·(1 - p))\n```\n\n**And when p came from a sigmoid, the pieces cancel:**\n```\n∂L/∂logit = ∂L/∂p · ∂p/∂logit\n          = (p - y)/(p(1-p))  ·  p(1-p)\n          = p - y\n```\n\nThe same clean form as MSE, arrived at by a very different route. This\ncancellation is why sigmoid and BCE are always paired.\n\n**The systems consequence**: the un-cancelled form divides by p·(1-p), which goes\nto zero as the model becomes confident. A confident wrong prediction produces a\ngradient that overflows. Real frameworks fuse sigmoid and BCE into one operation\nso the cancellation happens before any division does."
+  },
+  {
+   "type": "text",
+   "md": "**Clipping has a price**: the forward pass clips p into [1e-7, 1 - 1e-7] before\ntaking logarithms, so any prediction outside that interval sits on a flat piece\nof the loss and receives exactly zero gradient, however wrong it is."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(BinaryCrossEntropyFunction)\ndef backward(self, grad_output):\n    \"\"\"\n    Gradient computation for Binary Cross-Entropy Loss.\n\n    BCE: L = -[y*log(p) + (1-y)*log(1-p)]\n    Derivative: ∂L/∂p = (p - y) / (p*(1-p)*N)\n\n    Compute gradient for BCE loss.\n\n    TODO: Implement gradient computation for Binary Cross-Entropy loss.\n\n    APPROACH:\n    1. Extract predictions tensor from self.inputs\n    2. If predictions requires gradients:\n       - Clip predictions: p = np.clip(predictions.data, eps, 1-eps)\n       - Get targets: y = targets.data\n       - Apply BCE derivative: (p - y) / (p * (1-p) * N)\n       - Zero it outside the clipping interval, where forward is constant\n       - Multiply by grad_output\n    3. If targets require gradients (soft labels produced by another model):\n       - L is linear in y, so ∂L/∂y = -(log(p) - log(1-p)) / N, times grad_output\n    4. Return (prediction gradient, target gradient), None for any input\n       that does not require a gradient\n\n    EXAMPLE:\n    >>> predictions = Tensor([0.7, 0.3], requires_grad=True)\n    >>> targets = Tensor([1.0, 0.0])\n    >>> loss = BCE(predictions, targets)\n    >>> # During backward: grad = (p - y) / (p * (1-p) * N)\n\n    HINTS:\n    - BCE derivative: ∂BCE/∂p = (p - y) / (p * (1-p)) per sample\n    - Clip predictions to avoid log(0) instability; outer regions have zero gradient\n    - At the clipping boundaries, use the one-sided derivative from the interior\n    - Divide by N for mean loss\n    - The target gradient uses the same clipped p the forward pass used\n    \"\"\"\n    predictions, targets = self.inputs\n    eps = EPSILON\n    p = np.clip(predictions.data, eps, 1 - eps)\n    y = targets.data\n    num_samples = np.size(targets.data)\n\n    grad_pred = None\n    if isinstance(predictions, Tensor) and predictions.requires_grad:\n        # Gradient: (p - y) / (p * (1-p) * N)\n        grad = (p - y) / (p * (1 - p) * num_samples)\n        # Forward is constant outside the clipping interval. At a boundary,\n        # choose the derivative from the interior of that interval.\n        unclipped = (predictions.data >= eps) & (predictions.data <= 1 - eps)\n        grad_pred = np.where(unclipped, grad, 0.0) * grad_output\n\n    grad_target = None\n    if isinstance(targets, Tensor) and targets.requires_grad:\n        # L is linear in y: ∂L/∂y = -(log p - log(1-p)) / N\n        grad_target = -(np.log(p) - np.log(1 - p)) / num_samples * grad_output\n\n    return grad_pred, grad_target"
+  },
+  {
+   "type": "text",
+   "md": "### Softmax Probabilities, Reused from Module 02\n\nCrossEntropyFunction.backward needs the softmax probabilities of the logits as a\nplain array. Module 02 already solved the hard part, subtracting the row maximum\nbefore exponentiating so large logits cannot overflow, and its `SoftmaxFunction`\ndoes its arithmetic on NumPy arrays. So this helper is one line: call that\noperation's `forward` on the array rather than deriving the trick a second time."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _stable_softmax(logits_data):\n    \"\"\"Softmax over the last axis of a (batch, classes) array, via Module 02's numerically stable operation.\"\"\"\n    return SoftmaxFunction().forward(logits_data)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Stable Softmax Helper\n\n**What we're testing**: Numerically stable softmax computation\n**Why it matters**: Unstable softmax causes NaN/Inf in cross-entropy gradients\n**Expected**: Probabilities sum to 1.0, correct values, no overflow on large inputs"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Loss Backward Passes\n\nA loss gradient is the first thing the whole backward pass consumes, so an error\nhere scales every gradient behind it. These two are small enough to differentiate\nby hand, which is what this test does: it states the closed form and checks it.\n\n**What we're testing**: MSE and binary cross-entropy backward against their\nclosed-form gradients\n**Why it matters**: A loss gradient off by a constant factor still trains, just\nat the wrong learning rate, and a missing 1/N makes that factor the batch size\n**Expected**: MSE gives 2(p - t)/N and BCE gives (p - t)/(p(1 - p)N)"
+  },
+  {
+   "type": "text",
+   "md": "### One-Hot Encoding\n\nConverts integer ground-truth target indices into one-hot binary indicator vectors. This transformation is required to compute the vector-Jacobian product for categorical cross-entropy loss:\n\n\\$\\$\\nabla_{\\mathbf{z}} \\mathcal{L}_{\\text{CE}} = \\frac{1}{B} (\\mathbf{p} - \\mathbf{y}_{\\text{one\\_hot}})\\$\\$\n\n\\$\\$\\mathbf{t} = \\begin{bmatrix} 0 \\\\ 2 \\\\ 1 \\end{bmatrix} \\quad \\xrightarrow{\\text{one-hot}} \\quad Y = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 0 & 1 \\\\ 0 & 1 & 0 \\end{bmatrix} \\begin{matrix} \\leftarrow \\text{sample 0 (label 0)} \\\\ \\leftarrow \\text{sample 1 (label 2)} \\\\ \\leftarrow \\text{sample 2 (label 1)} \\end{matrix}\\$\\$"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _one_hot_encode(targets, batch_size, num_classes):\n    \"\"\"\n    Convert class indices to one-hot vectors.\n\n    Args:\n        targets: numpy array of integer class indices, shape (batch_size,)\n        batch_size: number of samples\n        num_classes: number of classes\n\n    Returns:\n        numpy array of one-hot vectors, shape (batch_size, num_classes)\n\n    TODO: Implement one-hot encoding of target class indices.\n\n    APPROACH:\n    1. Create zeros array: np.zeros((batch_size, num_classes), dtype=np.float32)\n    2. Set target positions to 1.0: result[np.arange(batch_size), targets] = 1.0\n    3. Return the one-hot array\n\n    EXAMPLE:\n    >>> targets = np.array([0, 2, 1])\n    >>> one_hot = _one_hot_encode(targets, batch_size=3, num_classes=3)\n    >>> # one_hot = [[1, 0, 0], [0, 0, 1], [0, 1, 0]]\n\n    HINT: Use advanced indexing with np.arange for the row indices.\n    \"\"\"\n    one_hot = np.zeros((batch_size, num_classes), dtype=np.float32)\n    one_hot[np.arange(batch_size), targets] = 1.0\n    return one_hot"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: One-Hot Encoding Helper\n\n**What we're testing**: Conversion from class indices to one-hot vectors\n**Why it matters**: Incorrect one-hot encoding produces wrong cross-entropy gradients\n**Expected**: Each row has exactly one 1.0, at the correct class position"
+  },
+  {
+   "type": "text",
+   "md": "### CrossEntropyFunction.backward: Gradient Rules for Cross-Entropy Loss\n\nThe cross-entropy gradient combines three sub-computations:\n1. **Stable softmax**: Convert raw logits to probabilities\n2. **One-hot encoding**: Convert target indices to indicator vectors\n3. **Gradient formula**: `(softmax - one_hot) / batch_size`\n\n```\nLogits: [2.0, 1.0, 0.1]     Target: class 0\n\nStep 1 - Softmax:   [0.659, 0.242, 0.099]\nStep 2 - One-hot:   [1.000, 0.000, 0.000]\nStep 3 - Gradient:  [0.659-1, 0.242-0, 0.099-0] / 1 = [-0.341, 0.242, 0.099]\n```\n\nThe gradient is simply \"how far off each class probability is from the target.\"\nThis is one of the most elegant results in machine learning."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 65 lines of code (starting with `@method_of(CrossEntropyFunction)`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### LogSoftmax.backward: Gradient Rules for Log-Softmax\n\n`log_softmax` from Module 04 is an operation too, and models that call it directly (rather than through `CrossEntropyLoss`) need its gradient.\n\n**Mathematical Rule:** If y = log_softmax(x) along an axis, then\n∂L/∂x = grad_y - softmax(x) * sum(grad_y) along that axis, and softmax(x) = exp(y)."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(LogSoftmax)\ndef backward(self, grad_output):\n    \"\"\"\n    Gradient computation for log-softmax.\n\n    TODO: Implement grad_output - exp(output) * sum(grad_output) along self.dim.\n\n    APPROACH:\n    1. softmax = np.exp(self.output.data)  (apply() saved the log-softmax output on the node)\n    2. total = np.sum(grad_output, axis=self.dim, keepdims=True)\n    3. Return (grad_output - softmax * total,)\n    \"\"\"\n    tensor, = self.inputs\n\n    if isinstance(tensor, Tensor) and tensor.requires_grad:\n        softmax = np.exp(self.output.data)\n        total = np.sum(grad_output, axis=self.dim, keepdims=True)\n        return grad_output - softmax * total,\n    return None,"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 63 lines of code (starting with `# ===== Global Gradient Tracking Flag =====`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Walking the Graph in the Right Order\n\nWe have every gradient rule. What remains is the traversal: given the output,\nvisit the graph and hand each tensor its gradient. The obvious approach is\nrecursion -- compute a tensor's gradient, then immediately recurse into its\nparents. That works, right up until a tensor is used twice.\n\n\n  \n\n\nHere `y` feeds the multiply twice, so the true gradient at `y` is the SUM of\nwhat both edges send back. Naive recursion reaches `y` on the first edge and\ndescends the whole subtree below it before the second edge has contributed\nanything. So `x` is updated from a partial gradient. Worse, when the second\nedge arrives it descends that same subtree all over again -- work doubles at\nevery reused node, which is exponential on a graph with several of them."
+  },
+  {
+   "type": "text",
+   "md": "Recursion also cannot free anything as it goes. Standing at a node, it has no\nway to know whether another edge will arrive there later, so releasing the node\non the way past would drop exactly the second contribution.\n\nThe fix is a **topological order**: an ordering of the graph in which every\nconsumer of a tensor appears before the tensor itself."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Traversal Phase",
+    "Nodes Ordered",
+    "Upstream Inflow (\\$\\nabla_{\\text{out}} \\mathcal{L}\\$)",
+    "Invariant / Status"
+   ],
+   "rows": [
+    [
+     "**0. Post-Order DFS**",
+     "`[x, y, loss]`",
+     "Traverses children before parents",
+     "Builds post-order recursion stack"
+    ],
+    [
+     "**1. Reversed Order**",
+     "`[loss, y, x]`",
+     "Seeds traversal with \\$\\nabla_{\\text{loss}} \\mathcal{L} = 1.0\\$",
+     "Topological sort: all consumers precede inputs"
+    ],
+    [
+     "**2. Branch Fan-In**",
+     "Node `y`",
+     "\\$\\bar{y}_{\\text{branch1}} + \\bar{y}_{\\text{branch2}}\\$",
+     "**Accumulation complete**: `y.grad += vjp` before descending"
+    ],
+    [
+     "**3. Leaf Resolution**",
+     "Node `x`",
+     "\\$\\text{VJP}(y \\to x)\\$",
+     "Visited once after all consumers finalize"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Process tensors in that order and each one is visited exactly once, at the\nmoment its gradient is complete. Correct, and linear in the size of the graph \\$\\mathcal{O}(|V| + |E|)\\$ rather than exponential.\n\nThis is the piece that makes reverse-mode AD practical, and it is why PyTorch,\nJAX, and every other framework sort before they walk. `backward()` below builds\nthe order with a depth-first post-order traversal, reverses it, then makes a\nsingle pass -- accumulating into each `.grad` and passing each parent its share.\n\nThe order buys something beyond correctness. Because every consumer of a tensor\nis visited before the tensor itself, each `grad_fn` is read exactly once, so it\ncould be released the moment the walk passes it. PyTorch frees memory that way,\nnode by node as the sweep advances. `backward()` below releases the whole tape\nin one pass at the end instead, which is easier to read and gives identical\ngradients. Either schedule is safe only because of the sort. It is the sort that\nturns \"might be needed again\" into \"already done with\"."
+  },
+  {
+   "type": "text",
+   "md": "### Completing apply() and Adding backward()\n\nModule 01 left two slots open. `Function.apply()` runs an operation but forgets it, and `Tensor.backward()` raises. The cell below fills both in:\n\n1. **`apply()` records the graph** - After running `forward()`, the output remembers the operation that produced it (`_grad_fn`) whenever an input has `requires_grad=True`\n2. **`backward()` drives traversal** - Implements reverse-mode automatic differentiation over the topologically sorted tape\n3. **Transparent operator dispatch** - Tensor's operators were already routed through `apply()` in Module 01, so all arithmetic syntax (`+`, `*`, `@`) builds autograd tapes automatically"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Milestone",
+    "Execution Step",
+    "State Transition",
+    "Autograd Tape Status"
+   ],
+   "rows": [
+    [
+     "**Module 01**",
+     "`x + y`",
+     "`Add.apply(x, y) \\to \\text{Tensor}`",
+     "Stateless arithmetic; no node retained"
+    ],
+    [
+     "**Module 06**",
+     "`x + y`",
+     "`Add.apply(x, y) \\to \\text{Tensor}(\\text{grad\\_fn}=\\text{AddBackward})`",
+     "Graph recorded; backward pass enabled"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "This mirrors the shape of PyTorch's `torch.autograd.Function`, with two\ndeliberate simplifications. PyTorch separates the graph node from the operation\nand threads saved state through a context object (`forward(ctx, ...)` and\n`backward(ctx, ...)` are static, and inputs are stashed with\n`ctx.save_for_backward`), while TinyTorch keeps one instance per call and stores\nits inputs and output on `self`. PyTorch also populates `.grad` on leaves only,\nwhere `backward()` here fills it in on every tensor it visits, which costs a\nlittle memory and makes the whole graph inspectable while you are learning it."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 199 lines of code (starting with `@method_of(Function)`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Tensor Autograd Enhancement\n\nThis test validates our enhanced Tensor class computes gradients correctly.\n\n**What we're testing**: Gradient computation and chain rule implementation\n**Why it matters**: This is the core of automatic differentiation\n**Expected**: Correct gradients for various operations and computation graphs"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Gradients Through a Reused Tensor\n\nThis test validates the topological traversal: a tensor consumed by more than\none operation must accumulate from every consumer before it propagates.\n\n**What we're testing**: Gradients are correct when an intermediate tensor is used twice\n**Why it matters**: Residual connections, attention, and any `y * y` hit this path;\na traversal that visits a node once per edge silently halves the gradient\n**Expected**: Analytic gradients, with the default `retain_graph=False`"
+  },
+  {
+   "type": "text",
+   "md": "### In-Place Operations Break Autograd\n\n**THIS IS THE MOST COMMON SILENT FAILURE IN TINYTORCH!**\n\n#### Critical Rule: Never Modify Tensors In-Place When requires_grad=True\n\n**WRONG ❌ - This Corrupts the Gradient Graph:**\n```python\nx = Tensor([1.0, 2.0, 3.0], requires_grad=True)\ny = (x * x).sum()      # .sum() because backward() starts from a scalar\nx.data[0] = 999        # ❌ Mul saved x, and backward will read the new value\ny.backward()\nx.grad                 # ❌ [1998., 4., 6.] -- the first entry should be 2.\n```\n\n**RIGHT ✅ - Leave the Recorded Values Alone:**\n```python\nx = Tensor([1.0, 2.0, 3.0], requires_grad=True)\ny = (x * x).sum()\ny.backward()\nx.grad                 # ✅ [2., 4., 6.]\n\n# Need different values? Start a new tensor and a new forward pass.\nx = Tensor([999.0, 2.0, 3.0], requires_grad=True)\n```\n\nBoth blocks run as written. The only difference is the assignment to `x.data`\nbetween the forward and backward passes, and it changes the first gradient from\n2 to 1998.\n\n#### Why This Breaks Everything\n\nAutograd records operations on the **original tensor values**. When you modify `.data` directly:\n\n1. **Forward pass** records: \"y = sum(x * x)\" and saves x = [1, 2, 3]\n2. **You corrupt**: x.data[0] = 999, so the saved array now reads [999, 2, 3]\n3. **Backward pass** computes 2x from the corrupted array: 2 x 999 = 1998, not 2\n\n**The computation graph becomes inconsistent** - forward used [1, 2, 3], backward uses [999, 2, 3].\n\n#### Common In-Place Operations to AVOID\n\n```python\n# ❌ FORBIDDEN - Direct index assignment\nx.data[0] = value\nx.data[:, 0] = values\nx.data[mask] = values\n\n# ❌ FORBIDDEN - In-place arithmetic\nx.data += other\nx.data *= scalar\nx.data -= value\n\n# ❌ FORBIDDEN - NumPy in-place operations\nnp.copyto(x.data, value)\nnp.add(x.data, other, out=x.data)\nx.data.fill(value)\n\n# ✅ CORRECT - Create new tensors\nx = x + other              # Creates new tensor\nx = Tensor(x.data + other) # Explicit new tensor\nx = Tensor([new_values])   # Complete replacement\n```\n\n#### Real-World Example: Parameter Update Gone Wrong\n\n```python\n# ❌ WRONG - touching a parameter BETWEEN forward and backward\nW = Tensor([[0.5, 0.3]], requires_grad=True)\ny = x.matmul(W.transpose())\nloss = compute_loss(y, target)\nW.data *= 0.9            # ❌ the recorded graph still points at W\nloss.backward()          # ❌ MatMul.backward now reads the modified W\n\n# ✅ CORRECT - update AFTER backward, once the graph has been released\nW = Tensor([[0.5, 0.3]], requires_grad=True)\ny = x.matmul(W.transpose())\nloss = compute_loss(y, target)\nloss.backward()\nW.data -= 0.01 * W.grad  # ✅ exactly what Module 07's optimizers will do\n```\n\n#### How to Debug In-Place Corruption\n\nIf your gradients look wrong or you get mysterious errors:\n\n1. **Search your code** for `.data[` assignments\n2. **Search for** in-place operators: `+=`, `-=`, `*=`, `/=` on `.data`\n3. **Check custom functions** that modify tensors\n4. **Verify** parameter updates run after backward(), never between forward and backward\n\n#### Why PyTorch Has torch.no_grad()\n\nPyTorch switches gradient tracking off wherever a computation must not be recorded:\nparameter updates, and evaluation passes that would otherwise save every forward\ntensor. TinyTorch has the same switch:\n\n```python\nfrom tinytorch.core.autograd import no_grad\nwith no_grad():\n    logits = model(x)   # forward only: no graph, no saved tensors\n```\n\nModule 07's optimizers will not need it: they write `param.data` after `backward()`\nhas released the graph, so nothing is recording. Reach for `no_grad()` in\nevaluation loops, where the saved forward tensors would only cost memory.\n\n**How it works**: `no_grad()` sets a global flag that all tracked operations check.\nWhen the flag is off, operations skip graph construction entirely -- the result tensor\nwill have `requires_grad=False` regardless of its inputs.\n\n#### Memory Impact\n\n**Question**: \"Why not update `.data` between forward and backward and save a pass?\"\n\n**Answer**: The recorded graph holds references to the tensors it saw during the\nforward pass. Change one of them and backward() differentiates a computation that\nnever happened. Correctness > premature perf.\n\n**Bottom Line**: If a tensor has `requires_grad=True`, treat it as **immutable**. Always create new tensors instead of modifying in-place."
+  },
+  {
+   "type": "text",
+   "md": "---"
+  },
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Computation Graph Memory\n\nLet's understand ONE key systems concept: **computation graph memory overhead**.\n\nThis single analysis reveals why gradient tracking is expensive and why frameworks make gradient tracking opt-in."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 69 lines of code (starting with `def analyze_computation_graph_memory():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "## 🧪 Module Integration Test\n\nFinal validation that everything works together correctly."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Integration: Enhancing Tensor with Autograd Capabilities, Systems Analysis: Computation Graph Memory."
+   ]
+  }
+ ]
+}

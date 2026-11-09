@@ -1,0 +1,115 @@
+{
+ "title": "Lab: choose a batch size under a latency target",
+ "summary": "Trade latency for throughput with a simple batch cost model and find the largest batch that meets a service level objective.",
+ "minutes": 20,
+ "blocks": [
+  {
+   "type": "text",
+   "md": "A serving call has a fixed cost $t_0$ (launch, weight reads, scheduling) and a per-request cost $t_1$. A batch of $B$ requests takes $t_0 + B\\,t_1$. Throughput grows with $B$ because $t_0$ is shared; latency grows too because every request waits for the whole batch."
+  },
+  {
+   "type": "stepper",
+   "title": "t₀ = 8 ms, t₁ = 0.5 ms",
+   "steps": [
+    {
+     "title": "B = 1",
+     "md": "8.5 ms per call, so **118 requests/s**."
+    },
+    {
+     "title": "B = 8",
+     "md": "8 + 4 = 12 ms for 8 requests: **667 requests/s**, 5.6x the throughput for 41% more latency."
+    },
+    {
+     "title": "B = 32",
+     "md": "8 + 16 = 24 ms: **1,333 requests/s**. Returns are flattening: throughput can never exceed 1/t₁ = 2,000 requests/s."
+    },
+    {
+     "title": "The target",
+     "md": "With a 50 ms latency target the largest batch is ⌊(50 - 8) / 0.5⌋ = **84**."
+    }
+   ]
+  },
+  {
+   "type": "widget",
+   "id": "v1-13-lab-batch-widget",
+   "widget": "batching",
+   "title": "Try it: batch size against the target",
+   "params": {
+    "t0": 8,
+    "t1": 0.5,
+    "b": 8,
+    "slo": 50
+   },
+   "challenge": {
+    "md": "Tighten the target to **20 ms**. What is the largest batch that still meets it?",
+    "answer": 24,
+    "tolerance": 0,
+    "unit": "requests",
+    "hint": "(20 - 8) / 0.5.",
+    "explanation": "⌊12 / 0.5⌋ = 24, for 24 / 20 ms = 1,200 requests/s."
+   }
+  },
+  {
+   "type": "playground",
+   "id": "v1-13-lab-batch-play",
+   "title": "Batch planner",
+   "md": "Complete `best_batch` (the largest B with t₀ + B·t₁ ≤ slo, or 0 if even one request misses) and `throughput` in requests per second. Times are in milliseconds.",
+   "code": "def batch_ms(b, t0, t1):\n    return t0 + b * t1\n\n\ndef best_batch(t0, t1, slo):\n    # TODO\n    return None\n\n\ndef throughput(b, t0, t1):\n    # TODO: requests per second\n    return None\n\n\nb = best_batch(8, 0.5, 50)\nprint(b, throughput(b, 8, 0.5) if b else None)\n",
+   "check": "assert best_batch(8, 0.5, 50) == 84\nassert best_batch(8, 0.5, 20) == 24\nassert best_batch(8, 0.5, 8.2) == 0\nassert abs(throughput(32, 8, 0.5) - 1333.333) < 0.01",
+   "hint": "`int((slo - t0) // t1)` if `slo >= t0 + t1`, else 0. Throughput is `b / batch_ms(b, t0, t1) * 1000`.",
+   "solution": "def batch_ms(b, t0, t1):\n    return t0 + b * t1\n\n\ndef best_batch(t0, t1, slo):\n    if slo < t0 + t1:\n        return 0\n    return int((slo - t0) // t1)\n\n\ndef throughput(b, t0, t1):\n    return b / batch_ms(b, t0, t1) * 1000\n\n\nfor slo in (50, 20):\n    b = best_batch(8, 0.5, slo)\n    print(slo, 'ms ->', b, 'requests,', round(throughput(b, 8, 0.5)), 'req/s')\n"
+  },
+  {
+   "type": "quiz",
+   "id": "v1-13-lab-batch-quiz",
+   "title": "Check your numbers",
+   "questions": [
+    {
+     "type": "numeric",
+     "q": "With t₀ = 8 ms and t₁ = 0.5 ms, what throughput does B = 32 give (requests per second)?",
+     "answer": 1333,
+     "tolerance": 1,
+     "unit": "req/s",
+     "hint": "32 requests in 24 ms.",
+     "explanation": "32 / 0.024 s = 1,333 requests/s."
+    },
+    {
+     "type": "numeric",
+     "q": "What is the upper limit on throughput as B grows without bound?",
+     "answer": 2000,
+     "tolerance": 0,
+     "unit": "req/s",
+     "hint": "The fixed cost disappears per request.",
+     "explanation": "B / (t₀ + B t₁) approaches 1/t₁ = 1/0.5 ms = 2,000 requests/s."
+    },
+    {
+     "type": "single",
+     "q": "Requests arrive slowly at night. What does a fixed large batch size do to them?",
+     "options": [
+      "Nothing, batching is free",
+      "They wait for the batch to fill, so latency rises even though the server is idle",
+      "They are dropped",
+      "Throughput rises"
+     ],
+     "answer": 1,
+     "hint": "A batch only runs when it is full, unless a timeout fires.",
+     "explanation": "Serving systems pair a maximum batch size with a maximum wait time (dynamic batching), so quiet periods do not inflate latency."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Batch time ≈ t₀ + B t₁: batching shares the fixed cost.",
+    "Throughput approaches 1/t₁; latency keeps growing with B.",
+    "Pick the largest B that meets the latency target, and cap the wait time."
+   ]
+  }
+ ],
+ "source": {
+  "chapter": "v1-13",
+  "sections": [
+   "hands-on lab"
+  ]
+ }
+}

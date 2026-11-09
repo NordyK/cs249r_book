@@ -1,0 +1,59 @@
+{
+ "title": "Introduction: What are Neural Network Layers?",
+ "summary": "TinyTorch layers: Introduction: What are Neural Network Layers?",
+ "source": {
+  "chapter": "tt-03",
+  "sections": [
+   "Introduction: What are Neural Network Layers?"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: What are Neural Network Layers?\n\nNeural network layers are the fundamental building blocks that transform data as it flows through a network. Each layer encapsulates both state (trainable weights and biases) and computation (forward transformation):\n\n- **Linear layers** apply learned affine transformations: \\$\\mathbf{Y} = \\mathbf{X}\\mathbf{W} + \\mathbf{b}\\$\n- **Dropout layers** randomly zero elements during training for regularization\n- **Sequential containers** compose multiple layers into unified callable models\n\nData flows sequentially through cascaded representations:\n\\$\\$\\mathbf{X} \\in \\mathbb{R}^{B \\times D_0} \\xrightarrow{\\text{Layer}_1} \\mathbf{H}_1 \\in \\mathbb{R}^{B \\times D_1} \\xrightarrow{\\text{Layer}_2} \\mathbf{H}_2 \\in \\mathbb{R}^{B \\times D_2} \\xrightarrow{\\text{Layer}_3} \\hat{\\mathbf{Y}} \\in \\mathbb{R}^{B \\times C}\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "Each layer plays a distinct role. Linear layers project representations into new feature spaces, activations introduce nonlinearity, and dropout forces the representation to spread across units instead of concentrating in a few. In a trained network those projections are learned. Here they are random, because nothing in this module updates a weight, and Module 07 will add the optimizers that do."
+  },
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: Mathematical Background\n\n### Linear Layer Mathematics\n\nA linear layer computes a batched affine transformation:\n\\$\\$\\mathbf{Y} = \\mathbf{X}\\mathbf{W} + \\mathbf{b}\\$\\$\n\n\\$\\$\\underbrace{\\mathbf{X}}_{(B, D_{\\text{in}})} \\times \\underbrace{\\mathbf{W}}_{(D_{\\text{in}}, D_{\\text{out}})} + \\underbrace{\\mathbf{b}}_{(D_{\\text{out}},)} = \\underbrace{\\mathbf{Y}}_{(B, D_{\\text{out}})}\\$\\$\n\nThere is one layout difference worth knowing before you read PyTorch source. `torch.nn.Linear` stores its weight transposed, as \\$(D_{\\text{out}}, D_{\\text{in}})\\$, and computes \\$\\mathbf{X}\\mathbf{W}^{\\top}\\$. TinyTorch stores \\$(D_{\\text{in}}, D_{\\text{out}})\\$ and computes \\$\\mathbf{X}\\mathbf{W}\\$, so the shapes read left to right in the order the data flows. The arithmetic is identical and every site in this module uses the TinyTorch layout consistently, but a weight matrix copied between the two frameworks needs a transpose.\n\n### Weight Initialization: Preserving Signal Variance\n\nRandom initialization is crucial for breaking symmetry and preventing signals from exploding or vanishing across deep cascades:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Initialization Scheme",
+    "Standard Deviation (\\$\\sigma\\$)",
+    "Target Activation / Design Rationale"
+   ],
+   "rows": [
+    [
+     "**LeCun (used here)**",
+     "\\$\\sigma = \\sqrt{\\frac{1}{D_{\\text{in}}}}\\$",
+     "Linear / Sigmoid inputs; maintains unit output variance for linear maps"
+    ],
+    [
+     "**Xavier / Glorot**",
+     "\\$\\sigma = \\sqrt{\\frac{2}{D_{\\text{in}} + D_{\\text{out}}}}\\$",
+     "Tanh / symmetric activations; harmonizes forward & backward pass signal variance"
+    ],
+    [
+     "**He / Kaiming**",
+     "\\$\\sigma = \\sqrt{\\frac{2}{D_{\\text{in}}}}\\$",
+     "ReLU activations; compensates for the \\$50\\%\\$ variance loss from negative clamping"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "We adopt LeCun initialization \\$\\sigma = \\sqrt{\\frac{1}{D_{\\text{in}}}}\\$ for clean pedagogical clarity: on zero-mean unit-variance inputs, \\$\\text{Var}(y_j) = \\sum_{i=1}^{D_{\\text{in}}} \\text{Var}(x_i) \\text{Var}(w_{ij}) = D_{\\text{in}} \\cdot \\frac{1}{D_{\\text{in}}} = 1.0\\$.\n\n### Parameter Counting\n\nFor any layer \\$\\text{Linear}(D_{\\text{in}}, D_{\\text{out}})\\$:\n\\$\\$\\text{Parameters} = \\underbrace{D_{\\text{in}} \\times D_{\\text{out}}}_{\\text{Weights } \\mathbf{W}} + \\underbrace{D_{\\text{out}}}_{\\text{Biases } \\mathbf{b}}\\$\\$\n\nExample:\n\\$\\$\\text{Linear}(784, 256): 784 \\times 256 + 256 = 200{,}704 + 256 = 200{,}960 \\text{ parameters}\\$\\$\n\nIn a 2-layer classifier with ReLU:\n- \\$\\text{Layer 1: } \\text{Linear}(784, 256) \\implies 200{,}960 \\text{ params}\\$\n- \\$\\text{Activation: } \\text{ReLU}() \\implies 0 \\text{ params}\\$\n- \\$\\text{Layer 2: } \\text{Linear}(256, 10) \\implies 256 \\times 10 + 10 = 2{,}570 \\text{ params}\\$\n- **Total: \\$203{,}530\\$ parameters** (\\$203{,}530 \\times 4\\text{ bytes} \\approx 814.1\\text{ KB}\\$ in FP32)"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Introduction: What are Neural Network Layers?."
+   ]
+  }
+ ]
+}

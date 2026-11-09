@@ -1,0 +1,89 @@
+{
+ "title": "The Governance and Assurance Lifecycle",
+ "summary": "Design a distributed ML serving control plane capable of enforcing geo-specific regulatory and safety policies.",
+ "source": {
+  "chapter": "v2-16",
+  "sections": [
+   "The Governance and Assurance Lifecycle"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Design a distributed ML serving control plane capable of enforcing geo-specific regulatory and safety policies\n- Distinguish evidence for a bounded claim from a complete assurance case\n- Apply the material-change rule to decide when prior approval must be revalidated\n- Sequence the governance lifecycle stages from context definition through retirement"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Responsible AI, § The Governance and Assurance Lifecycle",
+   "md": "A model registry can prove which weights reached production, but it cannot prove that the deployment was justified. That judgment requires a chain of evidence connecting the deployment context to affected people, foreseeable harms, measurable requirements, implemented controls, accountable owners, and the authority to launch or stop the system. Responsible AI therefore needs an assurance lifecycle: a repeatable operating path that converts normative commitments into reviewable claims and keeps those claims valid as the system changes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Regulatory obligations mapped onto the assurance lifecycle; Evidence versus a complete assurance case; Material change and approval expiry; Lifecycle stages from context to retirement."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-16-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A global ML platform serves inference traffic across the European Union (EU AI Act), the United States, and Asia. How does this fragmented regulatory landscape reshape the serving control plane of the ML fleet?",
+     "explanation": "The correct answer is D. The fleet must preserve the identity and version of the policies approved for each deployment and enforce them at the relevant components. Jurisdiction is one input alongside intended use and organizational role, not merely server location. Regional gateways can apply distinct policies while sharing weights, but that is a design option rather than a universal requirement. Neither closing every cloud site nor retraining separately for every country follows from differing obligations; routing alone does not determine which obligations apply.",
+     "hint": "Think about: design a distributed ML serving control plane capable of enforcing geo-specific regulatory and safety policies.",
+     "type": "single",
+     "options": [
+      "The platform must shut down all cloud datacenters and operate exclusively on local microcontrollers",
+      "The platform must completely retrain its foundation models with new random seeds for each country",
+      "The platform can ignore regional regulations by routing all traffic through international satellite links",
+      "The control plane must bind approved policies to the applicable use, organizational role, and jurisdiction; regional gateways and shared model weights are one possible implementation."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A product team submits a fairness dashboard showing small subgroup gaps as proof that its loan-screening system is responsible. Within an assurance case, what role should the dashboard play?",
+     "explanation": "The correct answer is B. A fairness dashboard, privacy accountant, red-team report, or carbon inventory is evidence for a bounded claim; none is itself proof that the full system is responsible. The assurance case links an explicit claim, the argument connecting controls and observations to it, the supporting evidence, its stated assumptions, an accountable owner who can block or restrict use, and an invalidation rule. A registry proves which weights shipped, not that the deployment was justified.",
+     "hint": "Think about: distinguish evidence for a bounded claim from a complete assurance case.",
+     "type": "single",
+     "options": [
+      "It is sufficient proof, because a fairness dashboard already covers the system's privacy, security, and contestability obligations",
+      "It is evidence for a bounded claim, valid only under stated assumptions, and it becomes operational only when an accountable owner can act on it and affected people can contest decisions",
+      "It replaces the claim and argument, because measured results speak for themselves",
+      "It is irrelevant once the model registry records which weights reached production"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A team swaps the retrieval corpus behind an approved generative service without changing any application code, so the prior launch approval remains valid.",
+     "explanation": "False. Approval expires when its supporting assumptions no longer hold. A change of foundation model, training distribution, retrieval corpus, deployment region, user population, decision purpose, or human workflow can be material even when the application code is unchanged. The change record should identify which claims the new corpus invalidates and select the smallest defensible revalidation scope.",
+     "hint": "Think about: apply the material-change rule to decide when prior approval must be revalidated.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the following stages of the governance and assurance lifecycle from earliest to latest:",
+     "explanation": "The correct order is: (2) define intended use, prohibited uses, and affected parties, (4) build the harm model and measurable acceptance criteria, (1) launch authority signs a decision record with rollback and appeal paths, (5) operate with monitoring thresholds, escalation owners, and a remedy workflow, (3) retire the system. Context must come first because harms and requirements depend on the use and the people affected; launch authority acts on evidence assembled against those criteria; and governance continues through operation and retirement rather than ending at the release decision.",
+     "hint": "Think about: sequence the governance lifecycle stages from context definition through retirement.",
+     "type": "order",
+     "items": [
+      "define intended use, prohibited uses, and affected parties",
+      "build the harm model and measurable acceptance criteria",
+      "launch authority signs a decision record with rollback and appeal paths",
+      "operate with monitoring thresholds, escalation owners, and a remedy workflow.",
+      "retire the system, revoking credentials and preserving required audit evidence"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now design a distributed ML serving control plane capable of enforcing geo-specific regulatory and safety policies.",
+    "You can now distinguish evidence for a bounded claim from a complete assurance case.",
+    "You can now apply the material-change rule to decide when prior approval must be revalidated.",
+    "You can now sequence the governance lifecycle stages from context definition through retirement."
+   ]
+  }
+ ]
+}

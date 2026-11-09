@@ -1,0 +1,239 @@
+{
+ "title": "Implementation: Building Embedding Systems",
+ "summary": "TinyTorch embeddings: Implementation: Building Embedding Systems",
+ "source": {
+  "chapter": "tt-11",
+  "sections": [
+   "Implementation: Building Embedding Systems"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Building Embedding Systems\n\nLet's implement embedding systems from basic token lookup to sophisticated position-aware representations. We'll start with the core embedding layer and work up to complete systems."
+  },
+  {
+   "type": "text",
+   "md": "### Gradient Computation for Embedding Lookups\n\nNow that you understand how embedding lookups work (index → row of the weight matrix),\nlet's think about how gradients flow backward through this operation.\n\nThe forward pass is a **gather**, meaning we select rows from the weight matrix by index.\nThe backward pass is a **scatter**, meaning we distribute gradients back to the rows that were selected.\n\n```\nForward (gather):                    Backward (scatter):\nWeight Table:                        Gradient Table:\n  Row 0: [0.1, 0.2]  ← selected       Row 0: [2, 2]  ← accumulated (selected twice!)\n  Row 1: [0.3, 0.4]                    Row 1: [0, 0]  ← not selected\n  Row 2: [0.5, 0.6]  ← selected       Row 2: [1, 1]  ← selected once\n\nIndices: [0, 2, 0]                   grad_output: [[1,1], [1,1], [1,1]]\nOutput:  [[0.1, 0.2],               Row 0 gets grad[0] + grad[2] = [2, 2]\n          [0.5, 0.6],               Row 2 gets grad[1] = [1, 1]\n          [0.1, 0.2]]\n```\n\n**Key insight**: When the same token appears multiple times in a sequence (like word \"the\"),\nits embedding row accumulates gradients from every position. This is why `np.add.at` is\nessential. A plain `grad[idx] += g` on a fancy index goes through a temporary buffer, so a\nrepeated row keeps only the last write instead of the sum."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 72 lines of code (starting with `class EmbeddingFunction(Function):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Embedding: The Lookup Table\n\nWith `EmbeddingFunction.backward` written, the forward direction is almost anticlimactic:\nan embedding layer is a matrix, and a lookup is one row of it.\n\n```\nweight: (vocab_size, embed_dim)      the whole table\ntokens: [7, 3, 7]                    the ids you want\noutput: weight[[7, 3, 7]]            three rows, one per token\n```\n\nTwo things make it worth its own class. It validates that every id is in range,\nwhich turns a confusing IndexError deep in NumPy into a message that names the\noffending token. And it sets `requires_grad=True` on the weight, without which\nthe backward you just wrote would never be reached at all."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 90 lines of code (starting with `class Embedding:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Embedding.__init__\n\n**What we're testing**: Weight matrix initialization with correct shape and Xavier scaling\n**Why it matters**: Bad initialization causes vanishing/exploding gradients from the start\n**Expected**: Weight shape is (vocab_size, embed_dim), values are within Xavier bounds"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Embedding.forward\n\nThis test validates our Embedding class works correctly with various token indices and batch configurations.\n\n**What we're testing**: Token embedding lookup and parameter management\n**Why it matters**: Foundation for all NLP models - if embedding fails, nothing works\n**Expected**: Correct shape output, consistent lookups, proper parameter access"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Embedding gradients\n\nThe forward pass is a lookup, so it is hard to get wrong. The backward pass is\nwhere embeddings are actually interesting, and where the bug is invisible: if you\nwrite `grad_weight[indices] = grad` instead of `np.add.at`, a token that appears\ntwice in a sequence keeps only one of its two gradients. The forward output is\nidentical, the loss still falls, and the table simply learns more slowly than it\nshould for exactly the tokens that matter most.\n\n**What we're testing**: Scatter-add accumulation for repeated indices, and that\nuntouched rows receive no gradient at all\n**Why it matters**: Assignment instead of accumulation silently halves the signal\nfor frequent tokens, which are the ones a language model sees most\n**Expected**: Row 0 (used twice) gets twice the gradient of row 2 (used once);\nrow 1 (unused) stays exactly zero"
+  },
+  {
+   "type": "text",
+   "md": "### Learned Positional Encoding: Broadcast Addition & Dual Gradient Routes\n\nIn learned positional encoding (utilized by GPT-2 and BERT), position vectors are stored in a trainable matrix \\$P \\in \\mathbb{R}^{T_{\\text{max}} \\times d_{\\text{embed}}}\\$. During forward execution, the position slice \\$P[0:T, :]\\$ broadcasts across the batch dimension and adds element-wise to the token embeddings:\n\n\\$\\$H_{b, t, d} = E_{b, t, d} + P_{t, d} \\quad \\text{for } b \\in [0, B-1], \\, t \\in [0, T-1], \\, d \\in [0, d_{\\text{embed}}-1]\\$\\$\n\n### Contrasting the Two Gradient Routes\n\nWhen the loss gradient \\$\\frac{\\partial \\mathcal{L}}{\\partial H} \\in \\mathbb{R}^{B \\times T \\times d_{\\text{embed}}}\\$ arrives at the embedding layer during backpropagation:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Property",
+    "Token Weight Gradient (\\$\\frac{\\partial \\mathcal{L}}{\\partial W}\\$)",
+    "Position Weight Gradient (\\$\\frac{\\partial \\mathcal{L}}{\\partial P}\\$)"
+   ],
+   "rows": [
+    [
+     "**Routing Key**",
+     "Token Identity / Vocabulary ID (\\$X_{b, t}\\$)",
+     "Temporal Position Index (\\$t \\in [0, T-1]\\$)"
+    ],
+    [
+     "**Accumulation Mechanism**",
+     "Non-contiguous scatter-add (`np.add.at`)",
+     "Structured sum across batch dimension (`grad.sum(axis=0)`)"
+    ],
+    [
+     "**Sparsity**",
+     "Highly sparse (only vocabulary IDs present in batch update)",
+     "Dense up to sequence length \\$T\\$ (all active positions update)"
+    ],
+    [
+     "**Parameter Bound**",
+     "\\$V \\times d_{\\text{embed}}\\$ (typically \\$50\\text{K} \\times 768 \\approx 38.4\\text{M}\\$ params)",
+     "\\$T_{\\text{max}} \\times d_{\\text{embed}}\\$ (typically \\$1{,}024 \\times 768 = 786{,}432 \\approx 0.79\\text{M}\\$ params)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Why Learned Positions Work**: The optimizer learns task-specific coordinate geometry (e.g. distinguishing sentence start tokens, delimiter boundaries, or rhythmic syntactic dependencies) through standard end-to-end backpropagation."
+  },
+  {
+   "type": "text",
+   "md": "### Implementing Learned Positional Encoding\n\nLet's build trainable positional embeddings that can learn position-specific patterns for our specific task."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 131 lines of code (starting with `class PositionalEncoding:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: PositionalEncoding.__init__\n\n**What we're testing**: Position embedding matrix initialization with correct shape\n**Why it matters**: Wrong shape or scale breaks the additive position signal\n**Expected**: Matrix shape is (max_seq_len, embed_dim), values are small (additive)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: PositionalEncoding.forward\n\nThis test validates our PositionalEncoding class works correctly with various sequence lengths and configurations.\n\n**What we're testing**: Position embedding consistency and shape handling\n**Why it matters**: Position awareness is critical for sequence understanding\n**Expected**: Consistent encodings, correct shapes, proper parameter management"
+  },
+  {
+   "type": "text",
+   "md": "### Sinusoidal Positional Encoding: Geometric Harmonic Signatures\n\nRather than allocating millions of trainable parameters, Vaswani et al. (2017) introduced deterministic sinusoidal positional encodings using geometric progressions of trigonometric frequencies:\n\n\\$\\$PE_{(pos, 2i)} = \\sin\\left(\\frac{pos}{10000^{2i / d_{\\text{embed}}}}\\right)\\$\\$\n\\$\\$PE_{(pos, 2i+1)} = \\cos\\left(\\frac{pos}{10000^{2i / d_{\\text{embed}}}}\\right)\\$\\$\n\nwhere \\$pos \\in [0, T-1]\\$ denotes sequence index and \\$i \\in [0, d_{\\text{embed}}/2 - 1]\\$ indexes the 2D orthogonal frequency subchannel.\n\n### Numerical Fingerprint Across Channels (\\$d_{\\text{embed}} = 8\\$)\n\nThe wavelengths form a geometric progression from \\$2\\pi\\$ to \\$10{,}000 \\cdot 2\\pi\\$. High-frequency channels alternate rapidly, while low-frequency channels change slowly across sequence steps:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Position",
+    "Dim 0 (\\$\\sin, \\omega_0\\$)",
+    "Dim 1 (\\$\\cos, \\omega_0\\$)",
+    "Dim 2 (\\$\\sin, \\omega_1\\$)",
+    "Dim 3 (\\$\\cos, \\omega_1\\$)",
+    "Dim 4 (\\$\\sin, \\omega_2\\$)",
+    "Dim 5 (\\$\\cos, \\omega_2\\$)",
+    "Dim 6 (\\$\\sin, \\omega_3\\$)",
+    "Dim 7 (\\$\\cos, \\omega_3\\$)"
+   ],
+   "rows": [
+    [
+     "**\\$pos = 0\\$**",
+     "\\$+0.000\\$",
+     "\\$+1.000\\$",
+     "\\$+0.000\\$",
+     "\\$+1.000\\$",
+     "\\$+0.000\\$",
+     "\\$+1.000\\$",
+     "\\$+0.000\\$",
+     "\\$+1.000\\$"
+    ],
+    [
+     "**\\$pos = 1\\$**",
+     "\\$+0.841\\$",
+     "\\$+0.540\\$",
+     "\\$+0.099\\$",
+     "\\$+0.995\\$",
+     "\\$+0.010\\$",
+     "\\$+1.000\\$",
+     "\\$+0.001\\$",
+     "\\$+1.000\\$"
+    ],
+    [
+     "**\\$pos = 2\\$**",
+     "\\$+0.909\\$",
+     "\\$-0.416\\$",
+     "\\$+0.198\\$",
+     "\\$+0.980\\$",
+     "\\$+0.020\\$",
+     "\\$+1.000\\$",
+     "\\$+0.002\\$",
+     "\\$+1.000\\$"
+    ],
+    [
+     "**\\$pos = 3\\$**",
+     "\\$+0.141\\$",
+     "\\$-0.990\\$",
+     "\\$+0.295\\$",
+     "\\$+0.956\\$",
+     "\\$+0.030\\$",
+     "\\$+1.000\\$",
+     "\\$+0.003\\$",
+     "\\$+1.000\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Mathematical Elegance: Relative Linear Projections\nBy the angle addition theorem:\n\\$\\$\\sin((pos + k)\\omega) = \\sin(pos \\cdot \\omega)\\cos(k\\omega) + \\cos(pos \\cdot \\omega)\\sin(k\\omega)\\$\\$\n\\$\\$\\cos((pos + k)\\omega) = \\cos(pos \\cdot \\omega)\\cos(k\\omega) - \\sin(pos \\cdot \\omega)\\sin(k\\omega)\\$\\$\n\nFor any fixed offset \\$k\\$, \\$PE_{pos + k}\\$ is a **linear transformation** of \\$PE_{pos}\\$. This algebraic property allows linear projection matrices in Multi-Head Attention (\\$W_Q, W_K\\$) to attend across relative distances \\$(pos_j - pos_i)\\$ without learning separate weights for every absolute index."
+  },
+  {
+   "type": "text",
+   "md": "### Vectorized Sinusoidal Table Construction\n\nTo avoid numerical underflow when computing \\$10000^{2i/d}\\$, we compute the frequency divisor in log-space:\n\n\\$\\$\\omega_i = \\exp\\left(-\\frac{2i}{d_{\\text{embed}}} \\cdot \\ln(10000)\\right)\\$\\$\n\nThe table is constructed via a 4-step vectorized tensor broadcast:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Step",
+    "Operation",
+    "Formula",
+    "Shape Contract"
+   ],
+   "rows": [
+    [
+     "**1. Temporal Coordinates**",
+     "Linear position column",
+     "\\$\\mathbf{pos} = [0, 1, \\dots, \\text{max\\_len}-1]^\\top\\$",
+     "\\$(\\text{max\\_len}, 1)\\$"
+    ],
+    [
+     "**2. Log-Space Frequencies**",
+     "Exponential frequency decay",
+     "\\$\\boldsymbol{\\omega}_i = \\exp\\left(-\\frac{2i}{d} \\ln 10000\\right)\\$",
+     "\\$(1, d_{\\text{embed}}/2)\\$"
+    ],
+    [
+     "**3. Outer Product Phase**",
+     "Broadcasting phase angles",
+     "\\$\\mathbf{\\Theta} = \\mathbf{pos} \\odot \\boldsymbol{\\omega}\\$",
+     "\\$(\\text{max\\_len}, d_{\\text{embed}}/2)\\$"
+    ],
+    [
+     "**4. Column Interleaving**",
+     "Even/Odd trigonometric assignment",
+     "\\$PE_{:, 2i} = \\sin(\\mathbf{\\Theta}), \\, PE_{:, 2i+1} = \\cos(\\mathbf{\\Theta})\\$",
+     "\\$(\\text{max\\_len}, d_{\\text{embed}})\\$"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _compute_sinusoidal_table(max_len: int, embed_dim: int) -> np.ndarray:\n    \"\"\"\n    Compute the raw sinusoidal positional encoding table as a numpy array.\n\n    This helper builds the (max_len, embed_dim) table of sin/cos values\n    using the formula from \"Attention Is All You Need\":\n      PE(pos, 2i)   = sin(pos / 10000^(2i/embed_dim))\n      PE(pos, 2i+1) = cos(pos / 10000^(2i/embed_dim))\n\n    TODO: Compute the sinusoidal table with alternating sin/cos columns\n\n    APPROACH:\n    1. Create position indices as column vector: (max_len, 1)\n    2. Compute frequency scaling (div_term) using exponential decay\n    3. Initialize zeros matrix of shape (max_len, embed_dim)\n    4. Fill even columns with sin(position * div_term)\n    5. Fill odd columns with cos(position * div_term)\n    6. Handle odd embed_dim gracefully\n\n    EXAMPLE:\n    >>> table = _compute_sinusoidal_table(4, 8)\n    >>> table.shape\n    (4, 8)\n    >>> table[0, 0]  # sin(0) = 0.0\n    0.0\n    >>> table[0, 1]  # cos(0) = 1.0\n    1.0\n\n    HINT: The div_term creates geometrically decreasing frequencies across\n    dimensions. Use np.exp with negative log(10000) scaling.\n    \"\"\"\n    # Create position indices [0, 1, 2, ..., max_len-1]\n    position = np.arange(max_len, dtype=np.float32)[:, np.newaxis]  # (max_len, 1)\n\n    # Create dimension indices for calculating frequencies\n    div_term = np.exp(\n        np.arange(0, embed_dim, 2, dtype=np.float32) *\n        -(math.log(10000.0) / embed_dim)\n    )  # (embed_dim//2,)\n\n    # Initialize the positional encoding matrix\n    pe = np.zeros((max_len, embed_dim), dtype=np.float32)\n\n    # Apply sine to even indices (0, 2, 4, ...)\n    pe[:, 0::2] = np.sin(position * div_term)\n\n    # Apply cosine to odd indices (1, 3, 5, ...)\n    if embed_dim % 2 == 1:\n        # Handle odd embed_dim by only filling available positions\n        pe[:, 1::2] = np.cos(position * div_term[:-1])\n    else:\n        pe[:, 1::2] = np.cos(position * div_term)\n\n    return pe"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Sinusoidal Table Computation\n\nThis test validates the helper that builds the raw sin/cos table before it gets\nwrapped in a Tensor.\n\n**What we're testing**: Correct sin/cos alternation and frequency decay across dimensions\n**Why it matters**: The table is the mathematical core of sinusoidal positional encoding\n**Expected**: sin(0)=0 at even dims, cos(0)=1 at odd dims, higher dims change slower"
+  },
+  {
+   "type": "text",
+   "md": "### Implementing Sinusoidal Positional Encodings\n\nNow we compose the table computation into the public API that returns a Tensor\nready for use in embedding pipelines."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def create_sinusoidal_embeddings(max_seq_len: int, embed_dim: int) -> Tensor:\n    \"\"\"\n    Create sinusoidal positional encodings as used in \"Attention Is All You Need\".\n\n    These fixed encodings use sine and cosine functions to create unique\n    positional patterns that don't require training and can extrapolate\n    to longer sequences than seen during training.\n\n    TODO: Use _compute_sinusoidal_table to build the encoding and wrap in Tensor\n\n    APPROACH:\n    1. Call _compute_sinusoidal_table(max_seq_len, embed_dim) for the raw table\n    2. Wrap the result in a Tensor and return\n\n    EXAMPLE:\n    >>> pe = create_sinusoidal_embeddings(512, 64)\n    >>> print(pe.shape)\n    (512, 64)\n    >>> # Position 0: [0, 1, 0, 1, 0, 1, ...] (sin(0)=0, cos(0)=1)\n    >>> # Each position gets unique trigonometric signature\n\n    HINT: The heavy lifting is done by _compute_sinusoidal_table. This function\n    just wraps the result as a Tensor for use in the embedding pipeline.\n    \"\"\"\n    pe = _compute_sinusoidal_table(max_seq_len, embed_dim)\n    return Tensor(pe)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Sinusoidal Embeddings\n\nThis test validates our sinusoidal positional encoding function creates correct mathematical patterns.\n\n**What we're testing**: Sinusoidal pattern generation and frequency properties\n**Why it matters**: Enables position awareness without trainable parameters\n**Expected**: Correct sin/cos patterns, unique positions, frequency decay"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Implementation: Building Embedding Systems."
+   ]
+  }
+ ]
+}

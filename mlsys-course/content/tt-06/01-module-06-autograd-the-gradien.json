@@ -1,0 +1,35 @@
+{
+ "title": "Module 06: Autograd - The Gradient Engine",
+ "summary": "TinyTorch autograd: Module 06: Autograd - The Gradient Engine",
+ "source": {
+  "chapter": "tt-06",
+  "sections": [
+   "Module 06: Autograd - The Gradient Engine"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 06: Autograd - The Gradient Engine\n\nWelcome to Module 06! Today you'll awaken the gradient engine and unlock automatic differentiation.\n\n## 🔗 Prerequisites & Progress\n- **You've Built**: Tensor operations, activations, layers, losses, and DataLoader\n- **You'll Build**: The autograd system that computes gradients automatically via reverse-mode AD\n- **You'll Enable**: Learning! Training! The ability to optimize neural networks!\n\n\n  \n\n\n\\$\\$\\underbrace{\\text{Modules 01--05}}_{\\text{Forward Computation}} \\longrightarrow \\mathbf{\\underbrace{\\text{Autograd}}_{\\text{Mod 06 (Active)}}} \\longrightarrow \\underbrace{\\text{Optimizers}}_{\\text{Mod 07}} \\longrightarrow \\underbrace{\\text{Training}}_{\\text{Mod 08}}\\$\\$\n\n## 🎯 Learning Objectives\nBy the end of this module, you will:\n1. **Enhance Tensor** with automatic differentiation capabilities\n2. **Build computation graphs** that track operations for gradient flow\n3. **Implement backward()** method for reverse-mode differentiation\n4. **Complete the Function classes** from Module 01 with their backward() rules\n5. **Test gradient correctness** with mathematical validation\n\n> **Important:** This module enhances the existing `Tensor` class, with no new wrapper classes needed!\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/06_autograd/autograd.ipynb`\n**Building Side:** Code exports to `tinytorch.core.autograd`\n\n```python\n# How to use this module:\nfrom tinytorch.core.autograd import method_of, no_grad\n```\n\n**Why this matters:**\n- **Learning:** Complete autograd system enabling automatic differentiation\n- **Production:** PyTorch-style computational graph and backward pass\n- **Consistency:** All gradient operations in `core.autograd`\n- **Integration:** Enhances existing Tensor without breaking anything"
+  },
+  {
+   "type": "text",
+   "md": "Let's get started!"
+  },
+  {
+   "type": "text",
+   "md": "## 📋 Module Dependencies\n\n**Prerequisites**: Modules 01, 02, and 04 must be complete\n- Module 01: `Tensor` and the operation classes (their forward halves)\n- Module 02: the activation operations\n- Module 04: the loss operations\n\nThis module imports those operation classes and completes each one with its\nbackward half. Nothing else is imported: the gradient engine stays independent\nof any particular layer.\n\n**External Dependencies**:\n- `numpy` (for array operations and numerical computing)\n\n**TinyTorch Dependencies**:\n- `tinytorch.core.tensor` (Module 01): `Tensor`, the `Function` base class, and the operation classes `Add`, `Sub`, `Mul`, `Div`, `MatMul`, `Reshape`, `Permute`, `Copy`, `Slice`, `MaskedFill`, `Sum`, `Mean`, `Max`\n- `tinytorch.core.activations` (Module 02): `SigmoidFunction`, `ReLUFunction`, `TanhFunction`, `GELUFunction`, `SoftmaxFunction`\n- `tinytorch.core.losses` (Module 04): `LogSoftmax`, `MSEFunction`, `BinaryCrossEntropyFunction`, `CrossEntropyFunction`\n\n**Dependency Flow**:\n\\$\\$\\begin{array}{ccccc}\n\\mathbf{\\text{Module 01: Tensor}} & \\longrightarrow & \\mathbf{\\text{Module 06: Autograd}} & \\longrightarrow & \\mathbf{\\text{Module 07: Optimizers}} \\\\\n\\downarrow & & \\downarrow & & \\downarrow \\\\\n\\textit{Core data structure} & & \\textit{Dynamic tape \\& backward AD} & & \\textit{Gradient parameter updates}\n\\end{array}\\$\\$\n\nThis module completes the operation classes built in Modules 01, 02, and 04\nwith their `backward()` halves and gives the Tensor class its `backward()` method. Everything downstream that trains -- optimizers,\ntraining loops, transformers -- depends on the graph this module builds."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import numpy as np\nrng = np.random.default_rng(7)\n\nfrom tinytorch.core.tensor import (\n    Tensor, Function,\n    Add, Sub, Mul, Div, MatMul,\n    Reshape, Permute, Copy, Slice, MaskedFill,\n    Sum, Mean, Max,\n)\nfrom tinytorch.core.activations import SigmoidFunction, ReLUFunction, TanhFunction, GELUFunction, SoftmaxFunction\nfrom tinytorch.core.losses import LogSoftmax, MSEFunction, BinaryCrossEntropyFunction, CrossEntropyFunction\n\n# Numerical guards\nEPSILON = 1e-7  # Clipping bound that keeps the BCE backward's 1/(p(1-p)) finite"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 06: Autograd - The Gradient Engine."
+   ]
+  }
+ ]
+}

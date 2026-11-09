@@ -1,0 +1,106 @@
+{
+ "title": "Debugging Cluster Utilization",
+ "summary": "Distinguish allocated, active, and productive utilization when diagnosing a cluster.",
+ "source": {
+  "chapter": "v2-08",
+  "sections": [
+   "Debugging Cluster Utilization",
+   "Allocated, active, and productive utilization",
+   "Policy-infrastructure mismatch",
+   "Common utilization anti-patterns"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Distinguish allocated, active, and productive utilization when diagnosing a cluster\n- Analyze the root causes of high queue wait times coexisting with moderate average cluster utilization\n- Use aligned runtime and host telemetry to test an input-pipeline bottleneck hypothesis before selecting a remedy\n- Formulate a diagnostic procedure to identify and clean up zombie GPU allocations\n- Evaluate telemetry signals to pinpoint straggler nodes in multi-node AllReduce rings"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Orchestration, § Debugging Cluster Utilization",
+   "md": "A cluster dashboard shows average GPU utilization stuck at 60 percent, yet developers complain about three-day queue times for small debugging jobs. Hundreds of GPUs sit idle, but no jobs are starting. Explaining the gap requires tracing the interactions among hardware topology, scheduler policies, and user behavior."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Allocated, active, and productive utilization\n- Policy-infrastructure mismatch\n- Common utilization anti-patterns\n\nPay attention to: Allocated, active, and productive utilization tiers; Utilization paradox forensics (fragmentation, queuing theory); Input pipeline bottlenecks and host CPU/DataLoader stalls; Zombie process / ghost allocation detection and cleanup."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: What is a 'zombie allocation' (or ghost job) in a GPU cluster, and how can automated health monitors detect and remediate it?",
+   "md": "A zombie allocation remains assigned after useful execution has stopped, for example when failure propagation leaves ranks blocked or orphaned processes retain device state. Low SM activity or retained memory alone cannot establish that diagnosis because legitimate input and communication waits can look similar. Correlate scheduler state with step progress, runtime health, process evidence, and the timeout contract; then enforce termination or node remediation and confirm old execution has stopped before releasing or reassigning the devices."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-08-12-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A cluster dashboard reports \\$85\\% GPU utilization, yet researchers see slow progress. Which distinction between utilization tiers explains the contradiction?",
+     "explanation": "The correct answer is A. Allocated capacity counts devices held by complete allocations, active utilization counts hardware activity under a stated counter, and productive utilization counts retained progress at the job's fault-free rate. Each tier counts no more than the one above it, so an 85 percent allocation figure can hide idle kernels and discarded work. High utilization does not establish health, and productive capacity cannot exceed what is allocated.",
+     "hint": "Think about: distinguish allocated, active, and productive utilization when diagnosing a cluster.",
+     "type": "single",
+     "options": [
+      "Allocated capacity can be high while active utilization is low because jobs wait on input or communication, and productive utilization can be lower still because of restarts and replayed work.",
+      "The dashboard counts only CPU time, so GPU activity is invisible to it.",
+      "High utilization always means the cluster is healthy, so the researchers' perception must be wrong.",
+      "Productive utilization always exceeds allocated utilization, so the dashboard understates the cluster's progress."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An administrator observes that average GPU compute utilization across a 1,000-GPU cluster is only \\$55\\%, yet users experience multi-day queue wait times for 64-GPU jobs. Which diagnostic finding points to the primary root cause?",
+     "explanation": "The correct answer is B. Moderate average utilization can coexist with long waits when small jobs hold one or two GPUs on many nodes. Hundreds of GPUs sit idle in aggregate, but no 64-GPU gang can assemble within the placement constraints. A capacity shortfall would not leave hundreds of GPUs idle while jobs wait, so adding hardware treats a placement-feasibility problem as a demand problem. At a load of 0.55 the factor ServingUtilization/(1-ServingUtilization) is only about 1.2, far from the steep part of the curve. Admission depends on whether a complete allocation is feasible, not on the SM activity of jobs already running.",
+     "hint": "Think about: analyze the root causes of high queue wait times coexisting with moderate average cluster utilization.",
+     "type": "single",
+     "options": [
+      "Demand exceeds the cluster's capacity, so the queue can shrink only after more GPUs are purchased.",
+      "Severe resource fragmentation and strict gang scheduling constraints prevent 64-GPU contiguous blocks from forming, while short jobs hold scattered GPUs across nodes without filling them.",
+      "At 55 percent load, the queueing factor ServingUtilization/(1-ServingUtilization) alone already makes multi-day waits unavoidable.",
+      "Input-pipeline stalls lower SM activity on running jobs, and low SM activity is what keeps the scheduler from admitting the 64-GPU jobs."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "During a multi-GPU training job, GPU SM utilization oscillates between 10 percent and 95 percent, host CPUs are busy, and disk wait is high. What hypothesis should the operator test next before choosing a remedy?",
+     "explanation": "The correct answer is C. Busy host CPUs and high disk wait point toward an input-pipeline investigation, but they do not establish its cause. Confirm that GPU idle intervals coincide with waits for the next batch, then separate storage, decoding or augmentation, and host-to-device transfer costs before choosing a remedy. A zombie allocation makes no further progress, whereas this job keeps returning to 95 percent activity. Collective waits do not explain busy host CPUs and disk wait, and communication kernels can keep SM activity high. KV-cache fragmentation limits how many requests a serving replica admits; it does not describe a training job's input supply.",
+     "hint": "Think about: use aligned runtime and host telemetry to test an input-pipeline bottleneck hypothesis before selecting a remedy.",
+     "type": "single",
+     "options": [
+      "A zombie allocation; the low phases show that the job has stopped making progress, so it should be terminated.",
+      "A communication bottleneck; the ranks are waiting on collectives, so the job should be moved under a single leaf switch.",
+      "The input pipeline may be limiting progress; align GPU idle intervals with batch-readiness waits, then measure whether decoding, storage, or transfer is the limiting stage.",
+      "KV-cache memory fragmentation; the allocator cannot fit the next batch even though HBM occupancy shows free capacity."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In a ring AllReduce across 32 nodes, if 31 nodes show \\$95\\% GPU utilization and 1 node shows \\$10\\% utilization, the node with \\$10\\% utilization is the only healthy node while the 31 nodes are encountering network hardware faults.",
+     "explanation": "False. Utilization alone cannot identify which node is healthy: high activity may be useful compute or waiting inside communication kernels, and low activity may reflect input starvation or another dependency. Correlate per-rank compute and collective timelines, link health, and input waits to identify the rank or path delaying the group before assigning a hardware diagnosis.",
+     "hint": "Think about: evaluate telemetry signals to pinpoint straggler nodes in multi-node AllReduce rings.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A dashboard shows 120 free GPUs, yet a 64-GPU gang waits for days because the free devices sit one or two per node across racks that its topology constraint cannot combine. A ____ index, which counts free GPUs that cannot be allocated because of topology constraints, makes this stranded capacity visible where aggregate utilization hides it.",
+     "explanation": "fragmentation. The fragmentation index separates idle capacity the scheduler could use from idle capacity that no pending request can fit, so an operator can tell a placement-feasibility problem from a demand shortfall before adding hardware or changing priorities.",
+     "hint": "Think about: identify the dashboard metric that exposes stranded, unallocatable capacity and distinguish it from aggregate utilization.",
+     "type": "fill",
+     "answer": [
+      "fragmentation"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now distinguish allocated, active, and productive utilization when diagnosing a cluster.",
+    "You can now analyze the root causes of high queue wait times coexisting with moderate average cluster utilization.",
+    "You can now use aligned runtime and host telemetry to test an input-pipeline bottleneck hypothesis before selecting a remedy.",
+    "You can now formulate a diagnostic procedure to identify and clean up zombie GPU allocations."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,128 @@
+{
+ "title": "Module 19: Benchmarking - Performance Measurement Infrastructure",
+ "summary": "TinyTorch benchmarking: Module 19: Benchmarking - Performance Measurement Infrastruc",
+ "source": {
+  "chapter": "tt-19",
+  "sections": [
+   "Module 19: Benchmarking - Performance Measurement Infrastructure"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 19: Benchmarking - Performance Measurement Infrastructure\n\nWelcome to Module 19! In this module, we transition from individual optimization algorithms to systemic evaluation: constructing statistically rigorous, reproducible benchmarking infrastructure that quantifies latency, accuracy, memory, and energy trade-offs across neural network architectures.\n\n## 🔗 Prerequisites & Progress\n\n**You've Built**: The full neural network stack (Modules 01–13) and the optimization tier including profiling (`14_profiling`), INT8 quantization (`15_quantization`), pruning (`16_compression`), vector acceleration (`17_acceleration`), and KV caching (`18_memoization`).\n**You'll Build**: Statistically sound benchmarking harnesses (`Benchmark`, `BenchmarkSuite`, `BenchmarkResult`), standard error and Student-\\$t\\$ confidence intervals, an MLPerf compliance runner, and multi-objective Pareto frontier analysis (`pareto_frontier`).\n**You'll Enable**: Empirical, reproducible performance verification that rigorously proves the speedup, memory, and accuracy trade-offs across all your optimizations before the capstone synthesis.\n\n### Architectural Roadmap"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Optimization Stage",
+    "Core Technique",
+    "Hardware & Algorithmic Focus",
+    "Primary Target"
+   ],
+   "rows": [
+    [
+     "**14. Profiling**",
+     "Microsecond Benchmarks & Tracing",
+     "Profiler timer loops, Roofline bounds",
+     "Identify compute vs memory bottlenecks"
+    ],
+    [
+     "**15. Quantization**",
+     "Symmetric/Asymmetric INT8",
+     "8-bit scale & zero-point arithmetic",
+     "4× weight footprint & memory bus bandwidth"
+    ],
+    [
+     "**16. Compression**",
+     "Magnitude Pruning & Distillation",
+     "Weight sparsity & student distillation",
+     "Redundant parameter elimination"
+    ],
+    [
+     "**17. Acceleration**",
+     "SIMD GEMM, Fusion, `im2col`",
+     "Memory traffic elimination & systolic arrays",
+     "Kernel overhead & hardware utilization"
+    ],
+    [
+     "**18. Memoization**",
+     "Static KV Cache Buffers",
+     "\\$\\mathcal{O}(1)\\$ decode steps & zero recomputation",
+     "Autoregressive decoding latency"
+    ],
+    [
+     "**19. Benchmarking** *(Active)*",
+     "**Statistical Evaluation & MLPerf**",
+     "**Variance control, confidence intervals, Pareto frontiers**",
+     "**Rigorous cross-system evaluation**"
+    ],
+    [
+     "**20. Capstone**",
+     "End-to-End Pipeline Optimization",
+     "Capstone deployment & system integration",
+     "Production serving pipeline"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 🎯 Learning Objectives\nBy the end of this module, you will:\n1. Construct high-precision benchmarking infrastructure with warmup discard and statistical variance control.\n2. Formulate sample distribution statistics: reporting median \\$P_{50}\\$, tail latency \\$P_{95}/P_{99}\\$, and student-\\$t\\$ confidence intervals.\n3. Build the `Benchmark` and `BenchmarkSuite` evaluation engines to compare baseline and optimized models across multiple hardware axes.\n4. Implement an MLPerf Tiny standardized compliance runner enforcing deterministic input seeds, MLPerf Tiny's published accuracy targets, and a \\$p_{90}\\$ single-stream latency gate (that ceiling being TinyTorch's own, since MLPerf Tiny measures latency rather than gating on it).\n5. Derive empirical Pareto frontiers with `pareto_frontier()` to identify non-dominated model variants across competing systems objectives.\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/19_benchmarking/benchmarking.ipynb`  \n**Building Side:** Code exports to `tinytorch.perf.benchmarking`\n\n\n  \n\n\n```python\n# Final package structure:\nfrom tinytorch.perf.benchmarking import Benchmark, BenchmarkSuite, BenchmarkResult, MLPerf, precise_timer, pareto_frontier\n```\n\n## 📋 Module Dependencies\n\n**Prerequisites**: Modules 01 (Tensor), 03 (Layers), and 14 (Profiling) must be complete; the comparison cells also use Modules 15 (Quantization) and 16 (Compression)\n\n**External Dependencies**:\n- `numpy` (array operations and statistics)\n- `json`, `os`, `platform`, `tempfile`, `pathlib` (result files and system metadata)\n- `statistics` and `time` (measurement statistics and timing)\n- `contextlib`, `dataclasses`, `typing` (timer context manager, result records, type hints)\n- `matplotlib` (optional, for plots only)\n- `copy` (used only inside the comparison cell)"
+  },
+  {
+   "type": "text",
+   "md": "**TinyTorch Dependencies**:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dependency Module",
+    "Exported Abstraction",
+    "Consumed Functional Role",
+    "Memory & Evaluation Invariant"
+   ],
+   "rows": [
+    [
+     "**Module 01 (`01_tensor`)**",
+     "`Tensor`",
+     "Contiguous N-D numerical array representation",
+     "Evaluation inputs and outputs without autograd overhead"
+    ],
+    [
+     "**Module 03 (`03_layers`)**",
+     "`Linear`",
+     "Fully connected layer primitive",
+     "Reference workloads for single-layer benchmarking"
+    ],
+    [
+     "**Module 14 (`14_profiling`)**",
+     "`Profiler`",
+     "High-resolution microsecond timer",
+     "Core latency and memory probe reused by `Benchmark`"
+    ],
+    [
+     "**Modules 15–16**",
+     "`QuantizedLinear`, `magnitude_prune`",
+     "Optimized model variants",
+     "Inputs to multi-dimensional comparative benchmarking"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Dependency Flow**:\n```\nModule 01 (Tensor)      ──┐\nModule 03 (Linear)      ──┤\nModule 14 (Profiler)    ──┼──→ Module 19 (Benchmark, BenchmarkSuite)\nModules 15-16 (variants)──┘\n```"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 62 lines of code (starting with `import json`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 19: Benchmarking - Performance Measurement Infrastructure."
+   ]
+  }
+ ]
+}

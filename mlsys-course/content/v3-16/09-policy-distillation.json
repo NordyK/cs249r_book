@@ -1,0 +1,60 @@
+{
+ "title": "Policy Distillation",
+ "summary": "Work through Policy Distillation.",
+ "source": {
+  "chapter": "v3-16",
+  "sections": [
+   "Policy Distillation",
+   "Context distillation",
+   "Teacher distillation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Policy Distillation**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Trajectory Fine-Tuning, § Policy Distillation",
+   "md": "Consider an automated repair agent whose system prompt carries a detailed debugging checklist and worked examples showing how to inspect a stack trace before revising a tool call. In production, the agent resends this entire prompt prefix on every turn of every trajectory, consuming context-window capacity and raising time-to-first-token latency even though the procedural workflow belongs in the weights under a later section. Training the model to internalize the procedure lets the runtime drop the checklist from the prompt and reclaim those tokens on every call."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Context distillation\n- Teacher distillation"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Trajectory distillation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A costly teacher configuration generates trajectories that pass the same admission as any demonstration, so distillation from sampled tokens is imitation rather than soft-target matching."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-16-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Policy Distillation** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained.",
+      "Loss values are comparable only under identical split, serialization, mask, and normalization, and promotion requires closed-loop task acceptance under the serving configuration, not lower loss.",
+      "A costly teacher configuration generates trajectories that pass the same admission as any demonstration, so distillation from sampled tokens is imitation rather than soft-target matching.",
+      "Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Trajectory distillation**: A costly teacher configuration generates trajectories that pass the same admission as any demonstration, so distillation from sampled tokens is imitation rather than soft-target matching."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Policy Distillation."
+   ]
+  }
+ ]
+}

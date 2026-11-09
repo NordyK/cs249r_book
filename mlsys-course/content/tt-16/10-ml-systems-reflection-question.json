@@ -1,0 +1,63 @@
+{
+ "title": "ML Systems Reflection Questions",
+ "summary": "TinyTorch compression: ML Systems Reflection Questions",
+ "source": {
+  "chapter": "tt-16",
+  "sections": [
+   "ML Systems Reflection Questions"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🤔 ML Systems Reflection Questions\n\n### Question 1: Compression Trade-offs\n\n**Question**: You implemented magnitude pruning that removes \\$90\\%\\$ of weights from a \\$10\\text{M}\\$ parameter model.\n\n- **Active Parameters**:\n  \\$\\$N_{\\text{active}} = N_{\\text{total}} \\times (1 - \\text{Sparsity}) = 10\\text{M} \\times (1 - 0.90) = \\mathbf{1.0\\text{M}}\\text{ parameters}\\$\\$\n\n- **Theoretical Minimum Storage**:\n  \\$\\$S_{\\text{raw}} = 1.0\\text{M} \\times 4\\text{ bytes} = \\mathbf{4.0\\text{ MB}}\\$\\$\n  *(Note on sparse format overheads)*:\n  - In Coordinate format (COO, with one 32-bit flat index per value, the convention used throughout this module), storage is \\$1.0\\text{M} \\times (4 + 4) = \\mathbf{8.0\\text{ MB}}\\$. A library that keeps separate 32-bit row and column arrays pays \\$1.0\\text{M} \\times (4 + 4 + 4) = 12\\text{ MB}\\$ instead, so always state which COO you mean.\n  - In Compressed Sparse Row (CSR: FP32 values \\$+\\$ 16-bit column indices \\$+\\$ row pointers), storage is \\$1.0\\text{M} \\times (4 + 2) + (\\text{rows} + 1) \\times 4 \\approx \\mathbf{6.0\\text{ MB}}\\$.\n\n- **Why Actual Speedup Is Less Than \\$10\\times\\$**:\n  1. **Sparse Overhead on Dense Tensor Cores**: Standard systolic arrays (NVIDIA Tensor Cores, Apple Neural Engine) require aligned contiguous blocks. Unstructured zeroing yields \\$0\\times\\$ speedup under standard dense GEMM kernels.\n  2. **Memory Access Divergence & Irregularity**: When sparse BLAS kernels traverse non-zero elements via pointer indirection (`col_indices[k]`), cache-line utilization drops drastically due to non-coalesced DRAM accesses.\n  3. **Amdahl's Law & Non-Pruned Operations**: Layer norms, activations, residual additions, and memory bandwidth bounds remain unpruned, setting a strict roofline limit on achievable speedup."
+  },
+  {
+   "type": "text",
+   "md": "---\n\n### Question 2: Structured vs. Unstructured Sparsity\n\n**Question**: Your structured pruning removes entire channels, while magnitude pruning creates scattered zeros."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Evaluation Criterion",
+    "Winner",
+    "Technical Analysis & Systems Rationale"
+   ],
+   "rows": [
+    [
+     "**Hardware Acceleration**",
+     "**Structured Pruning**",
+     "Its zeros sit in whole columns, so the columns can be sliced away and the physical matrix dimensions shrink \\$(M \\times N \\to M \\times N')\\$. Standard BLAS libraries then execute dense GEMMs on contiguous arrays at peak hardware FLOP/s without specialized hardware. Your `structured_prune` produces the pattern; the slicing is the deployment step that collects the speedup."
+    ],
+    [
+     "**Accuracy Retention**",
+     "**Unstructured Pruning**",
+     "Allows the optimization manifold to retain isolated high-magnitude synaptic connections across all channels. Past the \\$\\le 70\\%\\$ band where both are safe, it keeps preserving critical feature representations while structured pruning, removing whole features at a time, starts to collapse capacity."
+    ],
+    [
+     "**Memory Predictability**",
+     "**Structured Pruning**",
+     "Preserves linear strided memory access without index indirection tables, ensuring full cache-line utilization (\\$64\\text{ bytes} = 16\\text{ FP32 values}\\$) and prefetcher effectiveness."
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Deployment Selection Strategy**:\n- **Mobile / Edge / CPU**: Choose **Structured Pruning** (or 2:4 structured sparsity on Ampere+ GPUs) because edge accelerators lack high-efficiency sparse BLAS runtimes.\n- **Offline Storage / Bandwidth-Constrained Distribution**: Choose **Unstructured Pruning** with Huffman/entropy coding for over-the-air (OTA) binary delivery, followed by sparse decompression or on-device retraining.\n\n---\n\n### Question 3: Knowledge Distillation Efficiency\n\n**Question**: A teacher model has \\$100\\text{M}\\$ parameters, student has \\$10\\text{M}\\$ parameters, both achieve \\$85\\%\\$ accuracy. Teacher latency is \\$100\\text{ ms}\\$, student latency is \\$15\\text{ ms}\\$.\n\n- **Compression Ratio**:\n  \\$\\$\\text{Compression Ratio} = \\frac{N_{\\text{teacher}}}{N_{\\text{student}}} = \\frac{100\\text{M}}{10\\text{M}} = \\mathbf{10.0\\times}\\$\\$\n\n- **Latency Speedup**:\n  \\$\\$\\text{Speedup} = \\frac{\\text{Latency}_{\\text{teacher}}}{\\text{Latency}_{\\text{student}}} = \\frac{100\\text{ ms}}{15\\text{ ms}} \\approx \\mathbf{6.67\\times}\\$\\$\n\n- **Why Speedup Is Smaller Than the Compression Ratio (\\$6.67\\times  170\\$**. At \\$r = 171\\$, factorized parameter count exceeds dense storage!\n\n---\n\n### Question 5: Pruning Strategy Selection"
+  },
+  {
+   "type": "text",
+   "md": "**Question**: Deploying on a mobile device with a \\$50\\text{ MB}\\$ model limit and \\$100\\text{ ms}\\$ latency requirement."
+  },
+  {
+   "type": "text",
+   "md": "- **Memory Optimization Strategy**: **Magnitude Pruning + Weight Quantization** (achieves extreme compression ratios up to \\$10\\text{--}20\\times\\$ by zeroing non-essential weights and packing non-zeros into INT8/INT4).\n- **Speed Optimization Strategy**: **Structured Pruning + Knowledge Distillation** (physically reduces channel dimensions and depth, directly shrinking dense GEMM computation and memory fetch cycles).\n- **Optimal Sequential Compression Cascade**:\n  1. **Knowledge Distillation**: First train a smaller student architecture designed specifically to fit mobile latency constraints.\n  2. **Structured Pruning**: Prune redundant channels in the student model by \\$20\\text{--}30\\%\\$ to optimize cache residency.\n  3. **Fine-Tuning / Retraining**: Recover accuracy lost during structural pruning via student fine-tuning, re-applying the pruning mask after every optimizer step so the fine-tuning does not refill the pruned channels.\n  4. **Post-Training Quantization (INT8)**: Quantize remaining weights and activations from FP32 to INT8, delivering a final \\$4\\times\\$ memory reduction and activating high-throughput INT8 mobile DSP/NPU vector engines."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ML Systems Reflection Questions."
+   ]
+  }
+ ]
+}

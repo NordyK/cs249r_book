@@ -1,0 +1,107 @@
+{
+ "title": "Hardware Mapping",
+ "summary": "Compare spatial mapping and temporal mapping dimensions in AI hardware acceleration.",
+ "source": {
+  "chapter": "v1-11",
+  "sections": [
+   "Hardware Mapping",
+   "Placement and allocation",
+   "Combinatorial complexity",
+   "Dataflow optimization",
+   "Stationary dataflows",
+   "Tiling",
+   "Memory-efficient tensor layouts",
+   "Kernel fusion on the accelerator",
+   "Applying mapping strategies to neural networks"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare spatial mapping and temporal mapping dimensions in AI hardware acceleration\n- Compare how weight-stationary and output-stationary dataflows move operands and why different reuse patterns favor each one\n- Justify the primary objective of tiling and memory hierarchy mapping\n- Compare the memory layout efficiency of Channels-Last (NHWC) versus Channels-First (NCHW) for Tensor Cores\n- Explain the performance benefits and hardware constraints of vertical kernel fusion"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Hardware Acceleration, § Hardware Mapping",
+   "md": "Consider one of ResNet-50's \\$3×3 convolutions running on an accelerator tile. The mathematical operation is fixed, but the execution plan is not. One schedule can keep a filter in local registers while many output pixels stream past it; another can advance pixel by pixel and reload the same filter values repeatedly from a slower memory tier. Both schedules compute the same tensor. Only one turns the reuse in the convolution into real bandwidth savings."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Placement and allocation\n- Combinatorial complexity\n- Dataflow optimization\n- Stationary dataflows\n- Tiling\n- Memory-efficient tensor layouts\n- Kernel fusion on the accelerator\n- Applying mapping strategies to neural networks\n\nPay attention to: Spatial mapping (PE/SM assignment) vs Temporal mapping (loop scheduling); Placement and resource allocation across memory hierarchy levels; Combinatorial complexity of loop transformations and tile selection."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Contrast the data movement mechanics and primary use cases of Weight-Stationary (WS) and Output-Stationary (OS) systolic array dataflows.",
+   "md": "In a weight-stationary dataflow, weights are kept local in processing elements while activations stream past them and partial sums move through the array, so the mapping favors cases where one weight tile is reused many times before eviction. In an output-stationary dataflow, partial sums stay local until all contributions arrive, reducing repeated write-back of intermediates while weights and activations stream. A CNN layer with strong filter reuse is a common WS candidate, whereas a deep accumulation pattern can make OS attractive because it preserves the running output locally. The practical consequence is that neither dataflow is universally best; the right choice depends on reuse, buffer capacity, and tensor shape."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-11-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In neural network hardware mapping, what distinguishes a spatial mapping decision from a temporal mapping decision?",
+     "explanation": "The correct answer is C. Spatial mapping decides how tensor dimensions and parallel operations are partitioned and assigned across physical execution resources (such as array PEs, GPU SMs, or SIMD vector lanes) to execute concurrently in space. Temporal mapping decides the chronological schedule, loop ordering, and time steps in which operations and tile iterations execute on those assigned physical units over time. The compiler IR vs runtime launch distinction confuses compilation phases with mapping dimensions. The precision vs memory allocation choice describes quantization and memory planning. The layer-specific choice is incorrect as both mapping types apply to all neural network operations.",
+     "hint": "Think about: compare spatial mapping and temporal mapping dimensions in AI hardware acceleration.",
+     "type": "single",
+     "options": [
+      "Spatial mapping refers to compiling graph IR, whereas temporal mapping refers to runtime CUDA kernel launches",
+      "Spatial mapping determines precision formats (FP16 vs INT8), whereas temporal mapping determines memory allocation sizes",
+      "Spatial mapping assigns computational tasks to specific physical execution units (e.g., PEs or SMs) simultaneously in parallel, whereas temporal mapping determines the execution ordering and loop scheduling over time on those units",
+      "Spatial mapping operates only on convolutional layers, whereas temporal mapping operates only on transformer attention layers"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "When mapping a tensor computation to a multi-level memory hierarchy, what is the primary objective optimized by tiling, whether through implicit cache blocking or explicit scratchpad staging?",
+     "explanation": "The correct answer is B. The primary goal of tiling, whether caches capture the reuse implicitly or the kernel stages tiles explicitly, is to maximize data reuse in the highest levels of the memory hierarchy (registers and on-chip SRAM/shared memory), ensuring that each byte fetched from power-hungry, high-latency DRAM is reused as many times as possible before eviction, thereby minimizing DRAM bandwidth demand and maximizing compute throughput. Maximizing writes to host memory degrades performance. Executing different instructions causes severe warp divergence. Converting matrix operations to scalars eliminates vector and tensor unit acceleration.",
+     "hint": "Think about: justify the primary objective of tiling and memory hierarchy mapping.",
+     "type": "single",
+     "options": [
+      "Maximizing the total number of intermediate tensors written to host DDR memory",
+      "Maximizing data reuse in the fastest, closest memory tiers (registers and SRAM) to minimize traffic to slower, energy-expensive DRAM",
+      "Ensuring every warp thread executes different instruction streams simultaneously",
+      "Converting all 2D matrix multiplications into 1D scalar operations"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Why do modern deep learning libraries (e.g., cuDNN, TensorRT) strongly prefer the Channels-Last (NHWC) tensor layout over Channels-First (NCHW) when executing convolutions on NVIDIA Tensor Cores?",
+     "explanation": "The correct answer is D. In NHWC layout, the channel dimension $C$ is the fastest-varying (innermost) dimension, placing all channel features for a specific spatial coordinate $(n, h, w)$ contiguously in memory. Tensor Cores execute matrix operations on contiguous vectors of channels (e.g., 8 or 16 channels per memory vector load), enabling coalesced memory access and direct loading into matrix unit registers without expensive transpose or gather operations. The 1D flattening, big-endian, and parameter sharing choices are technically incorrect.",
+     "hint": "Think about: compare the memory layout efficiency of Channels-Last (NHWC) versus Channels-First (NCHW) for Tensor Cores.",
+     "type": "single",
+     "options": [
+      "NHWC eliminates the need for spatial convolutions by flattening images into 1D vectors",
+      "NCHW requires floating-point numbers to be stored in big-endian byte order",
+      "NHWC reduces model parameter count by sharing channel weights across batches",
+      "NHWC places channel values for a given spatial location in contiguous memory, aligning with the packed vector/matrix multiply requirements of Tensor Cores"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Row-Stationary (RS) dataflow, as implemented in architectures like Eyeriss, keeps only the final output activation stationary in registers while streaming 2D convolutional filter rows and input rows from DRAM on every clock cycle.",
+     "explanation": "False. Row-Stationary dataflow keeps 1D rows of convolutional weights stationary in PE registers, slides 1D rows of input activations through the PEs, and accumulates 1D rows of partial sums locally across a 2D array of PEs, maximizing 2D convolution spatial reuse across all three tensor components simultaneously.",
+     "hint": "Think about: evaluate the operational mechanics of Row-Stationary dataflow in convolution accelerators.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain the mechanism of vertical kernel fusion (e.g., fusing `Conv2D` $\\to$ `BatchNorm` $\\to$ `ReLU`), and identify both its performance benefit and its primary architectural constraint.",
+   "md": "Vertical kernel fusion combines a sequence of producer-consumer operations into a single GPU kernel, passing intermediate activation values directly through fast on-chip registers or shared memory instead of writing them out to and re-reading them from global DRAM (HBM). This dramatically reduces memory traffic and kernel launch overhead. Its primary architectural constraint is register pressure: storing intermediate variables and fusing complex pipelines increases register usage per thread, which can reduce warp occupancy and limit available parallelism on the SM."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare spatial mapping and temporal mapping dimensions in AI hardware acceleration.",
+    "You can now compare how weight-stationary and output-stationary dataflows move operands and why different reuse patterns favor each one.",
+    "You can now justify the primary objective of tiling and memory hierarchy mapping.",
+    "You can now compare the memory layout efficiency of Channels-Last (NHWC) versus Channels-First (NCHW) for Tensor Cores."
+   ]
+  }
+ ]
+}

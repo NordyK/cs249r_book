@@ -1,0 +1,89 @@
+{
+ "title": "Case Studies",
+ "summary": "Analyze the statistical efficiency and architectural requirements of interleaving versus standard A/B testing.",
+ "source": {
+  "chapter": "v2-12",
+  "sections": [
+   "Case Studies",
+   "Uber Michelangelo",
+   "Meta FBLearner Flow",
+   "Netflix ML infrastructure",
+   "Google Vertex AI",
+   "Spotify ML platform",
+   "Comparing platform control planes"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the statistical efficiency and architectural requirements of interleaving versus standard A/B testing\n- Explain the historical engineering drivers behind early enterprise feature store platforms\n- Analyze the architectural split between offline precomputation and real-time streaming in low-latency recommendation platforms\n- Identify the deployment terminology for non-serving live traffic evaluation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, ML Operations at Scale, § Case Studies",
+   "md": "When hundreds of engineers train and deploy thousands of models against shared data streams and strict latency budgets, bespoke per-team pipelines collapse under silent feature skew, duplicated glue code, and uncoordinated rollouts. The five platform cases that follow instantiate the operations trade-offs developed earlier in this chapter: standardization vs. team-local velocity, abstraction vs. control, freshness vs. cost, and governance vs. autonomy. Each case shows a different way to keep a multi-model fleet repeatable without turning every model into bespoke infrastructure."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Uber Michelangelo\n- Meta FBLearner Flow\n- Netflix ML infrastructure\n- Google Vertex AI\n- Spotify ML platform\n- Comparing platform control planes\n\nPay attention to: Netflix Interleaving vs. A/B testing efficiency; Uber Michelangelo and repeatable shared workflows; Spotify case: batch and online freshness trade-offs."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: What general batch-versus-online design trade-off does the Spotify case illustrate for personalization features with different freshness requirements?",
+   "md": "Freshness-tolerant work can be precomputed in batch, while recent-context features need an online or streaming path. Shared definitions and lineage must preserve consistency across those paths. This is the case's general design lesson, not evidence for a particular Spotify embedding, similarity-matrix, or weekend-job implementation."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-12-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Netflix reported ranking experiments requiring over \\$100× fewer users than traditional between-subject A/B tests. Which mechanism explains why interleaving can provide this sample-efficiency advantage?",
+     "explanation": "The correct answer is B. Interleaving mixes two ranked lists for the same user and attributes engagement to the source ranker. Within-user comparisons reduce user-level variation and can require far fewer participants; the reported 100-fold gain applies to particular experiments, not every ranking comparison. Synthetic bots or relaxed significance thresholds do not supply the same evidence.",
+     "hint": "Think about: analyze the statistical efficiency and architectural requirements of interleaving versus standard A/B testing.",
+     "type": "single",
+     "options": [
+      "By testing ranking algorithms exclusively on synthetic bot agents.",
+      "By deploying 'Interleaving', which blends ranked lists from two algorithms into a single presentation for each user, removing user-level variance and measuring direct head-to-head clicks.",
+      "By relaxing statistical power thresholds from $\\beta = 0.80$ to $\\beta = 0.10$.",
+      "By evaluating models purely on historical offline training set accuracy."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "What recurring coordination problem does the Michelangelo case illustrate?",
+     "explanation": "The correct answer is C. Shared feature and workflow contracts make model development repeatable across product teams. The case describes varied tools and custom production systems, rather than establishing a specific Python-to-C++/Java rewrite requirement. Standardizing delivery does not remove each team's responsibility for model behavior.",
+     "hint": "Think about: explain the historical engineering drivers behind early enterprise feature store platforms.",
+     "type": "single",
+     "options": [
+      "Cloud GPU instances were unsupported by Uber's container runtimes.",
+      "Data scientists were legally prohibited from executing SQL queries against production databases.",
+      "Varied modeling tools and custom production systems lacked a common deployment path and reproducible data pipelines.",
+      "Mobile device operating systems refused to display recommendation rankings with more than five items."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "The deployment practice where a candidate model receives copied live traffic to evaluate latency, memory, and outputs without serving its predictions to users is known as shadow deployment or ____.",
+     "explanation": "dark launching. Candidate outputs are not served, but resource contention and side effects still require isolation. Shadow evidence supports operational comparison rather than proving user-outcome gains.",
+     "hint": "Think about: identify the deployment terminology for non-serving live traffic evaluation.",
+     "type": "fill",
+     "answer": [
+      "dark launching"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the statistical efficiency and architectural requirements of interleaving versus standard A/B testing.",
+    "You can now explain the historical engineering drivers behind early enterprise feature store platforms.",
+    "You can now analyze the architectural split between offline precomputation and real-time streaming in low-latency recommendation platforms.",
+    "You can now identify the deployment terminology for non-serving live traffic evaluation."
+   ]
+  }
+ ]
+}

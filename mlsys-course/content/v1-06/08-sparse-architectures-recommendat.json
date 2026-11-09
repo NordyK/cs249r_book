@@ -1,0 +1,93 @@
+{
+ "title": "Sparse Architectures: Recommendation Systems",
+ "summary": "Explain the architectural function and computational role of the Interaction Layer in DLRM recommendation models.",
+ "source": {
+  "chapter": "v1-06",
+  "sections": [
+   "Sparse Architectures: Recommendation Systems",
+   "Pattern processing needs",
+   "Algorithmic structure",
+   "Computational mapping and system implications"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain the architectural function and computational role of the Interaction Layer in DLRM recommendation models\n- Analyze why recommendation workloads can hit a capacity wall before arithmetic throughput matters, and identify the architectural responses that follow\n- Analyze and sequence the four main pipeline stages of DLRM inference dataflow\n- Calculate embedding table capacity requirements and formulate systems strategies (sharding, offloading) to bypass the memory capacity wall\n- Explain why sparse embedding lookups weaken spatial locality and prefetching, while popularity skew can still create useful cache reuse for hot rows"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Network Architectures, § Sparse Architectures: Recommendation Systems",
+   "md": "Coupling sparse lookups with dense interaction layers is the defining pattern of industrial recommendation engines. When a user opens a streaming service or e-commerce platform, the system must select a handful of recommendations from a catalog of millions within an end-to-end budget of tens of milliseconds. Meeting that target requires mapping both users and items to dense vectors in a shared embedding space and scoring their interactions at scale, which exposes a regime governed first by memory capacity."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Pattern processing needs\n- Algorithmic structure\n- Computational mapping and system implications\n\nPay attention to: High-cardinality categorical features and lack of geometric structure in raw IDs; Embedding tables as memory capacity walls (TB+ scale); DLRM architecture pipeline: Bottom MLP (dense) + Embedding Lookups (sparse) -> Interaction Layer (dot products) -> Top MLP; Memory capacity bound vs memory bandwidth bound (random gathers vs dense compute)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why a large-table recommendation scenario becomes memory-capacity-bound rather than compute-bound when the model's combined embedding tables exceed the fast memory of a single accelerator, and why the standard execution form of the Iron Law of ML Systems ($T_{\\text{exec}} = D_{\\text{vol}}/\\text{BW} + O/(R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}) + L_{\\text{lat}}$) cannot directly determine whether that model can be deployed on one accelerator.",
+   "md": "DLRM becomes capacity bound when its combined embedding tables exceed the fast memory of one device, so the first question is not how quickly arithmetic runs but whether the model state can reside locally at all. In that regime, compression, offloading to host or remote memory, or partitioning across devices become the architectural options before runtime optimization of the dense MLPs matters. The practical consequence is that the iron-law execution terms only apply cleanly after placement is feasible, because capacity decides where the tables live and therefore which bandwidth the data term must pay."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-06-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In the Deep Learning Recommendation Model (DLRM) architecture, what is the primary computational role of the Interaction Layer?",
+     "explanation": "The correct answer is D. In DLRM, continuous numerical features are processed through a dense Bottom MLP, while categorical features are looked up in sparse embedding tables. The Interaction Layer takes these resulting dense vectors and computes all-to-all pairwise dot products, explicitly capturing interactions between numerical context and categorical embeddings before passing the concatenated results to the Top MLP. Convolutions are vision operators that do not apply to unstructured IDs. Batch normalization does not compute cross-feature dot product interactions. Autoregressive token decoding is a language model mechanism.",
+     "hint": "Think about: explain the architectural function and computational role of the Interaction Layer in DLRM recommendation models.",
+     "type": "single",
+     "options": [
+      "It applies 2D convolutions over user and item IDs to extract hierarchical spatial features.",
+      "It normalizes categorical IDs across the batch using running mean and variance statistics.",
+      "It performs autoregressive token decoding to predict the next search query.",
+      "It computes pairwise dot products between the dense feature representations from the Bottom MLP and the sparse embedding vectors gathered from categorical tables to capture explicit feature interactions."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Order the four primary computational stages executed during an end-to-end inference pass in a DLRM recommendation model:",
+     "explanation": "The correct order is (1) and (2) in parallel -> (3) -> (4) (or (1) -> (2) -> (3) -> (4)). Step 1 and 2 are (1) Continuous features through Bottom MLP and (2) Categorical ID embedding table lookups. Step 3 is (3) Pairwise dot product feature interactions. Step 4 is (4) Top MLP classification for click-through rate prediction.",
+     "hint": "Think about: analyze and sequence the four main pipeline stages of DLRM inference dataflow.",
+     "type": "order",
+     "items": [
+      "Process continuous numerical features through the dense Bottom MLP to produce a dense representation",
+      "Look up sparse categorical IDs across embedding tables to gather discrete embedding vectors",
+      "Concatenate interaction dot products with Bottom MLP features and pass through the Top MLP to predict click-through probability"
+     ]
+    },
+    {
+     "q": "Why do sparse embedding table lookups in recommendation workloads resist standard hardware caching and memory prefetching mechanisms that accelerate CNNs and MLPs?",
+     "explanation": "The correct answer is A. The chapter contrasts sparse recommendation lookups with the regular contiguous or strided access of dense layers and convolutions: IDs select arbitrary rows, so spatial locality and prefetching help much less. But caches are not universally defeated, because popular users or items recur and create temporal locality for hot rows. The answers about encryption, tensor contractions, or disabled caching invent mechanisms the section does not describe.",
+     "hint": "Think about: explain why sparse embedding lookups weaken spatial locality and prefetching, while popularity skew can still create useful cache reuse for hot rows.",
+     "type": "single",
+     "options": [
+      "Because each incoming request queries arbitrary, non-contiguous row indices determined by sparse user and item IDs, producing irregular gathers with weak spatial locality, although popularity skew can still create temporal reuse for hot rows.",
+      "Because embedding tables are permanently encrypted in DRAM, preventing hardware prefetchers from reading address buses.",
+      "Because embedding lookups require performing high-order tensor contractions that stall CPU prefetch queues.",
+      "Because recommendation systems execute only on storage-class memory where hardware caching is disabled by operating system kernels."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: An e-commerce recommendation system maintains an item embedding table with 100 million items (\\$10^8$) and a user embedding table with 1 billion users (\\$10^9$), each using 128-dimensional FP32 vectors (4 bytes per parameter). Calculate the memory footprint of each table, verify why they cannot fit on a single 80 GB A100 GPU, and describe two systems strategies to handle this capacity wall.",
+   "md": "The item table requires \\$10^8 × 128 × 4 bytes = 51.2 GB. The user table requires \\$10^9 × 128 × 4 bytes = 512.0 GB. Combined, they require \\$563.2 GB, which exceeds the 80 GB capacity of an A100 by >7× (even the item table alone consumes ~64% of an 80 GB GPU). Two systems strategies to resolve this capacity wall: (1) Model-parallel table sharding, where embedding tables are partitioned across the memory of multiple GPUs or cluster nodes; (2) Hierarchical memory offloading, where frequently accessed embeddings are cached in GPU HBM while the vast majority of cold embeddings reside in host CPU DRAM or NVMe storage."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the architectural function and computational role of the Interaction Layer in DLRM recommendation models.",
+    "You can now analyze why recommendation workloads can hit a capacity wall before arithmetic throughput matters, and identify the architectural responses that follow.",
+    "You can now analyze and sequence the four main pipeline stages of DLRM inference dataflow.",
+    "You can now calculate embedding table capacity requirements and formulate systems strategies (sharding, offloading) to bypass the memory capacity wall."
+   ]
+  }
+ ]
+}

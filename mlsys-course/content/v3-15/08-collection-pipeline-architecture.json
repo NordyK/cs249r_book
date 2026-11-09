@@ -1,0 +1,62 @@
+{
+ "title": "Collection Pipeline Architecture",
+ "summary": "Work through Collection Pipeline Architecture.",
+ "source": {
+  "chapter": "v3-15",
+  "sections": [
+   "Collection Pipeline Architecture",
+   "Pipeline responsibilities",
+   "Collection credits and staging reserves",
+   "The collection bottleneck",
+   "Artifact capture and resource release"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Collection Pipeline Architecture**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Trajectory Curation, § Collection Pipeline Architecture",
+   "md": "During a collection campaign, a fleet of rollout workers can finish hundreds of candidate traces while downstream test sandboxes are saturated. A multi-predicate check can also stall waiting on a single lagging reviewer after earlier checks have already passed. Because generation, verification, and dataset publication run at different speeds, structuring collection as an asynchronous pipeline decouples the stages within explicit capacity limits. When downstream verifiers or review queues fill up, backpressure throttles or pauses new rollouts before in-flight outputs exhaust staging storage."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Pipeline responsibilities\n- Collection credits and staging reserves\n- The collection bottleneck\n- Artifact capture and resource release"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Bounded collection flow matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Collection is an asynchronous pipeline whose staging must be sized for a verifier service-time collapse, not average utilization, with each run holding a collection credit at the record ceiling until durable disposition and cost counted per emitted artifact."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-15-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Collection Pipeline Architecture** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Collection is an asynchronous pipeline whose staging must be sized for a verifier service-time collapse, not average utilization, with each run holding a collection credit at the record ceiling until durable disposition and cost counted per emitted artifact.",
+      "A failure earns a weight update only if it persists with complete context, a well-formed interface, and a healthy runtime, so counterfactual probes run up the intervention ladder from context and schema to SFT and then RL.",
+      "Admission is a route-specific conjunction of predicate families that each resolve to pass, fail, pending, or unknown, a missing check never defaults to pass, and checks are ordered by cost per rejection.",
+      "A generate-select-train loop carries contrast only on informative tasks, so it narrows toward what it already solves, and hard and trivial fixtures cost attempts without teaching."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Bounded collection flow**: Collection is an asynchronous pipeline whose staging must be sized for a verifier service-time collapse, not average utilization, with each run holding a collection credit at the record ceiling until durable disposition and cost counted per emitted artifact."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Collection Pipeline Architecture."
+   ]
+  }
+ ]
+}

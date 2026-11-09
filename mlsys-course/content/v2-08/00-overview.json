@@ -1,0 +1,297 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v2-08",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Fleet Orchestration** (Vol II). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Orchestration, Purpose",
+   "md": "A thousand idle accelerators still incur ownership or reservation costs while queued experiments make no progress. More hardware does not resolve that waste when available resources cannot form the groups that pending jobs need. Free devices may be scattered across machines with unsuitable connections, or several jobs may each hold resources while waiting for the rest. On one machine, improving execution usually begins with the work already running."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Scheduling Problem",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Distributed Scheduling Complexity",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Scheduling Objectives and Their Conflict",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Core Allocation Constraints",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Orchestration Paradigms",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Topology-Aware Scheduling",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Elastic Scheduling",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Scheduler as allocation control plane**",
+     "A cluster scheduler loses direct observation, atomic effect, and binary failure, so it separates admission, placement, and reconciliation, and reusing a suspect node's accelerators requires versioned allocations, leases, and fencing."
+    ],
+    [
+     "**Gang scheduling**",
+     "A rigid synchronous job makes no progress below its minimum gang, so partial allocation can deadlock two jobs at full cost, and atomic all-or-nothing allocation removes hold-and-wait but needs reservation, safe backfill, and holistic preemption."
+    ],
+    [
+     "**Feasibility before fairness**",
+     "A fair share of accelerators a job cannot run on delivers nothing, so the scheduler first filters feasible bundles (every resource dimension, gang atomicity, topology, memory) and only then applies dominant-resource fairness, while multi-dimensional packing strands capacity."
+    ],
+    [
+     "**Scheduling objectives and matched signals**",
+     "Throughput, latency, fairness, and cost pull allocation apart, so fairness is measured as slowdown, queue delay grows with job-size variability (M/G/1), and an ML-aware policy earns its cost only when its signal matches the objective."
+    ],
+    [
+     "**Topology-aware placement**",
+     "Equal-size allocations deliver different throughput because bandwidth steps down from NVLink to leaf to spine, so placement minimizes a locality cost over the job's actual traffic, judged by completion time including the wait for a compact placement."
+    ],
+    [
+     "**Elastic scheduling contract**",
+     "Elasticity replaces keep-or-kill with a declared size range, valid increments, a measured transition cost, and a scaling-efficiency curve, and each resize must be amortized over the run and judged by time to target quality."
+    ],
+    [
+     "**Interruption economics**",
+     "Every preemption pays discarded work since the last durable checkpoint plus reload and warmup, one admission can cascade into many evictions, and spot capacity is cheap only by effective cost after checkpoint overhead, restart, and replay."
+    ],
+    [
+     "**Utilization tiers**",
+     "Utilization is worth money at fleet scale, but an unlabeled percentage conflates the allocated tier (complete allocations only), the active tier, and the productive tier (normalized to the job's fault-free step rate), and a full queue beside idle accelerators is usually a policy-infrastructure mismatch rather than an algorithm defect."
+    ],
+    [
+     "**Batch versus declarative orchestration**",
+     "Slurm's imperative batch allocation and Kubernetes' level-triggered reconciliation are different contracts for which lifecycle the platform manages, chosen by workload semantics, and a hybrid works only when exactly one layer owns each placement."
+    ],
+    [
+     "**Quota guarantees bounded by reclaim**",
+     "Hierarchical quotas separate a team's guarantee from its maximum and borrowing idle guarantees lifts utilization, but concurrently honored guarantees must fit the capacity the platform can reclaim in time, and a noisy neighbor, one tenant whose consumption of a shared resource slows the others, is what isolation and reclaim contracts must bound."
+    ],
+    [
+     "**Serving envelope and accelerator sharing**",
+     "The orchestrator's serving unit is a ready replica sized by measured capacity at a latency target, colocation trades density against interference along an isolation spectrum (time-slicing, MPS, MIG, exclusive), and moving devices between training and serving is safe only on forecast."
+    ],
+    [
+     "**Waiting time versus utilization**",
+     "Mean queue wait is a load factor rho/(1-rho) times a variability factor (1+C_s^2)/2, so waiting time bends sharply upward as offered load nears capacity, and a mixed ML queue whose job durations vary widely pays several times more wait at the same utilization than a uniform one."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$d_i = \\max_r \\frac{a_{i,r}}{C_r}$$\n\n$$\\frac{W_q}{1/\\mu} = \\frac{\\rho}{1-\\rho} \\cdot \\frac{1+C_s^2}{2}$$\n\n$$\\text{Priority}_{\\text{effective}} = \\text{Priority}_{\\text{base}} \\times \\frac{F_{\\text{target}}}{F_{\\text{actual}} + \\epsilon}$$\n\n$$\\text{Cost}_{\\text{locality}} = \\sum_{i < j} w(d(g_i, g_j))$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v2-08-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Scheduler as allocation control plane",
+     "back": "A cluster scheduler loses direct observation, atomic effect, and binary failure, so it separates admission, placement, and reconciliation, and reusing a suspect node's accelerators requires versioned allocations, leases, and fencing."
+    },
+    {
+     "front": "Gang scheduling",
+     "back": "A rigid synchronous job makes no progress below its minimum gang, so partial allocation can deadlock two jobs at full cost, and atomic all-or-nothing allocation removes hold-and-wait but needs reservation, safe backfill, and holistic preemption."
+    },
+    {
+     "front": "Feasibility before fairness",
+     "back": "A fair share of accelerators a job cannot run on delivers nothing, so the scheduler first filters feasible bundles (every resource dimension, gang atomicity, topology, memory) and only then applies dominant-resource fairness, while multi-dimensional packing strands capacity."
+    },
+    {
+     "front": "Scheduling objectives and matched signals",
+     "back": "Throughput, latency, fairness, and cost pull allocation apart, so fairness is measured as slowdown, queue delay grows with job-size variability (M/G/1), and an ML-aware policy earns its cost only when its signal matches the objective."
+    },
+    {
+     "front": "Topology-aware placement",
+     "back": "Equal-size allocations deliver different throughput because bandwidth steps down from NVLink to leaf to spine, so placement minimizes a locality cost over the job's actual traffic, judged by completion time including the wait for a compact placement."
+    },
+    {
+     "front": "Elastic scheduling contract",
+     "back": "Elasticity replaces keep-or-kill with a declared size range, valid increments, a measured transition cost, and a scaling-efficiency curve, and each resize must be amortized over the run and judged by time to target quality."
+    },
+    {
+     "front": "Interruption economics",
+     "back": "Every preemption pays discarded work since the last durable checkpoint plus reload and warmup, one admission can cascade into many evictions, and spot capacity is cheap only by effective cost after checkpoint overhead, restart, and replay."
+    },
+    {
+     "front": "Utilization tiers",
+     "back": "Utilization is worth money at fleet scale, but an unlabeled percentage conflates the allocated tier (complete allocations only), the active tier, and the productive tier (normalized to the job's fault-free step rate), and a full queue beside idle accelerators is usually a policy-infrastructure mismatch rather than an algorithm defect."
+    },
+    {
+     "front": "Batch versus declarative orchestration",
+     "back": "Slurm's imperative batch allocation and Kubernetes' level-triggered reconciliation are different contracts for which lifecycle the platform manages, chosen by workload semantics, and a hybrid works only when exactly one layer owns each placement."
+    },
+    {
+     "front": "Quota guarantees bounded by reclaim",
+     "back": "Hierarchical quotas separate a team's guarantee from its maximum and borrowing idle guarantees lifts utilization, but concurrently honored guarantees must fit the capacity the platform can reclaim in time, and a noisy neighbor, one tenant whose consumption of a shared resource slows the others, is what isolation and reclaim contracts must bound."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v2-08-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Scheduler as allocation control plane**?",
+     "options": [
+      "A cluster scheduler loses direct observation, atomic effect, and binary failure, so it separates admission, placement, and reconciliation, and reusing a suspect node's accelerators requires versioned allocations, leases, and fencing.",
+      "Elasticity replaces keep-or-kill with a declared size range, valid increments, a measured transition cost, and a scaling-efficiency curve, and each resize must be amortized over the run and judged by time to target quality.",
+      "Utilization is worth money at fleet scale, but an unlabeled percentage conflates the allocated tier (complete allocations only), the active tier, and the productive tier (normalized to the job's fault-free step rate), and a full queue beside idle accelerators is usually a policy-infrastructure mismatch rather than an algorithm defect.",
+      "The orchestrator's serving unit is a ready replica sized by measured capacity at a latency target, colocation trades density against interference along an isolation spectrum (time-slicing, MPS, MIG, exclusive), and moving devices between training and serving is safe only on forecast."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Scheduler as allocation control plane itself, not a neighbouring idea.",
+     "explanation": "**Scheduler as allocation control plane:** A cluster scheduler loses direct observation, atomic effect, and binary failure, so it separates admission, placement, and reconciliation, and reusing a suspect node's accelerators requires versioned allocations, leases, and fencing."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Gang scheduling**?",
+     "options": [
+      "A rigid synchronous job makes no progress below its minimum gang, so partial allocation can deadlock two jobs at full cost, and atomic all-or-nothing allocation removes hold-and-wait but needs reservation, safe backfill, and holistic preemption.",
+      "Throughput, latency, fairness, and cost pull allocation apart, so fairness is measured as slowdown, queue delay grows with job-size variability (M/G/1), and an ML-aware policy earns its cost only when its signal matches the objective.",
+      "The orchestrator's serving unit is a ready replica sized by measured capacity at a latency target, colocation trades density against interference along an isolation spectrum (time-slicing, MPS, MIG, exclusive), and moving devices between training and serving is safe only on forecast.",
+      "Equal-size allocations deliver different throughput because bandwidth steps down from NVLink to leaf to spine, so placement minimizes a locality cost over the job's actual traffic, judged by completion time including the wait for a compact placement."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Gang scheduling itself, not a neighbouring idea.",
+     "explanation": "**Gang scheduling:** A rigid synchronous job makes no progress below its minimum gang, so partial allocation can deadlock two jobs at full cost, and atomic all-or-nothing allocation removes hold-and-wait but needs reservation, safe backfill, and holistic preemption."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Feasibility before fairness**?",
+     "options": [
+      "Utilization is worth money at fleet scale, but an unlabeled percentage conflates the allocated tier (complete allocations only), the active tier, and the productive tier (normalized to the job's fault-free step rate), and a full queue beside idle accelerators is usually a policy-infrastructure mismatch rather than an algorithm defect.",
+      "Throughput, latency, fairness, and cost pull allocation apart, so fairness is measured as slowdown, queue delay grows with job-size variability (M/G/1), and an ML-aware policy earns its cost only when its signal matches the objective.",
+      "A fair share of accelerators a job cannot run on delivers nothing, so the scheduler first filters feasible bundles (every resource dimension, gang atomicity, topology, memory) and only then applies dominant-resource fairness, while multi-dimensional packing strands capacity.",
+      "The orchestrator's serving unit is a ready replica sized by measured capacity at a latency target, colocation trades density against interference along an isolation spectrum (time-slicing, MPS, MIG, exclusive), and moving devices between training and serving is safe only on forecast."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Feasibility before fairness itself, not a neighbouring idea.",
+     "explanation": "**Feasibility before fairness:** A fair share of accelerators a job cannot run on delivers nothing, so the scheduler first filters feasible bundles (every resource dimension, gang atomicity, topology, memory) and only then applies dominant-resource fairness, while multi-dimensional packing strands capacity."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Scheduling objectives and matched signals**?",
+     "options": [
+      "Throughput, latency, fairness, and cost pull allocation apart, so fairness is measured as slowdown, queue delay grows with job-size variability (M/G/1), and an ML-aware policy earns its cost only when its signal matches the objective.",
+      "A fair share of accelerators a job cannot run on delivers nothing, so the scheduler first filters feasible bundles (every resource dimension, gang atomicity, topology, memory) and only then applies dominant-resource fairness, while multi-dimensional packing strands capacity.",
+      "A rigid synchronous job makes no progress below its minimum gang, so partial allocation can deadlock two jobs at full cost, and atomic all-or-nothing allocation removes hold-and-wait but needs reservation, safe backfill, and holistic preemption.",
+      "Hierarchical quotas separate a team's guarantee from its maximum and borrowing idle guarantees lifts utilization, but concurrently honored guarantees must fit the capacity the platform can reclaim in time, and a noisy neighbor, one tenant whose consumption of a shared resource slows the others, is what isolation and reclaim contracts must bound."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Scheduling objectives and matched signals itself, not a neighbouring idea.",
+     "explanation": "**Scheduling objectives and matched signals:** Throughput, latency, fairness, and cost pull allocation apart, so fairness is measured as slowdown, queue delay grows with job-size variability (M/G/1), and an ML-aware policy earns its cost only when its signal matches the objective."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Topology-aware placement**?",
+     "options": [
+      "Mean queue wait is a load factor rho/(1-rho) times a variability factor (1+C_s^2)/2, so waiting time bends sharply upward as offered load nears capacity, and a mixed ML queue whose job durations vary widely pays several times more wait at the same utilization than a uniform one.",
+      "Elasticity replaces keep-or-kill with a declared size range, valid increments, a measured transition cost, and a scaling-efficiency curve, and each resize must be amortized over the run and judged by time to target quality.",
+      "A fair share of accelerators a job cannot run on delivers nothing, so the scheduler first filters feasible bundles (every resource dimension, gang atomicity, topology, memory) and only then applies dominant-resource fairness, while multi-dimensional packing strands capacity.",
+      "Equal-size allocations deliver different throughput because bandwidth steps down from NVLink to leaf to spine, so placement minimizes a locality cost over the job's actual traffic, judged by completion time including the wait for a compact placement."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Topology-aware placement itself, not a neighbouring idea.",
+     "explanation": "**Topology-aware placement:** Equal-size allocations deliver different throughput because bandwidth steps down from NVLink to leaf to spine, so placement minimizes a locality cost over the job's actual traffic, judged by completion time including the wait for a compact placement."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Scheduler as allocation control plane: A cluster scheduler loses direct observation, atomic effect, and binary failure, so it separates admission, placement, and reconciliation, and reusing a suspect node's accelerators requires versioned allocations, leases, and fencing.",
+    "Gang scheduling: A rigid synchronous job makes no progress below its minimum gang, so partial allocation can deadlock two jobs at full cost, and atomic all-or-nothing allocation removes hold-and-wait but needs reservation, safe backfill, and holistic preemption.",
+    "Feasibility before fairness: A fair share of accelerators a job cannot run on delivers nothing, so the scheduler first filters feasible bundles (every resource dimension, gang atomicity, topology, memory) and only then applies dominant-resource fairness, while multi-dimensional packing strands capacity.",
+    "Scheduling objectives and matched signals: Throughput, latency, fairness, and cost pull allocation apart, so fairness is measured as slowdown, queue delay grows with job-size variability (M/G/1), and an ML-aware policy earns its cost only when its signal matches the objective."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Scheduler as allocation control plane",
+   "def": "A cluster scheduler loses direct observation, atomic effect, and binary failure, so it separates admission, placement, and reconciliation, and reusing a suspect node's accelerators requires versioned allocations, leases, and fencing."
+  },
+  {
+   "term": "Gang scheduling",
+   "def": "A rigid synchronous job makes no progress below its minimum gang, so partial allocation can deadlock two jobs at full cost, and atomic all-or-nothing allocation removes hold-and-wait but needs reservation, safe backfill, and holistic preemption."
+  },
+  {
+   "term": "Feasibility before fairness",
+   "def": "A fair share of accelerators a job cannot run on delivers nothing, so the scheduler first filters feasible bundles (every resource dimension, gang atomicity, topology, memory) and only then applies dominant-resource fairness, while multi-dimensional packing strands capacity."
+  },
+  {
+   "term": "Scheduling objectives and matched signals",
+   "def": "Throughput, latency, fairness, and cost pull allocation apart, so fairness is measured as slowdown, queue delay grows with job-size variability (M/G/1), and an ML-aware policy earns its cost only when its signal matches the objective."
+  },
+  {
+   "term": "Topology-aware placement",
+   "def": "Equal-size allocations deliver different throughput because bandwidth steps down from NVLink to leaf to spine, so placement minimizes a locality cost over the job's actual traffic, judged by completion time including the wait for a compact placement."
+  },
+  {
+   "term": "Elastic scheduling contract",
+   "def": "Elasticity replaces keep-or-kill with a declared size range, valid increments, a measured transition cost, and a scaling-efficiency curve, and each resize must be amortized over the run and judged by time to target quality."
+  },
+  {
+   "term": "Interruption economics",
+   "def": "Every preemption pays discarded work since the last durable checkpoint plus reload and warmup, one admission can cascade into many evictions, and spot capacity is cheap only by effective cost after checkpoint overhead, restart, and replay."
+  },
+  {
+   "term": "Utilization tiers",
+   "def": "Utilization is worth money at fleet scale, but an unlabeled percentage conflates the allocated tier (complete allocations only), the active tier, and the productive tier (normalized to the job's fault-free step rate), and a full queue beside idle accelerators is usually a policy-infrastructure mismatch rather than an algorithm defect."
+  },
+  {
+   "term": "Batch versus declarative orchestration",
+   "def": "Slurm's imperative batch allocation and Kubernetes' level-triggered reconciliation are different contracts for which lifecycle the platform manages, chosen by workload semantics, and a hybrid works only when exactly one layer owns each placement."
+  },
+  {
+   "term": "Quota guarantees bounded by reclaim",
+   "def": "Hierarchical quotas separate a team's guarantee from its maximum and borrowing idle guarantees lifts utilization, but concurrently honored guarantees must fit the capacity the platform can reclaim in time, and a noisy neighbor, one tenant whose consumption of a shared resource slows the others, is what isolation and reclaim contracts must bound."
+  },
+  {
+   "term": "Serving envelope and accelerator sharing",
+   "def": "The orchestrator's serving unit is a ready replica sized by measured capacity at a latency target, colocation trades density against interference along an isolation spectrum (time-slicing, MPS, MIG, exclusive), and moving devices between training and serving is safe only on forecast."
+  },
+  {
+   "term": "Waiting time versus utilization",
+   "def": "Mean queue wait is a load factor rho/(1-rho) times a variability factor (1+C_s^2)/2, so waiting time bends sharply upward as offered load nears capacity, and a mixed ML queue whose job durations vary widely pays several times more wait at the same utilization than a uniform one."
+  }
+ ]
+}

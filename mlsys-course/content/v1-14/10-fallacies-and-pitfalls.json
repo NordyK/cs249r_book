@@ -1,0 +1,69 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Differentiate delayed-label accuracy metrics from earlier proxy signals used in production ML monitoring.",
+ "source": {
+  "chapter": "v1-14",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Differentiate delayed-label accuracy metrics from earlier proxy signals used in production ML monitoring\n- Analyze why unowned alert-routing paths undermine the value of leading indicators in ML operations\n- Identify failure modes of unconstrained automated retraining and explain the necessity of validation checks"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Operations, § Fallacies and Pitfalls",
+   "md": "Operating production machine learning systems under conventional software assumptions creates distinct failure modes, each a place where a standard software engineering intuition breaks down against the statistical behavior of deployed models."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: accuracy as a lagging indicator versus input drift as a leading indicator; alert routing and operational ownership pitfalls; unconstrained automated retraining fallacies; training-serving consistency and organizational alignment fallacies."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why routing leading-indicator alerts (such as feature drift or data freshness violations) to an unowned low-priority chat channel with no review or escalation path, while paging on-call engineers only for HTTP 500 errors, is a critical operational pitfall.",
+   "md": "Leading indicators only help if someone owns them and knows when to act. If drift or freshness alerts go to an unowned low-priority channel with no review or escalation path, teams can miss early signs of schema breakage, stale features, or shifting inputs until downstream symptoms become more expensive to diagnose. Low priority is not inherently wrong for every alert, but ownership, severity rules, and response runbooks are what turn an early warning into an operational control."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-14-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "When ground-truth labels arrive days later, why is relying only on accuracy as the first production signal to monitor a dangerous operational fallacy in ML systems?",
+     "explanation": "The correct answer is B. When labels arrive days later, accuracy is a lagging indicator because it cannot be computed until that delayed ground truth appears. Drift, freshness, and confidence proxies may provide earlier signals that something has changed, even though they do not by themselves prove accuracy has already declined or guarantee warning before user harm.",
+     "hint": "Think about: differentiate delayed-label accuracy metrics from earlier proxy signals used in production ML monitoring",
+     "type": "single",
+     "options": [
+      "Because neural network accuracy cannot be mathematically computed after model weights are converted to ONNX format",
+      "Because accuracy then becomes a lagging indicator that depends on delayed labels, whereas drift proxies such as PSI may provide earlier warning of distribution shifts without guaranteeing harm detection",
+      "Because traditional infrastructure availability (HTTP 200 responses and uptime) guarantees that model accuracy remains static",
+      "Because input feature distributions never change unless model source code is redeployed"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Unconstrained automated retraining without validation checks or human oversight is guaranteed to maintain optimal model performance in production.",
+     "explanation": "False. Unconstrained automated retraining can perpetuate self-reinforcing feedback loops and entrench bias, or retrain on corrupted data during transient data pipeline glitches, deploying degraded models that pass naive aggregate loss checks.",
+     "hint": "Think about: identify failure modes of unconstrained automated retraining and explain the necessity of validation checks",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now differentiate delayed-label accuracy metrics from earlier proxy signals used in production ML monitoring.",
+    "You can now analyze why unowned alert-routing paths undermine the value of leading indicators in ML operations.",
+    "You can now identify failure modes of unconstrained automated retraining and explain the necessity of validation checks."
+   ]
+  }
+ ]
+}

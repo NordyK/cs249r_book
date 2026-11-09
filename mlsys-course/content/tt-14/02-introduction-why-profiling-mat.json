@@ -1,0 +1,268 @@
+{
+ "title": "Introduction: Why Profiling Matters in ML Systems",
+ "summary": "TinyTorch profiling: Introduction: Why Profiling Matters in ML Systems",
+ "source": {
+  "chapter": "tt-14",
+  "sections": [
+   "Introduction: Why Profiling Matters in ML Systems"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: Why Profiling Matters in ML Systems\n\nImagine you're an engineer investigating an ML systems regression. Your model runs unacceptably slowly, exhausts device memory, or inflates cloud inference bills. Without profiling, you are flying blind, guessing whether to optimize matrix multiplication kernels, reduce activation precision, or shard model weights. With profiling, you have empirical ground truth.\n\n### The Profiling and Optimization Engineering Loop"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Phase",
+    "Primary Objective",
+    "Concrete Metric / Telemetry",
+    "Downstream Systems Action"
+   ],
+   "rows": [
+    [
+     "**1. Measure**",
+     "Establish empirical telemetry",
+     "Latency (\\$T_{\\text{median}}\\$), Peak VRAM (\\$M_{\\text{peak}}\\$), FLOPs",
+     "Detect resource bottlenecks"
+    ],
+    [
+     "**2. Analyze**",
+     "Compute arithmetic intensity",
+     "\\$I = \\text{FLOPs} / \\text{Bytes}\\$, Roofline position",
+     "Classify compute vs memory-bound regimes"
+    ],
+    [
+     "**3. Optimize**",
+     "Eliminate hardware constraint",
+     "INT8 quantization, KV cache, operator fusion",
+     "Restructure memory/compute datapath"
+    ],
+    [
+     "**4. Validate**",
+     "Verify speedup and fidelity",
+     "Speedup ratio \\$S = T_{\\text{base}} / T_{\\text{opt}}\\$, numerical parity",
+     "Confirm production readiness"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Without profiling, engineers routinely waste months optimizing code that accounts for less than 2% of runtime. As Amdahl's Law dictates, system speedup is strictly bounded by the fraction of execution time an optimization addresses:\n\n\\$\\$S_{\\text{overall}} = \\frac{1}{(1 - f) + \\frac{f}{s}}\\$\\$\n\nWhere \\$f\\$ is the execution fraction of the targeted component and \\$s\\$ is its isolated speedup. Profiling identifies the high-\\$f\\$ bottlenecks before a single line of optimization code is written."
+  },
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: Performance Measurement Principles\n\nBefore building the profiler class, let us establish the five pillars of machine learning systems telemetry. Four of them are quantities you measure, namely parameters, compute (FLOPs), memory residency, and execution latency. The fifth, arithmetic intensity, is the ratio that turns two of the others into a verdict about which hardware ceiling you are under, and every optimization module after this one argues from it.\n\n### 1. Parameter Counting: The Static Memory Footprint\n\nParameters determine persistent storage requirements, weight transfer latency from high-bandwidth memory (HBM/DRAM) to on-chip SRAM, and minimum GPU VRAM capacity.\n\n\\$\\$\\text{Memory}_{\\text{FP32}} = P \\times 4\\text{ bytes} = \\frac{P \\times 4}{10^6}\\text{ MB}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Layer Type",
+    "Learnable Weights",
+    "Learnable Biases",
+    "Total Parameters (\\$P\\$)",
+    "Memory at FP32 (\\$4\\text{ B/elem}\\$)"
+   ],
+   "rows": [
+    [
+     "**Linear**",
+     "\\$W \\in \\mathbb{R}^{d_{\\text{in}} \\times d_{\\text{out}}}\\$",
+     "\\$b \\in \\mathbb{R}^{d_{\\text{out}}}\\$",
+     "\\$d_{\\text{in}} \\cdot d_{\\text{out}} + d_{\\text{out}}\\$",
+     "\\$(d_{\\text{in}} + 1) \\cdot d_{\\text{out}} \\times 4\\text{ B}\\$"
+    ],
+    [
+     "**Conv2d**",
+     "\\$K \\in \\mathbb{R}^{C_{\\text{out}} \\times C_{\\text{in}} \\times k_h \\times k_w}\\$",
+     "\\$b \\in \\mathbb{R}^{C_{\\text{out}}}\\$",
+     "\\$C_{\\text{out}} \\cdot (C_{\\text{in}} \\cdot k_h \\cdot k_w + 1)\\$",
+     "\\$C_{\\text{out}} \\cdot (C_{\\text{in}} k_h k_w + 1) \\times 4\\text{ B}\\$"
+    ],
+    [
+     "**LayerNorm**",
+     "\\$\\gamma \\in \\mathbb{R}^{d_{\\text{embed}}}\\$",
+     "\\$\\beta \\in \\mathbb{R}^{d_{\\text{embed}}}\\$",
+     "\\$2 \\cdot d_{\\text{embed}}\\$",
+     "\\$8 \\cdot d_{\\text{embed}}\\text{ B}\\$"
+    ],
+    [
+     "**Embedding**",
+     "\\$E \\in \\mathbb{R}^{V \\times d_{\\text{embed}}}\\$",
+     "None",
+     "\\$V \\cdot d_{\\text{embed}}\\$",
+     "\\$4 \\cdot V \\cdot d_{\\text{embed}}\\text{ B}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### 2. FLOP Counting: Theoretical Arithmetic Work\n\nA floating-point operation (FLOP) measures arithmetic work independent of hardware implementation. In deep learning primitives, each multiply-accumulate (MAC) counts as **2 FLOPs** (one multiplication and one addition):\n\n\\$\\$\\text{FLOP}_{\\text{GEMM}}(M, K, N) = 2 \\cdot M \\cdot K \\cdot N\\$\\$\n\n\\$\\$\\text{FLOP}_{\\text{Conv2d}} = 2 \\cdot B \\cdot H_{\\text{out}} \\cdot W_{\\text{out}} \\cdot (C_{\\text{in}} \\cdot k_h \\cdot k_w) \\cdot C_{\\text{out}}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Operation Type",
+    "Input / Weight Shapes",
+    "FLOP Count (Per Sample)",
+    "Arithmetic Intensity (\\$I = \\text{FLOPs} / \\text{Bytes}\\$)",
+    "Hardware Regime"
+   ],
+   "rows": [
+    [
+     "**Linear Projection**",
+     "\\$(d_{\\text{in}}) \\times (d_{\\text{in}}, d_{\\text{out}})\\$",
+     "\\$2 \\cdot d_{\\text{in}} \\cdot d_{\\text{out}}\\$",
+     "\\$0.5\\text{ FLOP/B}\\$ (Batch=1)",
+     "Memory-bandwidth bound"
+    ],
+    [
+     "**Batched Linear**",
+     "\\$(B, d_{\\text{in}}) \\times (d_{\\text{in}}, d_{\\text{out}})\\$",
+     "\\$2 \\cdot B \\cdot d_{\\text{in}} \\cdot d_{\\text{out}}\\$",
+     "\\$0.5 \\cdot B\\text{ FLOP/B}\\$ (Batch=B)",
+     "Compute-bound at high \\$B\\$"
+    ],
+    [
+     "**Conv2d**",
+     "\\$(C_{\\text{in}}, H, W) \\ast (C_{\\text{out}}, C_{\\text{in}}, k_h, k_w)\\$",
+     "\\$2 \\cdot H_{\\text{out}} W_{\\text{out}} C_{\\text{in}} C_{\\text{out}} k_h k_w\\$",
+     "\\$\\approx 0.5 \\cdot H_{\\text{out}} W_{\\text{out}}\\text{ FLOP/B}\\$",
+     "Compute-bound (kernel reuse)"
+    ],
+    [
+     "**Pointwise (GELU/Add)**",
+     "\\$(B, S, D)\\$",
+     "\\$1 \\text{ to } 8 \\text{ FLOPs/elem}\\$",
+     "\\$0.125 \\text{ to } 1\\text{ FLOP/B}\\$",
+     "Strictly memory-bound"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Every entry in that column is one division, and it is worth doing once by hand.\nA Linear layer at \\$B=1\\$ performs \\$2 d_{\\text{in}} d_{\\text{out}}\\$ FLOPs while moving\nthe whole weight matrix, \\$4 d_{\\text{in}} d_{\\text{out}}\\$ bytes at FP32, so\n\\$I = 2/4 = 0.5\\text{ FLOP/B}\\$ no matter how wide the layer is. Batching to \\$B\\$ samples\nmultiplies the FLOPs by \\$B\\$ and leaves the weight traffic unchanged, giving \\$I = 0.5B\\$.\nAt \\$B=32\\$ that is \\$16\\text{ FLOP/B}\\$, and Question 1 walks the same arithmetic.\nConvolution reuses each weight across the output map, so \\$I\\$ grows with the output\narea. A pointwise kernel reads one element and writes one, \\$8\\text{ B}\\$ of traffic for\n\\$1\\$ to \\$8\\$ FLOPs, which is the lowest intensity in the table and the reason fusion\nexists.\n\n### 3. Arithmetic Intensity: The Roofline and Its Ridge Point"
+  },
+  {
+   "type": "text",
+   "md": "Intensity only becomes a verdict when you compare it against a machine. That\ncomparison is the roofline, and it is the single most reused idea in the rest of this\ncourse, so it belongs here rather than at the end.\n\nThe attainable floating-point performance \\$P\\$ (in \\$\\text{GFLOP/s}\\$) on any physical processor is strictly bounded by two fundamental hardware ceilings:\n\n\\$\\$P \\le \\min\\left(P_{\\text{peak}},\\, I \\times \\text{BW}_{\\text{mem}}\\right)\\$\\$\n\nWhere:\n- \\$P_{\\text{peak}}\\$ is the peak arithmetic compute throughput of the device (ALUs / Tensor Cores).\n- \\$\\text{BW}_{\\text{mem}}\\$ is the sustained memory bandwidth between device DRAM/HBM and on-chip caches/SRAM.\n- \\$I = \\frac{\\text{FLOPs}}{\\text{Bytes Transferred}}\\$ is the **arithmetic intensity** of the operation, the quantity the column above computes.\n\nThe hardware **ridge point** is defined as the operational intensity where the memory ceiling intersects peak compute:\n\n\\$\\$I_{\\text{ridge}} = \\frac{P_{\\text{peak}}}{\\text{BW}_{\\text{mem}}}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Operational Regime",
+    "Condition",
+    "Limiting Hardware Subsystem",
+    "Systems Remedy"
+   ],
+   "rows": [
+    [
+     "**Memory-Bandwidth Bound**",
+     "\\$I < I_{\\text{ridge}}\\$",
+     "DRAM / HBM transfer bus",
+     "Weight quantization, operator fusion, KV caching"
+    ],
+    [
+     "**Compute Bound**",
+     "\\$I \\ge I_{\\text{ridge}}\\$",
+     "ALU / Tensor Core matrix engines",
+     "Algorithmic transforms, FP16 Tensor Cores"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "An A100 at \\$19.5\\text{ TFLOP/s}\\$ FP32 over \\$2,039\\text{ GB/s}\\$ of HBM2e has\n\\$I_{\\text{ridge}} = 9.6\\text{ FLOP/B}\\$. Our batched Linear at \\$B=32\\$ sits at\n\\$16\\text{ FLOP/B}\\$, above that ridge, which is why batching is the first thing anyone\nreaches for. The same layer at \\$B=1\\$ sits at \\$0.5\\$, a factor of 19 below the ridge,\nand no kernel rewrite can help it, because the weights have to travel either way.\n\n### 4. Memory Profiling: The Training Memory Lifecycle\n\nDeep learning training memory divides into four distinct pools that undergo dynamic lifecycle transitions during forward and backward passes."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Memory Pool",
+    "Lifecycle Invariant",
+    "Scaling Dimensions",
+    "Budget Formula (FP32)",
+    "Example (125M GPT)"
+   ],
+   "rows": [
+    [
+     "**Parameters (\\$W\\$)**",
+     "Persistent in device VRAM",
+     "Model dimension \\$P\\$",
+     "\\$P \\times 4\\text{ B}\\$",
+     "\\$500\\text{ MB}\\$ (\\$1.0\\times\\$)"
+    ],
+    [
+     "**Activations (\\$A\\$)**",
+     "Cached in forward; freed in backward",
+     "Batch \\$\\times\\$ Sequence \\$\\times\\$ Layers",
+     "\\$B \\cdot S \\cdot L \\cdot d_{\\text{embed}} \\cdot c_{\\text{act}} \\times 4\\text{ B}\\$",
+     "\\$\\approx 200\\text{ MB}\\$ (\\$0.4\\times\\$)"
+    ],
+    [
+     "**Gradients (\\$\\nabla_W L\\$)**",
+     "Allocated during backward pass",
+     "1:1 match with parameters \\$P\\$",
+     "\\$P \\times 4\\text{ B}\\$",
+     "\\$500\\text{ MB}\\$ (\\$1.0\\times\\$)"
+    ],
+    [
+     "**Optimizer State (Adam)**",
+     "Persistent in device VRAM",
+     "First moment \\$m\\$ + second moment \\$v\\$",
+     "\\$2 \\times P \\times 4\\text{ B}\\$",
+     "\\$1,000\\text{ MB}\\$ (\\$2.0\\times\\$)"
+    ],
+    [
+     "**Total Training Budget**",
+     "Peak concurrent residency",
+     "\\$16\\text{ B/param}\\$ plus activations, so never below \\$4\\times\\$ the weight bytes",
+     "\\$\\underbrace{4P}_{W} + A + \\underbrace{4P}_{\\nabla W} + \\underbrace{8P}_{m, v} = 16P + A\\$",
+     "**\\$2,200\\text{ MB}\\$ (\\$4.4\\times\\$)**"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Throughout this table \\$P\\$ is the parameter **count**, never a byte figure, so every\nterm carries its own \\$4\\text{ B}\\$ factor. Four pools at FP32 come to \\$16\\text{ B}\\$\nper parameter (weights, gradients, and Adam's two moments), and activations are the\none term that batch and sequence length control rather than the model.\n\n### 5. Latency Measurement: Statistical Rigor\n\nMeasuring execution latency on modern multi-core CPUs and GPUs is subject to background operating system interrupts, CPU frequency governors (thermal throttling), dynamic cache warmups, and garbage collection pauses. Professional profiling demands strict statistical isolation:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Protocol Stage",
+    "Iteration Budget",
+    "System State",
+    "Treatment of Output"
+   ],
+   "rows": [
+    [
+     "**Warmup Passes**",
+     "\\$3 \\text{ to } 10\\$ iterations",
+     "Cold caches, BLAS thread-pool spin-up, first-touch page faults",
+     "Excluded from measurements to eliminate cold-start noise"
+    ],
+    [
+     "**Timed Benchmark**",
+     "\\$10 \\text{ to } 100+\\$ iterations",
+     "Steady-state thermal and memory cache profile",
+     "Report the median (\\$Q_2\\$) rather than the mean"
+    ],
+    [
+     "**Memory Cleanup**",
+     "Between runs",
+     "Explicit garbage collection (`gc.collect()`)",
+     "Prevents heap fragmentation contamination"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The first two rows describe what `measure_latency` does below. The third is what a\nproduction harness adds and ours does not, along with the interquartile range that\nwould report the spread beside the median. Both are noted here so you know the shape of\nthe gap, and Module 19 will close it.\n\nWarmup also hides something. The timed loop below re-runs the same input tensor, so\nafter the first pass it is resident in cache and every number the module reports is a\nbest case. Real serving traffic arrives cold, one request at a time, from memory the\nprocessor has not touched."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Introduction: Why Profiling Matters in ML Systems."
+   ]
+  }
+ ]
+}

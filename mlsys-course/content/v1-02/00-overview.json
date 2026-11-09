@@ -1,0 +1,289 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v1-02",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **System Paradigms** (Vol I). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, System Paradigms, Purpose",
+   "md": "The defining insight of ML systems engineering is that constraints drive architecture. The speed of light sets an absolute floor on how quickly distant servers can respond, thermodynamics limits how much computation can occur in a given volume before heat becomes unmanageable, and memory physics makes moving data more expensive than processing it."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Four Deployment Regimes Across Nine Orde",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Physical Constraints on Deployment",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Analyzing Workloads",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "System Balance and Hardware",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Cloud ML: Computational Power",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Edge ML: Latency and Privacy",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Mobile ML: Offline Intelligence",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Silicon contract**",
+     "Each tier's hardware offers a peak compute rate, a memory bandwidth, and a fixed overhead that enter the iron law's three terms, while memory capacity and energy act as feasibility preconditions that can rule a tier out before any term is evaluated."
+    ],
+    [
+     "**Workload archetypes and lighthouses**",
+     "Classifying a workload by what limits it first gives four archetypes, compute-bound (ResNet-50 training), bandwidth-bound (batch-one LLM decode), capacity-bound (DLRM embeddings), and power-bound (keyword spotting), and the class is a regime, not a model property, since batch, precision, or hardware can move a model across it."
+    ],
+    [
+     "**Physical walls set deployment tiers**",
+     "The light barrier puts a round-trip floor under any remote path, the power wall (dynamic power roughly cubic in frequency) caps sustained mobile power at a few watts, and the memory wall makes data movement a growing share of time, so cloud, edge, mobile, and TinyML are constraint regimes spanning about nine orders of magnitude in power and memory."
+    ],
+    [
+     "**Device energy budgets**",
+     "On untethered devices energy per inference is first-order with two distinct limits, a battery budget fixable by duty cycling or a lighter model and a thermal ceiling on sustained power that throttles regardless of charge, and transmitting raw data can cost more energy than inferring locally."
+    ],
+    [
+     "**Data locality invariant**",
+     "A remote path is rejected when even its lower bound (transfer time plus propagation plus remote compute) exceeds the deadline, because transmission and propagation cannot be bought down with more remote compute, and only surviving paths are compared on measured time."
+    ],
+    [
+     "**Screen then cost**",
+     "Choosing where to run applies successive filters, first whether ML beats a simpler baseline (the complexity tax), then privacy, latency, resource, and cost checks, comparing cost only among survivors on matched lifecycle budgets, and an empty set forces redesign or partitioning."
+    ],
+    [
+     "**Hybrid partitioning**",
+     "When no single tier satisfies a whole pipeline, stages go where their limiting term is cheapest through train-serve splits, hierarchical filtering and confidence cascades, and progressive deployment, at the price of keeping features, versions, and preprocessing synchronized across tiers."
+    ],
+    [
+     "**Memory wall**",
+     "Compute has grown faster than memory bandwidth (about 1.6x versus 1.2x per year), so data movement takes an ever larger share of time and energy at every tier."
+    ],
+    [
+     "**Bottleneck principle**",
+     "In a pipelined system throughput is set by the slowest stage and overlapped stages cost the maximum of their times, so effort on any stage but the slowest one buys nothing."
+    ],
+    [
+     "**Data gravity**",
+     "Shipping data over a network grows with data volume while shipping the computation does not, so large datasets pull computation to where the data lives."
+    ],
+    [
+     "**Total cost of ownership**",
+     "Comparing deployment paradigms needs the total cost of ownership, the upfront capital plus recurring operating expense (power, cooling, egress, storage, labor) over the system's lifetime, because hourly accelerator rates hide most of the bill and low utilization makes fixed pools expensive."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$\\text{Latency}_{\\min} = \\frac{2 \\times \\text{Distance}}{c_{\\text{fiber}}} \\approx \\frac{2 \\times \\text{Distance}}{200{,}000 \\text{ km/s}}$$\n\n$$\\text{Power} \\propto C \\times V^2 \\times f \\quad \\text{where } V \\propto f \\implies \\text{Power} \\propto f^3$$\n\n$$\\frac{\\text{Compute Growth Rate}}{\\text{Memory Bandwidth Growth Rate}} \\approx \\frac{1.6}{1.2} \\approx 1.33$$\n\n$$T = \\frac{D_{\\text{vol}}}{\\text{BW}} + \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}} + L_{\\text{lat}}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v1-02-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Silicon contract",
+     "back": "Each tier's hardware offers a peak compute rate, a memory bandwidth, and a fixed overhead that enter the iron law's three terms, while memory capacity and energy act as feasibility preconditions that can rule a tier out before any term is evaluated."
+    },
+    {
+     "front": "Workload archetypes and lighthouses",
+     "back": "Classifying a workload by what limits it first gives four archetypes, compute-bound (ResNet-50 training), bandwidth-bound (batch-one LLM decode), capacity-bound (DLRM embeddings), and power-bound (keyword spotting), and the class is a regime, not a model property, since batch, precision, or hardware can move a model across it."
+    },
+    {
+     "front": "Physical walls set deployment tiers",
+     "back": "The light barrier puts a round-trip floor under any remote path, the power wall (dynamic power roughly cubic in frequency) caps sustained mobile power at a few watts, and the memory wall makes data movement a growing share of time, so cloud, edge, mobile, and TinyML are constraint regimes spanning about nine orders of magnitude in power and memory."
+    },
+    {
+     "front": "Device energy budgets",
+     "back": "On untethered devices energy per inference is first-order with two distinct limits, a battery budget fixable by duty cycling or a lighter model and a thermal ceiling on sustained power that throttles regardless of charge, and transmitting raw data can cost more energy than inferring locally."
+    },
+    {
+     "front": "Data locality invariant",
+     "back": "A remote path is rejected when even its lower bound (transfer time plus propagation plus remote compute) exceeds the deadline, because transmission and propagation cannot be bought down with more remote compute, and only surviving paths are compared on measured time."
+    },
+    {
+     "front": "Screen then cost",
+     "back": "Choosing where to run applies successive filters, first whether ML beats a simpler baseline (the complexity tax), then privacy, latency, resource, and cost checks, comparing cost only among survivors on matched lifecycle budgets, and an empty set forces redesign or partitioning."
+    },
+    {
+     "front": "Hybrid partitioning",
+     "back": "When no single tier satisfies a whole pipeline, stages go where their limiting term is cheapest through train-serve splits, hierarchical filtering and confidence cascades, and progressive deployment, at the price of keeping features, versions, and preprocessing synchronized across tiers."
+    },
+    {
+     "front": "Memory wall",
+     "back": "Compute has grown faster than memory bandwidth (about 1.6x versus 1.2x per year), so data movement takes an ever larger share of time and energy at every tier."
+    },
+    {
+     "front": "Bottleneck principle",
+     "back": "In a pipelined system throughput is set by the slowest stage and overlapped stages cost the maximum of their times, so effort on any stage but the slowest one buys nothing."
+    },
+    {
+     "front": "Data gravity",
+     "back": "Shipping data over a network grows with data volume while shipping the computation does not, so large datasets pull computation to where the data lives."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v1-02-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Silicon contract**?",
+     "options": [
+      "The light barrier puts a round-trip floor under any remote path, the power wall (dynamic power roughly cubic in frequency) caps sustained mobile power at a few watts, and the memory wall makes data movement a growing share of time, so cloud, edge, mobile, and TinyML are constraint regimes spanning about nine orders of magnitude in power and memory.",
+      "Compute has grown faster than memory bandwidth (about 1.6x versus 1.2x per year), so data movement takes an ever larger share of time and energy at every tier.",
+      "Each tier's hardware offers a peak compute rate, a memory bandwidth, and a fixed overhead that enter the iron law's three terms, while memory capacity and energy act as feasibility preconditions that can rule a tier out before any term is evaluated.",
+      "Shipping data over a network grows with data volume while shipping the computation does not, so large datasets pull computation to where the data lives."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Silicon contract itself, not a neighbouring idea.",
+     "explanation": "**Silicon contract:** Each tier's hardware offers a peak compute rate, a memory bandwidth, and a fixed overhead that enter the iron law's three terms, while memory capacity and energy act as feasibility preconditions that can rule a tier out before any term is evaluated."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Workload archetypes and lighthouses**?",
+     "options": [
+      "On untethered devices energy per inference is first-order with two distinct limits, a battery budget fixable by duty cycling or a lighter model and a thermal ceiling on sustained power that throttles regardless of charge, and transmitting raw data can cost more energy than inferring locally.",
+      "In a pipelined system throughput is set by the slowest stage and overlapped stages cost the maximum of their times, so effort on any stage but the slowest one buys nothing.",
+      "Choosing where to run applies successive filters, first whether ML beats a simpler baseline (the complexity tax), then privacy, latency, resource, and cost checks, comparing cost only among survivors on matched lifecycle budgets, and an empty set forces redesign or partitioning.",
+      "Classifying a workload by what limits it first gives four archetypes, compute-bound (ResNet-50 training), bandwidth-bound (batch-one LLM decode), capacity-bound (DLRM embeddings), and power-bound (keyword spotting), and the class is a regime, not a model property, since batch, precision, or hardware can move a model across it."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Workload archetypes and lighthouses itself, not a neighbouring idea.",
+     "explanation": "**Workload archetypes and lighthouses:** Classifying a workload by what limits it first gives four archetypes, compute-bound (ResNet-50 training), bandwidth-bound (batch-one LLM decode), capacity-bound (DLRM embeddings), and power-bound (keyword spotting), and the class is a regime, not a model property, since batch, precision, or hardware can move a model across it."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Physical walls set deployment tiers**?",
+     "options": [
+      "Classifying a workload by what limits it first gives four archetypes, compute-bound (ResNet-50 training), bandwidth-bound (batch-one LLM decode), capacity-bound (DLRM embeddings), and power-bound (keyword spotting), and the class is a regime, not a model property, since batch, precision, or hardware can move a model across it.",
+      "On untethered devices energy per inference is first-order with two distinct limits, a battery budget fixable by duty cycling or a lighter model and a thermal ceiling on sustained power that throttles regardless of charge, and transmitting raw data can cost more energy than inferring locally.",
+      "Comparing deployment paradigms needs the total cost of ownership, the upfront capital plus recurring operating expense (power, cooling, egress, storage, labor) over the system's lifetime, because hourly accelerator rates hide most of the bill and low utilization makes fixed pools expensive.",
+      "The light barrier puts a round-trip floor under any remote path, the power wall (dynamic power roughly cubic in frequency) caps sustained mobile power at a few watts, and the memory wall makes data movement a growing share of time, so cloud, edge, mobile, and TinyML are constraint regimes spanning about nine orders of magnitude in power and memory."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Physical walls set deployment tiers itself, not a neighbouring idea.",
+     "explanation": "**Physical walls set deployment tiers:** The light barrier puts a round-trip floor under any remote path, the power wall (dynamic power roughly cubic in frequency) caps sustained mobile power at a few watts, and the memory wall makes data movement a growing share of time, so cloud, edge, mobile, and TinyML are constraint regimes spanning about nine orders of magnitude in power and memory."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Device energy budgets**?",
+     "options": [
+      "Comparing deployment paradigms needs the total cost of ownership, the upfront capital plus recurring operating expense (power, cooling, egress, storage, labor) over the system's lifetime, because hourly accelerator rates hide most of the bill and low utilization makes fixed pools expensive.",
+      "On untethered devices energy per inference is first-order with two distinct limits, a battery budget fixable by duty cycling or a lighter model and a thermal ceiling on sustained power that throttles regardless of charge, and transmitting raw data can cost more energy than inferring locally.",
+      "Choosing where to run applies successive filters, first whether ML beats a simpler baseline (the complexity tax), then privacy, latency, resource, and cost checks, comparing cost only among survivors on matched lifecycle budgets, and an empty set forces redesign or partitioning.",
+      "Classifying a workload by what limits it first gives four archetypes, compute-bound (ResNet-50 training), bandwidth-bound (batch-one LLM decode), capacity-bound (DLRM embeddings), and power-bound (keyword spotting), and the class is a regime, not a model property, since batch, precision, or hardware can move a model across it."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Device energy budgets itself, not a neighbouring idea.",
+     "explanation": "**Device energy budgets:** On untethered devices energy per inference is first-order with two distinct limits, a battery budget fixable by duty cycling or a lighter model and a thermal ceiling on sustained power that throttles regardless of charge, and transmitting raw data can cost more energy than inferring locally."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Data locality invariant**?",
+     "options": [
+      "When no single tier satisfies a whole pipeline, stages go where their limiting term is cheapest through train-serve splits, hierarchical filtering and confidence cascades, and progressive deployment, at the price of keeping features, versions, and preprocessing synchronized across tiers.",
+      "The light barrier puts a round-trip floor under any remote path, the power wall (dynamic power roughly cubic in frequency) caps sustained mobile power at a few watts, and the memory wall makes data movement a growing share of time, so cloud, edge, mobile, and TinyML are constraint regimes spanning about nine orders of magnitude in power and memory.",
+      "A remote path is rejected when even its lower bound (transfer time plus propagation plus remote compute) exceeds the deadline, because transmission and propagation cannot be bought down with more remote compute, and only surviving paths are compared on measured time.",
+      "Compute has grown faster than memory bandwidth (about 1.6x versus 1.2x per year), so data movement takes an ever larger share of time and energy at every tier."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Data locality invariant itself, not a neighbouring idea.",
+     "explanation": "**Data locality invariant:** A remote path is rejected when even its lower bound (transfer time plus propagation plus remote compute) exceeds the deadline, because transmission and propagation cannot be bought down with more remote compute, and only surviving paths are compared on measured time."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Silicon contract: Each tier's hardware offers a peak compute rate, a memory bandwidth, and a fixed overhead that enter the iron law's three terms, while memory capacity and energy act as feasibility preconditions that can rule a tier out before any term is evaluated.",
+    "Workload archetypes and lighthouses: Classifying a workload by what limits it first gives four archetypes, compute-bound (ResNet-50 training), bandwidth-bound (batch-one LLM decode), capacity-bound (DLRM embeddings), and power-bound (keyword spotting), and the class is a regime, not a model property, since batch, precision, or hardware can move a model across it.",
+    "Physical walls set deployment tiers: The light barrier puts a round-trip floor under any remote path, the power wall (dynamic power roughly cubic in frequency) caps sustained mobile power at a few watts, and the memory wall makes data movement a growing share of time, so cloud, edge, mobile, and TinyML are constraint regimes spanning about nine orders of magnitude in power and memory.",
+    "Device energy budgets: On untethered devices energy per inference is first-order with two distinct limits, a battery budget fixable by duty cycling or a lighter model and a thermal ceiling on sustained power that throttles regardless of charge, and transmitting raw data can cost more energy than inferring locally."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Silicon contract",
+   "def": "Each tier's hardware offers a peak compute rate, a memory bandwidth, and a fixed overhead that enter the iron law's three terms, while memory capacity and energy act as feasibility preconditions that can rule a tier out before any term is evaluated."
+  },
+  {
+   "term": "Workload archetypes and lighthouses",
+   "def": "Classifying a workload by what limits it first gives four archetypes, compute-bound (ResNet-50 training), bandwidth-bound (batch-one LLM decode), capacity-bound (DLRM embeddings), and power-bound (keyword spotting), and the class is a regime, not a model property, since batch, precision, or hardware can move a model across it."
+  },
+  {
+   "term": "Physical walls set deployment tiers",
+   "def": "The light barrier puts a round-trip floor under any remote path, the power wall (dynamic power roughly cubic in frequency) caps sustained mobile power at a few watts, and the memory wall makes data movement a growing share of time, so cloud, edge, mobile, and TinyML are constraint regimes spanning about nine orders of magnitude in power and memory."
+  },
+  {
+   "term": "Device energy budgets",
+   "def": "On untethered devices energy per inference is first-order with two distinct limits, a battery budget fixable by duty cycling or a lighter model and a thermal ceiling on sustained power that throttles regardless of charge, and transmitting raw data can cost more energy than inferring locally."
+  },
+  {
+   "term": "Data locality invariant",
+   "def": "A remote path is rejected when even its lower bound (transfer time plus propagation plus remote compute) exceeds the deadline, because transmission and propagation cannot be bought down with more remote compute, and only surviving paths are compared on measured time."
+  },
+  {
+   "term": "Screen then cost",
+   "def": "Choosing where to run applies successive filters, first whether ML beats a simpler baseline (the complexity tax), then privacy, latency, resource, and cost checks, comparing cost only among survivors on matched lifecycle budgets, and an empty set forces redesign or partitioning."
+  },
+  {
+   "term": "Hybrid partitioning",
+   "def": "When no single tier satisfies a whole pipeline, stages go where their limiting term is cheapest through train-serve splits, hierarchical filtering and confidence cascades, and progressive deployment, at the price of keeping features, versions, and preprocessing synchronized across tiers."
+  },
+  {
+   "term": "Memory wall",
+   "def": "Compute has grown faster than memory bandwidth (about 1.6x versus 1.2x per year), so data movement takes an ever larger share of time and energy at every tier."
+  },
+  {
+   "term": "Bottleneck principle",
+   "def": "In a pipelined system throughput is set by the slowest stage and overlapped stages cost the maximum of their times, so effort on any stage but the slowest one buys nothing."
+  },
+  {
+   "term": "Data gravity",
+   "def": "Shipping data over a network grows with data volume while shipping the computation does not, so large datasets pull computation to where the data lives."
+  },
+  {
+   "term": "Total cost of ownership",
+   "def": "Comparing deployment paradigms needs the total cost of ownership, the upfront capital plus recurring operating expense (power, cooling, egress, storage, labor) over the system's lifetime, because hourly accelerator rates hide most of the bill and low utilization makes fixed pools expensive."
+  }
+ ]
+}

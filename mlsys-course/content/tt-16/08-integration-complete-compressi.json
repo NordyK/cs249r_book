@@ -1,0 +1,137 @@
+{
+ "title": "Integration: Complete Compression Pipeline",
+ "summary": "TinyTorch compression: Integration: Complete Compression Pipeline",
+ "source": {
+  "chapter": "tt-16",
+  "sections": [
+   "Integration: Complete Compression Pipeline"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Complete Compression Pipeline\n\nIndustrial model compression cascades multiple complementary techniques in sequence, each attacking a distinct orthogonal dimension of parameter redundancy:\n\n### Multi-Stage Compression Pipeline Cascade"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Pipeline Stage",
+    "Applied Technique",
+    "Storage Format Assumed",
+    "Footprint",
+    "Cumulative Size Reduction",
+    "Illustrative Accuracy",
+    "Inference Latency"
+   ],
+   "rows": [
+    [
+     "**Stage 0**",
+     "Baseline Dense Model",
+     "Dense FP32, \\$26.2\\text{M}\\$ parameters",
+     "\\$100\\text{ MB}\\$",
+     "\\$1.0\\times\\$ (Baseline)",
+     "\\$100.0\\%\\$",
+     "\\$500\\text{ ms}\\$"
+    ],
+    [
+     "**Stage 1**",
+     "Magnitude Pruning (\\$80\\%\\$ scalar sparsity)",
+     "CSR: \\$4\\text{ B}\\$ value \\$+\\ 2\\text{ B}\\$ column index",
+     "\\$30\\text{ MB}\\$",
+     "\\$3.3\\times\\$",
+     "\\$98.1\\%\\$",
+     "\\$500\\text{ ms}\\$ (unchanged)"
+    ],
+    [
+     "**Stage 2**",
+     "Structured Pruning (\\$30\\%\\$ channels excised)",
+     "Dense FP32, smaller dimensions",
+     "\\$21\\text{ MB}\\$",
+     "\\$4.8\\times\\$",
+     "\\$96.4\\%\\$",
+     "\\$350\\text{ ms}\\$"
+    ],
+    [
+     "**Stage 3**",
+     "Low-Rank SVD at \\$r = \\min(M, N)/8\\$ on the large projections",
+     "Factorized \\$A B\\$ matrices",
+     "\\$13\\text{ MB}\\$",
+     "\\$7.6\\times\\$",
+     "\\$95.2\\%\\$",
+     "\\$220\\text{ ms}\\$"
+    ],
+    [
+     "**Stage 4**",
+     "Knowledge Distillation + Retraining",
+     "Dense FP32 student",
+     "\\$5\\text{ MB}\\$",
+     "\\$20.0\\times\\$",
+     "\\$93.5\\%\\$",
+     "\\$50\\text{ ms}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\text{Total Compression} = \\frac{\\text{Initial Size}}{\\text{Final Size}} = \\frac{100\\text{ MB}}{5\\text{ MB}} = 20\\times, \\quad \\text{Speedup} = \\frac{500\\text{ ms}}{50\\text{ ms}} = 10\\times\\$\\$\n\nThe accuracy column is illustrative. It shows the shape of the trade (each stage gives up a little more) and is not a measurement from this module or a published result; the one pruning retention figure this module can stand behind is Han et al. (2015), quoted in the introduction. Milestone 06 measures accuracy for real.\n\n**Where the byte figures come from.** One MB is \\$10^6\\$ bytes throughout, so \\$100\\text{ MB}\\$ of FP32 holds \\$25{,}000{,}000\\$ parameters.\n\n- **Stage 1.** Eighty percent sparsity leaves \\$5{,}000{,}000\\$ nonzeros. Their values alone occupy \\$5{,}000{,}000 \\times 4\\text{ B} = 20\\text{ MB}\\$, but a bare value array is not something a kernel can multiply with, because nothing records where the values belong. COO pays a \\$4\\$-byte index per value, so \\$5{,}000{,}000 \\times 8\\text{ B} = 40\\text{ MB}\\$ (\\$2.5\\times\\$). CSR pays a \\$2\\$-byte column index per value plus one \\$4\\$-byte row pointer per row, so \\$5{,}000{,}000 \\times 6\\text{ B} = 30\\text{ MB}\\$ (\\$3.3\\times\\$), with the pointer array about \\$20\\text{ KB}\\$ for a \\$5120\\$-wide layer. The table quotes CSR, the cheapest format that actually works. The \\$5.0\\times\\$ this row used to claim was the value-only number.\n- **Stage 1 latency.** Unchanged. A dense kernel loads the zeros like any other number, and \\$80\\%\\$ sparsity sits below the \\$\\ge 85\\%\\$ break-even a sparse kernel needs. This stage bought bytes, not time.\n- **Stage 2.** Excising \\$30\\%\\$ of the channels drops \\$30\\%\\$ of every affected matrix, so bytes and FLOPs both scale by \\$0.70\\$: \\$30\\text{ MB} \\to 21\\text{ MB}\\$ and \\$500\\text{ ms} \\to 350\\text{ ms}\\$.\n- **Stage 3.** At \\$r = \\min(M, N)/8\\$, a square projection stores \\$r(M + N) = N^2/4\\$, a factor of \\$0.25\\$. Applied to the half of the parameters that sit in large projections, \\$10.5 + 0.25 \\times 10.5 = 13.1\\text{ MB}\\$, and the same factor on those layers' FLOPs gives \\$350 \\to 220\\text{ ms}\\$. The rank matters far more than the word \"reduction\". At the \\$50\\%\\$ rank this row used to claim, \\$r = N/2\\$ is exactly the break-even \\$r^*\\$ derived in 📐, and the factorization would come out slightly *larger* than the dense matrix it replaced.\n- **Stage 4.** The student is a different dense architecture, so its \\$5\\text{ MB}\\$ is a design choice rather than a transformation of Stage 3's \\$13\\text{ MB}\\$.\n\n### The Zeros Are Not Sticky: Fine-Tuning Un-Prunes a Model\n\nEvery cascade above, and every deployment recipe below, tells you to fine-tune after pruning. Do it naively and you will undo the pruning on the first optimizer step.\n\n`magnitude_prune` writes zeros into `param.data` and keeps nothing. The mask it computed lives only inside the function call. A zeroed weight is an ordinary weight whose current value happens to be \\$0\\$, and backpropagation still computes \\$\\partial \\mathcal{L} / \\partial W_{i, j}\\$ for it, because that derivative depends on the incoming activation and the outgoing gradient, not on the weight's own value. So `optimizer.step()` writes a nonzero number straight back into the hole. Measured on a two-layer MLP with this module's own `magnitude_prune` and Module 07's `SGD(lr=0.1)`, a single step took sparsity from \\$50.0\\%\\$ to \\$0.0\\%\\$. At an \\$80\\%\\$ target the collapse is nearly as total, \\$80.0\\%\\$ down to \\$4.6\\%\\$, and the few survivors are only the weights whose gradient happened to be exactly zero.\n\nThis is why the mask, not the zeros, is the real object in iterative pruning. Production pruning keeps the boolean mask alongside the weights and enforces it on every step, either by re-applying it after the update or by zeroing the masked gradients before it:\n\n```python\nmasks = [(p, p.data != 0) for p in model.parameters() if p.ndim > 1]  # right after pruning\n# ... inside the training loop, after optimizer.step():\nfor param, mask in masks:\n    param.data[~mask] = 0\n```\n\nWith that loop the same run holds at \\$50.0\\%\\$ sparsity through fine-tuning instead of falling to \\$0.0\\%\\$. Han et al. (2015) reach high sparsity by alternating prune and fine-tune for several rounds, and the mask is what makes each round start from the previous round's survivors rather than from a dense model again. TinyTorch's `magnitude_prune` leaves this to you on purpose, so that the failure is visible rather than hidden inside a framework."
+  },
+  {
+   "type": "text",
+   "md": "### Target Deployment Configurations and System Budgets"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Target Platform",
+    "Memory & Latency SLA",
+    "Recommended Strategy Cascade",
+    "Hardware Constraints & Rationale"
+   ],
+   "rows": [
+    [
+     "**Mobile Smartphone**",
+     "Footprint \\$< 10\\text{ MB}\\$<br>Latency \\$< 100\\text{ ms}\\$",
+     "1. Knowledge Distillation (\\$10\\times\\$ student)<br>2. Structured Pruning (\\$50\\%\\$ channels)<br>3. Post-Training Quantization (INT8)",
+     "Limited DRAM bandwidth (\\$30\\text{--}50\\text{ GB/s}\\$); NEON/NPU tensor accelerators favor contiguous dense buffers over irregular sparse formats."
+    ],
+    [
+     "**Embedded Edge IoT**",
+     "Footprint \\$< 50\\text{ MB}\\$<br>Latency \\$< 200\\text{ ms}\\$",
+     "1. Structured Pruning (\\$30\\%\\$ channels)<br>2. Low-Rank Factorization (\\$50\\%\\$ rank)<br>3. INT8 / FP16 Mixed Precision",
+     "Tight SRAM cache limits (\\$256\\text{ KB}\\text{--}2\\text{ MB}\\$); factorized GEMMs keep intermediate working sets resident in SRAM."
+    ],
+    [
+     "**Cloud Multi-Tenant**",
+     "Target: Max Throughput<br>Cost / Query SLA",
+     "1. Conservative Magnitude Pruning (\\$50\\%\\$ sparsity)<br>2. 2:4 Structured Sparsity (Ampere+ Tensor Cores)<br>3. Dynamic Batching + FP8 / BF16",
+     "High compute density; leverages native NVIDIA 2:4 sparse tensor core acceleration for \\$2\\times\\$ throughput without capacity loss."
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def compress_model(model, compression_config: Dict[str, float]) -> Dict[str, Any]:\n    \"\"\"\n    Apply comprehensive model compression based on configuration.\n\n    TODO: Implement complete compression pipeline\n\n    APPROACH:\n    1. Apply magnitude pruning if specified\n    2. Apply structured pruning if specified\n    3. Return compression statistics\n    Low-rank factors require rebuilding layers; use low_rank_approximate separately.\n\n    EXAMPLE:\n    >>> config = {\n    ...     'magnitude_prune': 0.8,\n    ...     'structured_prune': 0.3\n    ... }\n    >>> stats = compress_model(model, config)\n    >>> print(f\"Final sparsity: {stats['final_sparsity']:.1f}%\")\n    Final sparsity: 85.0%\n\n    HINT: Apply techniques sequentially and measure results\n    \"\"\"\n    # Validate before modifying any weights; unsupported work must not be\n    # recorded as successfully applied.\n    if 'low_rank' in compression_config:\n        raise ValueError(\"Use low_rank_approximate() and rebuild the layer from its factors\")\n    unknown = set(compression_config) - {'magnitude_prune', 'structured_prune'}\n    if unknown:\n        raise ValueError(f\"Unknown compression techniques: {sorted(unknown)}\")\n    for ratio in compression_config.values():\n        if not np.isfinite(ratio) or not 0 <= ratio <= 1:\n            raise ValueError(\"Pruning ratios must be between 0 and 1\")\n    original_params = sum(p.size for p in model.parameters())\n    original_sparsity = measure_sparsity(model)\n\n    stats = {\n        'original_params': original_params,\n        'original_sparsity': original_sparsity,\n        'applied_techniques': []\n    }\n\n    # Apply magnitude pruning\n    if 'magnitude_prune' in compression_config:\n        sparsity = compression_config['magnitude_prune']\n        magnitude_prune(model, sparsity=sparsity)\n        stats['applied_techniques'].append(f'magnitude_prune_{sparsity}')\n\n    # Apply structured pruning\n    if 'structured_prune' in compression_config:\n        ratio = compression_config['structured_prune']\n        structured_prune(model, prune_ratio=ratio)\n        stats['applied_techniques'].append(f'structured_prune_{ratio}')\n\n    # Final measurements\n    final_sparsity = measure_sparsity(model)\n    stats['final_sparsity'] = final_sparsity\n    stats['sparsity_increase'] = final_sparsity - original_sparsity\n\n    return stats"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Comprehensive Model Compression\n\nThis test validates the complete compression pipeline with multiple techniques.\n\n**What we're testing**: Sequential application of compression techniques\n**Why it matters**: Real deployments combine multiple compression methods\n**Expected**: Cumulative sparsity increase and tracking of applied techniques"
+  },
+  {
+   "type": "text",
+   "md": "### The Compressor Class: Consolidated for Export\n\nNow that we've implemented all compression techniques, let's create a consolidated class\nfor export to the tinytorch package. This allows milestones to use the complete compression system."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 63 lines of code (starting with `class Compressor:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Integration: Complete Compression Pipeline."
+   ]
+  }
+ ]
+}

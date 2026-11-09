@@ -1,0 +1,96 @@
+{
+ "title": "Hierarchical Communication",
+ "summary": "Analyze hierarchical AllReduce by separating input shard size, sent volume, aggregate node traffic, and available port capacity.",
+ "source": {
+  "chapter": "v2-05",
+  "sections": [
+   "Hierarchical Communication",
+   "Hierarchical AllReduce",
+   "Multidimensional reduction on a torus",
+   "In-network reduction with SHARP",
+   "Topology-aware routing"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze hierarchical AllReduce by separating input shard size, sent volume, aggregate node traffic, and available port capacity\n- Analyze how dimension-ordered reduction on torus topologies reduces latency hop complexity from multiplicative volume to additive perimeter\n- Explain the mechanics of rail-optimized routing and diagnose the performance penalties caused by topology-unaware rank placement\n- Identify how in-network reduction (SHARP) offloads collective arithmetic to switch ASICs to eliminate store-and-forward GPU memory traffic\n- Order the three causal phases of Hierarchical AllReduce across intra-node and inter-node network tiers"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Collective Communication, § Hierarchical Communication",
+   "md": "The AllReduce cost models in a later section assume a flat network with uniform endpoint bandwidth, whereas real clusters expose the tiered bandwidth hierarchy of a later section. Because intra-node links are abundant and fast while inter-node links are scarce and expensive, hierarchical communication shrinks payloads locally before they cross the scarce tier, decomposing AllReduce into a local ReduceScatter, a cross-node reduction, and a local AllGather."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Hierarchical AllReduce\n- Multidimensional reduction on a torus\n- In-network reduction with SHARP\n- Topology-aware routing\n\nPay attention to: The bandwidth hierarchy: intra-node NVLink (450 GB/s one-way) vs inter-node InfiniBand NDR (50 GB/s per port); Three-phase Hierarchical AllReduce: intra-node ReduceScatter, inter-node AllReduce on M/G shards, intra-node AllGather; In-network reduction (SHARP): aggregation in switch ASICs eliminating GPU store-and-forward latency and memory traffic; Topology-aware routing: Dimension-ordered reduction on 3D torus TPU pods."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Describe the architectural principle of rail-optimized routing in multi-GPU DGX clusters, and explain the performance pathology that occurs if a job scheduler assigns process ranks without topology awareness.",
+   "md": "Rail-aware placement keeps the same model shard at the same local GPU index across replicas, aligning corresponding-rank communication with GPU-to-NIC affinities. Distinct shard groups can then use distinct rails when the topology provides them. A poor mapping may concentrate traffic on a subset of NICs or cross additional fabric tiers. Alignment does not reserve bandwidth, eliminate contention, or imply a universal slowdown factor; measure the actual placement."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-05-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "On an 8-node cluster with 8 GPUs per node, fast local NVLink, and eight independent 50 GB/s network ports per node, how can hierarchical AllReduce improve on a flat ring whose inter-node traffic is serialized through one port?",
+     "explanation": "The correct answer is C. Each inter-node rank receives an input shard of $M/8$, then sends \\$2(7/8)(M/8)$ bytes in its eight-node ring and receives the same volume. Summing over eight local ranks gives \\$2(7/8)M$ sent per node, not an eightfold reduction in aggregate optical bytes. Speedup comes from the declared local aggregation and independent-port mapping; a topology-aware flat implementation can change the comparison.",
+     "hint": "Think about: analyze hierarchical AllReduce by separating input shard size, sent volume, aggregate node traffic, and available port capacity.",
+     "type": "single",
+     "options": [
+      "Hierarchical AllReduce converts the floating-point values to 8-bit integers during the intra-node phase to save inter-node bandwidth.",
+      "Flat Ring AllReduce requires every GPU to establish an optical fiber connection directly to all 63 other GPUs in the cluster.",
+      "Local ReduceScatter creates one 125 MB shard per GPU from a 1 GB tensor; corresponding-rank AllReduces can distribute these shards across the eight ports, followed by local AllGather.",
+      "Hierarchical AllReduce executes without any inter-node network synchronization barriers."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "How does dimension-ordered reduction on a 3D torus network (such as Google TPU pods) optimize communication latency and link utilization compared to running a single global logical ring?",
+     "explanation": "The correct answer is B. Sequential full-message rings along X, Y, and Z reduce startup rounds from \\$2(XYZ-1) to \\$2[(X-1)+(Y-1)+(Z-1)]. Their bandwidth time is \\$2M[(X-1)/X+(Y-1)/Y+(Z-1)/Z]/beta, not the cost of one global ring. Direct-neighbor routing avoids arbitrary paths but does not eliminate other workloads' contention. Skipping an axis omits contributions; a central root recreates a bottleneck.",
+     "hint": "Think about: analyze how dimension-ordered reduction on torus topologies reduces latency hop complexity from multiplicative volume to additive perimeter.",
+     "type": "single",
+     "options": [
+      "It skips communication along the Z-axis by projecting all activations onto a 2D plane.",
+      "It executes axis-aligned rings in sequence, reducing startup rounds to \\$2[(X-1)+(Y-1)+(Z-1)] while trading extra full-message transfers for shorter rings.",
+      "It broadcasts full gradient tensors directly to all pod nodes simultaneously over optical circuit switches.",
+      "It routes all collective packets through a single central root TPU in the pod to minimize total wire length."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "On a supported aggregation path, SHARP can move intermediate reduction arithmetic from endpoints into switches, but the resulting latency and training-step benefit still depend on message size, placement, switch resources, and exposed dependencies.",
+     "explanation": "True. Aggregation-capable switches combine contributions in the packet path, avoiding some intermediate endpoint receive-reduce-forward work. Startup, switch processing, data movement, and contention remain. The supported operation and datatype, aggregation-resource availability, and binding links determine collective benefit; independent computation and consumer readiness determine how much reaches step time. In-network reduction does not guarantee a fixed speedup for every tensor.",
+     "hint": "Think about: identify how in-network reduction (SHARP) offloads collective arithmetic to switch ASICs to eliminate store-and-forward GPU memory traffic.",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "Sequence the three phases of Hierarchical AllReduce executed across a multi-node cluster with $G$ GPUs per node:",
+     "explanation": "The correct order is: (3) intra-node ReduceScatter across local GPUs over NVLink leaving each GPU holding \\$1/G of the partially reduced tensor, (2) inter-node AllReduce across corresponding GPU positions over InfiniBand on the M/G node shards, (1) intra-node AllGather across local GPUs over NVLink to reconstruct the full globally reduced tensor. The hierarchy first exploits high-speed intra-node NVLink to reduce local data into shards; then performs the expensive inter-node exchange only on the reduced M/G payload over InfiniBand; and finally redistributes the global results locally over NVLink.",
+     "hint": "Think about: order the three causal phases of Hierarchical AllReduce across intra-node and inter-node network tiers.",
+     "type": "order",
+     "items": [
+      "intra-node ReduceScatter across local GPUs over NVLink leaving each GPU holding \\$1/G of the partially reduced tensor.",
+      "inter-node AllReduce across corresponding GPU positions over InfiniBand on the $M/G$ node shards",
+      "intra-node AllGather across local GPUs over NVLink to reconstruct the full globally reduced tensor"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze hierarchical AllReduce by separating input shard size, sent volume, aggregate node traffic, and available port capacity.",
+    "You can now analyze how dimension-ordered reduction on torus topologies reduces latency hop complexity from multiplicative volume to additive perimeter.",
+    "You can now explain the mechanics of rail-optimized routing and diagnose the performance penalties caused by topology-unaware rank placement.",
+    "You can now identify how in-network reduction (SHARP) offloads collective arithmetic to switch ASICs to eliminate store-and-forward GPU memory traffic."
+   ]
+  }
+ ]
+}

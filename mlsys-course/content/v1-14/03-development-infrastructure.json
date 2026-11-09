@@ -1,0 +1,96 @@
+{
+ "title": "Development Infrastructure",
+ "summary": "Apply the formal reproducibility dependency to identify artifact versioning violations in an ML workflow.",
+ "source": {
+  "chapter": "v1-14",
+  "sections": [
+   "Development Infrastructure",
+   "Data infrastructure and preparation",
+   "Continuous pipelines and automation",
+   "Infrastructure integration"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Apply the formal reproducibility dependency to identify artifact versioning violations in an ML workflow\n- Explain how point-in-time feature retrieval reduces training data leakage by respecting historical feature availability\n- Sequence a feature-consistency investigation from artifact retrieval through discrepancy diagnosis to evaluation of a targeted correction\n- Design the execution sequence of a continuous ML training-and-deployment pipeline after retraining has been approved\n- Differentiate reproducibility targets from operational idempotence in automated ML workflows"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Operations, § Development Infrastructure",
+   "md": "When a production model fails an accuracy check, an engineer who cannot recover the exact training dataset, feature transformation code, and container image that produced it can only guess which input changed. Development infrastructure turns the debt patterns diagnosed in a later section into concrete enforcement points. A feature schema that drifts upstream cannot be repaired by a dashboard alone; it needs a shared contract, a versioned artifact, and a deployment path that rejects incompatible changes before they reach production."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Data infrastructure and preparation\n- Continuous pipelines and automation\n- Infrastructure integration\n\nPay attention to: data management pillars: consistency, freshness, quality; feature stores and point-in-time correctness; CI/CD pipelines, validation checks, and pipeline staging; artifact versioning and the training-serving skew investigation."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how a centralized feature store's point-in-time (time-travel) query capability prevents data leakage during model training.",
+   "md": "Point-in-time queries reconstruct feature values that were actually available when each training example would have been scored, rather than joining against the current state of the world. For example, a fraud event at 14:02 should not see an account status written at 14:05, even if that later record carries an older event timestamp. The practical consequence is that point-in-time correctness must respect feature availability time as well as event time, and it still depends on correct configuration and versioned pipelines rather than being guaranteed by the feature store alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-14-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team versions its model training code in Git, but datasets are pulled dynamically from unversioned live database queries and training hyperparameters are passed via ad hoc shell flags. Which foundational MLOps principle is violated, and what formal dependency does this break?",
+     "explanation": "The correct answer is B. Reproducibility means the team can reconstruct and audit a training run from versioned artifacts: $\\text{Code}_v$, $\\text{Data}_v$, $\\text{Config}_v$, and $\\text{Environment}_v$, while controlling for or characterizing execution nondeterminism. If data snapshots and configurations are unversioned, the run cannot be reliably reproduced for comparison or audit. An answer based on runtime telemetry confuses artifact provenance with production monitoring, while the layer-boundary and scheduler options address different operational concerns.",
+     "hint": "Think about: apply the formal reproducibility dependency to identify artifact versioning violations in an ML workflow",
+     "type": "single",
+     "options": [
+      "Observable degradation; it prevents inference proxies from logging P99 latency percentiles",
+      "Reproducibility; it breaks the ability to reconstruct a training run from versioned Code, Data, Config, and Environment artifacts while controlling for or characterizing execution nondeterminism",
+      "Separation of concerns; it couples feature transformation code with neural loss calculation",
+      "Cost-aware automation; it prevents the workload scheduler from executing batch inference"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Order the following stages in a feature-consistency investigation after a production symptom has already been observed:",
+     "explanation": "The correct order is: (4) retrieve the versioned training and serving transformation artifacts for the affected deployment, (3) replay the same recorded input through both the training and serving transformations, (1) compare the resulting training-side and serving-side feature values to locate the discrepancy, (2) evaluate whether correcting that discrepancy is worth the expected benefit, implementation cost, and deployment risk. The sequence is causal: the team needs the exact versioned artifacts before it can replay the recorded input faithfully, and it needs the replay outputs before it can compare feature values to identify where they diverge. Only after diagnosing a concrete mismatch does it make sense to evaluate whether correcting that specific discrepancy is worth shipping.",
+     "hint": "Think about: sequence a feature-consistency investigation from artifact retrieval through discrepancy diagnosis to evaluation of a targeted correction",
+     "type": "order",
+     "items": [
+      "retrieve the versioned training and serving transformation artifacts for the affected deployment.",
+      "replay the same recorded input through both the training and serving transformations",
+      "compare the resulting training-side and serving-side feature values to locate the discrepancy",
+      "evaluate whether correcting that discrepancy is worth the expected benefit, implementation cost, and deployment risk"
+     ]
+    },
+    {
+     "q": "After drift has been investigated and retraining has been approved under policy, an automated MLOps continuous training and delivery pipeline executes. Place the following pipeline stages in their correct execution order:",
+     "explanation": "The correct sequence is: (1) Data Validation Check, (3) Model Training & Hyperparameter Optimization, (4) Model Evaluation & Guardrail Check, (5) Model Registry Registration, (2) Staged Rollout / Canary Deployment. The pipeline must validate the newly ingested data before training on it, evaluate the trained candidate before treating it as an approved artifact, register the validated artifact so the exact version is tracked, and only then expose it to production traffic through a staged rollout. Swapping evaluation with training is impossible because there is no candidate to judge yet, and deploying before registration would weaken rollback and provenance tracking.",
+     "hint": "Think about: design the execution sequence of a continuous ML training-and-deployment pipeline after retraining has been approved",
+     "type": "order",
+     "items": [
+      "Data Validation Check: Run schema and statistical boundary checks on newly ingested data.",
+      "Model Training & Hyperparameter Optimization: Train candidate model weights on the validated dataset.",
+      "Model Evaluation & Guardrail Check: Evaluate candidate model against golden test slices and latency SLOs.",
+      "Model Registry Registration: Tag and store the validated model binary, metadata, and container hash.",
+      "Staged Rollout / Canary Deployment: Route a small percentage of live production traffic to the new model."
+     ]
+    },
+    {
+     "q": "In automated ML pipelines, a 'reproducibility failure' and an 'operational idempotence failure' describe the exact same defect.",
+     "explanation": "False. Reproducibility asks whether rerunning with the same artifacts, configuration, environment, and stated tolerance yields consistent results, even if unconstrained nondeterminism may prevent bitwise identity. Operational idempotence asks whether retrying a stage avoids duplicate side effects such as repeated registry entries or duplicate writes.",
+     "hint": "Think about: differentiate reproducibility targets from operational idempotence in automated ML workflows",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the formal reproducibility dependency to identify artifact versioning violations in an ML workflow.",
+    "You can now explain how point-in-time feature retrieval reduces training data leakage by respecting historical feature availability.",
+    "You can now sequence a feature-consistency investigation from artifact retrieval through discrepancy diagnosis to evaluation of a targeted correction.",
+    "You can now design the execution sequence of a continuous ML training-and-deployment pipeline after retraining has been approved."
+   ]
+  }
+ ]
+}

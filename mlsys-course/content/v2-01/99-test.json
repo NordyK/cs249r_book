@@ -1,0 +1,149 @@
+{
+ "title": "Test: Introduction",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-01-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "In compute-optimal language model training, the Chinchilla scaling law establishes that for a balanced allocation of compute, the training dataset size in tokens and the model parameter count should scale proportionally, targeting a ratio of approximately ____ training tokens per parameter.",
+     "explanation": "20. Hoffmann et al. (2022) demonstrated that optimal training loss for a given compute budget requires roughly 20 tokens per parameter, showing that models like GPT-3 were significantly undertrained.",
+     "hint": "Think about: identify the Chinchilla token-to-parameter ratio for compute-optimal language model pretraining.",
+     "type": "fill",
+     "answer": [
+      "20"
+     ]
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Communication intensity**?",
+     "options": [
+      "Bytes moved across the network per local operation is the fleet analog of arithmetic intensity: below the fabric balance point scaling is easy, above it bisection bandwidth binds, and byte-reducing methods change it while overlap only hides exposed time.",
+      "The fleet is eight rows in four bands (infrastructure, distribution, serving, governance) in which capabilities fixed lower constrain choices above, so the stack locates where a decision belongs while C3 says what it costs in time.",
+      "Distributed execution time divides into Compute, Communication, and Coordination, each leaving different evidence (utilization and memory counters, link and collective timing, barrier waits and recovery records), and relieving one moves the bottleneck to another.",
+      "Percent of peak, compute-time fraction, scaling efficiency, run-level goodput, and ML productivity goodput answer different questions over different windows, so every efficiency claim must name its measure and interval; the goodput factors are previewed here and defined where ML goodput is owned."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Communication intensity itself, not a neighbouring idea.",
+     "explanation": "**Communication intensity:** Bytes moved across the network per local operation is the fleet analog of arithmetic intensity: below the fabric balance point scaling is easy, above it bisection bandwidth binds, and byte-reducing methods change it while overlap only hides exposed time."
+    },
+    {
+     "q": "In the CAP theorem as applied to physical distributed systems, Partition Tolerance is an optional configuration setting that network engineers can choose to disable in high-end data centers to achieve simultaneous atomic Consistency and Availability.",
+     "explanation": "False. Partition Tolerance is not an optional architectural choice or software toggle; it is a physical reality of distributed infrastructure where network cables, transceivers, switches, or nodes can fail or experience delays. Because partitions will inevitably occur in any physical network at scale, a distributed system can only choose how to respond when a partition happens: by halting to preserve Consistency (CP) or continuing with stale state to preserve Availability (AP).",
+     "hint": "Think about: critique the misconception that Partition Tolerance is an optional system parameter rather than an unavoidable physical constraint.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Under the Fleet Law decomposition (DistributedStepTime(DeviceCount) = IronLawComputeTime/DeviceCount + CommunicationTime(DeviceCount) + SynchronizationTime(DeviceCount) - OverlappedTime), a team training on 1,024 GPUs uses a hypothetical single-device compute baseline IronLawComputeTime = 1,024 s, raw network communication time CommunicationTime = 0.8 s, barrier synchronization time SynchronizationTime = 0.2 s, and an actual measured step time of DistributedStepTime = 1.6 s. What is the value of OverlappedTime, and what does it signify?",
+     "explanation": "The correct answer is A. Substituting into the Fleet Law: DistributedStepTime = (IronLawComputeTime / DeviceCount) + CommunicationTime + SynchronizationTime - OverlappedTime implies 1.6 s = (1,024 / 1,024) + 0.8 + 0.2 - OverlappedTime implies 1.6 = 1.0 + 1.0 - OverlappedTime implies 1.6 = 2.0 - OverlappedTime implies OverlappedTime = 0.4 s. This term quantifies the 0.4 seconds of gradient communication that ran concurrently with local tensor arithmetic, reducing total exposed step overhead. Conflating overlap with total communication time, confusing it with straggler recovery time, or claiming overlap is impossible on modern GPUs contradicts basic asynchronous CUDA stream execution.",
+     "hint": "Think about: calculate communication overlap (OverlappedTime) using the Fleet Law and explain its physical significance in distributed step efficiency.",
+     "type": "single",
+     "options": [
+      "OverlappedTime = 0.4 s; it represents the communication time successfully hidden behind concurrent backward-pass compute.",
+      "OverlappedTime = 1.0 s; it represents the total exposed network stall time.",
+      "OverlappedTime = 0.2 s; it represents the time spent recovering from straggler delays.",
+      "OverlappedTime = 0 s; because communication and computation cannot execute concurrently on GPU architectures."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Which responsibility assignment matches the fleet stack described in this section, while retaining ML frameworks and applications as parts of the system?",
+     "explanation": "The correct answer is C. The fleet stack groups eight rows into four bands. Infrastructure supplies the physical substrate; Distribution includes distributed execution and Reliability & Control, where training-job scheduling and recovery live; Serving adds request handling and deployment pipelines; Governance sets assurance and responsible-operation requirements. ML frameworks still execute models and applications still use them. The upper bands add responsibilities rather than replace frameworks or applications. The other assignments confuse physical resources, distributed control, request serving, and policy.",
+     "hint": "Think about: locate physical, distributed-execution, serving, and governance responsibilities in the fleet stack without treating its bands as replacements for frameworks and applications.",
+     "type": "single",
+     "options": [
+      "Infrastructure handles request admission; Distribution sets fairness policy; Serving supplies network links; Governance runs gradient collectives.",
+      "Infrastructure places training jobs; Distribution cools accelerators; Serving defines privacy requirements; Governance answers inference requests.",
+      "Infrastructure supplies accelerators and fabrics; Distribution handles collectives, job placement, and recovery; Serving handles requests and deployment; Governance sets security and responsible-operation requirements.",
+      "Infrastructure supplies accelerators and fabrics; Distribution handles collectives; Serving owns training-job scheduling and recovery; Governance replaces applications."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Under the Warehouse-Scale Computer (WSC) perspective required for the ML fleet, the data center is treated as the computer: the orchestrator acts as the operating system, distributed storage acts as the local disk, and the network fabric acts as the ____.",
+     "explanation": "system bus. In a warehouse-scale computer, high-bandwidth interconnect fabrics (such as InfiniBand or NVLink networks) replace the local motherboard bus, transporting gradient and activation tensors between distributed compute units.",
+     "hint": "Think about: infer the WSC system-bus architectural analogy for datacenter network fabrics in ML fleets.",
+     "type": "fill",
+     "answer": [
+      "system bus"
+     ]
+    },
+    {
+     "q": "According to the displacement-of-overhead heuristic, switching from synchronous training to asynchronous parameter updates eliminates coordination overhead from the system entirely.",
+     "explanation": "False. Displacement of overhead is a diagnostic heuristic, not a conservation law. Asynchronous updates can reduce barrier waiting but introduce stale gradients and may require more optimization steps. The net benefit must be measured as useful progress to a target quality; eliminating one wait does not establish that all coordination costs disappear.",
+     "hint": "Think about: apply the displacement-of-overhead heuristic to explain why relaxing synchronization barriers relocates rather than eliminates system overhead.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An engineering team instruments a 2,048-GPU training cluster and breaks down the 1.5-second step time: 0.9 s is spent on GPU matrix multiplications, 0.4 s is spent in NCCL ring transfers across the InfiniBand fabric, and 0.2 s is spent waiting at the barrier for stragglers and fault-heartbeat checks. How does this step time map onto the C$^3$ taxonomy?",
+     "explanation": "The correct answer is D. In the C^3 taxonomy: Compute (OperationalTaxonomyDimension_1, the math) is the local execution of matrix math on accelerators (0.9 s); Communication (OperationalTaxonomyDimension_2, the wire) is data transfer across network links (0.4 s for NCCL transfers); and Coordination (OperationalTaxonomyDimension_3, the logic) is state synchronization, barrier waits, straggler handling, and fault checks (0.2 s). Conflating barrier waiting with network transfer obscures the root cause of idle time, grouping matrix math with communication misattributes silicon execution, and reversing Compute with Coordination misclassifies the workload dimensions.",
+     "hint": "Think about: classify distributed step-time profiling measurements into the Compute, Communication, and Coordination dimensions of the C$^3$ taxonomy.",
+     "type": "single",
+     "options": [
+      "0.9 s Compute (OperationalTaxonomyDimension_1), 0.6 s Communication (OperationalTaxonomyDimension_2), 0 s Coordination (OperationalTaxonomyDimension_3)",
+      "1.3 s Compute (OperationalTaxonomyDimension_1), 0.2 s Communication (OperationalTaxonomyDimension_2), 0 s Coordination (OperationalTaxonomyDimension_3)",
+      "0.9 s Coordination (OperationalTaxonomyDimension_3), 0.4 s Communication (OperationalTaxonomyDimension_2), 0.2 s Compute (OperationalTaxonomyDimension_1)",
+      "0.9 s Compute (OperationalTaxonomyDimension_1), 0.4 s Communication (OperationalTaxonomyDimension_2), 0.2 s Coordination (OperationalTaxonomyDimension_3)"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Which of the following correctly pairs each of the textbook's three lighthouse archetypes with its representative C$^3$ diagnostic regime and primary fleet challenge?",
+     "explanation": "The correct answer is C. The archetypes probe communication for dense distributed LLM workloads, coordination for sparse DLRM routing and placement, and compute for MobileNet's per-device envelope. These are representative regimes rather than permanent bottleneck assignments: partitioning and overlap can change the binding cost, and communication or participation can dominate a federated round. The other choices misidentify these diagnostic roles.",
+     "hint": "Think about: classify the three lighthouse archetypes by their dominant C$^3$ constraint and fleet-scale systems challenge.",
+     "type": "single",
+     "options": [
+      "Archetype A: Coordination (edge battery); Archetype B: Compute (matrix math); Archetype C: Communication (InfiniBand).",
+      "Archetype A: Compute (single-thread CPU clock); Archetype B: Communication (local PCIe); Archetype C: Coordination (disk I/O).",
+      "Archetype A (GPT-4/Llama-3): Communication (dense gradient/activation synchronization across thousands of GPUs); Archetype B (DLRM): Coordination (sharding 10 TB+ embedding tables with mathcalO(DeviceCount^2) AllToAll routing under <100 ms tail latency); Archetype C (Federated MobileNet): Compute (watt-scale power and memory limits on local edge devices).",
+      "All three archetypes share the identical dominant constraint: local GPU HBM capacity."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "An infrastructure team argues that the four bands of the fleet stack (Infrastructure, Distribution, Serving, Governance) can be optimized in complete isolation by independent teams without cross-layer coordination. Why does the chapter reject this architectural view?",
+     "explanation": "The correct answer is A. The fleet stack is defined as a layered constraint-propagation framework: decisions at the bottom constrain possibilities at the top. Physical infrastructure limits (e.g. 200 Gb/s link limits and facility power budgets) bound which distribution strategies (tensor vs pipeline parallelism) are viable; distribution choices bound serving latency and throughput envelopes; and serving architectures determine how data lineage, access control, and auditability invariants are maintained at runtime. Proposing monolithic binary compilation misrepresents software architecture, claiming it applies only to single nodes contradicts the fleet-scale definition, and viewing it as an administrative org chart misses its technical engineering purpose.",
+     "hint": "Think about: analyze how the fleet stack acts as a constraint-propagation hierarchy where lower-layer physical decisions bound upper-layer operational capabilities.",
+     "type": "single",
+     "options": [
+      "The fleet stack is a strict constraint-propagation hierarchy where lower layers physically constrain upper layers: facility power and network fabric bisection bandwidth constrain feasible distribution strategies, which constrain serving tail-latency SLOs, which in turn determine whether runtime governance invariants can be enforced.",
+      "The fleet stack requires all four layers to be compiled into a single monolithic C++ binary that executes directly on GPU bare metal.",
+      "The fleet stack only applies to single-GPU workstations and breaks down whenever multiple nodes are connected.",
+      "The fleet stack is an administrative corporate organization chart rather than a technical systems model."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Order the four bands of the fleet stack from bottom (physical foundation) to top (mission context):",
+     "explanation": "The correct order is: (2) Infrastructure, (3) Distribution, (4) Serving, (1) Governance. Each band contains two rows: Facility and Accelerators plus Fabric and Storage; Distributed Execution plus Reliability & Control; Runtime and Serving plus Operations; Assurance plus Governance and Sustainability. Job orchestration, cluster scheduling, and recovery belong to Reliability & Control within Distribution. Serving handles inference requests and deployment operations. Physical capabilities constrain the choices above them, while service and governance requirements constrain acceptable lower-layer designs.",
+     "hint": "Think about: order the four bands of the fleet stack and locate their eight rows, including scheduling and recovery within Distribution.",
+     "type": "order",
+     "items": [
+      "Infrastructure",
+      "Distribution",
+      "Serving.",
+      "Governance"
+     ]
+    },
+    {
+     "q": "Order the following steps in the execution of a simplified, non-overlapped synchronous data-parallel training step with an explicit pre-collective barrier from first to last:",
+     "explanation": "The correct order is: (1) Execute forward pass matrix math locally, (4) Execute backward pass and compute local parameter gradients, (5) Wait at barrier for all ranks to complete local computation, (3) Synchronize gradients across all workers via AllReduce, (2) Apply updated weights using optimizer step. The step begins with local forward arithmetic, followed by backward gradient computation; workers then reach the synchronization barrier where gradients are communicated across all nodes via AllReduce; once collective reduction finishes, each worker updates its local model weights with the optimizer step. Reversing forward and backward passes or attempting to apply weight updates before AllReduce gradient synchronization violates optimization logic.",
+     "hint": "Think about: order the operational phases of a synchronous distributed training step from forward execution to optimizer weight update.",
+     "type": "order",
+     "items": [
+      "Execute forward pass matrix math locally",
+      "Execute backward pass and compute local parameter gradients",
+      "Wait at barrier for all ranks to complete local computation.",
+      "Synchronize gradients across all workers via AllReduce",
+      "Apply updated weights using optimizer step"
+     ]
+    }
+   ]
+  }
+ ]
+}

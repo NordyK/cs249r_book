@@ -1,0 +1,73 @@
+{
+ "title": "SLO Goodput and the Serving Tax",
+ "summary": "Calculate SLO goodput from completion rate and target attainment, and use it to compare serving configurations.",
+ "source": {
+  "chapter": "v2-10",
+  "sections": [
+   "SLO Goodput and the Serving Tax",
+   "The inversion from training to inference",
+   "The serving tax"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate SLO goodput from completion rate and target attainment, and use it to compare serving configurations\n- Analyze the components of the distributed serving tax and the mechanism by which zero-copy serialization reduces latency\n- Compare operational fault tolerance and state management requirements between distributed training and distributed inference"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Serving at Scale, § SLO Goodput and the Serving Tax",
+   "md": "A replica that runs near its hardware limit still wastes its capacity if requests wait so long in queues, network hops, and host processing that responses arrive after the user's deadline. Because a served request counts as useful work only when it meets its latency and quality targets, every stage it crosses spends part of that contract's budget."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The inversion from training to inference\n- The serving tax\n\nPay attention to: SLO goodput as the serving capacity metric; The serving tax breakdown within a request latency budget; Training vs inference operational inversion."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain the composition of the distributed 'serving tax' (EndToEndRequestLatency = InferenceLatency + NetworkLatency + SerializationLatency + CoordinationLatency + QueueingLatency) and describe how zero-copy serialization formats mitigate serialization overhead.",
+   "md": "The serving tax comprises exposed network, serialization, coordination, and queueing delays beyond model execution. Zero-copy formats can expose compatible wire-format data without a separate parse-and-copy pass. They do not remove network transmission, all validation, or every memory copy: layout, ownership, device placement, and transport determine what can be avoided. Measure each contribution on the request critical path rather than adding overlapping intervals."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-10-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Two configurations serve the same request mix under the same TTFT and TPOT targets. Configuration X completes 1,200 requests per second, of which 70 percent meet both targets; configuration Y completes 1,000 requests per second, of which 95 percent meet both. Which has more serving capacity?",
+     "explanation": "The correct answer is D. SLO goodput is the rate of completed requests that meet the stated TTFT and TPOT targets for a fixed request mix, so X delivers about 840 useful requests per second and Y about 950. A request that misses its contract counts for nothing however busy the accelerators were, so higher raw throughput or a returned result does not add useful capacity.",
+     "hint": "Think about: calculate SLO goodput from completion rate and target attainment, and use it to compare serving configurations.",
+     "type": "single",
+     "options": [
+      "X, because it completes more requests per second and keeps its accelerators busier.",
+      "The two are equal, because both process the same request mix.",
+      "X, because requests that miss their targets still return results to users.",
+      "Y, because SLO goodput counts only requests that meet their targets, about 950 per second against about 840 for X."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Interactive inference recovery is judged against request latency and availability objectives, whereas long-running training recovery is usually judged against lost progress and time to completion.",
+     "explanation": "True. Interactive serving may need rerouting, bounded retries, or a fallback before a request deadline. Training often restores a checkpoint and repeats lost work. Neither mode guarantees invisible recovery; the acceptable interruption follows the workload contract.",
+     "hint": "Think about: compare operational fault tolerance and state management requirements between distributed training and distributed inference.",
+     "type": "truefalse",
+     "answer": true
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**SLO goodput**: The rate of completed requests that meet the stated time-to-first-token (TTFT) and time-per-output-token (TPOT) targets for a fixed request mix."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "SLO goodput",
+   "def": "The rate of completed requests that meet the stated time-to-first-token (TTFT) and time-per-output-token (TPOT) targets for a fixed request mix."
+  }
+ ]
+}

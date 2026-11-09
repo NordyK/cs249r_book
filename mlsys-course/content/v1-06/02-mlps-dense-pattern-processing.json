@@ -1,0 +1,93 @@
+{
+ "title": "MLPs: Dense Pattern Processing",
+ "summary": "Apply the MLP's unrestricted connectivity pattern to explain why parameter count scales as $\\mathcal{O}(d_{\\text{in}} \\times d_{\\text{out}})$ and why streamed-weight inference can become bandwidth limited.",
+ "source": {
+  "chapter": "v1-06",
+  "sections": [
+   "MLPs: Dense Pattern Processing",
+   "Representation vs. learnability",
+   "Pattern processing needs",
+   "Algorithmic structure",
+   "Computational mapping",
+   "System implications"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Apply the MLP's unrestricted connectivity pattern to explain why parameter count scales as $\\mathcal{O}(d_{\\text{in}} \\times d_{\\text{out}})$ and why streamed-weight inference can become bandwidth limited\n- Analyze the gap between UAT's representational guarantee and practical learnability, and connect it to both sample-efficiency and systems-cost consequences for image models\n- Identify the manifold hypothesis from its description and explain how it motivates learnability in high-dimensional settings\n- Analyze a batch-1 dense-layer kernel as bandwidth-bound from a FLOP/byte signature and select batching as the intensity-raising fix rather than a compute upgrade\n- Calculate the exact MAC count and logical operand-read count of an MLP layer, and distinguish that count from physical DRAM traffic"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Network Architectures, § MLPs: Dense Pattern Processing",
+   "md": "Assuming the least about the input means letting every feature interact directly with every hidden unit. The MNIST digit classifier of a later section is the purest example of that dense processing. Each of its 784 pixel inputs connects to every hidden unit, and each hidden unit connects to every unit in the next layer. The same all-to-all pattern suits tabular inputs, such as the sender reputation, link count, and keyword features a spam filter scores, where no feature has a fixed neighbor."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Representation vs. learnability\n- Pattern processing needs\n- Algorithmic structure\n- Computational mapping\n- System implications\n\nPay attention to: Dense connectivity and unrestricted feature interaction scaling; Universal Approximation Theorem (UAT) vs practical learnability gap; Batch-1 GEMV arithmetic intensity and the 0.5 FLOP/byte bandwidth wall; Nested loop structure and Tensor Core tile alignment penalties."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A team cites the Universal Approximation Theorem (UAT) to argue that a wide 3-layer MLP should be used to classify \\$256 × 256 RGB images instead of a CNN. Explain why UAT does not justify this design choice in practice, detailing both the statistical failure mode (sample complexity) and the systems failure mode (memory bandwidth and parameter explosion).",
+   "md": "UAT is only an existence result: it says a sufficiently large MLP can represent a target function, not that gradient descent will find it efficiently or that the required width will be practical. For images, flattening \\$256 × 256 RGB inputs into 196,608 features removes the spatial prior, so the model must learn locality and reuse from data that a matched CNN encodes structurally; sample needs therefore depend on the target distribution and learning procedure, and a CNN can need fewer examples when that prior matches the task. On the systems side, connecting 196,608 inputs to 4,096 hidden units creates about 805 million weights, which is useful for capacity planning, and under a streamed-weight batch-1 model leaves low arithmetic intensity unless batching or cache reuse changes the traffic pattern."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-06-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A fully connected layer connecting 2,048 input units to 2,048 output units stores approximately 4.19 million weights (~16.8 MB in FP32). When applied to high-resolution image inputs, dense layers suffer severe parameter explosion. Which statement best captures the systems mechanism behind the MLP's parameter and memory scaling?",
+     "explanation": "The correct answer is C. The chapter defines MLPs by the absence of a specific spatial or temporal prior, so the layer must materialize the full $d_{\\text{in}} \\times d_{\\text{out}}$ matrix. That fixes dense parameter storage by dimensions, and in small-batch streamed-weight inference it can also make weight traffic scale with the same matrix size. The bias-vector explanation is too small to dominate, and an answer focused on activation memory confuses a conditional runtime effect with the architectural source of the parameter count.",
+     "hint": "Think about: apply the MLP's unrestricted connectivity pattern to explain why parameter count scales as $\\mathcal{O}(d_{\\text{in}} \\times d_{\\text{out}})$ and why streamed-weight inference can become bandwidth limited.",
+     "type": "single",
+     "options": [
+      "Dense layers use non-linear activations whose element-wise memory footprints dwarf the weight tensors by several orders of magnitude.",
+      "MLP bias vectors grow quadratically with the output dimension, dominating total layer memory storage.",
+      "The MLP encodes no specific spatial or temporal connectivity pattern, so every one of the $d_{\\text{in}}$ inputs can connect to every one of the $d_{\\text{out}}$ outputs, yielding $\\mathcal{O}(d_{\\text{in}} \\times d_{\\text{out}})$ weights and, when weights stream for batch-1 inference, comparable weight-memory traffic per sample.",
+      "Dense layers require storing three master copies of every weight matrix in hardware registers during inference forward passes."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "The ____ hypothesis states that high-dimensional real-world data (such as natural images) actually resides on a much lower-dimensional structured surface embedded within the full input space, helping explain why useful structure can be learned from finite data.",
+     "explanation": "manifold. The manifold hypothesis proposes that high-dimensional data lies near a lower-dimensional structured region in the ambient space, which helps explain why learning can exploit structure without searching the full input space.",
+     "hint": "Think about: identify the manifold hypothesis from its description and explain how it motivates learnability in high-dimensional settings.",
+     "type": "fill",
+     "answer": [
+      "manifold"
+     ]
+    },
+    {
+     "q": "A single dense layer (\\$2,048 × 2,048) running FP32 inference on an A100 GPU at batch size 1 achieves only ~4% of peak compute throughput, with profilers reporting an arithmetic intensity of approx 0.5 FLOP/byte. What is the most effective engineering solution to move this kernel out of the memory-bandwidth-bound regime and raise hardware utilization?",
+     "explanation": "The correct answer is A. At batch size 1, each weight is read from memory to compute a single multiply-accumulate (GEMV), yielding $I \\approx \\frac{2 \\cdot M \\cdot N}{4 \\cdot M \\cdot N} = 0.5\\text{ FLOP/byte}$ in FP32. Batching $B$ samples together transforms the kernel into a GEMM ($\\mathbf{X}\\mathbf{W}$ where $\\mathbf{X} \\in \\mathbb{R}^{B \\times M}$), performing \\$2 \\cdot B \\cdot M \\cdot N$ FLOPs for the same \\$4 \\cdot M \\cdot N$ weight bytes read (ignoring activation traffic), which scales arithmetic intensity linearly with $B$ and pushes execution into the compute-bound regime. An unvectorized scalar loop would severely degrade SIMD instruction throughput. Upgrading peak TFLOP/s leaves memory bandwidth unchanged and does not solve a bandwidth bottleneck. Eliminating the matrix multiplication would change the underlying mathematical function of the network.",
+     "hint": "Think about: analyze a batch-1 dense-layer kernel as bandwidth-bound from a FLOP/byte signature and select batching as the intensity-raising fix rather than a compute upgrade.",
+     "type": "single",
+     "options": [
+      "Increase the batch size ($B > 1$), transforming the matrix-vector multiplication (GEMV) into a matrix-matrix multiplication (GEMM), which amortizes weight loading across $B$ samples and scales arithmetic intensity.",
+      "Replace the dense matrix multiplication with an unvectorized scalar loop to avoid GPU kernel launch overhead.",
+      "Upgrade to an accelerator with double the peak FP32 TFLOP/s while keeping the batch size at 1.",
+      "Replace the linear transformation with an element-wise activation function to eliminate all weight memory traffic."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: In the nested loop implementation of an MLP forward pass (`for batch`, `for out`, `for in_`), calculate the exact number of multiply-accumulate (MAC) operations and logical operand reads required to compute 128 hidden neurons from a 784-dimensional MNIST input vector at batch size 1. In your count, treat the scalar loop as reading inputs and weights only, explicitly excluding bias traffic and output writes, and explain why this count is not the same as the number of DRAM transactions. Also explain how framework-level BLAS libraries optimize this pattern.",
+   "md": "For 128 outputs and 784 inputs at batch size 1, the layer performs \\$784 × 128 = 100,352 MACs, or 200,704 FLOPs if each MAC is counted as 2 FLOPs. At the scalar-loop level, each output neuron reads 784 input values and 784 weights, for 1,568 logical operand reads per neuron and 200,704 across the layer, explicitly excluding bias reads and output writes; as the text notes, that is not the same as 200,704 DRAM transactions because caches, registers, and tiling can satisfy many logical reads from faster memory after reuse. The practical consequence is that BLAS libraries improve throughput by blocking, vectorizing, and reusing this regular pattern so more operand reads are served from fast memory tiers rather than repeatedly fetched from DRAM."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the MLP's unrestricted connectivity pattern to explain why parameter count scales as $\\mathcal{O}(d_{\\text{in}} \\times d_{\\text{out}})$ and why streamed-weight inference can become bandwidth limited.",
+    "You can now analyze the gap between UAT's representational guarantee and practical learnability, and connect it to both sample-efficiency and systems-cost consequences for image models.",
+    "You can now identify the manifold hypothesis from its description and explain how it motivates learnability in high-dimensional settings.",
+    "You can now analyze a batch-1 dense-layer kernel as bandwidth-bound from a FLOP/byte signature and select batching as the intensity-raising fix rather than a compute upgrade."
+   ]
+  }
+ ]
+}

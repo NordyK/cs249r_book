@@ -1,0 +1,62 @@
+{
+ "title": "Benchmarking Against a Single Agent",
+ "summary": "Work through Benchmarking Against a Single Agent.",
+ "source": {
+  "chapter": "v3-18",
+  "sections": [
+   "Benchmarking Against a Single Agent",
+   "Matched comparison conditions",
+   "Outcome, latency, and cost metrics",
+   "Scaling models for worker count",
+   "A complete delegation decision"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Benchmarking Against a Single Agent**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Multi-Agent Coordination, § Benchmarking Against a Single Agent",
+   "md": "When benchmarking the authentication migration (`migration_task_01`), granting parallel tool execution to the multi-agent supervisor while artificially restricting the single controller to serial execution measures a baseline handicap rather than the true benefit of delegation. A rigorous evaluation compares the supervisor against a single controller that already dispatches parallel searches and tests, beginning with an objective declared in advance, such as minimizing cost per accepted task subject to a deadline, or maximizing completed tasks within a fixed operating budget."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Matched comparison conditions\n- Outcome, latency, and cost metrics\n- Scaling models for worker count\n- A complete delegation decision"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Attenuated delegation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: The runtime assigns each child an identity and a grant contained in its delegator's, sharing permissions but partitioning consumable allowances by atomic reservation."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-18-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Benchmarking Against a Single Agent** develops one of the chapter's claims. Which one?",
+     "options": [
+      "With a fixed slot pool, a dependency graph's completion time is bounded below by both its critical path and its total slot work divided by the slots.",
+      "Shared working directories produce lost updates and torn reads, and write sets collide with probability 1 - exp(-N(N-1)w^2/2F), so isolation is provided per worker and a merge is validated, not trusted.",
+      "Dynamic spawning makes the execution graph nondeterministic, so the runtime enforces fan-out, concurrency, depth, and deadline bounds and reserves each child's maximum liability before it starts.",
+      "The runtime assigns each child an identity and a grant contained in its delegator's, sharing permissions but partitioning consumable allowances by atomic reservation."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Attenuated delegation**: The runtime assigns each child an identity and a grant contained in its delegator's, sharing permissions but partitioning consumable allowances by atomic reservation."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Benchmarking Against a Single Agent."
+   ]
+  }
+ ]
+}

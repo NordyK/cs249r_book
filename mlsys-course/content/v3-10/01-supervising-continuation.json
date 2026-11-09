@@ -1,0 +1,59 @@
+{
+ "title": "Supervising Continuation",
+ "summary": "Work through Supervising Continuation.",
+ "source": {
+  "chapter": "v3-10",
+  "sections": [
+   "Supervising Continuation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Supervising Continuation**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Agent Harness, § Supervising Continuation",
+   "md": "Consider the connection-pool repair agent (a later section) at the moment it produces candidate patch `r18`. A test job is actively running against a fixed snapshot of that revision when an operator requests a pause for manual inspection. Simultaneously, an independent interactive task queues for model service, and the repair trajectory approaches its allocated budget. Even if the test job finishes cleanly and the next model reply is syntactically flawless, neither event answers whether the repair should proceed right now."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Trajectory record matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-10-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Supervising Continuation** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A runaway retry loop is locally compliant at every step, so the harness bounds turns, tokens, wall time, and dollars as one vector, reads the largest used fraction, and escalates through steer, restrict, and finalize.",
+      "A proposal that requires review is held undispatched, bound by digest and expiry, and a favorable decision is one precondition rather than an order, so dispatch re-runs the full admission check and silence expires rather than denies.",
+      "Withdrawing a result's eligibility to inform the model never clears the operation's obligation, and no trajectory reaches a terminal state until every obligation is settled or explicitly transferred.",
+      "Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Trajectory record**: Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Trajectory record* is controlled by *Harness owns continuation*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Trajectory record is controlled by Harness owns continuation."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Supervising Continuation."
+   ]
+  }
+ ]
+}

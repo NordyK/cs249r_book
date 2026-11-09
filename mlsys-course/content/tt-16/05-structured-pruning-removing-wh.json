@@ -1,0 +1,114 @@
+{
+ "title": "Structured Pruning: Removing Whole Channels",
+ "summary": "TinyTorch compression: Structured Pruning: Removing Whole Channels",
+ "source": {
+  "chapter": "tt-16",
+  "sections": [
+   "Structured Pruning: Removing Whole Channels"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Structured Pruning: Removing Whole Channels\n\nWhile unstructured magnitude pruning introduces fine-grained, scattered zeros throughout parameter arrays, structured pruning removes entire architectural units (output channels, projection columns, or attention heads). Because a whole column goes at once, the surviving weights still form a rectangle, and a later slicing step can hand a genuinely smaller dense matrix to standard BLAS libraries (cuBLAS, OpenBLAS, Apple Accelerate) for an immediate wall-clock speedup.\n\nBe precise about which of those two steps you are building. `structured_prune` below zeros the low-norm columns and leaves the tensor at its original \\$M \\times N\\$ shape, exactly like magnitude pruning; the sparsity it creates is simply arranged in whole columns. Turning that arrangement into a smaller GEMM means physically slicing the pruned columns out of this layer's weight and the matching rows out of the next layer's weight, which is a deployment-time graph rewrite rather than a pruning criterion. Everything below is about producing the pattern that makes that rewrite possible."
+  },
+  {
+   "type": "text",
+   "md": "### Unstructured vs. Structured Sparsity Comparison"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Property",
+    "Unstructured Sparsity (Scalar Pruning)",
+    "Structured Sparsity (Channel Pruning)"
+   ],
+   "rows": [
+    [
+     "**Pruning Granularity**",
+     "Individual weights \\$W_{i, j} = 0\\$",
+     "Entire slice \\$W_{:, c} = \\mathbf{0}\\$ or sliced out"
+    ],
+    [
+     "**Tensor Dimensions**",
+     "Preserved \\$(M \\times N)\\$",
+     "Reduced \\$(M \\times N')\\$, where \\$N' = (1 - P) N\\$"
+    ],
+    [
+     "**Memory Access Pattern**",
+     "Non-contiguous, index-divergent, irregular",
+     "Fully contiguous, cache-line aligned, coalesceable"
+    ],
+    [
+     "**Hardware Acceleration**",
+     "Requires custom sparse GEMM kernels (\\$\\ge 85\\%\\$ sparsity threshold)",
+     "Immediate linear speedup on standard dense GEMM hardware, once the zeroed columns are sliced out"
+    ],
+    [
+     "**Accuracy Retention**",
+     "Exceptional (minimal loss at \\$\\le 70\\%\\$ sparsity)",
+     "Moderate (removing full channels risks capacity drop)"
+    ],
+    [
+     "**Index Overhead**",
+     "\\$4\\text{--}8\\text{ bytes}\\$ per non-zero value (COO/CSR)",
+     "\\$0\\text{ bytes}\\$ (tensor is simply smaller)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Channel Importance Ranking Formulations\n\nTo prune \\$k\\$ channels with minimal loss of representational fidelity, each channel \\$c \\in \\{1, \\dots, N\\}\\$ is assigned an importance score \\$\\mathcal{I}_c\\$:\n\n\\$\\$\\begin{aligned}\n\\text{Method 1: } \\ell_2\\text{-Norm (Standard)} \\quad & \\mathcal{I}_c = \\|W_{:, c}\\|_2 = \\sqrt{\\sum_{r=1}^M W_{r, c}^2} \\\\\n\\text{Method 2: Activation Magnitude} \\quad & \\mathcal{I}_c = \\mathbb{E}_{x \\sim \\mathcal{D}}\\left[ \\frac{1}{B} \\sum_{b=1}^B |y_{b, c}| \\right] \\\\\n\\text{Method 3: First-Order Taylor Expansion} \\quad & \\mathcal{I}_c = \\left\\end{aligned}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Channel Ranking Step",
+    "Operational Procedure",
+    "Systems Implication"
+   ],
+   "rows": [
+    [
+     "**1. Compute Channel Norms**",
+     "Calculate \\$\\mathcal{I}_c = \\lVert W_{:, c} \\rVert_2\\$ for all \\$c \\in \\{0, \\dots, N-1\\}\\$",
+     "Vectorized reduction across columns (BLAS-1 `nrm2`)"
+    ],
+    [
+     "**2. Rank Channel Importance**",
+     "Sort indices \\$c\\$ by \\$\\mathcal{I}_c\\$ in ascending order",
+     "Minimal sort overhead over \\$N\\$ scalar norms"
+    ],
+    [
+     "**3. Identify Prune Set**",
+     "Select bottom \\$\\lfloor \\text{prune\\_ratio} \\times N \\rfloor\\$ channels",
+     "Preserves highest-energy representations"
+    ],
+    [
+     "**4. Mask / Excise Channels**",
+     "Zero out entire columns \\$W_{:, c} = 0\\$ (or physically slice \\$W\\$)",
+     "Slices dense GEMM memory traffic from \\$M \\times N\\$ to \\$M \\times N'\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Hardware Benefits of Structured Sparsity\n\n1. **Memory Coalescing**: DRAM burst transactions fetch 32-byte or 64-byte contiguous cache lines. Structured pruning preserves dense contiguous row/column traversal, achieving near-100% bus utilization.\n2. **SIMD / Tensor Core Vectorization**: Hardware vector units (AVX-512, NEON, Tensor Cores) require contiguous vectors of 8, 16, or 32 elements. Excising full channels maintains full vector lane occupancy without zero-mask predication.\n3. **Zero Indexing Overhead**: Avoids pointer arrays and index indirection (`ptr[i]`, `col_idx[k]`), eliminating pointer chase stalls and TLB misses.\n4. **Cache Residency**: Reducing tensor dimensions decreases L1/L2 cache footprint, fitting working sets entirely within SRAM."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 68 lines of code (starting with `def structured_prune(model, prune_ratio: float = 0.5):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Structured Pruning\n\nThis test validates structured pruning removes entire channels correctly.\n\n**What we're testing**: Channel-wise pruning based on L2 norm importance\n**Why it matters**: Creates hardware-friendly sparsity patterns\n**Expected**: Entire channels zeroed, not scattered weights"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Structured Pruning: Removing Whole Channels."
+   ]
+  }
+ ]
+}

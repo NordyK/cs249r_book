@@ -1,0 +1,78 @@
+{
+ "title": "Engineering Responsibility Gap",
+ "summary": "Analyze how proxy variables inherit and amplify systemic disparities in training targets.",
+ "source": {
+  "chapter": "v1-15",
+  "sections": [
+   "Engineering Responsibility Gap",
+   "When optimization succeeds but systems fail",
+   "Silent failure modes",
+   "The testing challenge",
+   "When responsible engineering succeeds",
+   "Engineering leadership on responsibility"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze how proxy variables inherit and amplify systemic disparities in training targets\n- Analyze silent distribution-shift failures in production ML and identify statistical and outcome-based monitoring signals\n- Apply Goodhart's Law and alignment gap mechanics to diagnose metric divergence in recommendation systems"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Responsible Engineering, § Engineering Responsibility Gap",
+   "md": "The credit service can approve … of qualified majority-group applicants but only … of equally qualified minority-group applicants and still report high aggregate accuracy, because the minority group contributes only a small share of the evaluated applicants. The worked example in a later section computes exactly this outcome from its confusion matrices. The **responsibility gap** between this *technical correctness* and *responsible outcomes* is the distance that conventional testing does not measure."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- When optimization succeeds but systems fail\n- Silent failure modes\n- The testing challenge\n- When responsible engineering succeeds\n- Engineering leadership on responsibility\n\nPay attention to: proxy variables reconstructing protected attributes; silent distribution-shift failures under green dashboards; alignment gap and Goodhart's law in recommendation; differential privacy mathematical guarantees."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A hospital sepsis prediction model begins recommending aggressive treatments for low-risk patients after an EHR update alters how vital signs are logged. System health checks, latency, and prediction confidence remain normal. Explain why this constitutes a silent failure, and identify two monitoring signals that would support investigation without assuming either proves the cause.",
+   "md": "This is a silent failure because harmful recommendations occur while the monitored service properties remain normal. The logging change motivates investigation of input semantics and distributions; it does not establish covariate shift, which additionally requires the label relationship to remain stable. Two complementary signals are: (1) input-feature distribution drift detection using divergence metrics such as Jensen-Shannon divergence (mathcalD_JS(P_t parallel P_0)) on vital-sign feature distributions, and (2) disaggregated clinical outcome tracking with mature labels, coverage, and comparable cohorts. Input divergence can warn of change without proving quality loss; outcome evidence can establish a quality change, while matched-input replay and pipeline inspection test the suspected logging defect."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-15-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In an audited commercial healthcare algorithm (Optum), predicting future healthcare costs as a proxy for health needs resulted in Black patients receiving lower risk scores despite having more chronic conditions than White patients with identical scores. What systems mechanism explains why this proxy failed?",
+     "explanation": "The correct answer is B. Because less money is spent on Black patients than on White patients with the same level of illness due to systemic barriers, using healthcare cost as a proxy for medical need meant the model learned to predict spending disparities rather than actual health need. Correcting the target from cost to chronic condition count raised the proportion of Black patients identified for high-risk care management from 17.7% to 46.5%. The overfitting distractor is incorrect because the model generalized its cost-prediction task accurately. The concept drift distractor misattributes the failure to post-deployment environmental change rather than training-target proxy bias. The latency optimization choice conflates infrastructure performance tuning with loss function specification.",
+     "hint": "Think about: analyze how proxy variables inherit and amplify systemic disparities in training targets.",
+     "type": "single",
+     "options": [
+      "The model suffered from severe overfitting due to an excessive number of gradient descent epochs on a small training dataset.",
+      "The proxy variable inherited historical systemic disparities in healthcare spending, so predicting costs faithfully reproduced unequal access to care rather than actual medical need.",
+      "The failure was caused by real-time concept drift that occurred after deployment when hospital billing codes suddenly changed.",
+      "The algorithm used an unconstrained loss function that optimized inference latency at the expense of regression calibration."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A content recommendation service reports that optimizing a ranker for short-term user clicks increased click-through rate by 20%, but long-term user satisfaction dropped by 5% and 30-day retention declined. Which systems-engineering concept best explains this divergence, and what is the appropriate mitigation?",
+     "explanation": "The correct answer is A. When a measurable proxy (clicks) becomes the optimization target, Goodhart's Law dictates that it ceases to be a reliable measure of the true underlying goal (user satisfaction), creating a signed alignment gap $(\\text{Gap} = \\mathbb{E}[\\text{Proxy}] - \\mathbb{E}[\\text{True}])$. The appropriate mitigation combines multi-objective optimization with safety constraints and randomized counterfactual holdouts that track true long-term satisfaction. The capacity collapse option misattributes a loss-function specification failure to memory constraints. The numerical underflow option confuses mathematical representation limits with metric misalignment. The schema validation option addresses data pipeline serialization rather than proxy divergence.",
+     "hint": "Think about: apply Goodhart's Law and alignment gap mechanics to diagnose metric divergence in recommendation systems.",
+     "type": "single",
+     "options": [
+      "The alignment gap governed by Goodhart's Law, where optimizing an observable proxy metric degrades the unobserved true objective; mitigated by maintaining counterfactual holdouts and multi-objective optimization with explicit satisfaction constraints.",
+      "Model capacity collapse, where the embedding table runs out of capacity for rare items; mitigated by increasing embedding dimension and memory bandwidth.",
+      "Hardware-level numerical underflow in attention layers; mitigated by upgrading from FP16 to FP32 mixed precision across serving clusters.",
+      "Training-serving skew in network protocol buffers; mitigated by implementing automated schema validation in feature pipelines."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze how proxy variables inherit and amplify systemic disparities in training targets.",
+    "You can now analyze silent distribution-shift failures in production ML and identify statistical and outcome-based monitoring signals.",
+    "You can now apply Goodhart's Law and alignment gap mechanics to diagnose metric divergence in recommendation systems."
+   ]
+  }
+ ]
+}

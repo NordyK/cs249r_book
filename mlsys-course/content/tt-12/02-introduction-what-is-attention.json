@@ -1,0 +1,174 @@
+{
+ "title": "Introduction: What is Attention?",
+ "summary": "TinyTorch attention: Introduction: What is Attention?",
+ "source": {
+  "chapter": "tt-12",
+  "sections": [
+   "Introduction: What is Attention?"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: What is Attention?\n\nAttention is the foundational routing mechanism that enables neural networks to dynamically focus on relevant coordinates of an input sequence. Instead of compressing an entire sequence into a single fixed-size recurrent bottleneck vector, attention allows every token representation to directly query and gather information from all other tokens in the sequence.\n\n### Comparing Sequence Processing Paradigms"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Architecture",
+    "Information Routing",
+    "Path Length Between Tokens",
+    "Parallel Work Available",
+    "Memory Footprint"
+   ],
+   "rows": [
+    [
+     "**Recurrent (RNN/LSTM)**",
+     "Sequential hidden state passing",
+     "\\$\\mathcal{O}(S)\\$ steps",
+     "\\$\\mathcal{O}(1)\\$ (strictly sequential)",
+     "\\$\\mathcal{O}(S \\cdot d_{\\text{model}})\\$"
+    ],
+    [
+     "**Convolutional (Conv1D)**",
+     "Local receptive field sliding",
+     "\\$\\mathcal{O}(S / K)\\$ layers",
+     "\\$\\mathcal{O}(S)\\$ parallel",
+     "\\$\\mathcal{O}(S \\cdot d_{\\text{model}})\\$"
+    ],
+    [
+     "**Attention (Transformer)**",
+     "Pairwise dynamic dot-product",
+     "\\$\\mathcal{O}(1)\\$ direct connection",
+     "\\$\\mathcal{O}(S^2)\\$ fully parallel",
+     "\\$\\mathcal{O}(S^2)\\$ per head"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### The Core Attention Formulation\nIn the landmark paper *Attention Is All You Need* (Vaswani et al., 2017), scaled dot-product attention is formulated as:\n\n\\$\\$\\text{Attention}(Q, K, V) = \\text{softmax}\\left(\\frac{QK^\\top}{\\sqrt{d_k}} + M\\right) V\\$\\$\n\nwhere queries (\\$Q\\$), keys (\\$K\\$), and values (\\$V\\$) represent learned linear projections of the input representations, and \\$M\\$ is an optional mask tensor."
+  },
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: Attention Mathematics & The Causal Engine\n\nThe attention mechanism implements a differentiable soft key-value store. Given a continuous query vector \\$\\mathbf{q}_i\\$, the model computes compatibility scores against all available key vectors \\$\\mathbf{k}_j\\$, normalizes these scores into a probability simplex via softmax, and computes a convex combination of value vectors \\$\\mathbf{v}_j\\$.\n\n### The Five-Stage Attention Pipeline"
+  },
+  {
+   "type": "text",
+   "md": "1. **Similarity Scoring (Raw Matrix Multiplication)**:\n   For query token \\$i\\$ and key token \\$j\\$:\n   \\$\\$\\text{RawScore}_{i, j} = \\mathbf{q}_i^\\top \\mathbf{k}_j = \\sum_{d=1}^{d_k} Q_{i, d} K_{j, d} \\implies S = Q K^\\top \\in \\mathbb{R}^{B \\times S \\times S}\\$\\$\n2. **Variance Scaling (\\$1/\\sqrt{d_k}\\$)**:\n   Dividing by \\$\\sqrt{d_k}\\$ preserves unit variance when queries and keys have zero mean and unit variance, preventing dot products from growing excessively large:\n   \\$\\$S_{\\text{scaled}} = \\frac{S}{\\sqrt{d_k}}\\$\\$\n3. **Causal Masking (\\$M\\$)**:\n   In autoregressive language models, tokens must not attend to future positions (\\$j > i\\$). An upper-triangular mask sets future positions to \\$-\\infty\\$:\n   \\$\\$S_{\\text{masked}} = S_{\\text{scaled}} + M, \\quad \\text{where } M_{i, j} = \\begin{cases} 0 & \\text{if } j \\le i \\\\ -\\infty & \\text{if } j > i \\end{cases}\\$\\$\n   This additive \\$M\\$ is the paper's notation. TinyTorch's code takes the equivalent boolean keep mask instead, covered under *Applying the Causal Mask* below.\n4. **Softmax Normalization**:\n   Exponentiating \\$-\\infty\\$ yields strictly zero probability (\\$e^{-\\infty} = 0\\$), forming a valid probability distribution over past and present tokens:\n   \\$\\$A_{i, j} = \\frac{\\exp(S_{\\text{masked}}[i, j])}{\\sum_{m=1}^S \\exp(S_{\\text{masked}}[i, m])}, \\quad \\sum_{j=1}^S A_{i, j} = 1.0\\$\\$\n5. **Value Aggregation**:\n   The output vector for token \\$i\\$ is the expectation over all values weighted by attention probabilities:\n   \\$\\$\\mathbf{y}_i = \\sum_{j=1}^S A_{i, j} \\mathbf{v}_j \\implies Y = A V \\in \\mathbb{R}^{B \\times S \\times d_k}\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "---\n\n### Tensor Shapes & Computational Complexity"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Tensor Stage",
+    "Symbol",
+    "Shape Contract",
+    "FLOPs per Head",
+    "Primary Memory Bottleneck"
+   ],
+   "rows": [
+    [
+     "**Input Queries**",
+     "\\$Q\\$",
+     "\\$(B, S, d_k)\\$",
+     "—",
+     "Activation buffer"
+    ],
+    [
+     "**Input Keys**",
+     "\\$K\\$",
+     "\\$(B, S, d_k)\\$",
+     "—",
+     "Activation buffer"
+    ],
+    [
+     "**Input Values**",
+     "\\$V\\$",
+     "\\$(B, S, d_k)\\$",
+     "—",
+     "Activation buffer"
+    ],
+    [
+     "**Score Matrix**",
+     "\\$S = Q K^\\top\\$",
+     "\\$(B, S, S)\\$",
+     "\\$2 \\cdot B \\cdot S^2 \\cdot d_k\\$",
+     "Quadratic \\$\\mathcal{O}(S^2)\\$ memory wall"
+    ],
+    [
+     "**Attention Weights**",
+     "\\$A = \\text{softmax}(S)\\$",
+     "\\$(B, S, S)\\$",
+     "\\$3 \\cdot B \\cdot S^2\\$ (exp + sum + div)",
+     "Stored for backward pass"
+    ],
+    [
+     "**Attended Output**",
+     "\\$Y = A V\\$",
+     "\\$(B, S, d_k)\\$",
+     "\\$2 \\cdot B \\cdot S^2 \\cdot d_k\\$",
+     "Feed-forward input buffer"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\text{Total Attention FLOPs} = 4 \\cdot B \\cdot S^2 \\cdot d_k \\quad (\\text{quadratic in sequence length } S)\\$\\$\n\n---\n\n### Attention Weight Matrix (\\$A \\in \\mathbb{R}^{S \\times S}\\$)\n\nUnder causal masking, the attention matrix forms a lower-triangular probability distribution where every row sums to \\$1.00\\$:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Query Token (\\$i\\$)",
+    "Key 0 (`\"The\"`)",
+    "Key 1 (`\"cat\"`)",
+    "Key 2 (`\"sat\"`)",
+    "Key 3 (`\"down\"`)",
+    "Row Sum (\\$\\sum_j A_{i, j}\\$)"
+   ],
+   "rows": [
+    [
+     "**`\"The\"` (\\$i=0\\$)**",
+     "\\$1.00\\$",
+     "\\$0.00\\$ (\\$-\\infty\\$)",
+     "\\$0.00\\$ (\\$-\\infty\\$)",
+     "\\$0.00\\$ (\\$-\\infty\\$)",
+     "**\\$1.00\\$**"
+    ],
+    [
+     "**`\"cat\"` (\\$i=1\\$)**",
+     "\\$0.35\\$",
+     "\\$0.65\\$",
+     "\\$0.00\\$ (\\$-\\infty\\$)",
+     "\\$0.00\\$ (\\$-\\infty\\$)",
+     "**\\$1.00\\$**"
+    ],
+    [
+     "**`\"sat\"` (\\$i=2\\$)**",
+     "\\$0.10\\$",
+     "\\$0.45\\$",
+     "\\$0.45\\$",
+     "\\$0.00\\$ (\\$-\\infty\\$)",
+     "**\\$1.00\\$**"
+    ],
+    [
+     "**`\"down\"` (\\$i=3\\$)**",
+     "\\$0.15\\$",
+     "\\$0.25\\$",
+     "\\$0.20\\$",
+     "\\$0.40\\$",
+     "**\\$1.00\\$**"
+    ]
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Introduction: What is Attention?."
+   ]
+  }
+ ]
+}

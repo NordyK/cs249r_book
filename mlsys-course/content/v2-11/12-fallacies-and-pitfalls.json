@@ -1,0 +1,85 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Analyze the fallacy that data locality in federated learning guarantees privacy without cryptographic masking or differential privacy.",
+ "source": {
+  "chapter": "v2-11",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the fallacy that data locality in federated learning guarantees privacy without cryptographic masking or differential privacy\n- Analyze system failures resulting from ignoring hardware heterogeneity across microcontroller and mobile edge tiers\n- Explain the conditions under which local on-device adaptation degrades model accuracy relative to static base models\n- Analyze client eligibility filtering and admission control requirements in production federated orchestration"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Edge Intelligence, § Fallacies and Pitfalls",
+   "md": "A team ports a cloud-trained recommendation model to a mobile app and assumes that successful inference also permits local fine-tuning. The first update can exceed the app's memory allowance as gradients and saved activations accumulate; a configuration that fits can still consume more energy than the background policy permits. These distinct failures motivate the following fallacies and pitfalls:"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Fallacy: Data locality equates to complete privacy protection; Pitfall: Inferring update throughput from unmatched hardware ratings; Fallacy: Unconstrained on-device adaptation always improves model accuracy; Pitfall: Underestimating distributed orchestration and client eligibility filtering."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why performing on-device personalization on scarce, noisy, or uncurated local data can actually degrade model performance compared to a static, well-trained centralized base model.",
+   "md": "A well-trained base can generalize better than a locally adapted candidate when local examples are scarce, noisy, or unrepresentative. Unconstrained updates may overfit accidental inputs or distort useful decision boundaries. This is a risk to test, not an inevitable result: evaluate local improvement and retained behavior against a trusted baseline, using validated outcomes and a compatible recovery path. Centralized training also does not inherently guarantee balanced data or broad generalization."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-11-12-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A product manager asserts: 'Because our smart home devices keep all audio recordings strictly on the local device and only upload federated gradient updates to the cloud, our architecture is mathematically immune to user privacy leakage.' What technical fallacy does this statement commit?",
+     "explanation": "The correct answer is A. Keeping raw observations local does not make transmitted updates immune to inference attacks. Reconstruction and membership inference depend on attacker access, auxiliary information, and the training configuration. Secure aggregation can hide individual updates under its threat-model assumptions, while differential privacy bounds a declared privacy unit’s influence on released results through clipping, calibrated noise, and composition. Required controls follow the deployment’s disclosure policy and threat model; locality alone supplies neither guarantee.",
+     "hint": "Think about: analyze the fallacy that data locality in federated learning guarantees privacy without cryptographic masking or differential privacy.",
+     "type": "single",
+     "options": [
+      "It ignores that raw model updates and gradients directly expose training-step information, enabling adversaries to reconstruct private training samples via gradient inversion attacks or verify user participation via membership inference unless protected by secure aggregation and differential privacy.",
+      "It ignores that audio recordings stored in flash memory are automatically broadcast over FM radio frequencies by microcontrollers.",
+      "It incorrectly assumes that federated learning requires quantum computers to achieve privacy.",
+      "It assumes that gradient vectors always have a mathematical magnitude of zero on edge devices."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A development team attempts to deploy an on-device personalization algorithm across an IoT ecosystem spanning both 64 MHz ARM Cortex-M microcontrollers (with 256 KB SRAM) and flagship mobile phones (with 12 GB RAM). The team uses identical full-model fine-tuning hyperparameters across all endpoints. What pitfall does this design encounter?",
+     "explanation": "The correct answer is B. The stated memory capacities differ by several orders of magnitude, but they do not establish a CPU-throughput ratio or NPU underutilization. The same model can have different residency, backward support, and sustained costs on each device. Compare measured update paths under matched tasks and operating states, then choose and validate feasible tier-specific policies; full fine-tuning is not automatically admissible on either class.",
+     "hint": "Think about: analyze system failures resulting from ignoring hardware heterogeneity across microcontroller and mobile edge tiers.",
+     "type": "single",
+     "options": [
+      "Mobile phones will refuse to execute floating-point operations because microcontrollers only understand binary code.",
+      "It ignores differences in available working memory, supported update operators, and energy budgets; an identical policy needs a separate feasibility and quality check on each device class.",
+      "Microcontroller clock speeds will accelerate to 3 GHz due to thermal resonance with mobile phones.",
+      "Full-model fine-tuning requires all microcontrollers to be physically connected via optical fiber cables."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A common fallacy in federated learning treats the central coordinator as a simple stateless aggregation server, ignoring that production fleet coordination is an active control loop that must manage client ____ criteria (such as verifying that devices are charging, on unmetered Wi-Fi, and thermally stable).",
+     "explanation": "eligibility. Admission checks enforce device resource and availability requirements before local training, protecting foreground service and reducing round failures.",
+     "hint": "Think about: analyze client eligibility filtering and admission control requirements in production federated orchestration.",
+     "type": "fill",
+     "answer": [
+      "eligibility"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the fallacy that data locality in federated learning guarantees privacy without cryptographic masking or differential privacy.",
+    "You can now analyze system failures resulting from ignoring hardware heterogeneity across microcontroller and mobile edge tiers.",
+    "You can now explain the conditions under which local on-device adaptation degrades model accuracy relative to static base models.",
+    "You can now analyze client eligibility filtering and admission control requirements in production federated orchestration."
+   ]
+  }
+ ]
+}

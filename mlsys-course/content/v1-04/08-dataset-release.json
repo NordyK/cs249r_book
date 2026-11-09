@@ -1,0 +1,61 @@
+{
+ "title": "Dataset Release",
+ "summary": "Explain how deterministic, speaker-keyed split assignment prevents leakage across dataset releases.",
+ "source": {
+  "chapter": "v1-04",
+  "sections": [
+   "Dataset Release",
+   "Transformation lineage",
+   "Data versioning for ML reproducibility"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain how deterministic, speaker-keyed split assignment prevents leakage across dataset releases\n- Use a versioned dataset release to localize the cause of a model regression to data, labels, segmentation, or feature code"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Engineering, § Dataset Release",
+   "md": "Months after launch, the keyword spotter's detection rate drops on a new hardware revision. The first question the team must answer is what the shipped model learned from, down to the recordings, the labels and the guideline they followed, the splits, and the feature code. A **dataset release** answers that question in advance. It is an immutable, versioned record of everything that produced a training set: the source records, how they were split and labeled, and the code and parameters that turned them into features."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Transformation lineage\n- Data versioning for ML reproducibility\n\nPay attention to: speaker-keyed split assignment; release fields as regression evidence."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A keyword spotter's detection rate drops after a scheduled retraining even though no code changed. Explain how a dataset release that records label rubric versions, alignment versions, and feature configuration lets the team locate the cause.",
+   "md": "Comparing the two releases field by field separates the possible causes. New or removed recordings show up as changed recording IDs; a change in labeling rules shows up as a different rubric version on the same clips; a segmentation change shows up as a different aligner version or boundary confidence; and a feature change shows up as a different configuration or code commit. In the chapter's example, the comparison exposes a backfill that added crowdsourced clips under the wrong label mapping. Without the release, the team would have to guess among these causes and rerun experiments to test each one."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-04-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In the chapter's KWS dataset release, each clip's split is assigned by hashing its speaker key rather than by drawing splits at random each time a release is built. What failure does this prevent?",
+     "explanation": "The correct answer is A. A deterministic speaker-keyed assignment keeps every clip from a speaker in the same split in every release, so rebuilding or relabeling the dataset cannot leak test speakers into training. Hashing a key does not compress audio, balance classes, or replace consent records, which the release tracks as a separate field.",
+     "hint": "Think about: explain how deterministic, speaker-keyed split assignment prevents leakage across dataset releases.",
+     "type": "single",
+     "options": [
+      "A later release or relabeling pass could move some of a test speaker's clips into training, so evaluation would reward memorization of that voice instead of generalization to new speakers.",
+      "Hashing compresses the audio so that each split fits in less storage.",
+      "Hashing guarantees equal numbers of keyword and non-keyword clips in every split.",
+      "Hashing removes the need to record a consent reference for each clip."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain how deterministic, speaker-keyed split assignment prevents leakage across dataset releases.",
+    "You can now use a versioned dataset release to localize the cause of a model regression to data, labels, segmentation, or feature code."
+   ]
+  }
+ ]
+}

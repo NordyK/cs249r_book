@@ -1,0 +1,108 @@
+{
+ "title": "Lab: size the KV cache",
+ "summary": "Compute the attention state a serving system must hold per token, per sequence and per batch.",
+ "minutes": 20,
+ "blocks": [
+  {
+   "type": "text",
+   "md": "During generation each layer keeps a key and a value vector for every past token so it never recomputes them. The cache size is\n\n$$M_{KV} = 2 \\cdot L \\cdot H_{kv} \\cdot d_h \\cdot T \\cdot B \\cdot b$$\n\nlayers, KV heads, head dimension, tokens, concurrent sequences and bytes per value. Unlike the weights, it grows with every token and every user."
+  },
+  {
+   "type": "derivation",
+   "title": "32 layers, 8 KV heads, d_h = 128, bf16",
+   "rel": "=",
+   "steps": [
+    {
+     "lhs": "\\text{per token}",
+     "rhs": "2 \\times 32 \\times 8 \\times 128 \\times 2 = 131{,}072\\ \\text{B} \\approx 131\\ \\text{KB}",
+     "why": "Key and value, every layer, every KV head."
+    },
+    {
+     "lhs": "\\text{per sequence}",
+     "rhs": "131\\ \\text{KB} \\times 8192 \\approx 1.07\\ \\text{GB}",
+     "why": "An 8K-token conversation."
+    },
+    {
+     "lhs": "\\text{batch of 16}",
+     "rhs": "\\approx 17.2\\ \\text{GB}",
+     "why": "Before a single weight is loaded."
+    }
+   ]
+  },
+  {
+   "type": "widget",
+   "id": "v3-05-lab-kv-widget",
+   "widget": "kvcache",
+   "title": "Try it: grouped-query attention",
+   "params": {
+    "layers": 32,
+    "heads": 8,
+    "dh": 128,
+    "seq": 8192,
+    "batch": 16,
+    "b": 2
+   },
+   "challenge": {
+    "md": "Without grouped-query attention the model would keep **32 KV heads**. What would the whole batch's cache be, in GB?",
+    "answer": 68.7,
+    "tolerance": 0.3,
+    "unit": "GB",
+    "hint": "Four times as many KV heads.",
+    "explanation": "4 × 17.18 GB ≈ 68.7 GB: almost a whole 80 GB accelerator for the cache alone. Sharing KV heads is one of the main levers serving has."
+   }
+  },
+  {
+   "type": "playground",
+   "id": "v3-05-lab-kv-play",
+   "title": "KV cache calculator",
+   "md": "Complete `kv_bytes`, then use `max_sequences` to see how many 8K conversations fit beside 14 GB of weights on an 80 GB accelerator.",
+   "code": "def kv_bytes(layers, kv_heads, head_dim, tokens, batch=1, bytes_per=2):\n    # TODO\n    return None\n\n\ndef max_sequences(free_gb, tokens, **model):\n    per_seq = kv_bytes(tokens=tokens, **model)\n    return int(free_gb * 1e9 // per_seq) if per_seq else None\n\n\nmodel = dict(layers=32, kv_heads=8, head_dim=128)\nprint(kv_bytes(tokens=1, **model), 'bytes per token')\nprint(max_sequences(80 - 14, 8192, **model), 'sequences of 8K tokens')\n",
+   "check": "assert kv_bytes(32, 8, 128, 1) == 131072\nassert kv_bytes(32, 8, 128, 8192, batch=16) == 17179869184\nassert max_sequences(66, 8192, layers=32, kv_heads=8, head_dim=128) == 61",
+   "hint": "`2 * layers * kv_heads * head_dim * tokens * batch * bytes_per`.",
+   "solution": "def kv_bytes(layers, kv_heads, head_dim, tokens, batch=1, bytes_per=2):\n    return 2 * layers * kv_heads * head_dim * tokens * batch * bytes_per\n\n\ndef max_sequences(free_gb, tokens, **model):\n    per_seq = kv_bytes(tokens=tokens, **model)\n    return int(free_gb * 1e9 // per_seq)\n\n\nmodel = dict(layers=32, kv_heads=8, head_dim=128)\nprint(kv_bytes(tokens=1, **model), 'bytes per token')\nprint(max_sequences(80 - 14, 8192, **model), 'sequences of 8K tokens')\n"
+  },
+  {
+   "type": "quiz",
+   "id": "v3-05-lab-kv-quiz",
+   "title": "Check your numbers",
+   "questions": [
+    {
+     "type": "numeric",
+     "q": "Same model, one sequence of 128K (131,072) tokens. How many GB of KV cache (1 decimal)?",
+     "answer": 17.2,
+     "tolerance": 0.1,
+     "unit": "GB",
+     "hint": "131,072 B per token × 131,072 tokens.",
+     "explanation": "131,072² B ≈ 17.2 GB for one long conversation: as much as a batch of sixteen 8K ones."
+    },
+    {
+     "type": "single",
+     "q": "Storing the cache in fp8 instead of bf16 does what?",
+     "options": [
+      "Halves the cache, so twice as many sequences fit",
+      "Has no effect on memory",
+      "Doubles the cache",
+      "Removes the need for a cache"
+     ],
+     "answer": 0,
+     "hint": "Bytes per value goes from 2 to 1.",
+     "explanation": "Every term but b stays the same, so memory halves. The cost is a small accuracy risk that has to be evaluated."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "KV cache = 2 · layers · KV heads · head dim · tokens · batch · bytes.",
+    "It grows with context length and concurrency, so it caps how many users fit.",
+    "Levers: fewer KV heads (GQA), lower precision, paging and prefix sharing."
+   ]
+  }
+ ],
+ "source": {
+  "chapter": "v3-05",
+  "sections": [
+   "hands-on lab"
+  ]
+ }
+}

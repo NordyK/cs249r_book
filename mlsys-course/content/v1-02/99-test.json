@@ -1,0 +1,146 @@
+{
+ "title": "Test: System Paradigms",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-02-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Silicon contract**?",
+     "options": [
+      "The light barrier puts a round-trip floor under any remote path, the power wall (dynamic power roughly cubic in frequency) caps sustained mobile power at a few watts, and the memory wall makes data movement a growing share of time, so cloud, edge, mobile, and TinyML are constraint regimes spanning about nine orders of magnitude in power and memory.",
+      "Compute has grown faster than memory bandwidth (about 1.6x versus 1.2x per year), so data movement takes an ever larger share of time and energy at every tier.",
+      "Each tier's hardware offers a peak compute rate, a memory bandwidth, and a fixed overhead that enter the iron law's three terms, while memory capacity and energy act as feasibility preconditions that can rule a tier out before any term is evaluated.",
+      "Shipping data over a network grows with data volume while shipping the computation does not, so large datasets pull computation to where the data lives."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Silicon contract itself, not a neighbouring idea.",
+     "explanation": "**Silicon contract:** Each tier's hardware offers a peak compute rate, a memory bandwidth, and a fixed overhead that enter the iron law's three terms, while memory capacity and energy act as feasibility preconditions that can rule a tier out before any term is evaluated."
+    },
+    {
+     "q": "Comparing a dedicated TinyML keyword spotting model (~\\$10\\ \\mu\\text{J}$ per inference) to a cloud foundation model query (~\\$1\\text{ kJ}$ per inference), by approximately what factor does energy consumption per inference differ?",
+     "explanation": "The correct answer is C. The energy ratio between a cloud LLM query (\\$1 kJ = 10^3 J) and an always-on TinyML keyword spotting inference (\\$10\\ muJ = 10^-5 J) is frac10^3 J10^-5 J = 10^8 = 100,000,000× (eight orders of magnitude). This is a scale comparison across different tasks and accounting boundaries, not a controlled hardware-efficiency comparison. TinyML lifetime still depends on inference cadence, sensing, communication, sleep power, and the complete device energy budget. The options citing 2 orders (\\$100×) or 4 orders (\\$10,000×) severely underestimate the energy gap between cloud data centers and microcontrollers. The option citing 14 orders (\\$10^14) overstates the ratio.",
+     "hint": "Think about: calculate the energy scale ratio between TinyML sensing and cloud LLM queries while distinguishing it from a matched efficiency comparison.",
+     "type": "single",
+     "options": [
+      "Approximately \\$100× (2 orders of magnitude)",
+      "Approximately \\$10,000× (4 orders of magnitude)",
+      "Approximately \\$100{,}000{,}000\\times$ (\\$10^8$, 8 orders of magnitude)",
+      "Approximately \\$10^14× (14 orders of magnitude)"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In the chapter's 3-year budget comparison for an on-premises edge server deployment serving 1 million inferences per day, what is the largest component of the edge system's listed annual budget in the chapter's scenario?",
+     "explanation": "The correct answer is B. In the chapter's illustrative edge-server budget, engineering labor (e.g., 0.1 FTE DevOps support per server/site, totaling ~\\$15,000/year) accounts for roughly 69% of the listed annual edge budget, far exceeding hardware CapEx (~\\$5,000/year), power (~\\$315/year), or cooling (~\\$95/year). Teams that focus solely on minimizing hardware purchase costs systematically underestimate the total cost of ownership. The choices identifying hardware amortization, electricity, or cooling as the dominant cost do not match this scenario. The comparison is a partial budget: cloud operating labor and edge redundancy are not priced, so it does not establish a matched total-cost ranking.",
+     "hint": "Think about: evaluate the listed edge-server budget to identify the dominant role of operational labor.",
+     "type": "single",
+     "options": [
+      "GPU hardware silicon purchase price amortized over 3 years",
+      "DevOps engineering labor required to maintain, update, and manage on-premises edge infrastructure",
+      "Electricity costs for running the server 24/7",
+      "Dedicated server room air-conditioning and cooling overhead"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Order the steps of the hierarchical deployment feasibility evaluation for the Smart Doorbell scenario from initial problem framing to latency verification:",
+     "explanation": "The correct order is: (2) Define the application mission targets (person at the door, required quality, and responsiveness budget), (4) Select a candidate platform and model for the task (for example, a visual wake-word model on an ESP32-S3), (1) Check Level 1 storage fit by screening whether the visual wake-word model's weights fit in flash, (3) Check Level 2 timing constraints by evaluating per-inference latency against the interaction budget. The sequence is necessary because the budget and task define what \"fit\" means, the candidate must be chosen before it can be screened, and the scorecard checks flash before latency. Passing the flash check does not prove complete memory fit: SRAM for activations and runtime state still has to be checked separately.",
+     "hint": "Think about: sequence a hierarchical feasibility screen for embedded deployment and distinguish flash screening from separate SRAM/runtime-memory validation.",
+     "type": "order",
+     "items": [
+      "Check Level 1 storage fit by screening whether the visual wake-word model's weights fit in flash",
+      "Check Level 2 timing constraints by evaluating per-inference latency against the interaction budget"
+     ]
+    },
+    {
+     "q": "Increasing the quantity of training data is guaranteed to continuously improve deployed model performance regardless of model capacity, label noise, or domain distribution shift.",
+     "explanation": "False. Data scaling benefits are bounded by three critical constraints: model capacity (a small model saturates and cannot absorb more information), data quality (noisy, mislabeled, or redundant data harms accuracy), and distribution alignment (adding massive out-of-domain data does not improve, and can degrade, performance on target deployment distributions).",
+     "hint": "Think about: explain the physical and statistical limits that prevent data quantity from guaranteeing deployment accuracy gains.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the steps of a Progressive Deployment evaluation for a shared task across multiple tiers:",
+     "explanation": "The correct order is: (4) Define the shared task, required quality level, and each tier's resource budgets, (2) Establish a reference model or artifact for that task, (3) Produce tier-specific candidate artifacts for cloud, edge, mobile, or TinyML targets, (1) Measure each candidate and accept only those that satisfy both task quality and tier constraints. The sequence is necessary because progressive deployment starts by defining what success means under each tier's envelope, then setting a reference point for the shared task, then creating candidate artifacts for each tier, and only afterward evaluating which ones meet both quality and resource constraints. Measuring before candidate creation or before defining the task would leave the process without a valid object to test or a criterion for acceptance.",
+     "hint": "Think about: sequence a progressive deployment workflow that evaluates tier-specific artifacts for one shared task against common quality goals and tier-specific resource budgets.",
+     "type": "order",
+     "items": [
+      "Define the shared task, required quality level, and each tier's resource budgets",
+      "Establish a reference model or artifact for that task",
+      "Produce tier-specific candidate artifacts for cloud, edge, mobile, or TinyML targets",
+      "Measure each candidate and accept only those that satisfy both task quality and tier constraints"
+     ]
+    },
+    {
+     "q": "Why does deploying a single generic FP32 model binary across diverse edge devices (e.g., Arm CPU, Apple Neural Engine, and Google Coral Edge TPU) result in suboptimal efficiency compared to per-target compilation?",
+     "explanation": "The correct answer is C. Different edge accelerators feature unique hardware architectures, such as specialized INT8 tensor systolic arrays, proprietary NPU delegates, and distinct on-chip memory hierarchies. A generic model binary fails to utilize kernel fusion (which avoids round-trip memory traffic between layers), cannot map operations to dedicated low-precision datapaths, and fails to align tensor dimensions with on-chip cache lines. The options claiming PCI Express signature violations, undefined mobile float math, or automatic OS weight deletion are entirely fabricated.",
+     "hint": "Think about: explain why hardware-aware compilation and kernel fusion are essential for efficient edge deployment.",
+     "type": "single",
+     "options": [
+      "Generic model binaries violate cryptographic signatures required by PCI Express buses.",
+      "Floating-point operations are mathematically undefined on mobile CPUs.",
+      "Generic binaries cannot exploit hardware-specific kernel fusion, dedicated fixed-point INT8 matrix datapaths, or accelerator-specific on-chip SRAM memory tiling.",
+      "The operating system automatically deletes untuned model weights to prevent memory fragmentation."
+     ],
+     "answer": 2
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Data locality invariant**?",
+     "options": [
+      "When no single tier satisfies a whole pipeline, stages go where their limiting term is cheapest through train-serve splits, hierarchical filtering and confidence cascades, and progressive deployment, at the price of keeping features, versions, and preprocessing synchronized across tiers.",
+      "The light barrier puts a round-trip floor under any remote path, the power wall (dynamic power roughly cubic in frequency) caps sustained mobile power at a few watts, and the memory wall makes data movement a growing share of time, so cloud, edge, mobile, and TinyML are constraint regimes spanning about nine orders of magnitude in power and memory.",
+      "A remote path is rejected when even its lower bound (transfer time plus propagation plus remote compute) exceeds the deadline, because transmission and propagation cannot be bought down with more remote compute, and only surviving paths are compared on measured time.",
+      "Compute has grown faster than memory bandwidth (about 1.6x versus 1.2x per year), so data movement takes an ever larger share of time and energy at every tier."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Data locality invariant itself, not a neighbouring idea.",
+     "explanation": "**Data locality invariant:** A remote path is rejected when even its lower bound (transfer time plus propagation plus remote compute) exceeds the deadline, because transmission and propagation cannot be bought down with more remote compute, and only surviving paths are compared on measured time."
+    },
+    {
+     "q": "For batch-1 LLM decode in the cloud and for most edge inference, the iron-law term that dominates is memory ____ rather than peak compute, so a faster accelerator alone yields little speedup.",
+     "explanation": "bandwidth. These workloads stream weights and activations with little reuse per byte loaded, so the data-movement term $D_{\\text{vol}}/\\text{BW}$ dominates. The productive optimizations reduce bytes moved (smaller models, lower precision, more reuse per loaded weight) rather than adding peak FLOP/s.",
+     "hint": "Think about: identify the dominant iron-law term for a deployment tier and the optimizations it rewards.",
+     "type": "fill",
+     "answer": [
+      "bandwidth"
+     ]
+    },
+    {
+     "q": "Which statement correctly characterizes the span of power and memory capacity across the four deployment paradigms (Cloud ML, Edge ML, Mobile ML, and TinyML)?",
+     "explanation": "The correct answer is A. Cloud ML operates at megawatt (\\$10^6\\text{ W}$) scale in data centers with terabytes (\\$10^{12}\\text{ bytes}$) of memory, whereas TinyML operates on microcontrollers consuming milliwatts (\\$10^{-3}\\text{ W}$) with kilobytes (\\$10^3\\text{ bytes}$) of RAM, establishing a nine-order-of-magnitude span in power and memory capacity. The option claiming a three-order power span severely underestimates data-center power and microcontroller power limits. The claim that Edge, Mobile, and TinyML have identical sub-5 W power ignores that edge servers typically consume 100 W to several hundred watts. The option asserting only a \\$10^3$ memory variation fails to recognize the gap between terabytes and kilobytes (\\$10^9$ ratio).",
+     "hint": "Think about: compare the operational power and memory envelopes across the four deployment paradigms.",
+     "type": "single",
+     "options": [
+      "Power spans approximately nine orders of magnitude from megawatts in cloud data centers to milliwatts in microcontrollers, while memory spans from terabytes to kilobytes.",
+      "Power spans three orders of magnitude from kilowatts to watts, while memory remains in the gigabyte range across all four deployment tiers.",
+      "Power is identical across Edge, Mobile, and TinyML tiers (all operating under 5 W), with only Cloud ML exceeding 100 W.",
+      "Memory capacity varies by at most a factor of \\$10^3$ between cloud servers and microcontrollers, while power varies by \\$10^{12}$."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Running biometric matching (such as Face ID) inside a dedicated on-device Secure Enclave reduces data disclosure risks by keeping mathematical representations isolated in encrypted hardware, but it does not automatically eliminate all security or privacy risks without rigorous end-to-end system design.",
+     "explanation": "True. Hardware isolation mechanisms like the Secure Enclave restrict biometric mathematical representations to dedicated encrypted memory on-device, preventing remote transmission and unauthorized operating system access. However, overall system security and privacy still depend on the complete threat model, authentication policies, and software implementation.",
+     "hint": "Think about: evaluate how dedicated hardware enclaves (e.g., Secure Enclave) provide biometric privacy while recognizing holistic system threat models.",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "The historical scaling relationship under which shrinking MOSFET transistor dimensions allowed reducing voltage and current while keeping power density constant is known as ____ scaling.",
+     "explanation": "Dennard. Dennard scaling (formulated by Robert Dennard in 1974) held that as transistors shrank, power density remained constant because operating voltage and current scaled downward proportionally. Its breakdown in the mid-2000s ended free clock frequency scaling and forced the computing industry toward multicore parallelism and domain-specific accelerators.",
+     "hint": "Think about: explain the transistor power-scaling law whose breakdown led to domain-specific ML accelerators.",
+     "type": "fill",
+     "answer": [
+      "Dennard"
+     ]
+    }
+   ]
+  }
+ ]
+}

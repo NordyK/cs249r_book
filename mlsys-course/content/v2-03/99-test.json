@@ -1,0 +1,148 @@
+{
+ "title": "Test: Network Fabrics",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-03-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "How does Co-Packaged Optics (CPO) physically reduce interconnect power consumption compared to traditional pluggable optical transceivers?",
+     "explanation": "The correct answer is B. In traditional pluggable architectures, high-speed electrical signals must travel several centimeters across PCBs from the switch ASIC to the faceplate transceiver, requiring high-power SerDes equalization and retimers. Co-Packaged Optics (CPO) integrates silicon photonics chiplets directly onto the same substrate as the switch/compute ASIC, reducing the electrical trace to millimeters and saving approximately \\$50\\% of transceiver power (roughly \\$1.28 kW per \\$51.2 Tb/s switch). The option alleging superconducting RF antennas is science fiction. The choice proposing free-space infrared beams inside racks misidentifies guided optical fiber architectures. The option describing tensor downsampling inside waveguides confuses optical transmission with algorithmic quantization.",
+     "hint": "Think about: explain the physical mechanism and efficiency gains of Co-Packaged Optics.",
+     "type": "single",
+     "options": [
+      "It replaces optical lasers with superconducting RF antennas that operate without electrical resistance",
+      "It integrates silicon photonics directly onto the processor or switch package substrate, shortening the electrical SerDes trace from centimeters to millimeters and eliminating power-hungry signal conditioning",
+      "It removes the need for fiber optic cables by transmitting data through free-space infrared beams inside the server rack",
+      "It downsamples 16-bit floating-point tensors to 1-bit integers directly inside the optical waveguide"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Order the recommended diagnostic steps when investigating an unexpected slowdown in a multi-node GPU training job, moving from application symptoms down to physical causes:",
+     "explanation": "The correct sequence is: (3) Check GPU compute and SM utilization (using nvidia-smi or dcgmi) -> (5) Enable NCCL debug logging (NCCL_DEBUG=INFO) to identify transport selection and detected topology -> (2) Run point-to-point RDMA bandwidth tests (ib_write_bw) between candidate nodes -> (1) Inspect switch PFC pause and ECN congestion counters along the network path -> (4) Validate physical layer health by checking symbol errors and CRC discard counters.",
+     "hint": "Think about: order the systematic debugging workflow for distributed training network bottlenecks.",
+     "type": "order",
+     "items": [
+      "Inspect switch PFC pause and ECN congestion counters along the network path",
+      "Validate physical layer health by checking symbol errors and CRC discard counters"
+     ]
+    },
+    {
+     "q": "How does GPUDirect RDMA optimize the end-to-end data path during a multi-node AllReduce gradient exchange compared to traditional host-staged network transfers?",
+     "explanation": "The correct answer is A. Traditional network transfers require copying gradient data from GPU memory to CPU system RAM, and then through the OS kernel buffer before reaching the NIC. GPUDirect RDMA enables peer-to-peer DMA over PCIe between the GPU memory and the NIC, eliminating intermediate host copies, reducing CPU utilization and host-staging overhead. The choice claiming tensor compression in GPU L2 cache describes a data compression technique rather than RDMA DMA bypass. The option regarding GPU-executed TCP/IP checksums is incorrect because GPUDirect RDMA offloads the data path to the NIC rather than executing transport checksums on GPU cores. The claim regarding SATA storage buses confuses storage interfaces with accelerator network interconnects.",
+     "hint": "Think about: explain the architectural mechanism and performance benefits of GPUDirect RDMA.",
+     "type": "single",
+     "options": [
+      "It allows the network interface card (NIC) to read and write GPU High Bandwidth Memory directly over the PCIe bus without staging data through host CPU system RAM",
+      "It compresses floating-point tensors in GPU L2 cache before writing them directly to the optical switch buffer",
+      "It enables the GPU to execute TCP/IP checksum offloading in CUDA streaming multiprocessors",
+      "It re-routes inter-node gradient traffic over host SATA storage buses to bypass network switch congestion"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In a modern multi-thousand GPU cluster using \\$400 Gb/s pluggable optical transceivers, why is transceiver power consumption a critical design constraint at the facility level?",
+     "explanation": "The correct answer is C. The scenario counts one selected spine-side module per physical link, giving \\$20{,}000 \\times 20\\text{ W} = 400\\text{ kW}$ for those endpoints. A complete optical link has a module at each end; the opposite endpoints, switch electronics, and cooling are outside this subtotal. The separate \\$25\\text{ W}$ per-port budget also includes the selected switch-side SerDes. Standard datacom optics do not require cryogenic cooling, and active conversion consumes power while data moves.",
+     "hint": "Think about: calculate and evaluate the power overhead of optical interconnects in large-scale AI clusters.",
+     "type": "single",
+     "options": [
+      "Pluggable transceivers require cryogenic cooling to prevent optical fiber dispersion",
+      "Optical transceivers consume no power during active data transfer but draw high surge currents during idle states",
+      "Counting one selected spine-side module on each of 20,000 links at \\$20\\text{ W}$ per module gives a \\$400\\text{ kW}$ endpoint subtotal, before opposite-end modules and other fabric power",
+      "Optical modules dissipate heat directly into the switch ASIC die, reducing switch processing clock frequencies by \\$50\\%"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Why does packet spraying improve fabric bisection bandwidth utilization in InfiniBand networks, and why is standard Ethernet historically hesitant to use it?",
+     "explanation": "The correct answer is A. Packet spraying eliminates ECMP hot spots by distributing packets of a single elephant flow across multiple parallel paths. Suitable InfiniBand routing and endpoint implementations preserve the required ordering while using multiple paths; arbitrary packet spraying is not safe without that support. Standard Ethernet historically avoided packet spraying because out-of-order delivery triggers false packet loss assumptions in TCP or requires large on-chip reassembly buffers in RoCE NICs (prompting alternatives like flowlet switching or UEC next-gen transports). The option alleging encryption across paths confuses load balancing with cryptographic security. The choice mentioning wireless backup links is unrelated to data center fabrics. The option claiming header reduction from 40 to 4 bytes confuses routing with packet compression.",
+     "hint": "Think about: explain packet spraying load balancing and contrast transport-layer reordering requirements across InfiniBand and Ethernet.",
+     "type": "single",
+     "options": [
+      "Packet spraying distributes individual packets of an elephant flow across all available equal-cost paths to eliminate hash collisions; suitable InfiniBand implementations support this through routing and endpoint ordering mechanisms, whereas standard Ethernet avoids reordering due to the high software/NIC cost of reassembly",
+      "Packet spraying encrypts packets with unique keys across paths, which InfiniBand decrypts in hardware while Ethernet lacks AES accelerators",
+      "Packet spraying routes packets over wireless backup links, which Ethernet switches do not support",
+      "Packet spraying reduces packet header size from 40 bytes to 4 bytes, doubling Ethernet wire efficiency"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In a healthy, properly configured lossless InfiniBand or RoCEv2 fabric, the `PortXmitDiscards` counter on switch ports should periodically increment under heavy AllReduce traffic to signal senders to back off.",
+     "explanation": "False. Packet discards are not the intended congestion signal in a fabric configured to avoid overflow loss. Operators should investigate new discard increments, while checking the counter definition and interval. Credits, ECN, and configured PFC provide the normal flow-control and congestion signals; a historical nonzero counter alone does not diagnose an active fault.",
+     "hint": "Think about: evaluate error and discard counter baselines in lossless network fabrics.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "AllToAll collective communication is less demanding on network fabric bisection bandwidth than AllReduce because each GPU only sends data to a single designated peer.",
+     "explanation": "False. In AllToAll, each participant sends a distinct portion to every other participant, creating many simultaneous source-destination pairs. This can stress bisection bandwidth and path diversity. Ring AllReduce exchanges with logical neighbors at each step, but its physical cross-sectional traffic still depends on rank placement and routing.",
+     "hint": "Think about: analyze the communication demands of AllToAll versus AllReduce collective patterns.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Bisection bandwidth and topology economics**?",
+     "options": [
+      "Wiring should follow the parallelism plan: rail-optimized fabrics isolate same-rank data-parallel groups, a torus suits dimension-ordered rings but congests under MoE AllToAll, and no single link-rate benchmark predicts training performance, while optical circuit switching lets a pod rewire its topology per job and around failures at millisecond reconfiguration cost.",
+      "Point-to-point message time T(n) = alpha + n/beta splits at the crossover n* = alpha*beta, so small control and pipeline messages are startup-bound and barely gain from faster links while multi-MB gradient shards are bandwidth-bound.",
+      "Traffic that crosses a cut is bounded by bisection bandwidth, so k:1 oversubscription multiplies the cut-crossing time by k, and fat-tree, torus, and dragonfly trade cut capacity against switches and cabling as a price-per-bisection-byte decision.",
+      "Kernel-bypass RDMA with GPUDirect cuts per-message startup to microseconds, and InfiniBand and RoCE differ in where they place losslessness, so the requirement is reliable completion with a bounded recovery tail, a deployment contract rather than a property of RDMA."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Bisection bandwidth and topology economics itself, not a neighbouring idea.",
+     "explanation": "**Bisection bandwidth and topology economics:** Traffic that crosses a cut is bounded by bisection bandwidth, so k:1 oversubscription multiplies the cut-crossing time by k, and fat-tree, torus, and dragonfly trade cut capacity against switches and cabling as a price-per-bisection-byte decision."
+    },
+    {
+     "q": "In InfiniBand fabrics, traffic isolation is achieved using independent logical channels called ______, which maintain separate credit-based buffer management on the same physical link.",
+     "explanation": "virtual lanes. Separate buffer and credit state isolate backpressure between traffic classes while sharing the physical link and its finite bandwidth.",
+     "hint": "Think about: identify the InfiniBand hardware mechanism used for traffic isolation and QoS.",
+     "type": "fill",
+     "answer": [
+      "virtual lanes"
+     ]
+    },
+    {
+     "q": "Why is using standard TCP benchmark tools like `iperf` to validate an ML cluster network fabric considered a major operational fallacy?",
+     "explanation": "The correct answer is A. TCP and RDMA exercise different transport and host-processing paths, so a TCP benchmark cannot establish RDMA or collective performance. TCP throughput depends on host configuration and has no universal fixed ceiling. RDMA-specific tools such as `ib_write_bw` test the relevant data path; collective benchmarks then test synchronization and topology effects. The wireless-only and automatic InfiniBand flow-control claims are incorrect.",
+     "hint": "Think about: analyze why TCP benchmarks are inadequate for validating RDMA-based ML fabrics.",
+     "type": "single",
+     "options": [
+      "`iperf` measures the TCP path, whose throughput depends on host processing, offloads, and tuning; it does not validate the RDMA path exercised by distributed training",
+      "`iperf` only operates over wireless IEEE 802.11 interfaces and cannot bind to physical QSFP56 ports",
+      "`iperf` automatically enables InfiniBand credit-based flow control on standard Ethernet switches",
+      "`iperf` encrypts all network packets with 4096-bit RSA keys, causing false GPU thermal throttling"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "On an RNIC that discards out-of-order arrivals rather than retaining them, ______ recovery retransmits from the missing sequence point after packet loss.",
+     "explanation": "Go-Back-N. This recovery scheme retransmits from the missing packet, potentially repeating later data; other RNIC designs support more selective recovery.",
+     "hint": "Think about: identify the packet recovery mechanism used by RDMA over Converged Ethernet.",
+     "type": "fill",
+     "answer": [
+      "Go Back N",
+      "Go-Back-N"
+     ]
+    },
+    {
+     "q": "Arrange the five levels of the high-performance ML network fabric model in ascending order of abstraction, from physical signaling up to cluster orchestration:",
+     "explanation": "The correct sequence is: (3) Wire and Link -> (5) Transport and Performance Model -> (1) Switch and Topology -> (4) Fabric Behavior -> (2) Cluster Design.",
+     "hint": "Think about: classify networking mechanisms within the five-level ML fabric model.",
+     "type": "order",
+     "items": [
+      "Wire and Link",
+      "Transport and Performance Model",
+      "Switch and Topology",
+      "Fabric Behavior",
+      "Cluster Design"
+     ]
+    }
+   ]
+  }
+ ]
+}

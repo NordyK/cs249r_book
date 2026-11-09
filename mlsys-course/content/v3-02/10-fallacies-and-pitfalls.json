@@ -1,0 +1,54 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Work through Fallacies and Pitfalls.",
+ "source": {
+  "chapter": "v3-02",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Fallacies and Pitfalls**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Foundation Model, § Fallacies and Pitfalls",
+   "md": "A code repair request can return promptly yet name the wrong file, or return the right patch long after its latency budget has expired. In autonomous execution loops, engineers frequently conflate distinct operational boundaries, confusing inference execution with total round-trip latency, syntactic validity with semantic correctness, and transport success with task completion. These failures expose several persistent mistaken assumptions about the model call."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Output-bound call latency matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-02-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Fallacies and Pitfalls** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Model output is a proposal with zero ambient authority: the runtime validates, authorizes, executes, and returns the observation, so a tool request is never an effect and a model claim is never an observation.",
+      "Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever.",
+      "Representation granularity, serialization, and constraint mechanism are independent interface axes judged on accepted outcomes under matched budgets, with a deadline acting as an admission filter and every initiated trial kept in the denominator.",
+      "Every call is a request record plus a normalized status envelope, and only a COMPLETED reply enters the candidate path, so a truncated prefix that parses is quarantined and a local deadline expiry leaves the remote outcome unknown."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Output-bound call latency**: Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Fallacies and Pitfalls."
+   ]
+  }
+ ]
+}

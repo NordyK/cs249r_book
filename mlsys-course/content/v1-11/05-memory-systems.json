@@ -1,0 +1,95 @@
+{
+ "title": "Memory Systems",
+ "summary": "Calculate model-state memory under a stated mixed-precision Adam byte recipe and identify why optimizer-related state dominates the footprint.",
+ "source": {
+  "chapter": "v1-11",
+  "sections": [
+   "Memory Systems",
+   "The AI memory wall",
+   "Memory access patterns in ML workloads",
+   "Memory hierarchy",
+   "Host-accelerator communication",
+   "Model memory pressure"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate model-state memory under a stated mixed-precision Adam byte recipe and identify why optimizer-related state dominates the footprint\n- Classify memory hierarchy levels by access latency and proximity to execution units\n- Explain the architectural design differences and physical advantages of HBM over GDDR\n- Explain the role of pinned host memory in optimizing host-to-accelerator data transfers\n- Distinguish memory-capacity limits from bandwidth bottlenecks in the AI memory wall"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Hardware Acceleration, § Memory Systems",
+   "md": "That gap between a … arithmetic floor and real inference latency opens whenever the memory subsystem cannot deliver weights and activations fast enough to keep the compute units busy. Modern accelerators provide hundreds of teraflops (or even petaflops) on low-precision tensor datapaths, yet their arithmetic pipelines idle as soon as memory traffic saturates the bus. This is the memory wall, the growing divergence between arithmetic capability and memory bandwidth, seen from inside the accelerator."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The AI memory wall\n- Memory access patterns in ML workloads\n- Memory hierarchy\n- Host-accelerator communication\n- Model memory pressure\n\nPay attention to: The AI Memory Wall and hardware balance ridge point ($I_{\\text{ridge}} = R_{\\text{peak}}/\\text{BW}$); Memory hierarchy tiers, latencies, and bandwidths (Registers to HBM to Host DDR); HBM vs GDDR6X architectural differences (TSVs, silicon interposers); Host-accelerator communication (PCIe, pinned memory, DMA)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: When training a \\$7$-billion-parameter model using a hypothetical mixed-precision Adam recipe stated for this question—\\$2$ bytes for weights, \\$2$ for gradients, \\$4$ for FP32 master weights, \\$4$ for the first moment, and \\$4$ for the second moment per parameter—calculate the model-state memory for weights, gradients, and optimizer states, and explain why optimizer-related state dominates this footprint.",
+   "md": "Using the provided recipe, each parameter carries \\$2 bytes for FP16/BF16 weights, \\$2 bytes for gradients, \\$4 bytes for FP32 master weights, \\$4 bytes for the first Adam moment, and \\$4 bytes for the second Adam moment, for a total of \\$16 bytes per parameter. A \\$7B-parameter model therefore requires \\$7 × 10^9 × 16 bytes = 112 GB for these model states alone. Of that total, optimizer-related state plus master weights account for \\$12 bytes per parameter, which is most of the footprint. The practical implication is that optimizer choice can dominate memory planning even before activations, workspace, or other runtime buffers are included."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-11-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Arrange the following levels of a modern GPU memory hierarchy in order of access latency, from lowest latency (fastest) to highest latency (slowest):",
+     "explanation": "The correct order is (2) Register File -> (4) Shared Memory / L1 Cache -> (5) On-Chip L2 Cache -> (1) High-Bandwidth Memory (HBM3) -> (3) Pinned Host System Memory (DDR5 via PCIe). Registers are accessible in sub-nanosecond/single-cycle latency, followed by on-chip Shared Memory/L1 (~few cycles), L2 Cache (~tens of cycles), device HBM (~hundreds of cycles), and finally host DDR over the PCIe bus (~microseconds/thousands of cycles).",
+     "hint": "Think about: classify memory hierarchy levels by access latency and proximity to execution units.",
+     "type": "order",
+     "items": [
+      "Register File",
+      "Shared Memory / L1 Cache",
+      "On-Chip L2 Cache"
+     ]
+    },
+    {
+     "q": "Why does High-Bandwidth Memory (HBM) achieve significantly higher bandwidth (e.g., $>2\\text{ TB/s}$) than traditional GDDR6X memory (e.g., $\\approx 760\\text{ GB/s}$) while maintaining comparable or lower power per bit?",
+     "explanation": "The correct answer is D. HBM achieves ultra-high bandwidth by vertically stacking DRAM dies with Through-Silicon Vias (TSVs) and interfacing with the accelerator through a silicon interposer with extremely wide memory buses (1024 bits per stack vs. 32/64 bits for standard GDDR channels). Because physical wire distances over the silicon interposer are short and the bus is wide, HBM can run at lower pin clock frequencies, significantly reducing energy per bit ($pJ/\\text{bit}$) compared to driving high-frequency GDDR signals over long PCB traces. The higher clock frequency choice is incorrect because GDDR6X actually runs at higher pin clock frequencies than HBM. The optical photonics and error-correction elimination choices are physically false.",
+     "hint": "Think about: explain the architectural design differences and physical advantages of HBM over GDDR.",
+     "type": "single",
+     "options": [
+      "HBM operates at a \\$10× higher clock frequency than GDDR6X on standard PCB traces",
+      "HBM uses optical photonic signaling to transmit data across the motherboard",
+      "HBM eliminates all error correction codes and row buffer precharge cycles",
+      "HBM vertically stacks DRAM dies using Through-Silicon Vias (TSVs) and connects to the GPU via a wide 1024-bit per stack silicon interposer bus at lower clock speeds"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Memory allocated on the host CPU that is locked into physical RAM and prevents operating system paging, enabling direct DMA transfers over PCIe to the GPU, is called ____ host memory.",
+     "explanation": "pinned (or page-locked). Pinned host memory allows GPU DMA engines to transfer data asynchronously across the PCIe bus without CPU staging copies or page faults.",
+     "hint": "Think about: explain the role of pinned host memory in optimizing host-to-accelerator data transfers.",
+     "type": "fill",
+     "answer": [
+      "pinned",
+      "pinned (or page locked)",
+      "pinned (or page-locked)"
+     ]
+    },
+    {
+     "q": "The AI Memory Wall refers solely to the limited physical capacity (GBs) of GPU DRAM, meaning that if an accelerator has sufficient gigabytes to store model weights, memory bandwidth will never bottleneck execution.",
+     "explanation": "False. In this section, the AI memory wall is the gap between arithmetic throughput and memory bandwidth. Capacity is a separate feasibility constraint: a model can fit in memory and still run slowly if low-reuse kernels, such as LayerNorm or token-by-token decoding, are limited by bytes delivered per second rather than by available gigabytes.",
+     "hint": "Think about: distinguish memory-capacity limits from bandwidth bottlenecks in the AI memory wall.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate model-state memory under a stated mixed-precision Adam byte recipe and identify why optimizer-related state dominates the footprint.",
+    "You can now classify memory hierarchy levels by access latency and proximity to execution units.",
+    "You can now explain the architectural design differences and physical advantages of HBM over GDDR.",
+    "You can now explain the role of pinned host memory in optimizing host-to-accelerator data transfers."
+   ]
+  }
+ ]
+}

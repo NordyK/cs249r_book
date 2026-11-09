@@ -1,0 +1,81 @@
+{
+ "title": "Global Inference Infrastructure",
+ "summary": "Evaluate the latency implications and feasibility constraints of cross-region distributed model sharding.",
+ "source": {
+  "chapter": "v2-10",
+  "sections": [
+   "Global Inference Infrastructure",
+   "Drivers for multi-region deployment",
+   "Global load balancing with regional replicas",
+   "Edge caching with central inference",
+   "Cross-region model sharding",
+   "Cross-region failover",
+   "Cost optimization across regions"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Evaluate the latency implications and feasibility constraints of cross-region distributed model sharding\n- Identify the validity conditions an edge cache must check before reusing a generated response\n- Explain the state, placement, and capacity requirements that cross-region failover must satisfy beyond rerouting\n- Evaluate cost-aware regional routing using completion cost rather than hourly GPU price"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Serving at Scale, § Global Inference Infrastructure",
+   "md": "A fleet confined to one region can batch, shard, route, isolate, and autoscale well, yet a user in Sydney still pays roughly a 200 ms round trip to a US-East deployment before any of that machinery acts. A regional outage also removes every replica at once. Extending resource isolation and failure boundaries beyond one data center introduces placement decisions at geographic scale. Distance, regional failures, and data-placement requirements can motivate regional replicas, caches, or a centralized service with an explicit network budget."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Drivers for multi-region deployment\n- Global load balancing with regional replicas\n- Edge caching with central inference\n- Cross-region model sharding\n- Cross-region failover\n- Cost optimization across regions\n\nPay attention to: Cross-region latency; Edge cache reuse validity; Cross-region failover state and headroom; Completion cost versus GPU price in regional routing."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Region A fails and the global load balancer reroutes an ongoing conversation to a healthy replica in Region B. Explain why rerouting alone may not restore the session, and what Region B needs for the failover to succeed.",
+   "md": "The KV state built in Region A is lost, so Region B must reconstruct it from accessible, authoritative conversation history. Region B therefore needs that history to be available and permitted for processing there under the data-placement policy, plus enough headroom to absorb both the reconstruction work and its continuing traffic. If the history is unavailable or cannot be processed in Region B, a healthy replica cannot restore the session; the failover policy must also respect the request's remaining deadline and version requirements."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-10-14-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Cross-region model sharding (spanning pipeline stages between US-East and Asia-Pacific) is an effective strategy for minimizing single-request P99 latency.",
+     "explanation": "False for the stated interactive scenario. Exposed inter-region transfers add wide-area delay to the request critical path and can exceed the stage-compute budget. Compare actual transfer times, message sizes, and the request deadline rather than treating RTT as the cost of every stage. Independent regional replicas avoid these per-request cross-region stage transfers when the model fits within each eligible region; placement must also satisfy policy and available-capacity constraints.",
+     "hint": "Think about: evaluate the latency implications and feasibility constraints of cross-region distributed model sharding.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An edge point of presence receives a query whose visible text exactly matches a cached response. Which condition must hold before the edge may return that cached response as a hit?",
+     "explanation": "The correct answer is B. Identical visible queries do not necessarily permit the same answer: the edge must enforce authorization and match the model version, the conversation or retrieval context, the generation policy, and freshness before reuse, and fresh-sample semantics may prohibit reuse entirely. The 10 ms figure is an illustrative hit-latency budget, not a validity window, and cluster load does not make a stored response valid for a different request.",
+     "hint": "Think about: identify the validity conditions an edge cache must check before reusing a generated response.",
+     "type": "single",
+     "options": [
+      "The cached response is younger than the 10 ms edge latency budget, so it cannot be stale",
+      "The request passes authorization, and the cached response matches its model version, conversation or retrieval context, generation policy, and freshness requirements",
+      "The query text matches exactly, which by itself guarantees that the same answer is valid for every user",
+      "The regional gateway has confirmed that the central GPU cluster is overloaded"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In the chapter's hypothetical price snapshot, US-West H100 spot capacity costs 2.30 dollars per hour versus 2.50 dollars per hour in US-East, so routing low-priority batch work to US-West always lowers the cost of completing that work.",
+     "explanation": "False. GPU price alone is insufficient. Transfer charges, startup and idle capacity, retries, and achieved useful throughput determine the cost of completing the workload, and deadline and data-placement constraints must filter eligible destinations before any cost comparison. The snapshot is hypothetical and time- and provider-specific, so a router must refresh prices and measured paths before deciding.",
+     "hint": "Think about: evaluate cost-aware regional routing using completion cost rather than hourly GPU price.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate the latency implications and feasibility constraints of cross-region distributed model sharding.",
+    "You can now identify the validity conditions an edge cache must check before reusing a generated response.",
+    "You can now explain the state, placement, and capacity requirements that cross-region failover must satisfy beyond rerouting.",
+    "You can now evaluate cost-aware regional routing using completion cost rather than hourly GPU price."
+   ]
+  }
+ ]
+}

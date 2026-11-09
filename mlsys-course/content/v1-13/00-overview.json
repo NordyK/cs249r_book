@@ -1,0 +1,297 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v1-13",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Model Serving** (Vol I). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Serving, Purpose",
+   "md": "Training and serving pursue opposing operating objectives. Training maximizes aggregate throughput across large, scheduled batches and long runs, whereas serving must answer individual, heterogeneous requests under strict latency deadlines. Training amortizes hardware initialization and weight streaming across millions of examples; serving pays its full fixed cost on every query, and small inefficiencies accumulate into machine time that must be provisioned."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Serving Inversion",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Serving System Architecture",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Request Lifecycle",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Queuing Theory",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Throughput Optimization",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Inference Runtime Selection",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Node-Level Optimization",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Serving inverts training**",
+     "Once a model answers live requests the objective flips from long-run throughput to per-request latency at an SLO percentile, batch-one execution exposes weight traffic and launch overhead, and the machine target shifts from maximum utilization to headroom."
+    ],
+    [
+     "**Latency budget**",
+     "End-to-end latency is a zero-sum budget spent serially on ingress, deserialization, preprocessing, transfer, queueing, inference, postprocessing, and egress and met at a stated quantile, so a faster model yields far less end-to-end gain when host stages dominate."
+    ],
+    [
+     "**Queueing sets headroom**",
+     "Little's law sizes the in-flight population and the M/M/1 model shows time in system rising nonlinearly with utilization, so capacity is sized as the utilization a percentile SLO permits, and under overload only admission control or graceful degradation preserve latency."
+    ],
+    [
+     "**Batching trades latency for throughput**",
+     "Batching amortizes fixed per-batch costs so saturated capacity grows almost linearly while fixed cost dominates, but every request pays formation delay, dynamic batching bounds it with a size-or-timeout trigger, and latency, memory, or the engine cap, not throughput, sets the largest useful batch."
+    ],
+    [
+     "**LLM serving phases**",
+     "Token streaming splits latency into time to first token (prefill) and time per output token (decode), batching decode shares the weight stream but not cache reads, continuous batching reclaims slots as sequences end, and chunked prefill bounds the stall a long prompt imposes on active decodes."
+    ],
+    [
+     "**KV cache budget bounds concurrency**",
+     "After weights, remaining device memory divided by per-conversation cache bytes sets how many conversations one accelerator holds, so context length and batch trade against each other, and paged allocation, prefix caching, and offloading change that budget."
+    ],
+    [
+     "**Static vs dynamic inference**",
+     "Static (offline, batch) inference precomputes predictions into a store and runs throughput-first, while dynamic (online, real-time) inference evaluates inputs on demand inside the request path under the latency budget its SLO sets."
+    ],
+    [
+     "**Cold start and model loading**",
+     "A new replica pays weight transfer, context creation, graph compilation, allocation, and warmup before its first useful request, so autoscaled capacity arrives late, and precompiled engines, memory-mapped formats, and warm pools shorten it."
+    ],
+    [
+     "**Runtime and precision selection**",
+     "The deployment target narrows the runtime family and export coverage decides feasibility, and at batch one most of the speedup over eager execution comes from removing per-operation dispatch, while lower precision pays at large batch subject to calibration."
+    ],
+    [
+     "**Host-path optimization**",
+     "Between socket and silicon a request crosses graph-to-kernel, host-to-accelerator, CPU, and storage boundaries, and timeline profiling locates which one limits the request (idle bubbles, launch trains, synchronous copies, OS noise)."
+    ],
+    [
+     "**Serving economics**",
+     "Cost per inference is allocated hourly cost over completed inferences that meet the SLO, so the cheapest hardware at saturation wins only above a breakeven sustained load and capacity is sized from SLO-qualified throughput."
+    ],
+    [
+     "**Speculative decoding**",
+     "A small draft model proposes several tokens that the target model verifies in one pass, yielding more than one token per target weight stream at batch one when the acceptance rate is high."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$\\frac{X(r_2)}{X(r_1)} = \\left(\\frac{r_1}{r_2}\\right)^2$$\n\n$$\\text{System Efficiency} = \\frac{\\sum T_{\\text{compute}}}{\\text{Wall Clock Time} \\times \\text{Resource Count}}$$\n\n$$N_{\\text{req}} = \\lambda \\cdot T_{\\text{lat}}$$\n\n$$W_{\\text{total}} \\approx \\underbrace{ \\frac{B-1}{2\\lambda} }_{\\text{Formation Delay}} + \\underbrace{ T_{\\text{inf}}(B) }_{\\text{Inference Time}}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v1-13-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Serving inverts training",
+     "back": "Once a model answers live requests the objective flips from long-run throughput to per-request latency at an SLO percentile, batch-one execution exposes weight traffic and launch overhead, and the machine target shifts from maximum utilization to headroom."
+    },
+    {
+     "front": "Latency budget",
+     "back": "End-to-end latency is a zero-sum budget spent serially on ingress, deserialization, preprocessing, transfer, queueing, inference, postprocessing, and egress and met at a stated quantile, so a faster model yields far less end-to-end gain when host stages dominate."
+    },
+    {
+     "front": "Queueing sets headroom",
+     "back": "Little's law sizes the in-flight population and the M/M/1 model shows time in system rising nonlinearly with utilization, so capacity is sized as the utilization a percentile SLO permits, and under overload only admission control or graceful degradation preserve latency."
+    },
+    {
+     "front": "Batching trades latency for throughput",
+     "back": "Batching amortizes fixed per-batch costs so saturated capacity grows almost linearly while fixed cost dominates, but every request pays formation delay, dynamic batching bounds it with a size-or-timeout trigger, and latency, memory, or the engine cap, not throughput, sets the largest useful batch."
+    },
+    {
+     "front": "LLM serving phases",
+     "back": "Token streaming splits latency into time to first token (prefill) and time per output token (decode), batching decode shares the weight stream but not cache reads, continuous batching reclaims slots as sequences end, and chunked prefill bounds the stall a long prompt imposes on active decodes."
+    },
+    {
+     "front": "KV cache budget bounds concurrency",
+     "back": "After weights, remaining device memory divided by per-conversation cache bytes sets how many conversations one accelerator holds, so context length and batch trade against each other, and paged allocation, prefix caching, and offloading change that budget."
+    },
+    {
+     "front": "Static vs dynamic inference",
+     "back": "Static (offline, batch) inference precomputes predictions into a store and runs throughput-first, while dynamic (online, real-time) inference evaluates inputs on demand inside the request path under the latency budget its SLO sets."
+    },
+    {
+     "front": "Cold start and model loading",
+     "back": "A new replica pays weight transfer, context creation, graph compilation, allocation, and warmup before its first useful request, so autoscaled capacity arrives late, and precompiled engines, memory-mapped formats, and warm pools shorten it."
+    },
+    {
+     "front": "Runtime and precision selection",
+     "back": "The deployment target narrows the runtime family and export coverage decides feasibility, and at batch one most of the speedup over eager execution comes from removing per-operation dispatch, while lower precision pays at large batch subject to calibration."
+    },
+    {
+     "front": "Host-path optimization",
+     "back": "Between socket and silicon a request crosses graph-to-kernel, host-to-accelerator, CPU, and storage boundaries, and timeline profiling locates which one limits the request (idle bubbles, launch trains, synchronous copies, OS noise)."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v1-13-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Serving inverts training**?",
+     "options": [
+      "Once a model answers live requests the objective flips from long-run throughput to per-request latency at an SLO percentile, batch-one execution exposes weight traffic and launch overhead, and the machine target shifts from maximum utilization to headroom.",
+      "A small draft model proposes several tokens that the target model verifies in one pass, yielding more than one token per target weight stream at batch one when the acceptance rate is high.",
+      "A new replica pays weight transfer, context creation, graph compilation, allocation, and warmup before its first useful request, so autoscaled capacity arrives late, and precompiled engines, memory-mapped formats, and warm pools shorten it.",
+      "Cost per inference is allocated hourly cost over completed inferences that meet the SLO, so the cheapest hardware at saturation wins only above a breakeven sustained load and capacity is sized from SLO-qualified throughput."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Serving inverts training itself, not a neighbouring idea.",
+     "explanation": "**Serving inverts training:** Once a model answers live requests the objective flips from long-run throughput to per-request latency at an SLO percentile, batch-one execution exposes weight traffic and launch overhead, and the machine target shifts from maximum utilization to headroom."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Latency budget**?",
+     "options": [
+      "A small draft model proposes several tokens that the target model verifies in one pass, yielding more than one token per target weight stream at batch one when the acceptance rate is high.",
+      "Between socket and silicon a request crosses graph-to-kernel, host-to-accelerator, CPU, and storage boundaries, and timeline profiling locates which one limits the request (idle bubbles, launch trains, synchronous copies, OS noise).",
+      "Batching amortizes fixed per-batch costs so saturated capacity grows almost linearly while fixed cost dominates, but every request pays formation delay, dynamic batching bounds it with a size-or-timeout trigger, and latency, memory, or the engine cap, not throughput, sets the largest useful batch.",
+      "End-to-end latency is a zero-sum budget spent serially on ingress, deserialization, preprocessing, transfer, queueing, inference, postprocessing, and egress and met at a stated quantile, so a faster model yields far less end-to-end gain when host stages dominate."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Latency budget itself, not a neighbouring idea.",
+     "explanation": "**Latency budget:** End-to-end latency is a zero-sum budget spent serially on ingress, deserialization, preprocessing, transfer, queueing, inference, postprocessing, and egress and met at a stated quantile, so a faster model yields far less end-to-end gain when host stages dominate."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Queueing sets headroom**?",
+     "options": [
+      "The deployment target narrows the runtime family and export coverage decides feasibility, and at batch one most of the speedup over eager execution comes from removing per-operation dispatch, while lower precision pays at large batch subject to calibration.",
+      "Little's law sizes the in-flight population and the M/M/1 model shows time in system rising nonlinearly with utilization, so capacity is sized as the utilization a percentile SLO permits, and under overload only admission control or graceful degradation preserve latency.",
+      "Cost per inference is allocated hourly cost over completed inferences that meet the SLO, so the cheapest hardware at saturation wins only above a breakeven sustained load and capacity is sized from SLO-qualified throughput.",
+      "Batching amortizes fixed per-batch costs so saturated capacity grows almost linearly while fixed cost dominates, but every request pays formation delay, dynamic batching bounds it with a size-or-timeout trigger, and latency, memory, or the engine cap, not throughput, sets the largest useful batch."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Queueing sets headroom itself, not a neighbouring idea.",
+     "explanation": "**Queueing sets headroom:** Little's law sizes the in-flight population and the M/M/1 model shows time in system rising nonlinearly with utilization, so capacity is sized as the utilization a percentile SLO permits, and under overload only admission control or graceful degradation preserve latency."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Batching trades latency for throughput**?",
+     "options": [
+      "Token streaming splits latency into time to first token (prefill) and time per output token (decode), batching decode shares the weight stream but not cache reads, continuous batching reclaims slots as sequences end, and chunked prefill bounds the stall a long prompt imposes on active decodes.",
+      "After weights, remaining device memory divided by per-conversation cache bytes sets how many conversations one accelerator holds, so context length and batch trade against each other, and paged allocation, prefix caching, and offloading change that budget.",
+      "Batching amortizes fixed per-batch costs so saturated capacity grows almost linearly while fixed cost dominates, but every request pays formation delay, dynamic batching bounds it with a size-or-timeout trigger, and latency, memory, or the engine cap, not throughput, sets the largest useful batch.",
+      "The deployment target narrows the runtime family and export coverage decides feasibility, and at batch one most of the speedup over eager execution comes from removing per-operation dispatch, while lower precision pays at large batch subject to calibration."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Batching trades latency for throughput itself, not a neighbouring idea.",
+     "explanation": "**Batching trades latency for throughput:** Batching amortizes fixed per-batch costs so saturated capacity grows almost linearly while fixed cost dominates, but every request pays formation delay, dynamic batching bounds it with a size-or-timeout trigger, and latency, memory, or the engine cap, not throughput, sets the largest useful batch."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **LLM serving phases**?",
+     "options": [
+      "Between socket and silicon a request crosses graph-to-kernel, host-to-accelerator, CPU, and storage boundaries, and timeline profiling locates which one limits the request (idle bubbles, launch trains, synchronous copies, OS noise).",
+      "Cost per inference is allocated hourly cost over completed inferences that meet the SLO, so the cheapest hardware at saturation wins only above a breakeven sustained load and capacity is sized from SLO-qualified throughput.",
+      "Batching amortizes fixed per-batch costs so saturated capacity grows almost linearly while fixed cost dominates, but every request pays formation delay, dynamic batching bounds it with a size-or-timeout trigger, and latency, memory, or the engine cap, not throughput, sets the largest useful batch.",
+      "Token streaming splits latency into time to first token (prefill) and time per output token (decode), batching decode shares the weight stream but not cache reads, continuous batching reclaims slots as sequences end, and chunked prefill bounds the stall a long prompt imposes on active decodes."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is LLM serving phases itself, not a neighbouring idea.",
+     "explanation": "**LLM serving phases:** Token streaming splits latency into time to first token (prefill) and time per output token (decode), batching decode shares the weight stream but not cache reads, continuous batching reclaims slots as sequences end, and chunked prefill bounds the stall a long prompt imposes on active decodes."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Serving inverts training: Once a model answers live requests the objective flips from long-run throughput to per-request latency at an SLO percentile, batch-one execution exposes weight traffic and launch overhead, and the machine target shifts from maximum utilization to headroom.",
+    "Latency budget: End-to-end latency is a zero-sum budget spent serially on ingress, deserialization, preprocessing, transfer, queueing, inference, postprocessing, and egress and met at a stated quantile, so a faster model yields far less end-to-end gain when host stages dominate.",
+    "Queueing sets headroom: Little's law sizes the in-flight population and the M/M/1 model shows time in system rising nonlinearly with utilization, so capacity is sized as the utilization a percentile SLO permits, and under overload only admission control or graceful degradation preserve latency.",
+    "Batching trades latency for throughput: Batching amortizes fixed per-batch costs so saturated capacity grows almost linearly while fixed cost dominates, but every request pays formation delay, dynamic batching bounds it with a size-or-timeout trigger, and latency, memory, or the engine cap, not throughput, sets the largest useful batch."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Serving inverts training",
+   "def": "Once a model answers live requests the objective flips from long-run throughput to per-request latency at an SLO percentile, batch-one execution exposes weight traffic and launch overhead, and the machine target shifts from maximum utilization to headroom."
+  },
+  {
+   "term": "Latency budget",
+   "def": "End-to-end latency is a zero-sum budget spent serially on ingress, deserialization, preprocessing, transfer, queueing, inference, postprocessing, and egress and met at a stated quantile, so a faster model yields far less end-to-end gain when host stages dominate."
+  },
+  {
+   "term": "Queueing sets headroom",
+   "def": "Little's law sizes the in-flight population and the M/M/1 model shows time in system rising nonlinearly with utilization, so capacity is sized as the utilization a percentile SLO permits, and under overload only admission control or graceful degradation preserve latency."
+  },
+  {
+   "term": "Batching trades latency for throughput",
+   "def": "Batching amortizes fixed per-batch costs so saturated capacity grows almost linearly while fixed cost dominates, but every request pays formation delay, dynamic batching bounds it with a size-or-timeout trigger, and latency, memory, or the engine cap, not throughput, sets the largest useful batch."
+  },
+  {
+   "term": "LLM serving phases",
+   "def": "Token streaming splits latency into time to first token (prefill) and time per output token (decode), batching decode shares the weight stream but not cache reads, continuous batching reclaims slots as sequences end, and chunked prefill bounds the stall a long prompt imposes on active decodes."
+  },
+  {
+   "term": "KV cache budget bounds concurrency",
+   "def": "After weights, remaining device memory divided by per-conversation cache bytes sets how many conversations one accelerator holds, so context length and batch trade against each other, and paged allocation, prefix caching, and offloading change that budget."
+  },
+  {
+   "term": "Static vs dynamic inference",
+   "def": "Static (offline, batch) inference precomputes predictions into a store and runs throughput-first, while dynamic (online, real-time) inference evaluates inputs on demand inside the request path under the latency budget its SLO sets."
+  },
+  {
+   "term": "Cold start and model loading",
+   "def": "A new replica pays weight transfer, context creation, graph compilation, allocation, and warmup before its first useful request, so autoscaled capacity arrives late, and precompiled engines, memory-mapped formats, and warm pools shorten it."
+  },
+  {
+   "term": "Runtime and precision selection",
+   "def": "The deployment target narrows the runtime family and export coverage decides feasibility, and at batch one most of the speedup over eager execution comes from removing per-operation dispatch, while lower precision pays at large batch subject to calibration."
+  },
+  {
+   "term": "Host-path optimization",
+   "def": "Between socket and silicon a request crosses graph-to-kernel, host-to-accelerator, CPU, and storage boundaries, and timeline profiling locates which one limits the request (idle bubbles, launch trains, synchronous copies, OS noise)."
+  },
+  {
+   "term": "Serving economics",
+   "def": "Cost per inference is allocated hourly cost over completed inferences that meet the SLO, so the cheapest hardware at saturation wins only above a breakeven sustained load and capacity is sized from SLO-qualified throughput."
+  },
+  {
+   "term": "Speculative decoding",
+   "def": "A small draft model proposes several tokens that the target model verifies in one pass, yielding more than one token per target weight stream at batch one when the acceptance rate is high."
+  }
+ ]
+}

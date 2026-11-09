@@ -1,0 +1,106 @@
+{
+ "title": "Lab: price a ring all-reduce",
+ "summary": "Estimate gradient synchronisation time with the bandwidth and latency terms of ring all-reduce.",
+ "minutes": 20,
+ "blocks": [
+  {
+   "type": "text",
+   "md": "In data-parallel training every worker must end each step with the sum of all gradients. A ring all-reduce does it in $2(N-1)$ rounds; in each round every worker sends $1/N$ of the data to its neighbour. Each worker therefore sends $2\\frac{N-1}{N}S$ bytes in total, which is why the time barely depends on $N$ but never drops below $2S/BW$."
+  },
+  {
+   "type": "derivation",
+   "title": "7B model, bf16 gradients (14 GB), 64 workers, 50 GB/s links, 5 µs per round",
+   "rel": "=",
+   "steps": [
+    {
+     "lhs": "T_{bw}",
+     "rhs": "2\\cdot\\frac{63}{64}\\cdot\\frac{14\\ \\text{GB}}{50\\ \\text{GB/s}} \\approx 0.551\\ \\text{s}",
+     "why": "The bytes every worker must push through its link."
+    },
+    {
+     "lhs": "T_{lat}",
+     "rhs": "2\\cdot 63 \\cdot 5\\ \\mu\\text{s} = 0.63\\ \\text{ms}",
+     "why": "One fixed start-up cost per round."
+    },
+    {
+     "lhs": "T",
+     "rhs": "\\approx 0.552\\ \\text{s}",
+     "why": "Bandwidth-bound: the latency term is a rounding error at this message size."
+    }
+   ]
+  },
+  {
+   "type": "widget",
+   "id": "v2-05-lab-ar-widget",
+   "widget": "allreduce",
+   "title": "Try it: workers and links",
+   "params": {
+    "size": 14,
+    "n": 64,
+    "bw": 50,
+    "alpha": 5
+   },
+   "challenge": {
+    "md": "Keep 14 GB and 50 GB/s but use only **8 workers**. What is the all-reduce time in seconds?",
+    "answer": 0.49,
+    "tolerance": 0.003,
+    "unit": "s",
+    "hint": "2 × 7/8 × 14 / 50, plus a tiny latency term.",
+    "explanation": "2 × 0.875 × 0.28 = 0.49 s (+0.07 ms latency). Going from 8 to 64 workers adds only 12%: the ring scales."
+   }
+  },
+  {
+   "type": "playground",
+   "id": "v2-05-lab-ar-play",
+   "title": "All-reduce cost model",
+   "md": "Complete `ring_allreduce_s(size_gb, n, bw_gbs, alpha_us)` returning seconds, then print it for 8, 64 and 1,024 workers. Notice when the latency term starts to matter.",
+   "code": "def ring_allreduce_s(size_gb, n, bw_gbs, alpha_us):\n    bandwidth_term = None  # TODO\n    latency_term = None    # TODO\n    return bandwidth_term + latency_term if bandwidth_term is not None else None\n\n\nfor n in (8, 64, 1024):\n    print(n, ring_allreduce_s(14, n, 50, 5))\n",
+   "check": "assert abs(ring_allreduce_s(14, 64, 50, 5) - (2 * 63 / 64 * 14 / 50 + 2 * 63 * 5e-6)) < 1e-9\nassert abs(ring_allreduce_s(14, 8, 50, 0) - 0.49) < 1e-9\nassert ring_allreduce_s(0.001, 1024, 50, 5) > 0.01, 'small messages on many workers are latency-bound'",
+   "hint": "`bandwidth_term = 2 * (n - 1) / n * size_gb / bw_gbs`; `latency_term = 2 * (n - 1) * alpha_us * 1e-6`.",
+   "solution": "def ring_allreduce_s(size_gb, n, bw_gbs, alpha_us):\n    bandwidth_term = 2 * (n - 1) / n * size_gb / bw_gbs\n    latency_term = 2 * (n - 1) * alpha_us * 1e-6\n    return bandwidth_term + latency_term\n\n\nfor n in (8, 64, 1024):\n    print(n, round(ring_allreduce_s(14, n, 50, 5), 4), 's')\n"
+  },
+  {
+   "type": "quiz",
+   "id": "v2-05-lab-ar-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "numeric",
+     "q": "How many bytes does each worker send in a ring all-reduce of 14 GB across 64 workers (GB, 2 decimals)?",
+     "answer": 27.56,
+     "tolerance": 0.01,
+     "unit": "GB",
+     "hint": "2 (N - 1) / N × S.",
+     "explanation": "2 × 63/64 × 14 = 27.56 GB: about twice the gradient, whatever N is."
+    },
+    {
+     "type": "single",
+     "q": "A 1 MB gradient bucket is all-reduced across 1,024 workers. What dominates?",
+     "options": [
+      "The bandwidth term",
+      "The latency term",
+      "Both are equal",
+      "Neither: it is free"
+     ],
+     "answer": 1,
+     "hint": "Count the rounds.",
+     "explanation": "2 × 1023 rounds × 5 µs ≈ 10 ms of latency against about 0.04 ms of transfer. Tree or hierarchical algorithms and larger buckets fix this."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Ring all-reduce: T ≈ 2(N-1)/N · S/BW + 2(N-1)·α.",
+    "The bandwidth term is nearly independent of N; the latency term grows with N.",
+    "Large buckets keep it bandwidth-bound; hierarchy helps at very large N."
+   ]
+  }
+ ],
+ "source": {
+  "chapter": "v2-05",
+  "sections": [
+   "hands-on lab"
+  ]
+ }
+}

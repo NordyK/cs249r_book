@@ -1,0 +1,67 @@
+{
+ "title": "The Trajectory Log",
+ "summary": "Work through The Trajectory Log.",
+ "source": {
+  "chapter": "v3-11",
+  "sections": [
+   "The Trajectory Log",
+   "The log as recorded evidence",
+   "The log event schema"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **The Trajectory Log**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Durable Execution, § The Trajectory Log",
+   "md": "A replacement worker can rebuild the crashed trajectory only from what the failed worker wrote somewhere that outlived it, so the first design question is what outliving it means. If the worker host and its attached disk are destroyed together mid-turn, a replacement on an independent machine can resume only if the acknowledged history was already replicated to independent storage. Durability is therefore meaningful only relative to an explicit fault model that names which failures the stored history must survive."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The log as recorded evidence\n- The log event schema"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Trajectory log matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Recovery state comes from an append-only, typed trajectory log, and the live trajectory record is a deterministic fold over that log."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-11-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Trajectory Log** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Recovery state comes from an append-only, typed trajectory log, and the live trajectory record is a deterministic fold over that log.",
+      "An admitted operation whose effect cannot be proven present or absent is in doubt and must be reconciled before any re-dispatch, the recovery-side view of an uncertain outcome.",
+      "Resume is an authorized continuation in ordered stages (prove the prefix, acquire ownership with a fencing epoch, restore by fold, reconcile in-doubt operations) rather than a restart.",
+      "Debugging two executions steps boundary by boundary from a verified checkpoint to the first mismatch under a declared equivalence, because every later difference may be a consequence."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Trajectory log**: Recovery state comes from an append-only, typed trajectory log, and the live trajectory record is a deterministic fold over that log."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Trajectory log* reconstructs *Trajectory saga*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Trajectory log* reconstructs *Trajectory record*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through The Trajectory Log."
+   ]
+  }
+ ]
+}

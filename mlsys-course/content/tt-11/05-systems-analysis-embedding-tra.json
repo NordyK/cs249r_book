@@ -1,0 +1,115 @@
+{
+ "title": "Systems Analysis: Embedding Trade-offs & Hardware Scaling",
+ "summary": "TinyTorch embeddings: Systems Analysis: Embedding Trade-offs & Hardware Scaling",
+ "source": {
+  "chapter": "tt-11",
+  "sections": [
+   "Systems Analysis: Embedding Trade-offs & Hardware Scaling",
+   "Module Integration Test"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Embedding Trade-offs & Hardware Scaling\n\nIn large-scale language models, the embedding layer sits at the interface between host CPU tokenizers and GPU tensor accelerators. Understanding its memory footprint, memory bandwidth limitations, and parameter distribution is critical for production deployment.\n\n### Industry Model Embedding Architectures"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Architecture",
+    "Vocab Size \\$V\\$",
+    "Hidden Dim \\$d_{\\text{embed}}\\$",
+    "Context \\$T_{\\text{max}}\\$",
+    "Embedding Parameters",
+    "VRAM (FP16)",
+    "Positional Strategy"
+   ],
+   "rows": [
+    [
+     "**BERT-Base**",
+     "\\$30{,}522\\$",
+     "\\$768\\$",
+     "\\$512\\$",
+     "\\$23.44\\text{M}\\$",
+     "\\$46.88\\text{ MB}\\$",
+     "Learned Absolute"
+    ],
+    [
+     "**GPT-2 Small**",
+     "\\$50{,}257\\$",
+     "\\$768\\$",
+     "\\$1{,}024\\$",
+     "\\$38.60\\text{M}\\$",
+     "\\$77.19\\text{ MB}\\$",
+     "Learned Absolute"
+    ],
+    [
+     "**GPT-3 (175B)**",
+     "\\$50{,}257\\$",
+     "\\$12{,}288\\$",
+     "\\$2{,}048\\$",
+     "\\$617.56\\text{M}\\$",
+     "\\$1{,}235.1\\text{ MB}\\$ (\\$1.2\\text{ GB}\\$)",
+     "Learned Absolute"
+    ],
+    [
+     "**Llama 2 (7B)**",
+     "\\$32{,}000\\$",
+     "\\$4{,}096\\$",
+     "\\$4{,}096\\$",
+     "\\$131.07\\text{M}\\$",
+     "\\$262.14\\text{ MB}\\$",
+     "Rotary (RoPE)"
+    ],
+    [
+     "**Llama 3 (8B)**",
+     "\\$128{,}256\\$",
+     "\\$4{,}096\\$",
+     "\\$8{,}192\\$",
+     "\\$525.34\\text{M}\\$",
+     "\\$1{,}050.7\\text{ MB}\\$ (\\$1.05\\text{ GB}\\$)",
+     "Rotary (RoPE)"
+    ],
+    [
+     "**Gemma 2 (2B)**",
+     "\\$256{,}000\\$",
+     "\\$2{,}304\\$",
+     "\\$8{,}192\\$",
+     "\\$589.82\\text{M}\\$",
+     "\\$1{,}179.6\\text{ MB}\\$ (\\$1.18\\text{ GB}\\$)",
+     "Rotary (RoPE)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Memory Scaling Invariants\n\\$\\$\\text{Memory}_{\\text{token}} = V \\cdot d_{\\text{embed}} \\cdot (\\text{bytes per parameter})\\$\\$\n\\$\\$\\text{Memory}_{\\text{pos}} = T_{\\text{max}} \\cdot d_{\\text{embed}} \\cdot (\\text{bytes per parameter})\\$\\$\n\nNotice that in modern multilingual models like Llama 3 and Gemma 2, expanding vocabulary from \\$32\\text{K} \\to 128\\text{K}\\$ or \\$256\\text{K}\\$ causes the embedding table alone to exceed **\\$1\\text{ GB}\\$ of VRAM** in FP16 precision."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_embedding_memory_scaling():\n    \"\"\"📊 Compare embedding memory requirements across different model scales.\"\"\"\n    print(\"📊 Analyzing Embedding Memory Requirements...\")\n    print(\"   (all sizes in decimal MB, 1 MB = 10^6 bytes, matching this module's tables)\")\n    print(\"=\" * 60)\n\n    # Vocabulary and embedding dimension scenarios\n    scenarios = [\n        (\"Small Model\", 10_000, 256),\n        (\"Medium Model\", 50_000, 512),\n        (\"Large Model\", 100_000, 1024),\n        (\"GPT-3 Scale\", 50_257, 12_288),\n    ]\n\n    print(f\"{'Model':<15} {'Vocab Size':<12} {'Embed Dim':<12} {'Memory (MB)':<15} {'Parameters (M)':<15}\")\n    print(\"-\" * 80)\n\n    for name, vocab_size, embed_dim in scenarios:\n        # Calculate memory for FP32 (4 bytes per parameter)\n        params = vocab_size * embed_dim\n        memory_mb = params * BYTES_PER_FLOAT32 / BYTES_PER_MB\n        params_m = params / 1_000_000\n\n        print(f\"{name:<15} {vocab_size:<12,} {embed_dim:<12} {memory_mb:<15.1f} {params_m:<15.2f}\")\n\n    print(\"\\n💡 Key Insights:\")\n    print(\"• Embedding tables often dominate model memory (especially for large vocabularies)\")\n    print(\"• Memory scales linearly with vocab_size × embed_dim\")\n    print(\"• Consider vocabulary pruning for memory-constrained environments\")\n\n    # Positional encoding memory comparison\n    print(f\"\\n📊 Positional Encoding Memory Comparison (embed_dim=512, max_seq_len=2048):\")\n\n    learned_params = 2048 * 512\n    learned_memory = learned_params * BYTES_PER_FLOAT32 / BYTES_PER_MB\n\n    print(f\"Learned PE:     {learned_memory:.1f} MB ({learned_params:,} trainable parameters)\")\n    print(f\"Sinusoidal PE:  {learned_memory:.1f} MB stored table, 0 trainable parameters\")\n    print(f\"No PE:          0.0 MB (0 parameters)\")\n\n    print(\"\\n🚀 Production Implications:\")\n    print(\"• GPT-3's embedding table: ~2.4 GB in FP32, ~1.2 GB in FP16 (50K vocab × 12K dims)\")\n    print(\"• Learned PE adds memory but may improve task-specific performance\")\n    print(\"• Sinusoidal PE avoids gradient/optimizer storage; extend its table for longer sequences\")\n\nif __name__ == \"__main__\":\n    analyze_embedding_memory_scaling()"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_embedding_performance():\n    \"\"\"📊 Compare embedding lookup performance across different configurations.\"\"\"\n    print(\"\\n📊 Analyzing Embedding Lookup Performance...\")\n    print(\"=\" * 60)\n\n    import time\n\n    # Test different vocabulary sizes and batch configurations\n    vocab_sizes = [1_000, 10_000, 100_000]\n    embed_dim = 512\n    seq_len = 128\n    batch_sizes = [1, 16, 64, 256]\n\n    print(f\"{'Vocab Size':<12} {'Batch Size':<12} {'Lookup Time (ms)':<18} {'Throughput (tokens/s)':<20}\")\n    print(\"-\" * 70)\n\n    for vocab_size in vocab_sizes:\n        # Create embedding layer\n        embed = Embedding(vocab_size, embed_dim)\n\n        for batch_size in batch_sizes:\n            # Create random token batch\n            tokens = Tensor(rng.integers(0, vocab_size, (batch_size, seq_len)))\n\n            # Warmup\n            for _ in range(5):\n                _ = embed.forward(tokens)\n\n            # Time the lookup\n            start_time = time.perf_counter()\n            iterations = 100\n\n            for _ in range(iterations):\n                output = embed.forward(tokens)\n\n            end_time = time.perf_counter()\n\n            # Calculate metrics\n            total_time = end_time - start_time\n            avg_time_ms = (total_time / iterations) * 1000\n            total_tokens = batch_size * seq_len * iterations\n            throughput = total_tokens / total_time\n\n            print(f\"{vocab_size:<12,} {batch_size:<12} {avg_time_ms:<18.2f} {throughput:<20,.0f}\")\n\n    print(\"\\n💡 Performance Insights:\")\n    print(\"• Address arithmetic is O(1) per token, but the memory hierarchy is not.\")\n    print(\"  A 1,000 x 512 table is 2 MB and stays in cache; a 100,000 x 512 table is 205 MB\")\n    print(\"  and does not, which is why the largest vocabulary loses throughput at big batches.\")\n    print(\"• Throughput does not climb with batch size here. It is flat or falling, because the\")\n    print(\"  gather moves one row per token however the tokens are grouped; there is no\")\n    print(\"  per-element arithmetic for a wider batch to amortize.\")\n    print(\"• This sweep holds embed_dim fixed at 512, so it varies table size and batch, not\")\n    print(\"  width. What it does show is why the gather is bandwidth-bound at any width.\")\n    print(\"  Every lookup moves embed_dim x 4 bytes and performs zero FLOPs.\")\n    print(\"• Cache locality matters for repeated token patterns\")\n\nif __name__ == \"__main__\":\n    analyze_embedding_performance()"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 73 lines of code (starting with `def analyze_positional_encoding_strategies():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "## 🧪 Module Integration Test\n\nFinal validation that everything works together correctly before module completion."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Systems Analysis: Embedding Trade-offs & Hardware Scaling, Module Integration Test."
+   ]
+  }
+ ]
+}

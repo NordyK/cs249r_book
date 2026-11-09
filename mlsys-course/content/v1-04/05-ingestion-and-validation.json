@@ -1,0 +1,71 @@
+{
+ "title": "Ingestion and Validation",
+ "summary": "Compare ETL and ELT architectures regarding storage decoupled ingestion, schema evolution, and historical data retention.",
+ "source": {
+  "chapter": "v1-04",
+  "sections": [
+   "Ingestion and Validation",
+   "Batch vs. streaming ingestion patterns",
+   "ETL and ELT comparison",
+   "Quality through validation and monitoring",
+   "Data quality as code",
+   "Reliability through graceful degradation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare ETL and ELT architectures regarding storage decoupled ingestion, schema evolution, and historical data retention\n- Design reliable streaming data pipelines using Circuit Breaker and Dead Letter Queue (DLQ) patterns for fault isolation\n- Analyze the security and safety implications of unvalidated public data ingestion using the Microsoft Tay war story\n- Explain schema contracts and their role in preventing breaking changes across ML data pipelines"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Engineering, § Ingestion and Validation",
+   "md": "A crowdsourced wake-word recording arrives as a stereo MP3, a synthetic one as a mono WAV file at a different sampling rate, and a clip from a consenting user's device as a compressed fragment stamped in the wrong time zone. The ingestion boundary turns this mix into one consistent record format and decides which records may enter at all."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Batch vs. streaming ingestion patterns\n- ETL and ELT comparison\n- Quality through validation and monitoring\n- Data quality as code\n- Reliability through graceful degradation\n\nPay attention to: data drift metrics (PSI and K-S tests) and alerting bands; ETL vs. ELT architectural trade-offs in modern lakehouses; circuit breaker and dead letter queue (DLQ) reliability patterns; adversarial public ingestion risks (Microsoft Tay)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how a Circuit Breaker and a Dead Letter Queue (DLQ) can reduce cascading failures and preserve rejected records for replay in streaming ML ingestion. What conditions constrain these benefits?",
+   "md": "A Circuit Breaker stops calls to a failing dependency after a threshold, reducing cascading timeouts and resource pressure. Cached or default features require a validated feature-age and task-quality contract; otherwise requests are rejected. A durable, retained DLQ can isolate rejected records with error metadata for later inspection and replay. Preserving those records depends on successful durable writes, sufficient capacity, retention, access, and a usable replay path; these mechanisms do not guarantee freedom from data loss."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-04-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An ML engineering team is architecting an ingestion pipeline for tabular transaction data. They evaluate Extract-Transform-Load (ETL) versus Extract-Load-Transform (ELT). Which architectural trade-off correctly characterizes ELT in modern data lakehouses?",
+     "explanation": "The correct answer is C. ELT loads raw data directly into scalable lakehouse storage first and transforms it downstream using scalable query engines, preserving raw data history and decoupling ingestion from evolving feature logic. ELT decouples raw ingestion from transformation: retained raw events allow downstream engines to recompute features when definitions change. Retention, access controls, validation, and schema compatibility still constrain reuse. ETL transforms data before loading and may omit raw fields from the derived warehouse tables, but it can retain replayable raw inputs in a separate source archive. Comparing the two designs requires the same retention horizon, a stated replay source, and costs measured through the same feature-ready endpoint. The remaining options mischaracterize edge compute, schema requirements, or governance needs.",
+     "hint": "Think about: compare ETL and ELT architectures regarding storage decoupled ingestion, schema evolution, and historical data retention.",
+     "type": "single",
+     "options": [
+      "ELT executes all transformations in memory on the edge device before transmitting bytes to cloud storage.",
+      "ELT requires rigid upfront schema definitions (schema-on-write) and rejects any semi-structured data formats.",
+      "ELT loads raw data directly into scalable lakehouse storage first and transforms it downstream using scalable query engines, preserving raw data history and decoupling ingestion from evolving feature logic.",
+      "ELT eliminates the need for data governance and quality validation because transformations occur after storage."
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Using the 2016 Microsoft Tay chatbot incident, explain why public data ingestion surfaces require strict input validation, rate limiting, and adversarial filtering before data shapes model behavior.",
+   "md": "Microsoft Tay ingested uncurated public user interactions from Twitter to adapt its responses. Adversarial users exploited this unfiltered public surface with coordinated toxic prompts, causing the bot to tweet abusive statements within 16 hours. The incident demonstrates that any public ingestion path directly influencing model behavior acts as a security attack surface, requiring robust content filtering, anomaly detection, adversarial input controls, and rate limits to prevent malicious data from corrupting the system."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare ETL and ELT architectures regarding storage decoupled ingestion, schema evolution, and historical data retention.",
+    "You can now design reliable streaming data pipelines using Circuit Breaker and Dead Letter Queue (DLQ) patterns for fault isolation.",
+    "You can now analyze the security and safety implications of unvalidated public data ingestion using the Microsoft Tay war story.",
+    "You can now explain schema contracts and their role in preventing breaking changes across ML data pipelines."
+   ]
+  }
+ ]
+}

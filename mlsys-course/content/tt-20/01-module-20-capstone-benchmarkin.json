@@ -1,0 +1,104 @@
+{
+ "title": "Module 20: Capstone - Benchmarking & Submission",
+ "summary": "TinyTorch capstone: Module 20: Capstone - Benchmarking & Submission",
+ "source": {
+  "chapter": "tt-20",
+  "sections": [
+   "Module 20: Capstone - Benchmarking & Submission"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 20: Capstone - Benchmarking & Submission\n\nWelcome to the TinyTorch capstone! You've built an entire deep learning framework from scratch across 19 foundational modules. Now it is time to demonstrate your engineering achievements by systematically benchmarking a neural architecture, applying compound optimizations, and generating a verified submission that proves framework performance.\n\n\n  \n\n\n## 🔗 Prerequisites & Progress\n\n**You've Built**: The whole framework, from `Tensor` and `Function` through `Trainer`, `GPT`, and the optimization tier of `Profiler`, `QuantizedLinear`, `magnitude_prune`, `tiled_matmul`, `KVCache`, and Module 19's `precise_timer` and `BenchmarkResult`.\n**You'll Build**: `SimpleMLP` plus the two measurement methods that make a claim checkable, `BenchmarkReport.measure_latency` and `BenchmarkReport.measure_memory`, and you will drive the given `generate_submission`, `validate_submission_schema`, and `qualifies_event` to produce one validated `submission.json`.\n**You'll Enable**: Your own before-and-after evidence. Run `tito milestone run 06` to put a trained model through the same profile, optimize, re-measure cycle, then point `BenchmarkReport` at your milestone models (XOR, TinyDigits MLP and CNN, the Transformer) and compare them on latency, storage, and accuracy at once. Outside TinyTorch the same three habits, a recorded baseline, a schema-checked artifact, and a measurement that is allowed to disagree with you, are what MLflow, Pydantic, and a CI performance gate automate."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Systems Dimension",
+    "Previous Modules (01–19)",
+    "Capstone Synthesis (Module 20)",
+    "Production Parallel"
+   ],
+   "rows": [
+    [
+     "**Foundation Engine**",
+     "Tensors, Autograd, Optimizers, Training",
+     "Complete verified neural pipeline execution",
+     "PyTorch / LibTorch C++ Core"
+    ],
+    [
+     "**Architectures**",
+     "Convolutions (M09), Attention & Transformers (M12–M13)",
+     "Multi-layer perceptron & vision baselines",
+     "Hugging Face Transformers"
+    ],
+    [
+     "**Optimization Stack**",
+     "INT8 Quant (M15), Pruning (M16), Fusion (M17), KV Cache (M18)",
+     "Stacked transforms, measured rather than assumed",
+     "TensorRT, ONNX Runtime"
+    ],
+    [
+     "**Measurement Rigor**",
+     "Monotonic timing, warmup discard, confidence intervals (M19)",
+     "Schema-validated standardized benchmark submission",
+     "MLPerf Inference & Mobile Suite"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Architectural Roadmap"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Stage",
+    "Module Focus",
+    "Core Deliverable",
+    "Verification Target"
+   ],
+   "rows": [
+    [
+     "**1. Measurement**",
+     "Latency vs Throughput separation",
+     "Monotonic interval timing via `precise_timer()`",
+     "Zero cold-start cache distortion"
+    ],
+    [
+     "**2. Optimization**",
+     "Precision and sparsity transforms",
+     "Unstructured magnitude pruning, then simulated INT8 quantization",
+     "Each axis re-measured, including when it regresses"
+    ],
+    [
+     "**3. Validation**",
+     "Standardized submission fields",
+     "Strict type checking and range constraints",
+     "Schema-certified reproducible report"
+    ],
+    [
+     "**4. Submission**",
+     "Capstone events and qualification",
+     "Three-axis tradeoff documentation",
+     "Every claim traceable to a measurement in the file"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 🎯 Learning Objectives\nBy the end of this capstone, you will:\n1. Use Module 19's `precise_timer` to measure latency and throughput as two distinct physical measurements\n2. Apply the transforms from Modules 15 and 16 to a baseline model, and report what they did to latency, storage, and accuracy whether or not the news is good\n3. Generate standardized JSON submissions following industry best practices\n4. Validate submissions against a strict schema for end-to-end reproducibility\n5. Compare baseline against optimized on all three axes at once (speedup, compression ratio, accuracy delta), so a win on one axis cannot hide a loss on another\n6. Keep a machine-readable record of your own results that a future you, or a grader, can re-check\n\n## 📦 Where This Code Lives in the Final Package\n\n\n  \n\n\n**Learning Side:** You work in `modules/20_capstone/capstone.ipynb`  \n**Building Side:** Code exports to `tinytorch.olympics`"
+  },
+  {
+   "type": "text",
+   "md": "```python\n# Final package structure:\nfrom tinytorch.olympics import BenchmarkReport, generate_submission, save_submission, validate_submission_schema\nfrom tinytorch.olympics import OlympicEvent, qualifies_event\n\n# Benchmark your model\nreport = BenchmarkReport(model_name=\"my_model\")\nreport.benchmark_model(my_model, X_test, y_test)\n\n# Generate, validate, and save the submission (a plain dict, written as JSON)\nsubmission = generate_submission(report)\nvalidate_submission_schema(submission)\n# Eligibility is separate from a well-formed submission\nqualifies_event(report.metrics, OlympicEvent.LATENCY_SPRINT)\nsave_submission(submission, \"my_submission.json\")\n```\n\n**Why this matters:**\n- **Learning:** Complete workflow from raw model weights to shareable, reproducible evidence\n- **Production:** Standardized submission protocol mirroring MLPerf and Papers with Code standards\n- **Community:** Objective apples-to-apples performance comparisons across distinct hardware architectures\n- **Reproducibility:** Strict schema validation ensures experimental findings can be replicated and audited"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 20: Capstone - Benchmarking & Submission."
+   ]
+  }
+ ]
+}

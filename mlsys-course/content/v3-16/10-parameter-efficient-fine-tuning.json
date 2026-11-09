@@ -1,0 +1,60 @@
+{
+ "title": "Parameter-Efficient Fine-Tuning",
+ "summary": "Work through Parameter-Efficient Fine-Tuning.",
+ "source": {
+  "chapter": "v3-16",
+  "sections": [
+   "Parameter-Efficient Fine-Tuning",
+   "Parameter-state inventory",
+   "Adapter release and compatibility"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Parameter-Efficient Fine-Tuning**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Trajectory Fine-Tuning, § Parameter-Efficient Fine-Tuning",
+   "md": "Full fine-tuning of an agent policy updates and stores a complete replica of every base parameter, requiring the training system to allocate memory for base weights, gradients, and optimizer state across the entire model. For an adaptive-moment optimizer under mixed precision, that state is a higher-precision master copy of each weight plus two running moments, so each trained parameter carries several times the bytes of its weight. Training a second specialized agent role, such as a diagnostic planner or an execution monitor, duplicates that resource footprint in full."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Parameter-state inventory\n- Adapter release and compatibility"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Adapter state and modularity matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-16-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Parameter-Efficient Fine-Tuning** develops one of the chapter's claims. Which one?",
+     "options": [
+      "LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation.",
+      "Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed.",
+      "A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas.",
+      "A training example reconstructs each selected response's input exactly as the model received it, truncations and redactions included, under a recorded tokenizer and template configuration."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Adapter state and modularity**: LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Parameter-Efficient Fine-Tuning."
+   ]
+  }
+ ]
+}

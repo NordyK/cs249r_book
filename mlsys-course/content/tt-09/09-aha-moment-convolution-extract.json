@@ -1,0 +1,31 @@
+{
+ "title": "⭐ Aha Moment: Convolution Extracts Hierarchical Features",
+ "summary": "TinyTorch convolutions: ⭐ Aha Moment: Convolution Extracts Hierarchical Features",
+ "source": {
+  "chapter": "tt-09",
+  "sections": [
+   "⭐ Aha Moment: Convolution Extracts Hierarchical Features"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: Convolution Extracts Hierarchical Features\n\n**What you built:** Convolutional and pooling layers that transform raw spatial pixels into structured, invariant feature representations.\n\n**Why it matters:** Unlike dense linear layers that treat every input coordinate independently, `Conv2d` leverages weight sharing and local receptive fields to detect patterns regardless of spatial position. Combined with pooling and batch normalization, you have built the foundational engine of modern computer vision."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_convolutions() -> None:\n    \"\"\"🎯 See Conv2d process spatial data.\"\"\"\n    print(\"🎯 AHA MOMENT: Convolution Extracts Features\")\n    print(\"=\" * 45)\n\n    # Create a simple 8x8 \"image\" with 1 channel\n    image = Tensor(rng.standard_normal((1, 1, 8, 8)))\n\n    # Conv2d: 1 input channel → 4 feature maps\n    conv = Conv2d(in_channels=1, out_channels=4, kernel_size=3)\n\n    output = conv(image)\n\n    print(f\"Input:  {image.shape}  ← 1 image, 1 channel, 8×8\")\n    print(f\"Output: {output.shape}  ← 1 image, 4 features, 6×6\")\n    print(f\"\\nConv kernel: 3×3 sliding window\")\n    print(f\"Output smaller: 8 - 3 + 1 = 6 (no padding)\")\n\n    print(\"\\n✨ Conv2d detects spatial patterns in images!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Spatial Operations\n\nCongratulations! You have built the complete spatial computing foundation of TinyTorch.\n\n### Key Accomplishments\n- **Implemented `Conv2d`**: Explicit 7-nested loops demonstrating the \\$\\mathcal{O}(B \\cdot C_{\\text{out}} \\cdot H_{\\text{out}} \\cdot W_{\\text{out}} \\cdot K_h \\cdot K_w \\cdot C_{\\text{in}})\\$ complexity and spatial weight sharing.\n- **Formulated `BatchNorm2d`**: Dynamic mini-batch normalization during training versus frozen EMA tracking during inference, complete with 3-route backward autograd.\n- **Constructed Pooling Operators**: `MaxPool2d` (argmax routing) and `AvgPool2d` (uniform spatial dispersion) for \\$4\\times\\$ memory reduction.\n- **Engineered `SimpleCNN`**: End-to-end vision pipeline achieving \\$>139\\times\\$ parameter reduction compared to fully-connected MLPs.\n- **Analyzed MLSys Lowering**: Detailed trade-offs of `im2col` GEMM lowering, spatial memory footprints, and mobile depthwise-separable acceleration.\n\n### Systems Insights Discovered\n- **Weight sharing is a memory win before it is a statistical one**: `SimpleCNN` carries 25,578 parameters where the dense equivalent carries 3,578,510. That \\$139\\times\\$ reduction puts the entire parameter buffer in \\$\\approx 102\\$ KB, small enough to sit in L1/L2 cache, while the dense model's \\$\\approx 14.3\\$ MB has to be streamed from DRAM on every forward pass.\n- **Activations dominate parameters, and that is what fills the device**: those 25,578 parameters are stored once, but one sample's activations run to 60,426 elements (\\$\\approx 241.7\\$ KB), and autograd has to keep all of them live until the backward pass consumes them. At \\$B=32\\$ the activations outweigh the weights by roughly \\$75\\times\\$. This is the asymmetry that makes activation recomputation worth its extra forward pass.\n- **The seven-loop cost model tells you where the work is**: total work is \\$B \\cdot C_{\\text{out}} \\cdot H_{\\text{out}} \\cdot W_{\\text{out}} \\cdot K_h \\cdot K_w \\cdot C_{\\text{in}}\\$, quadratic in kernel width and quadratic in spatial resolution, so \\$3 \\times 3 \\to 7 \\times 7\\$ costs \\$5.44\\times\\$ more. `im2col` removes none of that arithmetic. It reshapes the loop nest into a GEMM that vendor BLAS can actually run near peak, and pays \\$K_h \\cdot K_w\\$ input duplication at stride \\$1\\$ for the privilege.\n- **Pooling buys the budget back, and spatial precision pays for it**: one \\$2 \\times 2\\$ stride-2 pool cuts the activation buffer \\$4\\times\\$ and the next layer's FLOPs \\$4\\times\\$, at the cost of knowing exactly where a feature was. Stack five and the feature map area falls \\$1{,}024\\times\\$, which is also why objects smaller than the pooling window can vanish.\n- **Store or recompute is a design choice, not a detail**: max-pool backward needs each window's argmax. PyTorch stores the indices in the forward pass and scatters, spending \\$8\\$ bytes per output element. This module stores nothing and re-scans every window. The gradients are identical and the resource bill is inverted, which is the same trade you will make again for every intermediate a backward pass needs.\n- **Train and eval are two different functions**: `BatchNorm2d` normalizes with batch statistics during training and with frozen running statistics during inference, so the same weights on the same input produce different outputs depending on the mode. There is no error and no crash when you forget to switch, only worse numbers, which is why the mode flag is checked in the layer rather than assumed by the caller.\n\n---\n\n### Ready for Next Steps\nAll spatial primitives export to `tinytorch.core.spatial` and integrate directly into TinyTorch's autograd engine. Images are now a first-class input to TinyTorch, alongside the plain vectors you started with in Module 01.\n\nExport with: `tito module complete 09`\n\n**Next**: Module 10 will turn raw text into token IDs with `BPETokenizer`, opening the second input modality that Modules 11 through 13 build a transformer on!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: Convolution Extracts Hierarchical Features."
+   ]
+  }
+ ]
+}

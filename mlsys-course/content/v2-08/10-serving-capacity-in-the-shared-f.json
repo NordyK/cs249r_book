@@ -1,0 +1,89 @@
+{
+ "title": "Serving Capacity in the Shared Fleet",
+ "summary": "Explain why serving replicas for large models are indivisible scheduling units in the shared fleet.",
+ "source": {
+  "chapter": "v2-08",
+  "sections": [
+   "Serving Capacity in the Shared Fleet",
+   "Resource isolation",
+   "GPU sharing economics",
+   "The training-serving resource boundary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain why serving replicas for large models are indivisible scheduling units in the shared fleet\n- Compare GPU resource sharing mechanisms (MIG, MPS, Time-slicing) along isolation, memory protection, and efficiency dimensions\n- Design an operational policy for harvesting diurnal idle inference GPU capacity for batch training\n- Analyze how mode-switching cost determines the timescale on which the training-serving boundary can move\n- Evaluate the interference conditions that must hold before GPU sharing reduces fleet size"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Orchestration, § Serving Capacity in the Shared Fleet",
+   "md": "When an e-commerce platform launches a major sale, requests can arrive faster than its serving replicas can process them. A training job may tolerate waiting in the admission queue; a serving request misses its deadline while additional capacity is still starting. To the fleet orchestrator, serving is therefore a claim on accelerators that must be honored quickly and that competes with training gangs for the same devices."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Resource isolation\n- GPU sharing economics\n- The training-serving resource boundary\n\nPay attention to: Serving capacity as a claim on the shared fleet: replicas as indivisible execution groups; Resource isolation: MIG vs. MPS vs. software time-slicing; GPU sharing economics, packing density, and the interference that memory fit alone does not reveal; The training-serving resource boundary, mode-switching cost, and diurnal capacity harvesting."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: How can an organization exploit predictable diurnal serving demand, and what readiness and reclamation contract is necessary to protect serving SLOs?",
+   "md": "Lend surplus serving capacity to opportunistic training during forecast low demand, while preserving already-ready headroom for bursts faster than reclamation. Begin transfers before predicted demand rises, allowing for the measured complete path through training checkpoint or shrink, cleanup, serving launch, weight loading, and warmup. Priority establishes which workload yields; it does not make released GPUs immediately ready or establish a universal overnight demand reduction. Size the reserve against burst demand, forecast error, and measured readiness delay."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-08-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why does the fleet orchestrator schedule a 175B-parameter serving replica as an eight-GPU group rather than as eight independent GPUs?",
+     "explanation": "The correct answer is B. A model of this size does not fit on one accelerator, so its replica is a tensor-parallel execution group that can accept requests only when every shard is resident. The orchestrator must therefore place the group atomically, just as it places a training gang. Pod-level GPU limits, full weight copies, and readiness checks are not the reason for the grouping.",
+     "hint": "Think about: explain why serving replicas for large models are indivisible scheduling units in the shared fleet.",
+     "type": "single",
+     "options": [
+      "Kubernetes cannot address more than one GPU per pod unless the pod is marked as a gang.",
+      "The replica's weights are sharded across a tensor-parallel group, so it can serve only when every member is placed; a partial placement delivers no serving capacity at all.",
+      "Eight independent GPUs would each need a full copy of the weights, which improves fault tolerance but wastes memory.",
+      "Grouping GPUs lets the orchestrator skip readiness checks for the replica."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In a multi-tenant inference environment hosting multiple smaller models on shared GPUs, what is the primary architectural trade-off between NVIDIA Multi-Process Service (MPS) and Multi-Instance GPU (MIG)?",
+     "explanation": "The correct answer is D. Modern MPS clients have separate virtual address spaces but share execution, memory bandwidth, capacity, and parts of the device fault domain. MIG provides hardware resource partitions and stronger performance and fault containment, with fixed profiles. Neither guarantees immunity to all device, host, or platform failures, and a client OOM is not itself proof that the entire MPS server crashes.",
+     "hint": "Think about: compare GPU resource sharing mechanisms (MIG, MPS, Time-slicing) along isolation, memory protection, and efficiency dimensions.",
+     "type": "single",
+     "options": [
+      "MIG is only supported on consumer GeForce cards, whereas MPS requires enterprise Grace Hopper superchips.",
+      "MPS provides sub-nanosecond hardware memory encryption, whereas MIG only supports unencrypted cleartext transfers.",
+      "MPS requires dedicated physical PCIe switches per tenant, whereas MIG operates over standard Ethernet cables.",
+      "MPS permits concurrent clients sharing execution and memory-bandwidth resources, while MIG partitions device compute and memory resources more strongly at the cost of fixed profiles and placement constraints."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "If two serving models fit together within an 80 GB GPU's memory under MPS, co-locating them is guaranteed to halve the number of GPUs the fleet needs without affecting latency.",
+     "explanation": "False. Memory fit is only the first admission condition. Co-located models under MPS share execution units and memory bandwidth, so two compute-bound models contend for the same SMs and each loses throughput, while differing isolated bottlenecks make a pair a candidate for complementary placement rather than prove compatibility. The size of either penalty must be measured for the actual pair. Consolidation is justified only after load testing shows that each co-resident pair still meets its throughput and tail-latency objectives with the required headroom.",
+     "hint": "Think about: evaluate the interference conditions that must hold before GPU sharing reduces fleet size.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Why can a shared fleet not move GPUs between training and serving in response to second-by-second traffic bursts, and how does the orchestrator use the diurnal traffic curve instead?",
+   "md": "The full path can include training checkpoint or shrink, allocation release and cleanup, inference launch, weight loading, and warmup, with any overlap measured for the runtime. When it takes minutes, it cannot cover bursts that exhaust ready headroom in seconds. The orchestrator therefore starts transfers ahead of forecast demand and retains already-ready reserve for faster changes; the required lead and reserve depend on the workload, startup measurements, and forecast error."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain why serving replicas for large models are indivisible scheduling units in the shared fleet.",
+    "You can now compare GPU resource sharing mechanisms (MIG, MPS, Time-slicing) along isolation, memory protection, and efficiency dimensions.",
+    "You can now design an operational policy for harvesting diurnal idle inference GPU capacity for batch training.",
+    "You can now analyze how mode-switching cost determines the timescale on which the training-serving boundary can move."
+   ]
+  }
+ ]
+}

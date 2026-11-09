@@ -1,0 +1,73 @@
+{
+ "title": "The Expanded Attack Surface",
+ "summary": "Analyze why traditional network perimeter defenses fail to prevent algorithmic attacks on ML models.",
+ "source": {
+  "chapter": "v2-13",
+  "sections": [
+   "The Expanded Attack Surface"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze why traditional network perimeter defenses fail to prevent algorithmic attacks on ML models\n- Compare the threat models and defense objectives of ML security versus ML privacy\n- Distinguish access and storage controls from privacy exposure through authorized model outputs"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Security & Privacy, § The Expanded Attack Surface",
+   "md": "A serving fleet can meet its latency target while an authenticated client collects enough responses to copy model behavior. A federated training job can converge while a participating device submits poisoned updates. The release gates and hierarchical monitoring that govern the fleet can report both systems healthy, because a copied model and a planted backdoor need not move any availability, latency, or aggregate-quality signal. Operational health alone therefore cannot establish security."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Algorithmic attack surface vs traditional perimeter security; Persistent learning vs transient processing; Security vs privacy definitions and threat models; Complementary access controls and release-level privacy."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: An inference service encrypts its stored training records and authenticates every caller, yet an authorized caller extracts memorized records from its predictions. Explain what the two controls protect and which privacy question remains.",
+   "md": "Encryption protects stored records from observers without the key, while authentication establishes the caller's identity. Authorization separately determines permitted actions. Neither alone bounds what an authorized prediction reveals about the training data. The remaining question is what the released model discloses about a protected contribution. That requires a release-level privacy analysis rather than assuming that secure storage and authenticated access establish privacy."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-13-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A security team deploys an enterprise ML inference service behind a web application firewall with strict mutual TLS (mTLS) authentication and rate limiting. Despite zero network-level intrusions, an external adversary reconstructs the model's proprietary decision boundaries and extracts memorized training records. What fundamental characteristic of ML systems explains this vulnerability?",
+     "explanation": "The correct answer is A. Traditional IT security protects the infrastructure perimeter through access control, transport encryption, and firewalls. However, ML systems introduce an orthogonal algorithmic attack surface: properly authenticated API queries containing crafted inputs leverage the model's learned parameters directly to elicit memorized data or reconstruct decision boundaries. The assertion regarding unencrypted tensors confuses transport-layer security with model-layer information leakage. The claim about JSON payload inspection confuses firewall protocol parsing with semantic model exploitation. The assertion regarding rate limiting confuses stream accounting with algorithmic leakage.",
+     "hint": "Think about: analyze why traditional network perimeter defenses fail to prevent algorithmic attacks on ML models.",
+     "type": "single",
+     "options": [
+      "ML models act on and compress learned data, exposing an algorithmic attack surface through properly authenticated inputs and valid response signals.",
+      "mTLS certificates fail to encrypt floating-point tensors at the network transport layer.",
+      "Traditional firewalls cannot inspect JSON payloads formatted as numerical arrays.",
+      "Token-bucket rate limiting in standard firewalls is incapable of tracking HTTP/2 request streams."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An ML platform engineer must classify two distinct failure modes: (1) a malicious actor submits crafted audio noise to cause an emergency dispatch classifier to miss distress calls, and (2) an observer examines a public salary prediction model and infers whether a specific executive was included in the training set. How should these two issues be categorized according to threat model and objective?",
+     "explanation": "The correct answer is B. Failure (1) represents a security attack where an active adversary intentionally crafts inputs to compromise system integrity (evasion/misclassification). Failure (2) represents a privacy issue where an observer infers sensitive individual participation from model outputs even without attacking system availability or exploiting software vulnerabilities. Classifying the audio perturbation as a privacy breach confuses confidentiality with operational integrity. Treating both as network infrastructure incidents ignores the algorithmic nature of the attacks. Classifying evasion as stochastic robustness overlooks the intentional worst-case adversary.",
+     "hint": "Think about: compare the threat models and defense objectives of ML security versus ML privacy.",
+     "type": "single",
+     "options": [
+      "(1) is a privacy violation targeting confidentiality; (2) is a security breach targeting system availability.",
+      "(1) is an adversarial security attack targeting model integrity; (2) is a privacy leakage issue targeting participation inference.",
+      "Both (1) and (2) are pure infrastructure security incidents requiring network-layer firewall rule updates.",
+      "(1) is a stochastic robustness failure; (2) is an unauthorized access control violation requiring credential rotation."
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze why traditional network perimeter defenses fail to prevent algorithmic attacks on ML models.",
+    "You can now compare the threat models and defense objectives of ML security versus ML privacy.",
+    "You can now distinguish access and storage controls from privacy exposure through authorized model outputs."
+   ]
+  }
+ ]
+}

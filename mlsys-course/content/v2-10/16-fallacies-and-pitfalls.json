@@ -1,0 +1,90 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Analyze why memory bandwidth, rather than memory capacity, bounds autoregressive decode throughput.",
+ "source": {
+  "chapter": "v2-10",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze why memory bandwidth, rather than memory capacity, bounds autoregressive decode throughput\n- Explain the queuing theory and autoscaling risks of provisioning inference fleets based on average rather than peak-plus-headroom demand\n- Evaluate the scope and limitations of continuous batching within the end-to-end LLM serving pipeline\n- Analyze the system-level memory, communication, and load balancing costs of scaling expert counts in MoE models\n- Evaluate quantized serving changes on the throughput-quality frontier rather than throughput alone"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Serving at Scale, § Fallacies and Pitfalls",
+   "md": "A DevOps team that applies its standard web-server load-balancing rules to a new fleet of GPU inference nodes can see tail latency climb sharply, because those rules ignore the extreme variance of autoregressive token generation. Web services also face variable work and queueing, but an inference fleet adds model residency, accelerator scheduling, and per-sequence state to those familiar concerns. The fallacies below arise when a serving design ignores these constraints or treats one optimization as a complete solution."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Fallacy: Inference at scale is synonymous with LLM serving; Pitfall: Sizing serving fleets for average throughput rather than peak + headroom; Fallacy: More GPU memory always increases decode throughput; Pitfall: Ignoring the serving tax and multi-tenant isolation."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A capacity planner provisions an inference serving fleet for 80% average utilization based on mean daily traffic. Why can traffic spikes exhaust headroom before reactive scaling helps, and what determines whether the P99 SLO is missed?",
+   "md": "Waiting grows sharply as utilization approaches one. At an 80% baseline, a 25% traffic increase reaches exactly 100% utilization, leaving no spare capacity to absorb arrival or service-time variation; a larger sustained increase exceeds capacity. Cold starts can take minutes, so reactive scaling may arrive after latency failures begin. Whether a spike misses the P99 SLO depends on its duration, the arrival and service-time distributions, the waiting budget, and admission policy. Capacity planning therefore needs measured peak behavior and ready headroom alongside average traffic."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-10-16-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team upgrades a cluster serving a 13B LLM from 80 GB GPUs to 140 GB GPUs with identical HBM3 memory bandwidth (3.35 TB/s). At an unchanged small batch and context length, with resident weights and weight-read-dominated decode, why does extra capacity alone not raise the bandwidth-limited throughput ceiling?",
+     "explanation": "The correct answer is B. At the same small batch and context length, when weight reads dominate decode and the resident model already fits, extra memory capacity does not increase the bandwidth ceiling. A larger admitted batch can nevertheless raise aggregate token throughput by sharing weight reads across more sequences while execution remains bandwidth-bound. The gain stops when KV traffic, compute, or the latency budget binds; crossing into a compute-bound regime is not required for batching to help.",
+     "hint": "Think about: analyze why memory bandwidth, rather than memory capacity, bounds autoregressive decode throughput.",
+     "type": "single",
+     "options": [
+      "Autoregressive decode is strictly compute-bound; increasing memory without adding Tensor Cores leaves execution time unchanged.",
+      "Autoregressive decode is memory-bandwidth bound ($D_{\\text{vol}} / \\text{BW}$); once model weights fit resident in memory, token generation speed is constrained by memory bandwidth, not total memory capacity.",
+      "140 GB GPUs automatically disable CUDA graph compilation, adding driver launch latency to every iteration.",
+      "The larger memory capacity forces PagedAttention block sizes to shrink from 16 tokens to 2 tokens."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Deploying continuous batching alone completely solves all throughput and latency bottlenecks in LLM serving.",
+     "explanation": "False. Continuous batching reuses slots at iteration boundaries. It does not remove the quadratic attention work of long full-attention prefills, shrink the KV tensors needed by admitted requests, or eliminate communication within sharded replicas. Additional mechanisms are selected for the binding constraint: chunking can limit prefill interference, paging can recover allocation waste, compatible prefix reuse can avoid repeated work, and sharding or replication can supply needed capacity. No fixed combination establishes the service contract without workload measurements.",
+     "hint": "Think about: evaluate the scope and limitations of continuous batching within the end-to-end LLM serving pipeline.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Because each token activates only a small fixed number of experts, raising an MoE model's expert count from 8 to 256 adds serving capacity at essentially no cost.",
+     "explanation": "False. Every expert occupies memory whether or not a token selects it, so more experts mean more devices or less KV headroom, and a distributed placement adds dispatch, combine, and imbalance costs. The design is justified only when a matched-quality comparison shows active-compute savings exceeding routing, imbalance, memory, and communication costs.",
+     "hint": "Think about: analyze the system-level memory, communication, and load balancing costs of scaling expert counts in MoE models",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A team moves its endpoint from INT8 to INT4 weights and INT4 KV cache, doubling tokens per second while held-out perplexity changes by less than 1 percent. What should it conclude before rollout?",
+     "explanation": "The correct answer is C. Throughput and quality form a frontier, and a precision choice is a point on it. Perplexity can stay nearly flat while users see worse answers on hard or rare inputs, so targeted quantization measures per-layer sensitivity, keeps sensitive tensors at higher precision, and evaluates diverse quality benchmarks alongside latency and throughput. Neither blanket acceptance nor blanket rejection follows from bit width alone.",
+     "hint": "Think about: evaluate quantized serving changes on the throughput-quality frontier rather than throughput alone",
+     "type": "single",
+     "options": [
+      "The change doubles useful capacity, because perplexity confirms quality is unchanged",
+      "The change is safe only if the KV cache returns to FP16, because weight precision never affects quality",
+      "Useful capacity has not been established: low-bit formats can degrade rare languages, edge cases, or reasoning while perplexity barely moves, so quality must be evaluated per layer and per task and reported beside throughput",
+      "The change should be rejected, because INT4 always reduces quality below an acceptable level"
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze why memory bandwidth, rather than memory capacity, bounds autoregressive decode throughput.",
+    "You can now explain the queuing theory and autoscaling risks of provisioning inference fleets based on average rather than peak-plus-headroom demand.",
+    "You can now evaluate the scope and limitations of continuous batching within the end-to-end LLM serving pipeline.",
+    "You can now analyze the system-level memory, communication, and load balancing costs of scaling expert counts in MoE models."
+   ]
+  }
+ ]
+}

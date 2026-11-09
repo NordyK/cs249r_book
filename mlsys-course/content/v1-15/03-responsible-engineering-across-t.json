@@ -1,0 +1,96 @@
+{
+ "title": "Responsible Engineering Across the Lifecycle",
+ "summary": "Calculate the expected data collection multiplier required for minority subgroup evaluation under random versus stratified sampling.",
+ "source": {
+  "chapter": "v1-15",
+  "sections": [
+   "Responsible Engineering Across the Lifecycle",
+   "Specify: Requirements before training",
+   "Measure: Fairness criteria for release",
+   "Explain and document: Decisions and models made legible",
+   "Operate: Fairness as loop stability"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate the expected data collection multiplier required for minority subgroup evaluation under random versus stratified sampling\n- Explain how pre-deployment model cards operate as enforced guard rails to prevent deployment scope creep\n- Analyze equal-opportunity and equalized-odds violations directly from group confusion matrices\n- Calculate two-sided utility changes under fairness threshold adjustments and justify presenting Pareto frontiers to stakeholders\n- Apply the bias feedback model to project when a launch-time fairness gap breaches its threshold and identify the loop change that stabilizes it"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Responsible Engineering, § Responsible Engineering Across the Lifecycle",
+   "md": "The recruiting tool and the care-management algorithm were both found to fail after the design options that could have addressed them were closed, so the lesson concerns timing more than vigilance. Each responsibility failure in this chapter has a point in the ML lifecycle before which it is cheap to prevent and after which it becomes expensive or impossible to repair, so responsible engineering is organized around that lifecycle rather than around a list of concerns."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Specify: Requirements before training\n- Measure: Fairness criteria for release\n- Explain and document: Decisions and models made legible\n- Operate: Fairness as loop stability\n\nPay attention to: 100x subgroup data requirements under random sampling; model cards as operational deployment constraints; confusion matrix fairness metrics (Demographic Parity, Equal Opportunity, Equalized Odds); price of fairness and Pareto frontier trade-offs."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A team plans to write their model card six months after launch so that it accurately reflects observed production behavior. Explain why this timing constitutes a guard-rail failure, and describe one concrete scope-creep risk that a pre-deployment model card with automated deployment checks prevents.",
+   "md": "A model card functions as an operational guard rail only when written before deployment to explicitly define intended use, validated populations, and excluded use cases that automated release checks can enforce. Writing the card after deployment turns it into a passive historical record that fails to constrain ongoing misuse. A concrete scope-creep risk prevented by pre-deployment checks is when a lightweight vision model validated only for consumer photo organization is repurposed without re-validation for high-stakes security screening or medical diagnostics."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-15-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An engineering team is evaluating a facial verification model. To estimate the error rate of a minority demographic group representing 1% of the population with a margin of error of $\\pm 1$ percentage point at 95% confidence, they require 10,000 labeled evaluation samples from that group. Under uniform random sampling from the natural population distribution, how many total images must the team collect and label in expectation?",
+     "explanation": "The correct answer is C. Dividing the required subgroup sample size (\\$10{,}000$) by the subgroup prevalence (\\$0.01$) yields an expected total collection size of $D_{\\text{eval,total}} = 10{,}000 / 0.01 = 1{,}000{,}000$ images—a \\$100\\times$ data collection multiplier. This demonstrates why relying on natural random distributions for fairness evaluation is prohibitively expensive and why intentional stratified data engineering is required. The 10,000 total images choice confuses subgroup sample requirements with overall dataset size, yielding only ~100 minority samples. The 100,000 total images choice underestimates the collection requirement by a factor of 10. The 10,000,000 total images choice applies an incorrect \\$1{,}000\\times$ scaling factor.",
+     "hint": "Think about: calculate the expected data collection multiplier required for minority subgroup evaluation under random versus stratified sampling.",
+     "type": "single",
+     "options": [
+      "About 10,000 total images, because evaluating subgroup accuracy requires only that the total test set contains 10,000 images.",
+      "About 100,000 total images, because statistical confidence intervals scale with the square root of the overall dataset size.",
+      "About 1,000,000 total images in expectation, because a 1% subgroup yields only 1 target image per 100 randomly sampled images, imposing a \\$100× multiplier.",
+      "About 10,000,000 total images, because the binomial confidence interval width expands exponentially for minority subgroups."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A loan approval classifier is evaluated on a fully labeled sample whose repayment outcomes are observed independently of its approval predictions. Group A (Majority): 4,500 True Positives, 500 False Negatives (TPR = 90%), 1,000 False Positives, 4,000 True Negatives (FPR = 20%). Group B (Minority): 600 True Positives, 400 False Negatives (TPR = 60%), 200 False Positives, 800 True Negatives (FPR = 20%). Which statement accurately diagnoses the fairness metrics for this system?",
+     "explanation": "The correct answer is C. Equal opportunity requires equal True Positive Rates among qualified applicants ($P(\\hat{Y}=1 \\mid Y=1, A=a) = P(\\hat{Y}=1 \\mid Y=1, A=b)$); the 30 percentage-point gap (90% vs. 60%) directly violates it. Equalized odds requires equality in both TPR and FPR ($P(\\hat{Y}=1 \\mid Y=y, A=a) = P(\\hat{Y}=1 \\mid Y=y, A=b)$ for $y \\in \\{0,1\\}$); matching FPRs (20% vs. 20%) cannot satisfy the criterion when TPRs differ. Demographic parity requires equal overall approval rates regardless of true qualifications, which is not measured by FPR. The calibration-only option incorrectly dismisses severe true-positive-rate disparities as benign accuracy differences.",
+     "hint": "Think about: analyze equal-opportunity and equalized-odds violations directly from group confusion matrices.",
+     "type": "single",
+     "options": [
+      "Demographic parity is satisfied because both groups share an identical False Positive Rate of 20%.",
+      "Equalized odds is satisfied because matching False Positive Rates compensate for differences in True Positive Rates.",
+      "Equal opportunity is violated due to the 30 percentage-point TPR gap, and equalized odds is also violated because equalized odds strictly requires parity in both TPR and FPR.",
+      "Calibration is the only metric affected, because True Positive Rate disparities impact accuracy but do not constitute algorithmic bias."
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: For the credit service, closing the 30 percentage-point TPR gap for Group B via threshold adjustment adds $\\$225$ in margin on newly approved loans that are repaid but creates $\\$300$ in losses on newly approved loans that default, per Group B applicant, whose baseline utility is $\\$150$ per applicant. Using the chapter's two-sided accounting, calculate the net utility change per applicant and explain what deliverable engineers owe stakeholders.",
+   "md": "The net change is FiniteChangeUtility = \\$225 - \\$300 = -\\$75 per Group B applicant, a 50% within-group utility loss relative to that group's \\$150 baseline. Rather than treating threshold adjustment as an automatic fix or imposing a value judgment, engineers owe stakeholders the explicit Pareto frontier along with all economic and base-rate assumptions, showing the exact trade-offs between fairness metrics and utility."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: After mitigation, the credit service ships with a 3 percentage-point TPR gap under a 5-point release threshold, and the next quarterly audit measures 3.3 points. Using the bias feedback model, estimate the fitted feedback factor and the retraining cycle in which the projected gap first exceeds the threshold. Why does the projection motivate changing what the loop observes rather than only shortening the audit interval?",
+   "md": "The fitted factor is \\$3.3/3.0 = 1.10 per quarter. The projected gap \\$3.0 × 1.10^FeedbackIntervalCount first exceeds 5 points when FeedbackIntervalCount > ln(5/3)/ln 1.10 approx 5.4, so on the sixth quarterly cycle, at about 5.3 points. Two audits do not validate future dynamics, so the factor must be refitted at every audit. Denied applicants generate no repayment labels, so each retraining learns from a population the previous model selected. Approving a small randomized sample of marginal applicants restores the censored outcomes and can bring the factor below one, so the gap decays instead of growing; a shorter audit interval only detects the breach sooner."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Subgroup fairness**: Declared error or decision-rate criteria measured across specified population slices and enforced at release.",
+    "**Bias feedback**: A feedback mechanism in which model decisions alter future observations and training data, potentially amplifying disparity."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Subgroup fairness",
+   "def": "Declared error or decision-rate criteria measured across specified population slices and enforced at release."
+  },
+  {
+   "term": "Bias feedback",
+   "def": "A feedback mechanism in which model decisions alter future observations and training data, potentially amplifying disparity."
+  }
+ ]
+}

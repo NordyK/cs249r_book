@@ -1,0 +1,112 @@
+{
+ "title": "Training Benchmarks",
+ "summary": "Compare the primary benchmark objectives, memory demands, and serving constraints that distinguish training from inference.",
+ "source": {
+  "chapter": "v1-12",
+  "sections": [
+   "Training Benchmarks",
+   "Training benchmark motivation",
+   "Training metrics",
+   "Training performance evaluation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare the primary benchmark objectives, memory demands, and serving constraints that distinguish training from inference\n- Analyze why time-to-accuracy is the primary benchmark metric for training systems rather than raw sample throughput\n- Calculate strong-scaling efficiency and recognize why profiling is required to attribute sublinear speedup to specific bottlenecks\n- Analyze how reduced precision can improve per-step throughput yet still worsen total time-to-quality when convergence changes\n- Explain the distinction between strong scaling and weak scaling in distributed ML training evaluation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Benchmarking, § Training Benchmarks",
+   "md": "Training and inference fail in opposite ways on the same accelerator. A training run stalls when synchronizing gradients across accelerators saturates the interconnect; a serving deployment violates its SLO when request bursts build a queue. The two regimes also measure different resources. Training iteratively refines parameters over billions of samples and must hold parameters, gradients, optimizer state, and the activations retained for the backward pass, a footprint that can far exceed the weights alone (a later section gives ResNet-50's). Its figure of merit is wall-clock time to a target accuracy."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Training benchmark motivation\n- Training metrics\n- Training performance evaluation\n\nPay attention to: Time-to-accuracy vs sample throughput; Strong scaling vs weak scaling efficiency calculations; Precision effects on convergence trajectory; Non-compute bottlenecks: data loaders, communication, checkpointing."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why a reduced-precision training configuration (such as FP8 or BF16) that achieves a \\$1.8× step-level throughput gain could result in a longer wall-clock time-to-accuracy than standard FP32 training.",
+   "md": "Faster steps do not guarantee faster convergence. Reduced precision can change optimization behavior enough that the model needs more update steps to reach the same quality target; if it needs \\$2.5\\times$ more steps, the total training time becomes about \\$2.5 / 1.8 \\approx 1.39\\times$ longer despite the per-step speedup. For example, an FP8 path may require extra stabilization or lose numerical fidelity on a sensitive workload, while BF16 usually preserves FP32's exponent range but still changes mantissa precision. The practical consequence is that training benchmarks must compare time-to-quality, not step throughput alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-12-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "How do the primary benchmarking objectives and resource bottlenecks fundamentally differ between training systems and inference serving systems?",
+     "explanation": "The correct answer is C. Training is dominated by the optimization loop, so benchmarks care about sustained throughput and time-to-quality while accounting for weights, gradients, activations, and optimizer state. Inference removes the backward pass and optimizer state, shifting attention toward serving metrics such as latency percentiles, throughput, cold-start behavior, and energy per query. The other choices either swap the regimes or ignore the extra state and distinct objectives that training introduces.",
+     "hint": "Think about: compare the primary benchmark objectives, memory demands, and serving constraints that distinguish training from inference.",
+     "type": "single",
+     "options": [
+      "Training is latency-critical with millisecond deadlines, whereas inference is throughput-oriented over weeks",
+      "Training memory footprint is dominated solely by static weights, whereas inference requires large optimizer states",
+      "Training optimizes for sustained throughput (samples/sec) and time-to-quality across accelerator systems with large memory demands (weights, gradients, optimizer states, activations), whereas inference optimizes for latency percentiles (p50, p99), QPS, and energy per query under serving constraints",
+      "Training and inference have identical memory access patterns and evaluate the exact same metrics"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Why does MLPerf Training mandate *time-to-accuracy* (or time-to-quality) as its primary benchmark metric instead of raw throughput measured in samples per second?",
+     "explanation": "The correct answer is D. Measuring throughput (samples/sec) in isolation creates an optimization trap: a system could double sample throughput by using numerical shortcuts (e.g., aggressive low precision or excessive learning rates) that cause divergence or require \\$3× more iterations to reach the target loss. Time-to-accuracy ties computational speed directly to algorithmic convergence, ensuring that reported performance gains translate into reduced wall-clock training time. Digital timers measure throughput accurately; time-to-accuracy requires full execution rather than simple simulation; batch sizes are fully defined in benchmark configurations.",
+     "hint": "Think about: analyze why time-to-accuracy is the primary benchmark metric for training systems rather than raw sample throughput.",
+     "type": "single",
+     "options": [
+      "Samples per second cannot be measured accurately with digital timers",
+      "Time-to-accuracy is easier to simulate without running actual GPUs",
+      "Hardware vendors do not know the batch size used during training",
+      "Raw sample throughput can be artificially inflated by using aggressive low precision or extreme batch sizes that destabilize training, whereas time-to-accuracy ensures throughput optimizations actually converge to the required model quality"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A deep learning model trains on a single GPU in \\$24 hours. With the same total optimizer work, the same training schedule, and the same quality target on the same fixed total dataset (strong scaling), the run completes in \\$4 hours on \\$8 GPUs. What is the strong scaling efficiency, and does this timing result by itself identify the cause of the missing speedup?",
+     "explanation": "The correct answer is A. The speedup is $S = T_1 / T_8 = 24 / 4 = 6\\times$, so strong scaling efficiency is $E = S / N = 6 / 8 = 0.75$ (\\$75\\%$). That establishes sublinear scaling, but the elapsed times alone do not uniquely diagnose why the missing \\$25\\%$ was lost. Profiling is needed to separate communication from other causes such as serial work, input-pipeline limits, or load imbalance. The other answers either miscompute the efficiency or assert a causal mechanism the arithmetic does not support.",
+     "hint": "Think about: calculate strong-scaling efficiency and recognize why profiling is required to attribute sublinear speedup to specific bottlenecks.",
+     "type": "single",
+     "options": [
+      "\\$75\\% efficiency; profiling is still required to identify the cause of the missing speedup",
+      "\\$100\\%$ efficiency; the run achieved linear speedup because \\$24 / 4 = 6$",
+      "\\$50\\% efficiency; GPU memory bandwidth is cut in half whenever multiple GPUs are connected",
+      "\\$12.5\\% efficiency; training time only decreased by a factor of 6"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In distributed training benchmarks, the scaling regime where the total workload remains constant as the number of accelerator nodes increases is known as ____.",
+     "explanation": "strong scaling. Strong scaling keeps the total work fixed while more processors are added, so the question is whether elapsed time falls in proportion. It matters because any gap from ideal scaling exposes communication, serial work, or imbalance that extra hardware does not remove.",
+     "hint": "Think about: explain the distinction between strong scaling and weak scaling in distributed ML training evaluation.",
+     "type": "fill",
+     "answer": [
+      "strong scaling"
+     ]
+    },
+    {
+     "q": "Order the following operational stages of an illustrative successful ML training time-to-accuracy benchmark run from start to finish:",
+     "explanation": "The correct order is: (3) Initialize model parameters and data loaders using the run's documented seed and standardized preprocessing, (2) Execute distributed forward-backward iterations with gradient synchronization across nodes, (5) Perform periodic evaluation on the held-out validation dataset at predefined intervals, (4) Check whether the validation accuracy meets or exceeds the declared target quality threshold, (1) Halt training execution and log total elapsed wall-clock time-to-accuracy. Initialization must happen before any training work. Validation can only occur after training has advanced, and the target check depends on having a validation result to inspect. In this successful run, training stops only after the declared quality threshold is satisfied and the elapsed time can be recorded under the run rule.",
+     "hint": "Think about: order the stages of an illustrative successful time-to-accuracy training run from initialization through target-quality termination.",
+     "type": "order",
+     "items": [
+      "Initialize model parameters and data loaders using the run's documented seed and standardized preprocessing",
+      "Execute distributed forward-backward iterations with gradient synchronization across nodes",
+      "Perform periodic evaluation on the held-out validation dataset at predefined intervals",
+      "Check whether the validation accuracy meets or exceeds the declared target quality threshold",
+      "Halt training execution and log total elapsed wall-clock time-to-accuracy"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare the primary benchmark objectives, memory demands, and serving constraints that distinguish training from inference.",
+    "You can now analyze why time-to-accuracy is the primary benchmark metric for training systems rather than raw sample throughput.",
+    "You can now calculate strong-scaling efficiency and recognize why profiling is required to attribute sublinear speedup to specific bottlenecks.",
+    "You can now analyze how reduced precision can improve per-step throughput yet still worsen total time-to-quality when convergence changes."
+   ]
+  }
+ ]
+}

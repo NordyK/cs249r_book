@@ -1,0 +1,114 @@
+{
+ "title": "Data Processing",
+ "summary": "Apply the consistency imperative by synchronizing stateful transformation parameters between training and serving.",
+ "source": {
+  "chapter": "v1-04",
+  "sections": [
+   "Data Processing",
+   "Training-serving consistency",
+   "Feature computation placement",
+   "Idempotent transformations",
+   "Distributed processing",
+   "Feature stores"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Apply the consistency imperative by synchronizing stateful transformation parameters between training and serving\n- Explain why operations that exchange summaries stay cheap across machines while operations that exchange records pay network transfer and coordination costs\n- Explain the importance of idempotent transformations and deterministic pipelines for safe fault recovery\n- Analyze the root causes of training-serving skew beyond shared source code\n- Sequence the steps required to preserve training-serving consistency for stateful audio transformations"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Engineering, § Data Processing",
+   "md": "The keyword spotter learns from audio features computed by a library on a training server, and it runs on a device whose feature code is written separately for a microcontroller. If the two compute the same features even slightly differently, the deployed model receives inputs unlike any it learned from, and nothing raises an error. Processing cannot add capability the data lacks, but it can silently remove capability the data has."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Training-serving consistency\n- Feature computation placement\n- Idempotent transformations\n- Distributed processing\n- Feature stores\n\nPay attention to: the consistency imperative and state synchronization; what changes when data processing spans several machines; idempotency and determinism in pipeline transformations; root causes of training-serving skew."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Define idempotency in the context of data transformation pipelines and explain why idempotent operations (such as upserts) are essential for fault recovery in distributed ML pipelines.",
+   "md": "Idempotency means applying an operation multiple times produces the exact same system state as applying it once ($f(f(x)) = f(x)$). In distributed pipelines subject to network timeouts and worker crashes, retry mechanisms can execute the same task repeatedly; non-idempotent operations (such as appending rows) create duplicate records and corrupt gradient updates, whereas idempotent operations (such as database upserts or deterministic partition overwrites) allow safe retries without duplicating data."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-04-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An engineer normalizes a numerical feature by computing standard $z$-scores: $x' = (x - \\mu)/\\sigma$. During production serving, how must the parameters $\\mu$ and $\\sigma$ be handled to satisfy the consistency imperative and prevent training-serving skew?",
+     "explanation": "The correct answer is A. Persist the exact $\\mu$ and $\\sigma$ computed on the training dataset alongside the model artifact, loading and applying those fixed constants to live serving inputs. The consistency imperative requires state synchronization across training and serving: transformation parameters computed during training (means, standard deviations, one-hot vocabularies, embedding lookups) must be persisted and reused during serving. Recomputing statistics dynamically over live batches or rolling windows alters the feature scale relative to what the model learned, creating training-serving skew and causing silent prediction degradation. Relying on neural batch normalization does not resolve pre-network input feature scaling.",
+     "hint": "Think about: apply the consistency imperative by synchronizing stateful transformation parameters between training and serving.",
+     "type": "single",
+     "options": [
+      "Persist the exact $\\mu$ and $\\sigma$ computed on the training dataset alongside the model artifact, loading and applying those fixed constants to live serving inputs.",
+      "Recompute $\\mu$ and $\\sigma$ dynamically over each incoming serving batch to ensure the live data is always centered at zero.",
+      "Discard $\\mu$ and $\\sigma$ entirely at inference time and rely on batch normalization layers inside the neural network.",
+      "Compute $\\mu$ and $\\sigma$ independently over a rolling 1-hour window of serving traffic to track seasonal shifts."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A feature pipeline outgrows one server and its data is split into partitions across several machines. Which operation adds the least network transfer in the cluster compared with running it on one machine?",
+     "explanation": "The correct answer is C. Computing a global mean, because each machine can reduce its own partition to a partial sum and count and send only that summary. A decomposable reduction exchanges one small partial result per partition, so the network carries almost nothing and the computation stays where the data already lives. A shuffle or a join must send records, not summaries, across partitions, and gathering every partition onto one machine moves the entire dataset over the network before any work begins. Once processing spans machines, network transfer, data locality, and coordination with slow or failed workers become first-order costs that a single machine never pays.",
+     "hint": "Think about: explain why operations that exchange summaries stay cheap across machines while operations that exchange records pay network transfer and coordination costs.",
+     "type": "single",
+     "options": [
+      "A join between two tables partitioned on different keys, because the database engine performs the join automatically.",
+      "A global shuffle that regroups every record by speaker identifier, because each record moves only once.",
+      "Computing a global mean, because each machine can reduce its own partition to a partial sum and count and send only that summary.",
+      "Gathering all partitions onto one coordinator machine before any processing, because a single machine avoids coordination entirely."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Using the identical Python preprocessing function in both training and serving code repositories is sufficient to eliminate training-serving skew.",
+     "explanation": "False. Sharing code logic is necessary but insufficient. Training-serving skew also arises from state desynchronization (using different normalization constants or vocabulary encodings), temporal dependencies (using current clock time rather than fixed reference timestamps), timing differences (batch aggregations over historical tables vs. live event streams), and environmental library version mismatches.",
+     "hint": "Think about: analyze the root causes of training-serving skew beyond shared source code.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the following steps for keeping an audio feature transformation consistent between training and serving:",
+     "explanation": "The correct order is: (1) split the data into the appropriate training and evaluation partitions, (3) fit any transformation state, such as normalization or vocabulary parameters, using only the training partition, (2) version the transformation code together with the fitted transformation state, (4) reuse the same transformation or a validated equivalent during serving and check that outputs stay within an accepted tolerance. The ordering is necessary because fitting before splitting would leak evaluation information into the transformation state, and serving cannot safely reuse the transform until both the code and fitted parameters have been captured as versioned artifacts. Swapping the last two would leave the deployment path using untracked or mismatched preprocessing, which is exactly the training-serving skew the section warns against.",
+     "hint": "Think about: sequence the steps required to preserve training-serving consistency for stateful audio transformations.",
+     "type": "order",
+     "items": [
+      "split the data into the appropriate training and evaluation partitions",
+      "fit any transformation state, such as normalization or vocabulary parameters, using only the training partition",
+      "version the transformation code together with the fitted transformation state",
+      "reuse the same transformation or a validated equivalent during serving and check that outputs stay within an accepted tolerance."
+     ]
+    },
+    {
+     "q": "How does a feature store's point-in-time correctness (time-travel join) prevent data leakage during offline training dataset generation?",
+     "explanation": "The correct answer is D. It reconstructs feature values exactly as they existed at the observation timestamp of each training event, preventing future feature values from leaking into historical training records. When generating training datasets from historical logs, naive table joins risk using feature values computed after the prediction event occurred (e.g., joining an event at $t=10:00$ with an aggregate feature updated at $t=12:00$). A feature store's point-in-time join ensures that each training example receives features valid precisely as of its event timestamp, excluding future-data leakage only when it also preserves what information was actually available to the prediction path at that time, including late events and later backfills. Encryption, client-side inference, and UTC string conversion do not prevent temporal leakage.",
+     "hint": "Think about: explain how feature store point-in-time correctness prevents temporal data leakage during training dataset construction.",
+     "type": "single",
+     "options": [
+      "It encrypts historical feature values so that model weights cannot memorize training labels.",
+      "It forces all features to be computed strictly in real time on the client device during model inference.",
+      "It converts all timestamps into UTC strings to prevent database indexing errors.",
+      "It reconstructs feature values exactly as they existed at the observation timestamp of each training event, preventing future feature values from leaking into historical training records."
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Training-serving parity**: Agreement between the feature values produced by training and serving transformations for the same raw request."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Training-serving parity",
+   "def": "Agreement between the feature values produced by training and serving transformations for the same raw request."
+  }
+ ]
+}

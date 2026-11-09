@@ -1,0 +1,114 @@
+{
+ "title": "Execution: From Graphs to Kernels",
+ "summary": "Analyze why operator fusion mitigates memory-wall bottlenecks for low arithmetic intensity layers.",
+ "source": {
+  "chapter": "v1-07",
+  "sections": [
+   "Execution: From Graphs to Kernels",
+   "Computational graphs",
+   "The memory wall and kernel fusion",
+   "Eager execution with dynamic graphs",
+   "Dispatch overhead in eager execution",
+   "Static computation graphs",
+   "Graph capture and JIT compilation",
+   "Compilation and dispatch costs",
+   "Static runtimes for microcontrollers"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze why operator fusion mitigates memory-wall bottlenecks for low arithmetic intensity layers\n- Compare trace-based capture with modern graph capture for data-dependent control flow\n- Explain how the dispatch overhead law causes GPU underutilization on small eager-mode operations\n- Evaluate the operational behavior and performance impact of graph breaks in graph-capture JIT compilers\n- Order the stages of a graph-capture compilation pipeline from eager program capture to cached hardware execution"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Frameworks, § Execution: From Graphs to Kernels",
+   "md": "Consider two engineers writing the same neural network. The first debugs interactively, printing tensor shapes after each operation, inspecting intermediate values, and stepping through code with `pdb`. The second waits through a compilation step, then watches a model built from many small operations run faster while losing that direct, line-by-line view of intermediate state. Both are correct; they have made different choices about the **execution problem**, the question of whether operations should execute immediately as written or be recorded for later execution."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Computational graphs\n- The memory wall and kernel fusion\n- Eager execution with dynamic graphs\n- Dispatch overhead in eager execution\n- Static computation graphs\n- Graph capture and JIT compilation\n- Compilation and dispatch costs\n- Static runtimes for microcontrollers\n\nPay attention to: The memory wall and arithmetic intensity as the core motivation for operator fusion; Execution strategies: Eager (define-by-run) vs Static graphs (define-and-run) vs Graph-capture JIT; The dispatch overhead law and its dispatch overhead ratio (about 15 MicroUnitPrefixs of Python dispatch plus kernel launch per eager operation); Tracing versus bytecode inspection (TorchDynamo), graph breaks, and the torch.compile pipeline (FX, AOTAutograd, TorchInductor)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: State the dispatch overhead law and explain why a workload composed of many small tensor operations on a fast GPU can be severely underutilized in eager mode even when the hardware has high peak throughput.",
+   "md": "The dispatch overhead law states that overhead dominates when the software dispatch time becomes large relative to hardware execution time, modeled in the chapter as $\\frac{N_{\\text{ops}} \\cdot t_{\\text{dispatch}}}{T_{\\text{compute}} + T_{\\text{memory}}} > 1$ under a no-overlap approximation. In the chapter's small-operation scenario, each eager op pays host dispatch and launch work while the device kernels themselves are very short, so end-to-end time is driven more by repeated host overhead than by arithmetic or memory throughput. For example, a small MLP can spend most of its step time in dispatch even on an A100-class GPU. The practical implication is that fusion or graph capture helps not by changing the math, but by reducing how often the host must launch tiny pieces of work."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-07-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A GPU performance profile reveals that a sequence of LayerNorm, dropout, and GELU activation operations spends over 80% of its execution time reading and writing intermediate tensors to High Bandwidth Memory (HBM) with very low arithmetic intensity. Why is operator fusion the primary framework optimization for this workload?",
+     "explanation": "The correct answer is D. Element-wise and normalization layers have low arithmetic intensity and are memory-bandwidth-bound; operator fusion combines these sequential passes into a single GPU kernel that passes intermediate values through fast on-chip registers and SRAM, drastically reducing global HBM memory traffic. Precision quantization changes numerical representation rather than performing fusion. Modifying network architecture mischaracterizes a compiler optimization as a model alteration. Converting operations to memory-bound would degrade rather than improve arithmetic efficiency.",
+     "hint": "Think about: analyze why operator fusion mitigates memory-wall bottlenecks for low arithmetic intensity layers",
+     "type": "single",
+     "options": [
+      "It replaces 16-bit floating-point arithmetic with 8-bit integer arithmetic",
+      "It changes the model architecture to eliminate all non-linear activation functions",
+      "It converts compute-bound matrix multiplications into memory-bound operations",
+      "It fuses multiple sequential element-wise operations into a single GPU kernel, keeping intermediate values in on-chip SRAM/registers and eliminating redundant round trips to HBM"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A developer traces a PyTorch model containing data-dependent control flow such as `if tensor.sum() > 0: ...` using `torch.jit.trace`, then later runs inputs that should take the other branch. What is the most accurate description of the tracing risk and the modern graph-capture behavior described in the section?",
+     "explanation": "The correct answer is C. Tracing records the execution path actually observed for the example input, so a tensor-dependent Python branch can be baked in for that path and PyTorch commonly emits a `TracerWarning` about the resulting lack of generality. Modern graph capture is more flexible because it can compile supported regions and, with eager fallback enabled, return to eager execution at graph breaks rather than requiring the whole program to stay captured. The claim that tracing always crashes is too strong, and the idea that tracing creates a fully general branch-preserving graph misstates what trace-based capture records.",
+     "hint": "Think about: compare trace-based capture with modern graph capture for data-dependent control flow",
+     "type": "single",
+     "options": [
+      "Tracing always crashes immediately on tensor-dependent branches, whereas modern graph capture always compiles the entire program without fallback",
+      "Tracing converts the Python conditional into a fully general static graph branch, whereas modern graph capture removes the need for any control-flow assumptions",
+      "Tracing records the branch taken by the example input and may emit a `TracerWarning`, while modern graph capture can compile supported regions and, when eager fallback is enabled, return to eager execution at unsupported boundaries",
+      "Tracing silently succeeds for all future inputs, whereas modern graph capture fails only when the GPU lacks enough memory"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "When eager fallback is enabled in `torch.compile`, encountering a graph break necessarily halts execution with a runtime error because the unsupported Python code cannot be represented in the captured graph.",
+     "explanation": "False. With eager fallback enabled, a graph break ends the current captured region, executes the unsupported portion in eager mode, and can resume capture later. A full-graph requirement is the configuration that can turn such a break into an error.",
+     "hint": "Think about: evaluate the operational behavior and performance impact of graph breaks in graph-capture JIT compilers",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the stages of a generic graph-capture compilation pipeline from the first Python call to repeated execution of optimized code:",
+     "explanation": "The correct order is: (3) the frontend captures a region of tensor computation from the eager program, (1) an intermediate representation is built for the captured region, (5) optimization and lowering transform the captured region toward hardware-specific execution, (2) optimized executable code is cached for reuse under the same guards, (4) the compiled region executes on the target hardware. Capture has to happen before any IR exists; optimization and lowering require that representation; caching happens only after code has been produced; and execution uses the resulting cached artifact when the same assumptions still hold. Swapping capture with optimization would leave nothing to optimize, and swapping caching with execution would remove the compiled object that later calls are supposed to reuse.",
+     "hint": "Think about: order the stages of a graph-capture compilation pipeline from eager program capture to cached hardware execution",
+     "type": "order",
+     "items": [
+      "the frontend captures a region of tensor computation from the eager program",
+      "an intermediate representation is built for the captured region",
+      "optimization and lowering transform the captured region toward hardware-specific execution.",
+      "optimized executable code is cached for reuse under the same guards",
+      "the compiled region executes on the target hardware"
+     ]
+    },
+    {
+     "q": "In graph-capture JIT compilation systems like TorchDynamo, an event where the compiler encounters an unsupported dynamic Python construct (such as an unhandled C-extension call or dynamic side effect) and must pause graph capture to yield control to the Python interpreter is called a ____.",
+     "explanation": "The correct answer is graph break. A graph break splits the computational graph into multiple subgraphs separated by interpreted Python execution, which can increase kernel dispatch overhead.",
+     "hint": "Think about: identify the concept of a graph break in graph-capturing execution systems",
+     "type": "fill",
+     "answer": [
+      "The correct answer is graph break"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Dispatch overhead**: Host-side work paid to submit operations; many short kernels can make it dominate device execution."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Dispatch overhead",
+   "def": "Host-side work paid to submit operations; many short kernels can make it dominate device execution."
+  }
+ ]
+}

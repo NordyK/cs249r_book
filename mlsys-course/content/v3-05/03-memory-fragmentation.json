@@ -1,0 +1,67 @@
+{
+ "title": "Memory Fragmentation",
+ "summary": "Work through Memory Fragmentation.",
+ "source": {
+  "chapter": "v3-05",
+  "sections": [
+   "Memory Fragmentation",
+   "Reservation and growth",
+   "Two kinds of unused capacity"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Memory Fragmentation**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, KV Cache Management, § Memory Fragmentation",
+   "md": "When the repair agent runs an integration test and receives a compiler traceback or test log, its next generation step needs KV cache space for both its accumulated history and the newly ingested output. Yet neither the harness nor the serving engine knows in advance how many tokens the model will generate or how many tool turns will follow. A static footprint calculation sizes the tokens processed so far."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Reservation and growth\n- Two kinds of unused capacity"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Paged KV allocation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Fixed-size blocks mapped by a per-sequence block table remove the stranded memory of full-cap reservation and bound tail waste below one block."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-05-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Memory Fragmentation** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A reusable prefix must be compatible, available, and permitted, and none of the three says whether the evidence is current, so freshness is enforced by the harness rewriting the prompt.",
+      "Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks.",
+      "By Little's law a fixed pool of slots sustains a turn rate inversely proportional to residence, so holding state through a synchronous tool wait divides the memory-bound turn rate by 1 + T_tool/T_model.",
+      "Fixed-size blocks mapped by a per-sequence block table remove the stranded memory of full-cap reservation and bound tail waste below one block."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Paged KV allocation**: Fixed-size blocks mapped by a per-sequence block table remove the stranded memory of full-cap reservation and bound tail waste below one block."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Paged KV allocation* reduces allocation waste within *KV footprint and resident fit*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Paged KV allocation reduces allocation waste within KV footprint and resident fit."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Memory Fragmentation."
+   ]
+  }
+ ]
+}

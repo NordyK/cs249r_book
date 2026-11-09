@@ -1,0 +1,148 @@
+{
+ "title": "Module 15: Quantization - Reduced Precision for System Efficiency",
+ "summary": "TinyTorch quantization: Module 15: Quantization - Reduced Precision for System Effic",
+ "source": {
+  "chapter": "tt-15",
+  "sections": [
+   "Module 15: Quantization - Reduced Precision for System Efficiency"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 15: Quantization - Reduced Precision for System Efficiency\n\nWelcome to Module 15! You will build an INT8 post-training quantization system, implement affine scaling with zero-point offsets, construct a `QuantizedLinear` layer, and model the \\$4\\times\\$ memory reduction achieved by moving from FP32 parameters to packed 8-bit integer storage.\n\n## 🔗 Prerequisites & Progress\n\n**You've Built**: Complete ML pipeline with model profiling and roofline bottleneck analysis (`14_profiling`).\n**You'll Build**: An INT8 quantization engine (`quantize_int8`, `dequantize_int8`, `QuantizedLinear`, `quantize_model`) with empirical activation calibration.\n**You'll Enable**: Modeling the \\$4\\times\\$ weight-storage compression and memory bandwidth reduction of INT8 serving, unlocking deployment on memory-constrained edge hardware.\n\n### Architectural Roadmap"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Tier",
+    "Subsystem",
+    "Primitives & Capabilities",
+    "Status"
+   ],
+   "rows": [
+    [
+     "**Modules 01–08**",
+     "Foundation Tier",
+     "`Tensor`, `Function`, `Linear`, `GELU`, `SGD`, `Adam`, `Trainer`",
+     "Completed"
+    ],
+    [
+     "**Modules 09–13**",
+     "Architecture Tier",
+     "`Conv2d`, `BPETokenizer`, `EmbeddingLayer`, `MultiHeadAttention`, `GPT`",
+     "Completed"
+    ],
+    [
+     "**Module 14**",
+     "Systems Diagnostics",
+     "`Profiler`, `count_flops`, `measure_memory`, `measure_latency`",
+     "Completed"
+    ],
+    [
+     "**Module 15**",
+     "**Reduced Precision**",
+     "`quantize_int8`, `dequantize_int8`, `QuantizedLinear`, `quantize_model`",
+     "**Active Subsystem**"
+    ],
+    [
+     "**Modules 16–20**",
+     "Advanced Optimization",
+     "`Compressor`, `vectorized_matmul`, `KVCache`, `BenchmarkSuite`, `BenchmarkReport`",
+     "Downstream Consumers"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 🎯 Learning Objectives\n\nBy the end of this module, you will:\n\n1. **Implement Min-Max Affine Quantization**: Derive scale \\$s = \\frac{\\beta - \\alpha}{255}\\$ and zero point \\$z = \\text{round}(-\\alpha / s) - 128\\$ to map continuous \\$\\mathbb{R}\\$ distributions onto the discrete INT8 grid \\$[-128, 127]\\$.\n2. **Build a QuantizedLinear Layer**: Construct a drop-in linear replacement that stores INT8 weight codes, maintains quantization metadata, and simulates quantized forward inference.\n3. **Execute Runtime Activation Calibration**: Collect intermediate activation tensors using representative forward passes with `training=False`, finding optimal dynamic ranges without retraining.\n4. **Distinguish Modeled INT8 Memory from NumPy Storage**: Understand that TinyTorch simulates quantization arithmetic while keeping codes in NumPy/Tensor storage, modeling real-world \\$4\\times\\$ packed byte savings (\\$W \\times 1\\text{ B}\\$ vs \\$W \\times 4\\text{ B}\\$).\n5. **Measure Layer-Wise Quantization Sensitivity**: Quantify relative error \\$\\|X - \\hat{X}\\|_F / \\|X\\|_F\\$ across layers to guide mixed-precision decisions.\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/15_quantization/quantization.ipynb`\n**Building Side:** Code exports to `tinytorch.perf.quantization`"
+  },
+  {
+   "type": "text",
+   "md": "```python\n# Final package structure:\nfrom tinytorch.perf.quantization import quantize_int8, dequantize_int8, QuantizedLinear, quantize_model\n```\n\n## 📋 Module Dependencies\n\n**Prerequisites**: Modules 01 (Tensor), 02 (Activations), 03 (Layers), and 14 (Profiling) must be complete\n\n**External Dependencies**:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dependency",
+    "Origin",
+    "Imported Symbols",
+    "Architectural Purpose in Quantization"
+   ],
+   "rows": [
+    [
+     "`numpy`",
+     "External",
+     "`np`, `default_rng`",
+     "Vectorized numerical operations and uniform array generation"
+    ],
+    [
+     "`inspect`",
+     "Standard Lib",
+     "`signature`",
+     "Reflection utility ensuring inference mode (`training=False`) during calibration"
+    ],
+    [
+     "`typing`",
+     "Standard Lib",
+     "`Tuple`, `Dict`, `List`, `Optional`, `Any`",
+     "Type hints"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**TinyTorch Dependencies**:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dependency",
+    "Origin",
+    "Imported Symbols",
+    "Architectural Purpose in Quantization"
+   ],
+   "rows": [
+    [
+     "`tinytorch.core.tensor`",
+     "Module 01",
+     "`Tensor`",
+     "Multi-dimensional array container holding weights and activations"
+    ],
+    [
+     "`tinytorch.core.layers`",
+     "Module 03",
+     "`Linear`, `Sequential`",
+     "Base linear transformation layers replaced during quantization"
+    ],
+    [
+     "`tinytorch.core.activations`",
+     "Module 02",
+     "`ReLU`",
+     "Non-linear activations traversed during forward calibration"
+    ],
+    [
+     "`tinytorch.perf.profiling`",
+     "Module 14",
+     "`Profiler`",
+     "Diagnostic profiler used to benchmark memory and parameter savings (imported in the profiling cells, not the exported package)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Dependency Flow**:\n```\nModule 01 (Tensor)              ──┐\nModule 02 (ReLU)                ──┤\nModule 03 (Linear, Sequential)  ──┼──→ Module 15 (Quantization)\nModule 14 (Profiler)            ──┘\n```"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import inspect\nimport numpy as np\nrng = np.random.default_rng(7)\nfrom typing import Tuple, Dict, List, Optional, Any\n\n# Import dependencies from other modules\nfrom tinytorch.core.tensor import Tensor\nfrom tinytorch.core.layers import Linear, Sequential\nfrom tinytorch.core.activations import ReLU\n\n# Constants for INT8 quantization\nINT8_MIN_VALUE = -128\nINT8_MAX_VALUE = 127\nINT8_RANGE = 256  # Number of possible INT8 values (from -128 to 127 inclusive)\nINT8_LEVELS = INT8_MAX_VALUE - INT8_MIN_VALUE  # 255 steps between the 256 levels\nEPSILON = 1e-8  # Stabilize relative-error measurements near zero variance\n\n# Constants for memory calculations\nBYTES_PER_FLOAT32 = 4  # Standard float32 size in bytes\nBYTES_PER_INT8 = 1  # INT8 size in bytes\nMB_TO_BYTES = 1_000_000  # Decimal megabyte (10^6 bytes), the convention used throughout TinyTorch"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 15: Quantization - Reduced Precision for System Efficiency."
+   ]
+  }
+ ]
+}

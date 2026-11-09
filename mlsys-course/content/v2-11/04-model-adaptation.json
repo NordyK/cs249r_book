@@ -1,0 +1,100 @@
+{
+ "title": "Model Adaptation",
+ "summary": "Explain how TinyTL reduces trainable and saved activation state without eliminating the full deployment memory budget.",
+ "source": {
+  "chapter": "v2-11",
+  "sections": [
+   "Model Adaptation",
+   "Transfer as the premise",
+   "Weight freezing",
+   "Structured parameter updates",
+   "Sparse updates"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain how TinyTL reduces trainable and saved activation state without eliminating the full deployment memory budget\n- Compare LoRA and Residual Bottleneck Adapters regarding inference latency, weight merging, and multi-tenant context swapping\n- Calculate storage savings of multi-tenant adapter personalization over full model fine-tuning\n- Apply low-rank matrix decomposition principles to parameter-efficient edge fine-tuning\n- Design a task-adaptive sparse parameter selection workflow using layer contribution profiling"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Edge Intelligence, § Model Adaptation",
+   "md": "The 10M-parameter model of a later section is an inference candidate for a smartwatch with … of total system memory, because its FP32 weights occupy …. Training every parameter would need the full … stack, most of the watch's memory before its operating system and foreground application take their share. The weight footprint alone does not establish inference fit; activation buffers, runtime workspace, and foreground reserve must also fit. Full-model training leaves much less room for that remaining state."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Transfer as the premise\n- Weight freezing\n- Structured parameter updates\n- Sparse updates\n\nPay attention to: Weight freezing and bias-only updates (BitFit / TinyTL memory reduction); Structured parameter updates (Residual Adapters vs LoRA); Multi-tenant edge personalization and Adapter Switching storage savings; Task-adaptive sparse updates (TinyTrain and contribution analysis)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A smart camera supports 10 personalization contexts. Its base model has 10M parameters (\\$40\\text{ MB}$ in FP32), and assume each complete adapter checkpoint occupies \\$200\\text{ KB}$. Compare storage for 10 full fine-tuned models with one shared base plus 10 adapters. Explain the architectural advantage.",
+   "md": "Ten full models require \\$400\\text{ MB}$. One \\$40\\text{ MB}$ base plus ten \\$0.2\\text{ MB}$ adapter checkpoints requires \\$42\\text{ MB}$. The incremental per-context checkpoint is \\$200\\times$ smaller, while total storage is about \\$9.5\\times$ smaller. Sharing the base enables compact context switching; the stated checkpoint size is an assumption, not a consequence of adapter rank alone, and excludes training state."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-11-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why does Tiny Transfer Learning (TinyTL) freeze convolutional backbone weights and adapt biases with optional lite residual modules?",
+     "explanation": "The correct answer is A. Frozen weights need no weight gradients or optimizer state, but they remain part of the deployed model. Gradients may still traverse frozen operators, and nonlinearities can require saved state. TinyTL reduces these costs through its adaptation path and operator choices; it does not guarantee an arbitrary backbone fits microcontroller SRAM. Bias updates do not modify frozen kernels.",
+     "hint": "Think about: explain how TinyTL reduces trainable and saved activation state without eliminating the full deployment memory budget.",
+     "type": "single",
+     "options": [
+      "Freezing removes backbone weight-gradient and optimizer state; suitable activation and normalization choices also reduce saved backward state.",
+      "Microcontroller hardware units physically short-circuit if matrix multiplications are performed in reverse during backpropagation.",
+      "Bias parameters have mathematical properties that prevent all forms of numerical underflow in 8-bit fixed-point arithmetic.",
+      "Training bias parameters modifies the underlying kernel weights directly through implicit singular value decomposition."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A mobile vision engineer chooses between Low-Rank Adaptation (LoRA) and Residual Bottleneck Adapters for on-device camera personalization. The system requires zero additional inference latency during real-time 60 FPS video capture, while another use case requires hot-swapping between 10 user contexts without reloading the base model. How do LoRA and Residual Adapters compare across these requirements?",
+     "explanation": "The correct answer is B. A compatible linear LoRA update can be merged as $W_{\\text{final}}=W_{\\text{base}}+BA$, removing separate adapter operations. Residual adapters retain their own computation, whose latency must be measured. Unmerged LoRA also supports context switching; the distinction is mergeability, not exclusive access to hot-swapping. Neither method requires copies of the entire base model per context.",
+     "hint": "Think about: compare LoRA and Residual Bottleneck Adapters regarding inference latency, weight merging, and multi-tenant context swapping.",
+     "type": "single",
+     "options": [
+      "Residual Adapters introduce zero inference latency because they replace the backbone, while LoRA requires recomputing matrix inverses on every video frame.",
+      "LoRA updates can be merged into compatible base weights to remove the adapter execution path, while residual adapters retain separate computation and support modular context switching.",
+      "LoRA updates require storing 10 full copies of the 7B base model in SRAM, whereas Residual Adapters operate without trainable parameters.",
+      "Both methods require identical memory footprints and add exactly 50 ms of inference latency per layer."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In structured parameter adaptation, a technique that approximates a full weight matrix update FiniteChangeWeightMatrix in mathbbR^WeightMatrixRowCount × WeightMatrixColumnCount as the product of a low-rank up-projection AdapterUpProjectionMatrix in mathbbR^WeightMatrixRowCount × AdapterRank and down-projection AdapterDownProjectionMatrix in mathbbR^AdapterRank × WeightMatrixColumnCount (where AdapterRank ll min(WeightMatrixRowCount, WeightMatrixColumnCount)) is known as ____ (low-rank adaptation).",
+     "explanation": "LoRA. Low-rank factors restrict the trainable update to a compact subspace, reducing parameter and optimizer-state storage relative to full-matrix adaptation.",
+     "hint": "Think about: apply low-rank matrix decomposition principles to parameter-efficient edge fine-tuning.",
+     "type": "fill",
+     "answer": [
+      "LoRA"
+     ]
+    },
+    {
+     "q": "Task-adaptive sparse updates use individual-layer profiling to propose a trainable subset. Order the steps from profiling to deployment:",
+     "explanation": "The correct order is (2) establish the frozen baseline, (1) profile individual layers, (4) rank and propose a subset, (5) measure the combined update, then (3) deploy the validated subset. Individual gains need not add, and shared backward dependencies change combined resource cost. Deploying directly from the ranking skips the joint feasibility and quality test; a subset that fails it must be revised or rejected.",
+     "hint": "Think about: design a task-adaptive sparse parameter selection workflow using layer contribution profiling.",
+     "type": "order",
+     "items": [
+      "Freeze the pretrained model to establish a baseline",
+      "Fine-tune each candidate layer separately and measure its validation gain and resource cost",
+      "Rank layers by gain per unit cost and propose a subset",
+      "Measure the selected combination against memory, energy, foreground-latency, and quality budgets, including profiling cost",
+      "Deploy the jointly validated subset with other parameters frozen"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain how TinyTL reduces trainable and saved activation state without eliminating the full deployment memory budget.",
+    "You can now compare LoRA and Residual Bottleneck Adapters regarding inference latency, weight merging, and multi-tenant context swapping.",
+    "You can now calculate storage savings of multi-tenant adapter personalization over full model fine-tuning.",
+    "You can now apply low-rank matrix decomposition principles to parameter-efficient edge fine-tuning."
+   ]
+  }
+ ]
+}

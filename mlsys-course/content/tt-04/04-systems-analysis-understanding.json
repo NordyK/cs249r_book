@@ -1,0 +1,198 @@
+{
+ "title": "Systems Analysis: Understanding Loss Function Performance",
+ "summary": "TinyTorch losses: Systems Analysis: Understanding Loss Function Performance",
+ "source": {
+  "chapter": "tt-04",
+  "sections": [
+   "Systems Analysis: Understanding Loss Function Performance"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Understanding Loss Function Performance\n\nLoss functions seem simple, but they have critical computational and memory bandwidth implications that govern large-scale distributed training throughput.\n\n### Computational Complexity Analysis"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Loss Function",
+    "Mathematical Core",
+    "Algorithmic Operations",
+    "Time Complexity",
+    "Memory Complexity"
+   ],
+   "rows": [
+    [
+     "**`MSELoss`**",
+     "\\$\\frac{1}{B} \\sum_{b=1}^B (\\hat{y}_b - y_b)^2\\$",
+     "Subtraction \\$\\to\\$ Square \\$\\to\\$ Mean",
+     "\\$\\mathcal{O}(B)\\$",
+     "\\$\\mathcal{O}(B)\\$"
+    ],
+    [
+     "**`CrossEntropyLoss`**",
+     "\\$-\\frac{1}{B} \\sum_{b=1}^B \\log\\left(\\frac{e^{z_{b, y_b^*}}}{\\sum_c e^{z_{b, c}}}\\right)\\$",
+     "Max-Reduction \\$\\to\\$ Subtraction \\$\\to \\operatorname{Exp} \\to \\text{Sum} \\to \\operatorname{Log} \\to \\text{Gather}\\$",
+     "\\$\\mathcal{O}(B \\cdot C)\\$",
+     "\\$\\mathcal{O}(B \\cdot C)\\$"
+    ],
+    [
+     "**`BinaryCrossEntropy`**",
+     "\\$-\\frac{1}{B} \\sum_{b=1}^B \\big[y_b \\ln(\\hat{y}_b) + (1-y_b)\\ln(1-\\hat{y}_b)\\big]\\$",
+     "Clip \\$\\to \\operatorname{Log} \\to\\$ Linear Comb \\$\\to\\$ Mean",
+     "\\$\\mathcal{O}(B)\\$",
+     "\\$\\mathcal{O}(B)\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "*For single-output regression, MSE processes \\$B\\$ scalars. In language models with vocabulary \\$C = 32{,}000\\$, CrossEntropy processes \\$B \\cdot C\\$ floats, over \\$30{,}000\\times\\$ more data elements per batch.*\n\n### Memory Layout and Production Memory Footprint\n\nA common systems pitfall is treating multi-class cross-entropy as matrix multiplication against one-hot targets. In reality, modern ML systems perform direct index gathering:\n\n### Forward Pass Buffer Lifecycle"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Pipeline Step",
+    "`MSELoss` Buffer Allocated",
+    "`CrossEntropyLoss` Buffer Allocated"
+   ],
+   "rows": [
+    [
+     "**Input Buffer**",
+     "\\$\\mathbf{\\hat{y}} \\in \\mathbb{R}^B\\$ (\\$4B\\$ bytes)",
+     "\\$\\mathbf{z} \\in \\mathbb{R}^{B \\times C}\\$ (\\$4BC\\$ bytes)"
+    ],
+    [
+     "**Intermediate 1**",
+     "Residual \\$(\\mathbf{\\hat{y}} - \\mathbf{y}) \\in \\mathbb{R}^B\\$ (\\$4B\\$ bytes)",
+     "Row Maximums \\$\\mathbf{m} \\in \\mathbb{R}^{B \\times 1}\\$ (\\$4B\\$ bytes)"
+    ],
+    [
+     "**Intermediate 2**",
+     "Squared Residuals \\$(\\mathbf{\\hat{y}} - \\mathbf{y})^2 \\in \\mathbb{R}^B\\$ (\\$4B\\$ bytes)",
+     "Exponentials \\$e^{\\mathbf{z} - \\mathbf{m}} \\in \\mathbb{R}^{B \\times C}\\$ (\\$4BC\\$ bytes)"
+    ],
+    [
+     "**Intermediate 3**",
+     "*(None)*",
+     "Normalizer \\$\\sum_c e^{z_{b,c}-m_b} \\in \\mathbb{R}^{B \\times 1}\\$ (\\$4B\\$ bytes)"
+    ],
+    [
+     "**Intermediate 4**",
+     "*(None)*",
+     "Gathered Log-Probs \\$\\mathbf{z}_{y^*} \\in \\mathbb{R}^B\\$ (\\$4B\\$ bytes)"
+    ],
+    [
+     "**Total Transient Footprint**",
+     "\\$\\approx 3B \\times 4 \\text{ bytes} = 12B \\text{ bytes}\\$",
+     "\\$\\approx (2BC + 3B) \\times 4 \\text{ bytes}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_numerical_stability():\n    \"\"\"\n    📊 Demonstrate why numerical stability matters in loss computation.\n\n    Shows the difference between naive and stable implementations.\n    \"\"\"\n    print(\"📊 Analysis: Numerical Stability in Loss Functions...\")\n\n    # Test with increasingly large logits\n    test_cases = [\n        (\"Small logits\", [1.0, 2.0, 3.0]),\n        (\"Medium logits\", [10.0, 20.0, 30.0]),\n        (\"Large logits\", [100.0, 200.0, 300.0]),\n        (\"Very large logits\", [500.0, 600.0, 700.0])\n    ]\n\n    print(\"\\nLog-Softmax Stability Test:\")\n    print(\"Case                 | Max Input | Log-Softmax Min | Numerically Stable?\")\n    print(\"-\" * 70)\n\n    for case_name, logits in test_cases:\n        x = Tensor([logits])\n\n        # Our stable implementation\n        stable_result = log_softmax(x, dim=-1)\n\n        max_input = np.max(logits)\n        min_output = np.min(stable_result.data)\n        is_stable = not (np.any(np.isnan(stable_result.data)) or np.any(np.isinf(stable_result.data)))\n\n        print(f\"{case_name:20} | {max_input:8.0f} | {min_output:15.3f} | {'✅ Yes' if is_stable else '❌ No'}\")\n\n    print(f\"\\n💡 Key Insight: Log-sum-exp trick prevents overflow\")\n    print(\"   Without it: exp(700) would cause overflow in standard softmax\")\n    print(\"   With it: These finite float32 logits avoid exponential overflow\")"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_loss_memory():\n    \"\"\"\n    📊 Analyze memory usage patterns of different loss functions.\n\n    Understanding memory helps with batch size decisions.\n    \"\"\"\n    print(\"\\n📊 Analysis: Selected Loss Buffers (Estimate)...\")\n\n    batch_sizes = [32, 128, 512, 1024]\n    num_classes = 1000  # Like ImageNet\n\n    print(\"\\nMemory Usage by Batch Size:\")\n    print(\"Batch Size | MSE (MB) | CrossEntropy (MB) | BCE (MB) | Notes\")\n    print(\"-\" * 75)\n\n    for batch_size in batch_sizes:\n        # Memory calculations (assuming float32 = 4 bytes)\n        bytes_per_float = 4\n\n        # MSE: predictions + targets (both same size as output)\n        mse_elements = batch_size * 1  # Regression usually has 1 output\n        mse_memory = mse_elements * bytes_per_float * 2 / 1e6  # Convert to MB\n\n        # CrossEntropy: logits + targets + softmax + log_softmax\n        ce_logits = batch_size * num_classes\n        ce_targets = batch_size * 1  # Target indices\n        ce_softmax = batch_size * num_classes  # Intermediate softmax\n        ce_total_elements = ce_logits + ce_targets + ce_softmax\n        ce_memory = ce_total_elements * bytes_per_float / 1e6\n\n        # BCE: predictions + targets (binary, so smaller)\n        bce_elements = batch_size * 1\n        bce_memory = bce_elements * bytes_per_float * 2 / 1e6\n\n        notes = \"Linear scaling\" if batch_size == 32 else f\"{batch_size//32}× first\"\n\n        print(f\"{batch_size:10} | {mse_memory:8.2f} | {ce_memory:13.2f} | {bce_memory:7.2f} | {notes}\")\n\n    print(f\"\\n💡 Memory Insights:\")\n    print(\"   - CrossEntropy dominates due to large vocabulary (num_classes)\")\n    print(\"   - Memory scales linearly with batch size\")\n    print(\"   - The estimate includes one CE intermediate buffer\")\n    print(\"   - Temporary arrays and allocator overhead are omitted; this is not measured peak memory\")\n    print(f\"   - For batch=1024, the selected CE buffers total {ce_memory:.1f}MB\")\n\nif __name__ == \"__main__\":\n    analyze_numerical_stability()\n    analyze_loss_memory()"
+  },
+  {
+   "type": "text",
+   "md": "### Production Context: How Loss Functions Scale\n\nUnderstanding how loss functions behave in production helps make informed engineering decisions about model architecture and training strategies.\n\n**Loss Function Scaling Challenges**\n\nAs models grow larger, loss function memory and compute bottlenecks become critical:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Scaling Dimension",
+    "Small Model (MNIST)",
+    "Large Model (ImageNet)",
+    "Production Scale (Frontier LLMs)"
+   ],
+   "rows": [
+    [
+     "**Output Classes (\\$C\\$)**",
+     "\\$10\\$",
+     "\\$1{,}000\\$",
+     "\\$32{,}000\\$ to \\$128{,}000\\$"
+    ],
+    [
+     "**Batch Size (\\$B\\$)**",
+     "\\$64\\$",
+     "\\$256\\$",
+     "\\$2{,}048\\$ to \\$8{,}192\\$"
+    ],
+    [
+     "**Logit Memory (\\$B \\cdot C \\cdot 4\\text{B}\\$)**",
+     "\\$2.5\\text{ KB}\\$",
+     "\\$1.0\\text{ MB}\\$",
+     "\\$262\\text{ MB}\\$ to \\$4.19\\text{ GB}\\$"
+    ],
+    [
+     "**Log-Softmax Temp Buffers**",
+     "\\$\\approx 7.5\\text{ KB}\\$",
+     "\\$\\approx 3.0\\text{ MB}\\$",
+     "\\$\\approx 786\\text{ MB}\\$ to \\$12.6\\text{ GB}\\$"
+    ],
+    [
+     "**Primary System Bottleneck**",
+     "Compute bound (negligible)",
+     "Softmax GPU core reduction",
+     "HBM Memory Capacity & Bandwidth"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "*Memory scales as \\$\\mathcal{O}(B \\cdot C)\\$ for standard cross-entropy. In modern LLMs, vocabulary size \\$C\\$ dominates loss computation.*\n\nThe production column reports the two corners of the ranges above it, not two independent\nscenarios. The low end is the small batch against the small vocabulary,\n\\$2{,}048 \\times 32{,}000 \\times 4\\text{ B} = 262\\text{ MB}\\$; the high end is the large batch\nagainst the large vocabulary, \\$8{,}192 \\times 128{,}000 \\times 4\\text{ B} = 4.19\\text{ GB}\\$.\nBoth middle combinations land at \\$1.05\\text{ GB}\\$, which is why the corners matter: the\nlogits alone move by \\$16\\times\\$ across a range that each dimension only widens \\$4\\times\\$.\n\n### Engineering Optimizations in Production"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Optimization Technique",
+    "Mathematical Mechanism",
+    "Production Impact",
+    "Typical Application"
+   ],
+   "rows": [
+    [
+     "**Hierarchical Softmax**",
+     "Decompose \\$C\\$ into balanced binary tree: \\$\\mathcal{O}(\\log_2 C)\\$ decisions",
+     "Reduces compute from \\$50{,}000\\$ ops to \\$\\approx 16\\$ ops per sample",
+     "Word2Vec, extreme multi-label text"
+    ],
+    [
+     "**Sampled Softmax**",
+     "Compute normalization over positive target + \\$K \\ll C\\$ negative samples",
+     "\\$50\\times\\$ speedup during pre-training",
+     "Recommendation candidate retrieval"
+    ],
+    [
+     "**Label Smoothing**",
+     "Target \\$\\mathbf{y}_{\\text{smooth}} = (1 - \\alpha)\\mathbf{y} + \\frac{\\alpha}{C}\\$",
+     "Prevents overconfident logit explosion (\\$z \\to \\infty\\$)",
+     "ImageNet training, Transformer translation"
+    ],
+    [
+     "**Kernel Fusion / Triton**",
+     "Fuse logit write + softmax + cross-entropy into a single streaming GPU kernel",
+     "Eliminates \\$3\\times B \\cdot C\\$ intermediate DRAM roundtrips",
+     "FlashCrossEntropy, PyTorch Inductor"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_production_patterns():\n    \"\"\"\n    📊 Analyze loss function patterns in production ML systems.\n\n    Real insights from systems perspective.\n    \"\"\"\n    print(\"🚀 Production Analysis: Loss Function Engineering Patterns...\")\n\n    print(\"\\n1. Loss Function Choice by Problem Type:\")\n\n    scenarios = [\n        (\"Recommender Systems\", \"BCE/MSE\", \"User preference prediction\", \"Billions of interactions\"),\n        (\"Computer Vision\", \"CrossEntropy\", \"Image classification\", \"1000+ classes, large batches\"),\n        (\"NLP Translation\", \"CrossEntropy\", \"Next token prediction\", \"50k+ vocabulary\"),\n        (\"Medical Diagnosis\", \"BCE\", \"Disease probability\", \"Class imbalance critical\"),\n        (\"Financial Trading\", \"MSE/Huber\", \"Price prediction\", \"Outlier robustness needed\")\n    ]\n\n    print(\"System Type          | Loss Type    | Use Case              | Scale Challenge\")\n    print(\"-\" * 80)\n    for system, loss_type, use_case, challenge in scenarios:\n        print(f\"{system:20} | {loss_type:12} | {use_case:20} | {challenge}\")\n\n    print(\"\\n2. Engineering Trade-offs:\")\n\n    trade_offs = [\n        (\"CrossEntropy vs Label Smoothing\", \"Stability vs Confidence\", \"Label smoothing prevents overconfident predictions\"),\n        (\"MSE vs Huber Loss\", \"Sensitivity vs Robustness\", \"Huber is less sensitive to outliers\"),\n        (\"Full Softmax vs Sampled\", \"Accuracy vs Speed\", \"Hierarchical softmax for large vocabularies\"),\n        (\"Per-Sample vs Batch Loss\", \"Accuracy vs Memory\", \"Batch computation is more memory efficient\")\n    ]\n\n    print(\"\\nTrade-off                    | Spectrum              | Production Decision\")\n    print(\"-\" * 85)\n    for trade_off, spectrum, decision in trade_offs:\n        print(f\"{trade_off:28} | {spectrum:20} | {decision}\")\n\n    print(\"\\n💡 Production Insights:\")\n    print(\"   - Large vocabularies (50k+ tokens) dominate memory in CrossEntropy\")\n    print(\"   - Batch computation is 10-100× more efficient than per-sample\")\n    print(\"   - Numerical stability becomes critical at scale (FP16 training)\")\n    print(\"   - Loss computation is often <5% of total training time\")\n\nif __name__ == \"__main__\":\n    analyze_production_patterns()"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Systems Analysis: Understanding Loss Function Performance."
+   ]
+  }
+ ]
+}

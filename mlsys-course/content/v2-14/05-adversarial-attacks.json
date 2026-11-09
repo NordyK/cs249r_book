@@ -1,0 +1,94 @@
+{
+ "title": "Adversarial Attacks",
+ "summary": "Explain the geometric mechanism that makes high-dimensional neural networks vulnerable to gradient-directed perturbations.",
+ "source": {
+  "chapter": "v2-14",
+  "sections": [
+   "Adversarial Attacks",
+   "Attacks by attacker access",
+   "Physical-world attacks"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain the geometric mechanism that makes high-dimensional neural networks vulnerable to gradient-directed perturbations\n- Identify transferability as the enabling mechanism for black-box adversarial attacks via surrogate models\n- Classify physical-world adversarial attacks by distinguishing them from digital attacks and natural distribution shifts\n- Identify the Fast Gradient Sign Method formula and its role in adversarial generation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Robust AI, § Adversarial Attacks",
+   "md": "For a classifier that labels skin-lesion images, an attacker who modifies an image of a benign lesion can induce a malignant prediction while preserving its apparent clinical content. Whether that manipulation succeeds depends on the classifier, the allowed modifications, and the evaluation conditions. The high-dimensional decision boundaries learned by deep neural networks possess counterintuitive blind spots, and adversarial attacks expose them by testing what an adversary can force when controlling gradients, queries, physical sensors, or training data."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Attacks by attacker access\n- Physical-world attacks\n\nPay attention to: gradient-directed perturbations versus random noise on high-dimensional decision boundaries; transferability as the enabling mechanism for realistic black-box attacks; physical-world attacks requiring survival across camera, angle, and lighting variations; the optimization cost of white-box attacks such as FGSM and PGD."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-14-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why can a small gradient-directed perturbation change a high-dimensional classifier’s score more than independently sampled, zero-mean noise of comparable coordinate scale?",
+     "explanation": "The correct answer is C. The first-order loss change is the input gradient dotted with the perturbation. Within a coordinate-wise budget, FGSM chooses signs that align each contribution, giving a linearized increase proportional to the budget times the sum of absolute gradient components. Independent zero-mean noise can cancel in that sum. The effect depends on the gradient and boundary geometry; it neither scales with dimension alone nor proves immunity to random noise or guaranteed adversarial success.",
+     "hint": "Think about: explain the geometric mechanism that makes high-dimensional neural networks vulnerable to gradient-directed perturbations",
+     "type": "single",
+     "options": [
+      "Random noise changes model parameters directly, whereas gradient perturbations only affect input metadata.",
+      "Gradient-directed perturbations require visible, large-scale pixel alterations that physically overwhelm convolutional filters.",
+      "The perturbation aligns coordinate changes with local loss sensitivity, while independent zero-mean changes can cancel in the first-order sum.",
+      "Random noise affects only training data, whereas adversarial noise can only exist during inference."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "An attacker lacking access to a commercial vision API's internal weights or gradients trains a local ResNet surrogate, crafts PGD adversarial images against that surrogate, and successfully fools the target API on 50 percent of queries. Which property of adversarial examples enables this black-box attack?",
+     "explanation": "The correct answer is B. Transferability, where adversarial examples crafted to exploit decision boundaries of one model frequently deceive different models trained on similar tasks. Transferability enables black-box attacks by allowing adversaries to compute gradients against a local surrogate model offline and transfer the resulting adversarial examples to remote, black-box target APIs without direct gradient access. Differential privacy is a training privacy framework, not an attack transfer property. Quantization noise and batch normalization represent compression and training techniques that do not create identical multi-vendor weight matrices.",
+     "hint": "Think about: identify transferability as the enabling mechanism for black-box adversarial attacks via surrogate models",
+     "type": "single",
+     "options": [
+      "Differential privacy, which guarantees perturbation bounds across diverse neural architectures.",
+      "Transferability, where adversarial examples crafted to exploit decision boundaries of one model frequently deceive different models trained on similar tasks.",
+      "Quantization noise, which forces all deployed models into identical weight matrices.",
+      "Batch normalization collapse, which disables activation functions across distributed API servers."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Which scenario represents a physical-world adversarial attack rather than a digital evasion attack or an environmental covariate shift?",
+     "explanation": "The correct answer is D. An attacker places small, calibrated black-and-white stickers on a roadside stop sign that cause a vehicle camera to classify it as a speed limit sign across varying distances, angles, and lighting. Physical-world attacks must survive the physical sensor loop, including optical capture, distance changes, perspective transformations, and ambient illumination variations, rather than manipulating digital tensors directly. Submitting a perturbed array to a cloud API is a digital evasion attack. Snowfall causing accuracy degradation is a natural environmental covariate shift. Inverting normalization constants is a software pipeline defect.",
+     "hint": "Think about: classify physical-world adversarial attacks by distinguishing them from digital attacks and natural distribution shifts",
+     "type": "single",
+     "options": [
+      "An attacker submits a JSON payload containing an ell_infty-perturbed pixel array directly to a cloud inference API endpoint.",
+      "A sudden heavy snowfall changes ambient lighting and road surface reflections, reducing camera detection accuracy by 15 percent.",
+      "An engineer accidentally inverts the normalization constants in a client-side image preprocessing script.",
+      "An attacker places small, calibrated black-and-white stickers on a roadside stop sign that cause a vehicle camera to classify it as a speed limit sign across varying distances, angles, and lighting."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "The foundational single-step adversarial attack method that computes the gradient of the loss with respect to the input and perturbs features by $\\epsilon \\cdot \\text{sign}(\\nabla_x \\mathcal{L})$ is called the ____.",
+     "explanation": "Fast Gradient Sign Method (FGSM). The Fast Gradient Sign Method is a single-step gradient-based attack introduced by Goodfellow et al. that chooses coordinate signs that maximize the first-order loss increase within the stated coordinate-wise budget, serving as both a fast evasion baseline and a building block for adversarial training. The step need not maximize the nonlinear loss or cause misclassification.",
+     "hint": "Think about: identify the Fast Gradient Sign Method formula and its role in adversarial generation",
+     "type": "fill",
+     "answer": [
+      "Fast Gradient Sign Method",
+      "Fast Gradient Sign Method (FGSM)"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the geometric mechanism that makes high-dimensional neural networks vulnerable to gradient-directed perturbations.",
+    "You can now identify transferability as the enabling mechanism for black-box adversarial attacks via surrogate models.",
+    "You can now classify physical-world adversarial attacks by distinguishing them from digital attacks and natural distribution shifts.",
+    "You can now identify the Fast Gradient Sign Method formula and its role in adversarial generation."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,199 @@
+{
+ "title": "Introduction: What are Transformers?",
+ "summary": "TinyTorch transformers: Introduction: What are Transformers?",
+ "source": {
+  "chapter": "tt-13",
+  "sections": [
+   "Introduction: What are Transformers?"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: What are Transformers?\n\nTransformers are the architecture behind modern large language models (GPT-6, Claude, Llama, and Gemini). The core breakthrough is the synthesis of **parallel self-attention** (allowing every token in a sequence to dynamically attend to every other token) with **deep residual stream communication** and **dense feed-forward computation**.\n\n### The Transformer Paradigm Shift\n\nBefore transformers, sequence modeling relied on recurrent neural networks (RNNs, LSTMs) that processed text sequentially (\\$\\mathcal{O}(S)\\$ sequential steps), creating severe training bottlenecks and vanishing gradient problems across long distances. Transformers eliminate temporal recurrence, processing all \\$S\\$ tokens simultaneously via matrix multiplications (\\$\\mathcal{O}(1)\\$ sequential depth per layer).\n\n### Complete GPT Architecture Overview\n\n#### End-to-End GPT Execution Pipeline"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Pipeline Stage",
+    "Subsystem / Layer",
+    "Input Shape",
+    "Internal Transformation",
+    "Output Shape",
+    "Systems & Modeling Role"
+   ],
+   "rows": [
+    [
+     "**1. Embedding**",
+     "`EmbeddingLayer`",
+     "\\$(B, S)\\$",
+     "Token index gather + learned positional vector addition",
+     "\\$(B, S, d_{\\text{embed}})\\$",
+     "Converts discrete vocabulary IDs to continuous space"
+    ],
+    [
+     "**2. Pre-LN Attention**",
+     "`LayerNorm` + `MHA`",
+     "\\$(B, S, d_{\\text{embed}})\\$",
+     "Normalize features \\$\\to\\$ Causal attention \\$\\to\\$ Add residual",
+     "\\$(B, S, d_{\\text{embed}})\\$",
+     "Routes context dynamically across sequence positions"
+    ],
+    [
+     "**3. Pre-LN FFN**",
+     "`LayerNorm` + `MLP`",
+     "\\$(B, S, d_{\\text{embed}})\\$",
+     "Normalize features \\$\\to 4\\times\\$ GELU expansion \\$\\to\\$ Add residual",
+     "\\$(B, S, d_{\\text{embed}})\\$",
+     "Pointwise non-linear feature transformation & memory"
+    ],
+    [
+     "**4. Final Norm**",
+     "`LayerNorm`",
+     "\\$(B, S, d_{\\text{embed}})\\$",
+     "Feature standardization across last dimension",
+     "\\$(B, S, d_{\\text{embed}})\\$",
+     "Stabilizes activations prior to un-embedding projection"
+    ],
+    [
+     "**5. LM Head**",
+     "`Linear` (un-embedding)",
+     "\\$(B, S, d_{\\text{embed}})\\$",
+     "Matrix multiplication \\$x W_{\\text{vocab}}^\\top\\$",
+     "\\$(B, S, V)\\$",
+     "Produces unnormalized next-token vocabulary logits"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "---\n\n## 📐 Foundations: Essential Transformer Mathematics\n\n### Layer Normalization: The Numerical Stability Engine\n\nDeep networks become badly conditioned when activation magnitudes drift across layers, because the loss surface then stretches along some directions and flattens along others, and a single learning rate cannot suit both. (The original account of this, internal covariate shift, was empirically refuted as the mechanism by Santurkar et al., 2018.) In vision architectures, Batch Normalization standardizes activations across the batch dimension. However, language models process sequences of highly variable lengths, and single-token autoregressive inference operates at batch size \\$B=1\\$.\n\n**Layer Normalization** (Ba, Kiros, & Hinton, 2016) resolves this by computing moments strictly across the **feature dimension** (\\$d_{\\text{embed}}\\$) for each token position independently:\n\n#### Mathematical Formulation\n\nFor token vector \\$x \\in \\mathbb{R}^{d_{\\text{embed}}}\\$:\n\n\\$\\$\\mu = \\frac{1}{d_{\\text{embed}}} \\sum_{i=1}^{d_{\\text{embed}}} x_i, \\qquad \\sigma^2 = \\frac{1}{d_{\\text{embed}}} \\sum_{i=1}^{d_{\\text{embed}}} (x_i - \\mu)^2\\$\\$\n\n\\$\\$\\hat{x} = \\frac{x - \\mu}{\\sqrt{\\sigma^2 + \\epsilon}}\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$y = \\gamma \\odot \\hat{x} + \\beta\\$\\$\n\nwhere \\$\\gamma, \\beta \\in \\mathbb{R}^{d_{\\text{embed}}}\\$ are learnable scale and shift parameters initialized to \\$\\mathbf{1}\\$ and \\$\\mathbf{0}\\$."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Normalization Paradigm",
+    "Normalization Axis",
+    "Batch Size Dependence",
+    "Sequence Length Dependence",
+    "Inference Suitability"
+   ],
+   "rows": [
+    [
+     "**Batch Normalization (BatchNorm)**",
+     "Across batch \\$(B)\\$",
+     "High (fails if \\$B=1\\$)",
+     "Requires fixed padding",
+     "Requires tracked running statistics (\\$\\mu_{\\text{run}}, \\sigma^2_{\\text{run}}\\$)"
+    ],
+    [
+     "**Layer Normalization (LayerNorm)**",
+     "Across features \\$(d_{\\text{embed}})\\$",
+     "**None** (\\$B=1\\$ valid)",
+     "**None** (per-token)",
+     "**Identical to training** (exact sample statistics)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "---\n\n### Residual Connections: The Gradient Highway System\n\nDeep networks without skip connections suffer from catastrophic gradient decay. Backpropagating through \\$L\\$ consecutive layers multiplies Jacobian matrices \\$\\prod_{l=0}^{L-1} W_l\\$, driving gradients exponentially to zero (\\$\\to 0\\$) or infinity (\\$\\to \\infty\\$).\n\n#### The Pre-LN Residual Highway Invariant\n\nIn modern Pre-LN transformer blocks, each sublayer reads from the continuous residual stream, computes an update delta, and adds it back to the stream:\n\n\\$\\$x_{l+1} = x_l + F_l(\\text{LayerNorm}(x_l))\\$\\$\n\nUnrolling this recurrence across all \\$L\\$ layers yields:\n\n\\$\\$x_L = x_0 + \\sum_{l=0}^{L-1} F_l(\\text{LayerNorm}(x_l))\\$\\$\n\nWhen differentiating with respect to early representation \\$x_0\\$, the chain rule produces:\n\n\\$\\$\\frac{\\partial \\mathcal{L}}{\\partial x_0} = \\frac{\\partial \\mathcal{L}}{\\partial x_L} \\frac{\\partial x_L}{\\partial x_0} = \\frac{\\partial \\mathcal{L}}{\\partial x_L} \\left( I + \\sum_{l=0}^{L-1} \\frac{\\partial F_l}{\\partial x_l} \\right)\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "Because of the identity matrix \\$I\\$, the error signal propagates directly from the loss function \\$\\mathcal{L}\\$ back to initial embeddings \\$x_0\\$ **without vanishing**, allowing architectures dozens of layers deep (GPT-3 175B stacks 96) to converge reliably.\n\n---\n\n### Feed-Forward Network (MLP): Channel Expansion & Memory Retrieval\n\nWhile self-attention routes information across different sequence positions, the Feed-Forward Network (MLP) operates on each token position independently. It provides non-linear representation capacity and acts as key-value associative memory (Geva et al., 2021).\n\n#### Two-Stage Expansion Architecture\n\n\\$\\$\\text{FFN}(x) = \\text{GELU}(x W_1 + b_1) W_2 + b_2\\$\\$\n\nwhere \\$W_1 \\in \\mathbb{R}^{d_{\\text{embed}} \\times 4d_{\\text{embed}}}\\$ expands representations into a higher-dimensional manifold, and \\$W_2 \\in \\mathbb{R}^{4d_{\\text{embed}} \\times d_{\\text{embed}}}\\$ contracts them back to the residual bus dimension:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Sub-Operation",
+    "Tensor Input",
+    "Parameter Dimension",
+    "Tensor Output",
+    "Mathematical Operation"
+   ],
+   "rows": [
+    [
+     "**Up-Projection (Linear 1)**",
+     "\\$(B, S, d_{\\text{embed}})\\$",
+     "\\$W_1 \\in \\mathbb{R}^{d \\times 4d}, b_1 \\in \\mathbb{R}^{4d}\\$",
+     "\\$(B, S, 4d_{\\text{embed}})\\$",
+     "\\$h_1 = x W_1 + b_1\\$"
+    ],
+    [
+     "**GELU Non-Linearity**",
+     "\\$(B, S, 4d_{\\text{embed}})\\$",
+     "None (parameterless)",
+     "\\$(B, S, 4d_{\\text{embed}})\\$",
+     "\\$a = x \\cdot \\Phi(x)\\$"
+    ],
+    [
+     "**Down-Projection (Linear 2)**",
+     "\\$(B, S, 4d_{\\text{embed}})\\$",
+     "\\$W_2 \\in \\mathbb{R}^{4d \\times d}, b_2 \\in \\mathbb{R}^{d}\\$",
+     "\\$(B, S, d_{\\text{embed}})\\$",
+     "\\$y = a W_2 + b_2\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "---\n\n### The Complete Pre-LN Transformer Block Data Flow\n\nCombining Pre-LN attention and Pre-LN MLP yields the canonical Transformer Block datapath:\n\n\\$\\$\\begin{aligned}\nx_1 &= \\text{LayerNorm}_1(x_0) \\\\\nx_2 &= x_0 + \\text{MultiHeadAttention}(x_1, \\text{mask}) \\\\\nx_3 &= \\text{LayerNorm}_2(x_2) \\\\\nx_4 &= x_2 + \\text{MLP}(x_3)\n\\end{aligned}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Step",
+    "Operation",
+    "Source Input",
+    "Sublayer Applied",
+    "Residual Addition",
+    "Output State"
+   ],
+   "rows": [
+    [
+     "**1**",
+     "Attention Pre-LN",
+     "\\$x_0\\$",
+     "\\$x_1 = \\text{LayerNorm}_1(x_0)\\$",
+     "—",
+     "\\$x_1\\$"
+    ],
+    [
+     "**2**",
+     "Attention Skip",
+     "\\$x_0, x_1\\$",
+     "\\$\\Delta_{\\text{attn}} = \\text{MHA}(x_1, \\text{mask})\\$",
+     "\\$x_2 = x_0 + \\Delta_{\\text{attn}}\\$",
+     "\\$x_2\\$"
+    ],
+    [
+     "**3**",
+     "MLP Pre-LN",
+     "\\$x_2\\$",
+     "\\$x_3 = \\text{LayerNorm}_2(x_2)\\$",
+     "—",
+     "\\$x_3\\$"
+    ],
+    [
+     "**4**",
+     "MLP Skip",
+     "\\$x_2, x_3\\$",
+     "\\$\\Delta_{\\text{mlp}} = \\text{MLP}(x_3)\\$",
+     "\\$x_4 = x_2 + \\Delta_{\\text{mlp}}\\$",
+     "\\$x_4\\$ (Block Output)"
+    ]
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Introduction: What are Transformers?."
+   ]
+  }
+ ]
+}

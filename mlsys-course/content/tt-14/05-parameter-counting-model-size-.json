@@ -1,0 +1,277 @@
+{
+ "title": "Parameter Counting: Model Size Analysis",
+ "summary": "TinyTorch profiling: Parameter Counting: Model Size Analysis",
+ "source": {
+  "chapter": "tt-14",
+  "sections": [
+   "Parameter Counting: Model Size Analysis",
+   "Memory Profiling: Understanding Memory Usage Patterns",
+   "Latency Measurement: Accurate Performance Timing",
+   "Integration: Advanced Profiling Functions"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Parameter Counting: Model Size Analysis\n\nParameter counting is the foundation of model profiling. Every parameter contributes directly to persistent memory footprint, initialization overhead, checkpoint storage size, and weight transfer latency across the PCIe/NVLink bus.\n\n### Hardware Footprint Across Model Scales\n\n\\$\\$\\text{Memory}_{\\text{FP32}} = P \\times 4\\text{ bytes}, \\quad \\text{Memory}_{\\text{FP16}} = P \\times 2\\text{ bytes}, \\quad \\text{Memory}_{\\text{INT8}} = P \\times 1\\text{ byte}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Architecture Scale",
+    "Parameter Count (\\$P\\$)",
+    "FP32 Footprint (\\$4\\text{ B}\\$)",
+    "FP16 / BF16 Footprint (\\$2\\text{ B}\\$)",
+    "INT8 Footprint (\\$1\\text{ B}\\$)",
+    "Target Serving Hardware"
+   ],
+   "rows": [
+    [
+     "**GPT-2 Small**",
+     "\\$124\\text{M}\\$",
+     "\\$496\\text{ MB}\\$",
+     "\\$248\\text{ MB}\\$",
+     "\\$124\\text{ MB}\\$",
+     "Edge device / CPU socket"
+    ],
+    [
+     "**GPT-2 Medium**",
+     "\\$350\\text{M}\\$",
+     "\\$1.40\\text{ GB}\\$",
+     "\\$700\\text{ MB}\\$",
+     "\\$350\\text{ MB}\\$",
+     "Single consumer GPU (\\$4\\text{ GB}\\$)"
+    ],
+    [
+     "**GPT-2 Large**",
+     "\\$774\\text{M}\\$",
+     "\\$3.10\\text{ GB}\\$",
+     "\\$1.55\\text{ GB}\\$",
+     "\\$774\\text{ MB}\\$",
+     "Single consumer GPU (\\$8\\text{ GB}\\$)"
+    ],
+    [
+     "**GPT-2 XL**",
+     "\\$1,558\\text{M}\\$",
+     "\\$6.23\\text{ GB}\\$",
+     "\\$3.12\\text{ GB}\\$",
+     "\\$1.56\\text{ GB}\\$",
+     "Single workstation GPU (\\$16\\text{ GB}\\$)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Parameter Counting\n\nThis test validates our parameter counting works correctly for different model types.\n\n**What we're testing**: Parameter counting accuracy for various architectures\n**Why it matters**: Accurate parameter counts predict memory usage and model complexity\n**Expected**: Correct counts for known model configurations"
+  },
+  {
+   "type": "text",
+   "md": "## 🏗️ FLOP Counting: Computational Cost Estimation\n\nFLOPs (Floating Point Operations) quantify theoretical arithmetic work independent of execution hardware, operating system, or compiler optimizations. Comparing theoretical FLOPs against measured execution time reveals whether an operation achieves high computational efficiency or stalls waiting on memory bandwidth.\n\n### Mathematical FLOP Formulations\n\n\\$\\$\\text{FLOP}_{\\text{Linear}} = 2 \\cdot B \\cdot d_{\\text{in}} \\cdot d_{\\text{out}} + \\underbrace{B \\cdot d_{\\text{out}}}_{\\text{bias, dropped below}}\\$\\$\n\nThe bias term is written once for completeness and then ignored, by `_count_linear_flops`, by 📐, and by the table below. For the first row it is \\$32 \\times 3,072 = 98,304\\$ FLOPs against \\$150,994,944\\$, or \\$0.065\\%\\$, and it stays under a tenth of a percent for any layer worth profiling. Dropping a term you have bounded is different from forgetting it, and knowing which terms you may drop is most of what FLOP accounting is."
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\text{FLOP}_{\\text{Conv2d}} = 2 \\cdot B \\cdot H_{\\text{out}} \\cdot W_{\\text{out}} \\cdot (C_{\\text{in}} \\cdot k_h \\cdot k_w) \\cdot C_{\\text{out}}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Workload Configuration",
+    "Mathematical Dimension",
+    "Total Arithmetic FLOPs",
+    "Per-Sample FLOPs",
+    "Arithmetic Reuse"
+   ],
+   "rows": [
+    [
+     "**Linear Layer**",
+     "\\$B=32, d_{\\text{in}}=768, d_{\\text{out}}=3072\\$",
+     "\\$150,994,944\\text{ FLOPs}\\$",
+     "\\$4,718,592\\text{ FLOPs}\\$",
+     "\\$32\\text{ MACs/param}\\$"
+    ],
+    [
+     "**Conv2d Layer**",
+     "\\$B=1, C=3 \\to 64, 224 \\to 112, k=7\\$",
+     "\\$236,027,904\\text{ FLOPs}\\$",
+     "\\$236,027,904\\text{ FLOPs}\\$",
+     "\\$12,544\\text{ MACs/param}\\$"
+    ],
+    [
+     "**GELU Non-linearity**",
+     "\\$B=32, S=128, D=768\\$",
+     "\\$3,145,728\\text{ FLOPs}\\$",
+     "\\$98,304\\text{ FLOPs}\\$",
+     "\\$1\\text{ FLOP/elem}\\$ (memory bound)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Algorithmic FLOP Counting Strategy\n\n- **Dense Matrix Products**: \\$2 \\cdot M \\cdot K \\cdot N\\$ floating point operations (fused multiply-accumulate).\n- **Spatial Convolutions**: \\$2 \\times\\$ output spatial elements \\$\\times\\$ kernel footprint \\$\\times\\$ input/output channels.\n- **Pointwise Non-linearities**: Evaluated at 1 to 8 FLOPs per tensor element."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _count_sequential_flops\n\nThis test validates the helper that sums FLOPs across layers in a sequential model.\n\n**What we're testing**: Accumulation of per-layer FLOPs with shape propagation\n**Why it matters**: Real models are sequences of layers; total FLOPs = sum of per-layer FLOPs\n**Expected**: Sum of individual layer FLOPs with correct shape propagation"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: FLOP Counting\n\nThis test validates our FLOP counting for different operations and architectures.\n\n**What we're testing**: FLOP calculation accuracy for various layer types\n**Why it matters**: FLOPs predict computational cost and energy usage\n**Expected**: Correct FLOP counts for known operation types"
+  },
+  {
+   "type": "text",
+   "md": "## 🏗️ Memory Profiling: Understanding Memory Usage Patterns\n\nMemory profiling reveals how much RAM and VRAM your model consumes during inference and training. In production deep learning, memory limits dictate allowable batch sizes, maximum context windows, and target serving hardware.\n\n### Memory Allocation Pools & Scaling Dynamics"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Allocation Component",
+    "Lifecycle Duration",
+    "Dimension Dependency",
+    "Scaling Complexity",
+    "Systems Mitigation"
+   ],
+   "rows": [
+    [
+     "**Parameters (\\$W\\$)**",
+     "Static / Persistent",
+     "Model parameter count \\$P\\$",
+     "\\$O(1)\\$ w.r.t batch/sequence",
+     "Weight quantization (INT8/FP4), sharding (ZeRO)"
+    ],
+    [
+     "**Activations (\\$A\\$)**",
+     "Stored forward, freed backward",
+     "Batch \\$B \\times \\text{Seq } S \\times \\text{Dim } d\\$",
+     "\\$O(B \\cdot S)\\$ (Linear) / \\$O(B \\cdot S^2)\\$ (Attention)",
+     "Activation checkpointing, FlashAttention"
+    ],
+    [
+     "**Gradients (\\$\\nabla_W L\\$)**",
+     "Backward pass accumulation",
+     "Matches parameter count \\$P\\$",
+     "\\$O(1)\\$ w.r.t batch/sequence",
+     "Gradient accumulation, mixed precision (FP16)"
+    ],
+    [
+     "**Optimizer States**",
+     "Persistent across steps",
+     "Multiplier of parameter count",
+     "\\$2 \\times P\\$ (Adam) vs \\$0 \\times P\\$ (SGD)",
+     "8-bit Adam (bitsandbytes), Adafactor"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Memory Measurement Strategy\n\nWe use Python's standard `tracemalloc` to track peak allocation deltas during model execution. This yields byte-precise telemetry of memory consumption patterns across arbitrary tensor graphs."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _calculate_parameter_memory\n\nThis test validates the helper that converts parameter count to memory in MB.\n\n**What we're testing**: Parameter count to megabytes conversion using FP32 (4 bytes each)\n**Why it matters**: Memory budgets determine which hardware can run your model\n**Expected**: Exact byte-level accuracy for known parameter counts"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Memory Measurement\n\nThis test validates our memory tracking works correctly and provides useful metrics.\n\n**What we're testing**: Memory usage measurement and calculation accuracy\n**Why it matters**: Memory constraints often limit model deployment\n**Expected**: Reasonable memory measurements with proper components"
+  },
+  {
+   "type": "text",
+   "md": "## 🏗️ Latency Measurement: Accurate Performance Timing\n\nLatency measurement is the most challenging facet of profiling because execution time is perturbed by CPU thread scheduling, hardware cache misses, memory bus contention, and thermal frequency governor transitions. Statistical rigor is essential to extract reproducible metrics.\n\n### Systemic Latency Variance & Experimental Safeguards"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Variance Source",
+    "Physical / OS Mechanism",
+    "Impact on Raw Latency",
+    "Experimental Safeguard"
+   ],
+   "rows": [
+    [
+     "**Cold Start Costs**",
+     "Cold L1/L2/L3 lines, BLAS thread-pool spin-up, first-touch page faults",
+     "First runs take \\$5\\times \\text{ to } 20\\times\\$ longer",
+     "Execute 3–10 warmup passes before recording timestamps"
+    ],
+    [
+     "**OS Thread Scheduling**",
+     "Kernel interrupts, context switches, daemons",
+     "Sporadic high-latency spikes in single runs",
+     "Report sample median (\\$Q_2\\$) rather than arithmetic mean"
+    ],
+    [
+     "**Thermal Throttling**",
+     "Dynamic frequency scaling (DVFS) under sustained load",
+     "Late runs slow down as junction temperature rises",
+     "Benchmark in short, burst-controlled sample batches"
+    ],
+    [
+     "**Garbage Collection**",
+     "Python runtime stop-the-world heap sweeps",
+     "Unpredictable multi-millisecond halts",
+     "Synchronize explicit `gc.collect()` passes outside timing blocks"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Measurement Protocol\n\nOur `measure_latency` implements the first three stages below. The fourth is in the\ntable above because it belongs in any serious harness, not because this one does it.\n`measure_latency` never collects, and TinyTorch does not even import `gc`.\n1. **Warmup Passes**: Execute un-timed forward iterations to warm hardware caches and trigger any lazy initialization.\n2. **Repeated Measurements**: Collect multiple steady-state iterations to form an empirical timing distribution.\n3. **Median Reduction**: Compute the median (\\$50^{\\text{th}}\\$ percentile) to discard asymmetrical OS context-switching outliers.\n4. **Memory Hygiene (not implemented here)**: A production harness collects garbage between sweeps and reports the interquartile range beside the median. Module 19 will build that harness."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Latency Measurement\n\nThis test validates our latency measurement provides consistent and reasonable results.\n\n**What we're testing**: Timing accuracy and statistical robustness\n**Why it matters**: Latency determines real-world deployment feasibility\n**Expected**: Consistent timing measurements with proper statistical handling"
+  },
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Advanced Profiling Functions\n\nNow let's validate our higher-level profiling functions that combine core measurements into comprehensive analysis tools.\n\n### Advanced Profiling Architecture\n\n```\nCore Profiler Methods → Advanced Analysis Functions → Optimization Insights\n        ↓                         ↓                         ↓\ncount_parameters()      profile_forward_pass()      \"Memory-bound workload\"\ncount_flops()          profile_backward_pass()      \"Optimize data movement\"\nmeasure_memory()       profile_layer()              \"Focus on bandwidth\"\nmeasure_latency()      quick_profile()              \"Use quantization\"\n```\n\n### Forward Pass Profiling: Complete Performance Picture\n\nA forward pass profile combines all our measurements to understand model behavior comprehensively. This is essential for optimization decisions."
+  },
+  {
+   "type": "text",
+   "md": "### Backward Pass Profiling: Training Analysis\n\nTraining deep neural networks requires executing both forward inference and reverse-mode automatic differentiation. The backward pass requires approximately **\\$2\\times\\$ the compute** of the forward pass (computing input activations gradients \\$\\nabla_X L\\$ and weight parameter gradients \\$\\nabla_W L\\$) and introduces massive memory residency requirements for gradients and optimizer states.\n\n### Training Memory Expansion Dynamics\n\n\\$\\$\\text{Compute}_{\\text{backward}} \\approx 2 \\times \\text{Compute}_{\\text{forward}}\\$\\$\n\n\\$\\$\\text{Memory}_{\\text{training}} = M_{\\text{params}} + M_{\\text{activations}} + M_{\\text{gradients}} + M_{\\text{optimizer}}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Training Phase",
+    "Resident Memory Pools",
+    "Analytical Formula (FP32)",
+    "Example Footprint (\\$125\\text{M}\\$ GPT)"
+   ],
+   "rows": [
+    [
+     "**Forward Pass**",
+     "Model Weights (\\$W\\$) + Saved Activations (\\$A\\$)",
+     "\\$P \\times 4\\text{ B} + B \\cdot S \\cdot d \\cdot c_{\\text{act}} \\times 4\\text{ B}\\$",
+     "\\$500\\text{ MB} + 200\\text{ MB} = 700\\text{ MB}\\$"
+    ],
+    [
+     "**Backward Pass**",
+     "Weights (\\$W\\$) + Activations (\\$A\\$) + Gradients (\\$\\nabla_W L\\$)",
+     "\\$P \\times 4\\text{ B} + A + P \\times 4\\text{ B}\\$",
+     "\\$500\\text{ MB} + 200\\text{ MB} + 500\\text{ MB} = 1,200\\text{ MB}\\$"
+    ],
+    [
+     "**Adam Optimizer Step**",
+     "Weights (\\$W\\$) + Gradients (\\$\\nabla_W L\\$) + First & Second Moments (\\$m, v\\$)",
+     "\\$P \\times 4\\text{ B} + P \\times 4\\text{ B} + 2 \\times P \\times 4\\text{ B}\\$",
+     "\\$500\\text{ MB} + 500\\text{ MB} + 1,000\\text{ MB} = 2,000\\text{ MB}\\$"
+    ],
+    [
+     "**Peak Resident Footprint**",
+     "All concurrent buffers before gradient zeroing",
+     "\\$16P + A\\$, with \\$P\\$ the parameter count",
+     "**\\$2,200\\text{ MB}\\$ (\\$4.4\\times\\$ model weight size)**"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Advanced Profiling Functions\n\nThis test validates our advanced profiling functions provide comprehensive analysis.\n\n**What we're testing**: Forward and backward pass profiling completeness\n**Why it matters**: Training optimization requires understanding both passes\n**Expected**: Complete profiles with all required metrics and relationships"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Parameter Counting: Model Size Analysis, Memory Profiling: Understanding Memory Usage Patterns, Latency Measurement: Accurate Performance Timing, Integration: Advanced Profiling Functions."
+   ]
+  }
+ ]
+}

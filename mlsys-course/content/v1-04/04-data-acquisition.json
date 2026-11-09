@@ -1,0 +1,83 @@
+{
+ "title": "Data Acquisition",
+ "summary": "Evaluate the ecosystem-wide risks of shared dataset bias propagation and benchmark over-reliance.",
+ "source": {
+  "chapter": "v1-04",
+  "sections": [
+   "Data Acquisition",
+   "Coverage and diversity requirements",
+   "Selecting data sources",
+   "Scaling acquisition"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Evaluate the ecosystem-wide risks of shared dataset bias propagation and benchmark over-reliance\n- Analyze the trade-offs between synthetic data scalability and real-world domain gaps in acquisition strategy\n- Explain why benchmark performance fails to guarantee real-world generalization across deployment distributions\n- Design a gap-closing acquisition workflow that moves from missing-coverage definition through source audit, targeted acquisition, and post-acquisition validation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Engineering, § Data Acquisition",
+   "md": "A huge corpus of studio audio does not help a wake-word detector that has to run on inexpensive microphones in noisy kitchens, because a model cannot learn a speaker, room, or microphone that no source supplied. Data acquisition therefore sets the outer limit of the capability bound, and it begins when the team names the coverage gap the model must close. For keyword spotting, public corpora are the first source."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Coverage and diversity requirements\n- Selecting data sources\n- Scaling acquisition\n\nPay attention to: curated benchmark reuse vs. shared dataset bias propagation; synthetic data generation trade-offs and domain fidelity; escalated multi-source acquisition workflows."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Discuss the primary advantages and critical risks of using synthetic data generation (e.g., 3D graphics rendering or generative audio simulation) as a core data acquisition strategy.",
+   "md": "Advantages: Synthetic data provides scalable training examples with automatically generated labels consistent with the simulator (e.g., exact 3D bounding boxes, depth maps, or audio SNR) and enables targeted generation of rare safety-critical edge cases. Those labels describe the simulated scene; their relevance to the real task still requires validation. Risks: Synthetic generators inherit domain gaps and omissions from their underlying models; models trained purely on synthetic data often fail on real-world distributions due to missing acoustic reverberations, lighting variations, or demographic accents absent from the generator."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-04-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Multiple independent autonomous driving teams train their perception models exclusively on a popular public driving benchmark. What systemic failure mode does this practice introduce into the broader ecosystem?",
+     "explanation": "The correct answer is A. Shared dataset bias propagation, where common blind spots, annotation artifacts, and unrepresented edge cases can create correlated weaknesses across deployed models. When multiple models across an industry rely on a single common benchmark dataset, systemic flaws (e.g., geographic bias, missing weather conditions, or consistent label errors) can propagate across models. Shared data creates a correlated-failure risk, not a guarantee that every model fails alike. The other options describe unrelated GPU memory bugs, network gravity violations, or hardware synchronization issues.",
+     "hint": "Think about: evaluate the ecosystem-wide risks of shared dataset bias propagation and benchmark over-reliance.",
+     "type": "single",
+     "options": [
+      "Shared dataset bias propagation, where common blind spots, annotation artifacts, and unrepresented edge cases can create correlated weaknesses across deployed models.",
+      "Catastrophic memory leaks in GPU driver kernels caused by repeated reading of shared image formats.",
+      "Immediate violation of data gravity constraints due to distributed multi-tenant reads.",
+      "Automatic over-fitting to hardware memory hierarchies during distributed gradient synchronization."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Achieving state-of-the-art benchmark accuracy on a curated dataset (such as ImageNet or Common Voice) guarantees that an ML model is ready for deployment in real-world production environments.",
+     "explanation": "False. Curated benchmarks provide standardized baselines for research comparison, but their distributions rarely capture the full variety of real-world deployment conditions (e.g., microphone hardware variations, regional acoustic noise, adversarial inputs, or demographic shifts). Models tuned specifically to benchmark distributions frequently suffer severe performance drops when exposed to uncurated production data.",
+     "hint": "Think about: explain why benchmark performance fails to guarantee real-world generalization across deployment distributions.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the following gap-closing acquisition steps into a sensible workflow:",
+     "explanation": "The correct order is: (2) define the coverage gap the model must close, (4) audit what existing sources and provenance already provide, (1) choose an acquisition source for the remaining gap under budget and governance constraints, (3) validate that the acquired data actually improves the missing coverage and meets quality requirements. The sequence matters because the team must know what is missing before it can judge whether reusable data already covers it, and only then can it choose a new source for the residual gap. Swapping source selection ahead of the audit would spend money before measuring what is already available, while skipping the final validation would mistake acquired volume for actual coverage and quality improvement.",
+     "hint": "Think about: design a gap-closing acquisition workflow that moves from missing-coverage definition through source audit, targeted acquisition, and post-acquisition validation.",
+     "type": "order",
+     "items": [
+      "define the coverage gap the model must close",
+      "audit what existing sources and provenance already provide.",
+      "choose an acquisition source for the remaining gap under budget and governance constraints",
+      "validate that the acquired data actually improves the missing coverage and meets quality requirements"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate the ecosystem-wide risks of shared dataset bias propagation and benchmark over-reliance.",
+    "You can now analyze the trade-offs between synthetic data scalability and real-world domain gaps in acquisition strategy.",
+    "You can now explain why benchmark performance fails to guarantee real-world generalization across deployment distributions.",
+    "You can now design a gap-closing acquisition workflow that moves from missing-coverage definition through source audit, targeted acquisition, and post-acquisition validation."
+   ]
+  }
+ ]
+}

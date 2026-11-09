@@ -1,0 +1,77 @@
+{
+ "title": "Modules: From Operations to Models",
+ "summary": "Explain the parameter registration and recursive discovery mechanism in module abstractions like nn.Module.",
+ "source": {
+  "chapter": "v1-07",
+  "sections": [
+   "Modules: From Operations to Models",
+   "Automatic parameter discovery",
+   "Mode-dependent behavior",
+   "Hierarchical composition and serialization"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain the parameter registration and recursive discovery mechanism in module abstractions like nn.Module\n- Distinguish the systems role of module evaluation mode from gradient-recording controls\n- Identify the state_dict abstraction used for model parameter and buffer serialization\n- Explain how state_dict loading restores module state without reconstructing architecture or guaranteeing cross-framework portability"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Frameworks, § Modules: From Operations to Models",
+   "md": "Coordinating those same … ResNet-50 parameters across fifty layers requires registering weights with optimizers, moving buffers across devices, toggling training and evaluation modes, and serializing checkpoints, the saved copies of training state from which a run can resume. Managing that state tensor by tensor would drown model development in error-prone bookkeeping. Frameworks resolve this through hierarchical composition, packaging layers into modules that compose into full models."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Automatic parameter discovery\n- Mode-dependent behavior\n- Hierarchical composition and serialization\n\nPay attention to: The three design principles of nn.Module: automatic parameter discovery, mode-dependent behavior, and hierarchical composition with serialization; Automatic parameter registration via __setattr__ and tree-walking parameter iterators; Mode-dependent behavior: train() vs eval() for Dropout and BatchNorm versus autograd torch.no_grad(); Serialization: state_dict structures, safetensors zero-copy mmap versus Python pickle code-execution security vulnerabilities."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why setting `model.eval()` is necessary for numerically correct inference in models containing BatchNorm or Dropout, and clarify why `model.eval()` is not a substitute for disabling gradient recording.",
+   "md": "`model.eval()` is needed because some layers change behavior between training and inference: Dropout should stop randomly zeroing activations, and BatchNorm should use stored running statistics rather than current batch statistics. That makes inference numerically consistent with the model's intended deployment behavior. But evaluation mode does not itself turn off autograd recording, so a separate gradient-disabling context is still useful when gradients are enabled and you want to avoid unnecessary graph recording and saved state. The practical implication is that correct inference behavior and lower autograd overhead are related but separate controls."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-07-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In framework module abstractions like PyTorch's `nn.Module`, what systems mechanism enables `optimizer = torch.optim.Adam(model.parameters())` to find all registered model weights without the developer manually listing every tensor?",
+     "explanation": "The correct answer is D. `nn.Module` intercepts attribute assignment so that assigned `nn.Parameter` objects and child modules are registered into the module's internal structure. Calling `parameters()` then recursively traverses that tree to yield registered parameters. A key subtlety from the section is that registration and trainability are separate: frozen registered parameters can still appear in the accessor, while buffers are tracked separately and excluded from ordinary parameter discovery. The GPU driver and Python runtime do not understand model semantics at that level, and garbage-collector hooks are unrelated to module registration.",
+     "hint": "Think about: explain the parameter registration and recursive discovery mechanism in module abstractions like nn.Module",
+     "type": "single",
+     "options": [
+      "Python automatically compiles all local variables into an optimization graph",
+      "The GPU driver scans VRAM at runtime to detect all floating-point matrices",
+      "The autograd engine injects global hooks into Python's garbage collector",
+      "Overridden attribute assignment registers `nn.Parameter` objects in the module tree, and `parameters()` recursively walks that registered structure"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "What does `load_state_dict()` fundamentally do in the module serialization pattern described in the section?",
+     "explanation": "The correct answer is A. The section explains that `state_dict()` stores a flat mapping of parameter and buffer values keyed by their location in the module hierarchy, and `load_state_dict()` copies matching values into an already constructed module. That means serialization preserves state, not an architecture inference procedure. The \"weights alone rebuild the model\" idea confuses state loading with model definition, and cross-framework exchange needs compatible graph and operator representations in addition to compatible tensor shapes. Automatic quantization is also unrelated to ordinary `state_dict` loading.",
+     "hint": "Think about: explain how state_dict loading restores module state without reconstructing architecture or guaranteeing cross-framework portability",
+     "type": "single",
+     "options": [
+      "It loads parameter and buffer values into an already constructed matching module rather than reconstructing the architecture from scratch",
+      "It automatically quantizes all stored tensors before loading them into the model",
+      "It discovers the model architecture from weights alone and rebuilds any missing layers",
+      "It guarantees cross-framework portability as long as the tensor shapes match"
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the parameter registration and recursive discovery mechanism in module abstractions like nn.Module.",
+    "You can now distinguish the systems role of module evaluation mode from gradient-recording controls.",
+    "You can now identify the state_dict abstraction used for model parameter and buffer serialization.",
+    "You can now explain how state_dict loading restores module state without reconstructing architecture or guaranteeing cross-framework portability."
+   ]
+  }
+ ]
+}

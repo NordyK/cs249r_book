@@ -1,0 +1,74 @@
+{
+ "title": "Systems Thinking Across the Lifecycle",
+ "summary": "Design an evidence-based monitoring response and trace the artifact revisions needed for re-release.",
+ "source": {
+  "chapter": "v1-03",
+  "sections": [
+   "Systems Thinking Across the Lifecycle",
+   "Multi-scale feedback",
+   "Emergent behavior"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Design an evidence-based monitoring response and trace the artifact revisions needed for re-release\n- Analyze how emergent complexity creates systemic demographic disparities that local component monitoring obscures\n- Compare multi-scale feedback loops across operational, proxy, performance, and strategic timescales"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Lifecycle, § Systems Thinking Across the Lifecycle",
+   "md": "The camera-upgrade case that opened the monitoring stage touched every stage at once. A change in capture hardware at one clinic shifted the input distribution, degraded a model that had passed validation, and required routing evidence back through the lifecycle to identify and validate a remedy. The whole DR walk showed the same coupling. Bandwidth, latency, and connectivity constraints favored edge deployment, edge deployment constrained model size, and model size reshaped preprocessing."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Multi-scale feedback\n- Emergent behavior\n\nPay attention to: The Constraint Propagation Principle and compounding rework; Multi-scale feedback loops spanning minutes to quarters; Emergent complexity and systemic trade-offs."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A referral-rate change appears for patients over seventy, who are included in the intended use, but labels are available only for referred patients and the release manifest contains no separate sensitivity evaluation for this age group. What can the monitoring team conclude, what evidence must it obtain, and which artifacts should it review before selecting a remedy?",
+   "md": "The referral-rate change warrants investigation but does not establish a sensitivity failure. Labels from referred patients omit cases the model did not refer, so the evaluation owner needs representative labeled evidence for the affected screening population. The monitoring owner records the signal and artifact versions and applies the approved exposure policy while evidence is collected. Requirements already include these patients, but the evaluation plan and coverage records need review. Preprocessing changes or retraining require evidence that those interventions address the cause. A revised candidate must pass subgroup and regression evaluation and on-device latency and memory checks, with the evidence and approval recorded in a revised release manifest before controlled rollout."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-03-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In a multi-site distributed ML deployment spanning hundreds of clinics, why can system-wide emergent behaviors produce failures that are completely invisible when examining individual clinics in isolation?",
+     "explanation": "The correct answer is B. Emergent complexity means system-level behaviors cannot be understood by observing individual components in isolation. At any single clinic, an underrepresented patient subpopulation (e.g., elderly patients with rare comorbidities) may comprise only a handful of cases, making local accuracy metrics appear stable and healthy. When aggregated across hundreds of clinics, however, the model may systematically fail for thousands of patients in that demographic. Global cross-site telemetry is essential to surface systemic disparities that local averages conceal. Network noise, deterministic execution claims, and local drift immunity are technically incorrect.",
+     "hint": "Think about: analyze how emergent complexity creates systemic demographic disparities that local component monitoring obscures.",
+     "type": "single",
+     "options": [
+      "A. Because distributed communication protocols inject pseudo-random noise into inference predictions.",
+      "B. Because local monitoring averages away subpopulation variance; an underserved demographic group that represents only 1–2% of patients at each clinic appears as statistical noise locally, but forms a significant, systematically failing population in aggregate.",
+      "C. Because modern ML models are strictly non-deterministic on edge devices and deterministic in the cloud.",
+      "D. Because individual clinics never experience data drift, which occurs only across wide-area networks."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Arrange the following feedback loop cadences in order from shortest operating timescale (most rapid) to longest operating timescale (slowest):",
+     "explanation": "The correct order is: (2) Minute-level operational health and image-capture focus checks, (4) Daily monitoring of proxy metrics such as referral rates and confidence distributions, (1) Weekly aggregation of labeled accuracy metrics and statistical drift tests, (3) Quarterly architectural review of model families and regulatory compliance. Multi-scale feedback operates across five orders of magnitude: minute-level checks catch immediate operational and hardware misconfigurations; daily proxy tracking detects distribution shifts without waiting for labels; weekly performance reviews incorporate adjudicated ground-truth outcomes; and quarterly strategic reviews evaluate model architectures, lifecycle costs, and regulatory compliance.",
+     "hint": "Think about: compare multi-scale feedback loops across operational, proxy, performance, and strategic timescales.",
+     "type": "order",
+     "items": [
+      "Minute-level operational health and image-capture focus checks",
+      "Daily monitoring of proxy metrics such as referral rates and confidence distributions.",
+      "Weekly aggregation of labeled accuracy metrics and statistical drift tests",
+      "Quarterly architectural review of model families and regulatory compliance"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now design an evidence-based monitoring response and trace the artifact revisions needed for re-release.",
+    "You can now analyze how emergent complexity creates systemic demographic disparities that local component monitoring obscures.",
+    "You can now compare multi-scale feedback loops across operational, proxy, performance, and strategic timescales."
+   ]
+  }
+ ]
+}

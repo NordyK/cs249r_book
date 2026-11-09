@@ -1,0 +1,73 @@
+{
+ "title": "Defining ML Systems",
+ "summary": "Analyze the limiting constraint in an ML system using the D·A·M taxonomy and identify the corresponding optimization intersection.",
+ "source": {
+  "chapter": "v1-01",
+  "sections": [
+   "Defining ML Systems"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the limiting constraint in an ML system using the D·A·M taxonomy and identify the corresponding optimization intersection\n- Explain the principle of the limiting constraint and the consequences of optimizing components that are not limiting\n- Identify the core engineering focus of the Algorithm-Machine intersection in the D·A·M taxonomy"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Introduction, § Defining ML Systems",
+   "md": "Absorbing computational growth takes a working system, not only a trained model. Return to the email spam filter introduced in a later section: in a notebook, it is a classifier that maps message text to a spam probability, but in production it must process global email traffic measured in hundreds of billions of messages per day. At that scale, the classifier is only one component inside an end-to-end operational pipeline that must continuously ingest new examples, retrain as attack tactics evolve, and classify incoming mail within strict delivery latency budgets."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: definition of ML systems and limiting constraints; D·A·M taxonomy and intersection landscape (D∩A, D∩M, A∩M, D∩A∩M)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain what the concept of a 'limiting constraint' means in the D·A·M framework, and describe the risk of optimizing an axis that is not limiting.",
+   "md": "A limiting constraint is the specific physical, algorithmic, or data bottleneck whose relaxation directly improves end-to-end system performance (e.g., latency, throughput, or cost). Optimizing an axis that is not limiting (such as upgrading to faster GPUs when the system is bounded by disk I/O, or collecting more data when model capacity is saturated) expends engineering resources while leaving overall system throughput or prediction quality virtually unchanged."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-01-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An ML engineering team trains a 70-billion-parameter language model. When profiling the distributed cluster, they notice that accelerator compute engines remain idle for 45% of execution time waiting for batch tensors to be loaded from remote object storage over the network. Along which D·A·M axis does the primary limiting constraint lie, and which intersection represents the appropriate optimization space?",
+     "explanation": "The correct answer is C. The bottleneck is data movement and storage throughput starving the compute engines, placing the constraint along the Data axis. The corresponding design space is the $\\text{Data} \\cap \\text{Machine}$ intersection ('How to Move Information'), which includes I/O bandwidth optimization, asynchronous prefetching, efficient storage formats, and memory hierarchy management. Optimizing mixed precision quantization ($\\text{A} \\cap \\text{M}$) accelerates compute execution but does not resolve storage starvation. Curriculum learning ($\\text{D} \\cap \\text{A}$) selects which samples to present but does not fix I/O pipeline bandwidth.",
+     "hint": "Think about: analyze the limiting constraint in an ML system using the D·A·M taxonomy and identify the corresponding optimization intersection.",
+     "type": "single",
+     "options": [
+      "Machine axis; $\\text{Algorithm} \\cap \\text{Machine}$ (mixed precision quantization and kernel fusion)",
+      "Algorithm axis; $\\text{Data} \\cap \\text{Algorithm}$ (curriculum learning and active data selection)",
+      "Data axis; $\\text{Data} \\cap \\text{Machine}$ (I/O pipelining, prefetching, and storage memory hierarchy)",
+      "Workload axis; $\\text{Data} \\cap \\text{Algorithm} \\cap \\text{Machine}$ (reinforcement learning from human feedback)"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In the D·A·M intersection landscape, the intersection between Algorithm and Machine ($\\text{A} \\cap \\text{M}$) addresses the core question of 'How to ____', focusing on how the model's mathematical work is mapped onto hardware execution and data movement efficiently.",
+     "explanation": "Execute Efficiently. In the D·A·M taxonomy, the Algorithm-Machine intersection (A ∩ M) asks how the model's computation is carried out on physical hardware so arithmetic and movement are organized efficiently.",
+     "hint": "Think about: identify the core engineering focus of the Algorithm-Machine intersection in the D·A·M taxonomy.",
+     "type": "fill",
+     "answer": [
+      "Execute Efficiently"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Learned behavior**: The predictions a trained model produces on inputs, whose usefulness and physical deliverability must both be established."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Learned behavior",
+   "def": "The predictions a trained model produces on inputs, whose usefulness and physical deliverability must both be established."
+  }
+ ]
+}

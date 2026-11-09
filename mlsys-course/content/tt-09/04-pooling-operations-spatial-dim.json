@@ -1,0 +1,179 @@
+{
+ "title": "Pooling Operations: Spatial Dimension Reduction",
+ "summary": "TinyTorch convolutions: Pooling Operations: Spatial Dimension Reduction",
+ "source": {
+  "chapter": "tt-09",
+  "sections": [
+   "Pooling Operations: Spatial Dimension Reduction"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Pooling Operations: Spatial Dimension Reduction\n\nPooling operations compress spatial dimensions while preserving dominant feature activations. In MLSys architectures, pooling acts as a spatial summarization mechanism, cutting memory consumption and computational latency by integer factors.\n\n### MaxPool2d vs AvgPool2d: Spatial Aggregation\n\nConsider a \\$4 \\times 4\\$ input feature map partitioned into four \\$2 \\times 2\\$ non-overlapping windows (stride \\$S=2\\$):\n\n\\$\\$\\mathbf{X} = \\begin{bmatrix} 1 & 3 & 2 & 8 \\\\ 5 & 6 & 7 & 4 \\\\ 2 & 9 & 1 & 7 \\\\ 0 & 1 & 3 & 6 \\end{bmatrix}\\$\\$\n\n- **Top-Left Window**: \\$\\{1, 3, 5, 6\\} \\implies \\max = 6, \\quad \\text{mean} = \\frac{1+3+5+6}{4} = 3.75\\$\n- **Top-Right Window**: \\$\\{2, 8, 7, 4\\} \\implies \\max = 8, \\quad \\text{mean} = \\frac{2+8+7+4}{4} = 5.25\\$\n- **Bottom-Left Window**: \\$\\{2, 9, 0, 1\\} \\implies \\max = 9, \\quad \\text{mean} = \\frac{2+9+0+1}{4} = 3.00\\$\n- **Bottom-Right Window**: \\$\\{1, 7, 3, 6\\} \\implies \\max = 7, \\quad \\text{mean} = \\frac{1+7+3+6}{4} = 4.25\\$"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\mathbf{Y}_{\\text{max}} = \\begin{bmatrix} 6 & 8 \\\\ 9 & 7 \\end{bmatrix}, \\qquad \\mathbf{Y}_{\\text{avg}} = \\begin{bmatrix} 3.75 & 5.25 \\\\ 3.00 & 4.25 \\end{bmatrix}\\$\\$\n\n---\n\n### Systems & Memory Footprint Analysis"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Metric",
+    "Input Activation",
+    "After \\$2 \\times 2\\$ Pooling (\\$S=2\\$)",
+    "MLSys Benefit"
+   ],
+   "rows": [
+    [
+     "**Spatial Grid**",
+     "\\$224 \\times 224\\$ (\\$50{,}176\\$ positions)",
+     "\\$112 \\times 112\\$ (\\$12{,}544\\$ positions)",
+     "Exact \\$4\\times\\$ reduction in spatial grid"
+    ],
+    [
+     "**Activation Buffer**",
+     "\\$1 \\times 64 \\times 224 \\times 224 \\times 4\\text{ B} = 12.85\\text{ MB}\\$",
+     "\\$1 \\times 64 \\times 112 \\times 112 \\times 4\\text{ B} = 3.21\\text{ MB}\\$",
+     "**\\$9.64\\text{ MB}\\$ saved** per forward/backward pass"
+    ],
+    [
+     "**Downstream FLOPs**",
+     "Evaluates \\$H \\times W\\$ receptive fields",
+     "Evaluates \\$(H/2) \\times (W/2)\\$ receptive fields",
+     "**\\$4\\times\\$ reduction** in next layer GEMM operations"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "---\n\n### Architectural Trade-offs"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Advantage",
+    "Systems Rationale",
+    "Trade-off / Cost"
+   ],
+   "rows": [
+    [
+     "**Translation Invariance**",
+     "Small pixel shifts do not change window maximum",
+     "Loses precise spatial localization"
+    ],
+    [
+     "**Compute Reduction**",
+     "Halves spatial dimensions, cutting subsequent FLOPs by \\$4\\times\\$",
+     "Small objects (< pooling window) may be lost"
+    ],
+    [
+     "**Zero Learnable Parameters**",
+     "Aggregates without adding weights or optimizer states",
+     "Backward still needs each window's argmax, so something has to store it or find it again"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "#### Store or Recompute: Max Pooling's Hidden Choice\n\nMax pooling has no parameters, but its backward pass still needs one fact per output element, namely which position in the window won. There are two ways to have it. PyTorch stores the indices during the forward pass, one `int64` per output element, which is \\$8\\$ bytes on top of the \\$4\\$-byte output itself, and its backward pass is then a single scatter. `MaxPool2dFunction.backward` in this module takes the other side of the trade and stores nothing at all, re-scanning every \\$K_h \\times K_w\\$ window to find the maximum again. Same gradients, opposite bill. PyTorch triples what the layer holds (\\$4\\$ bytes of output plus \\$8\\$ bytes of index) to save a pass over the input, and TinyTorch spends that pass to hold nothing extra. Read the backward loop below and you will see the re-scan, not a lookup."
+  },
+  {
+   "type": "text",
+   "md": "### MaxPool2d Implementation: Preserving Strong Features\n\n`MaxPool2d` extracts the maximum activation in each window, preserving high-frequency features like edges, corners, and bright intensity peaks while discarding noise.\n\n\\$\\$\\text{Output}[b, c, h, w] = \\max_{0 \\le m < K_h, \\, 0 \\le n < K_w} X_{\\text{pad}}[b, c, h \\cdot S_h + m, w \\cdot S_w + n]\\$\\$\n\nDuring the backward pass, gradients route **exclusively** to the specific coordinate that achieved the maximum during the forward pass. All non-maximal positions receive zero gradient."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 249 lines of code (starting with `class MaxPool2dFunction(Function):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: MaxPool2d Output Shape\n\nThis test validates that `_compute_pool_output_shape` correctly computes the spatial dimensions after max pooling:\n\n\\$\\$\\text{dim}_{\\text{out}} = \\left\\lfloor \\frac{\\text{dim}_{\\text{in}} + 2 \\cdot \\text{padding} - \\text{kernel}}{\\text{stride}} \\right\\rfloor + 1\\$\\$\n\nCommon case: \\$\\text{kernel}=2, \\text{stride}=2, \\text{padding}=0\\$:\n\\$\\$(8 + 0 - 2) // 2 + 1 = 4 \\quad (\\text{spatial dimensions halved})\\$\\$\n\n**What we're testing**: Pooling output dimension calculation\n**Why it matters**: Wrong dimensions break the CNN dimension chain\n**Expected**: Matches hand-calculated values for various configs"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: MaxPool2d Loops\n\nThis test validates that `_maxpool_loops` correctly finds the maximum value in each pooling window:\n\n\\$\\$\\begin{bmatrix} 1 & 2 & 3 & 4 \\\\ 5 & 6 & 7 & 8 \\\\ 9 & 10 & 11 & 12 \\\\ 13 & 14 & 15 & 16 \\end{bmatrix} \\quad \\xrightarrow{\\text{MaxPool } 2 \\times 2, \\, S=2} \\quad \\begin{bmatrix} 6 & 8 \\\\ 14 & 16 \\end{bmatrix}\\$\\$\n\n**What we're testing**: The max-finding loops produce correct values\n**Why it matters**: Max pooling preserves the strongest activations\n**Expected**: Output matches hand-computed max values per window"
+  },
+  {
+   "type": "text",
+   "md": "### AvgPool2d Implementation: Smoothing and Generalizing Features\n\n`AvgPool2d` computes the arithmetic mean across each spatial window, producing smooth, spatially regularized feature maps less susceptible to localized outlier noise.\n\n#### MaxPool vs AvgPool: Design Philosophies"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dimension / Characteristic",
+    "`MaxPool2d`",
+    "`AvgPool2d`"
+   ],
+   "rows": [
+    [
+     "**Feature Focus**",
+     "Detects dominant localized peaks (edges, spots)",
+     "Summarizes regional background energy"
+    ],
+    [
+     "**Mathematical Formulation**",
+     "\\$\\max_{(m,n) \\in \\Omega} x_{m,n}\\$",
+     "\\$\\frac{1}{\\vert \\Omega \\vert} \\sum_{(m,n) \\in \\Omega} x_{m,n}\\$"
+    ],
+    [
+     "**Sample Window Output**",
+     "**0.9** (preserves sharp peak: \\$\\max\\{0.1, 0.9, 0.3, 0.3\\}\\$)",
+     "**0.4** (smooths regional context: \\$\\text{mean}\\{0.1, 0.9, 0.3, 0.3\\}\\$)"
+    ],
+    [
+     "**Backward Pass Distribution**",
+     "100% gradient routed to the single argmax pixel",
+     "Equal gradient \\$\\frac{1}{\\vert \\Omega \\vert}\\$ distributed to all pixels"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "---\n\n#### When to Use Average Pooling"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Architectural Paradigm",
+    "MLSys & Training Rationale"
+   ],
+   "rows": [
+    [
+     "**Global Average Pooling (GAP)**",
+     "Compresses \\$(C, H, W) \\to (C, 1, 1)\\$, replacing dense linear layers and eliminating millions of weights"
+    ],
+    [
+     "**Texture & Background Summarization**",
+     "Smooths out high-frequency spatial jitter in shallow networks"
+    ],
+    [
+     "**Invariance to Precise Localization**",
+     "Retains cumulative energy across the receptive field without favoring extreme outliers"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 226 lines of code (starting with `class AvgPool2dFunction(Function):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: AvgPool2d Output Shape\n\nThis test validates that `_compute_pool_output_shape` correctly computes\nthe spatial dimensions after average pooling.\n\n**What we're testing**: Pooling output dimension calculation\n**Why it matters**: Must match MaxPool2d formula for interchangeability\n**Expected**: Same results as MaxPool2d for identical configurations"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: AvgPool2d Loops\n\nThis test validates that `_avgpool_loops` correctly computes the arithmetic mean of each pooling window:\n\n\\$\\$\\begin{bmatrix} 1 & 2 & 3 & 4 \\\\ 5 & 6 & 7 & 8 \\\\ 9 & 10 & 11 & 12 \\\\ 13 & 14 & 15 & 16 \\end{bmatrix} \\quad \\xrightarrow{\\text{AvgPool } 2 \\times 2, \\, S=2} \\quad \\begin{bmatrix} 3.5 & 5.5 \\\\ 11.5 & 13.5 \\end{bmatrix}\\$\\$\n\n- Top-left: \\$\\frac{1+2+5+6}{4} = 3.5\\$\n- Top-right: \\$\\frac{3+4+7+8}{4} = 5.5\\$\n- Bottom-left: \\$\\frac{9+10+13+14}{4} = 11.5\\$\n- Bottom-right: \\$\\frac{11+12+15+16}{4} = 13.5\\$\n\n**What we're testing**: The sum-and-divide loops produce correct averages\n**Why it matters**: Average pooling creates smoother features than max pooling\n**Expected**: Output matches hand-computed averages per window"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Pooling Operations: Spatial Dimension Reduction."
+   ]
+  }
+ ]
+}

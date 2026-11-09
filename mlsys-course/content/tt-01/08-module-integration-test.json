@@ -1,0 +1,34 @@
+{
+ "title": "Module Integration Test",
+ "summary": "TinyTorch tensor: Module Integration Test",
+ "source": {
+  "chapter": "tt-01",
+  "sections": [
+   "Module Integration Test"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🧪 Module Integration Test\n\nFinal validation that everything works together correctly before module completion."
+  },
+  {
+   "type": "text",
+   "md": "## 🤔 ML Systems Reflection Questions\n\nNow that you've built a complete Tensor class, let's think about its systems-level implications.\nUnderstanding memory layout, scaling behavior, and computational costs helps you make informed\ndecisions when building production ML systems.\n\n### Question 1: Memory Layout and Cache Performance\n\nHow does row-major vs column-major storage affect cache performance in tensor operations?\n\n**Consider**:\n- What happens when you access matrix elements sequentially vs. with large strides?\n- Why did our measurement show NumPy's `axis=0` reduction beating `axis=1`, even though it produces one result per column?\n- How would this affect the design of an image processing pipeline's memory layout?\n\n**Key Insight**: Libraries choose specific memory formats because accessing certain dimensions\nsequentially has better cache locality. You'll see this principle applied throughout later modules.\n\n### Question 2: Batch Processing and Scaling\n\nIf you double the number of samples in a batch, what happens to memory usage? What about\ncomputation time?"
+  },
+  {
+   "type": "text",
+   "md": "**Consider**:\n- An affine transformation with input (batch, features): y = xW + b\n- Memory for: input tensor, weight matrix, output tensor\n- If (32, 784) @ (784, 256) takes 10ms, how long does (64, 784) @ (784, 256) take?\n\n**Key Insight**: Input/output memory scales linearly with batch size, but weight memory stays constant.\nComputation time also scales linearly for matrix multiplication.\n\n### Question 3: Data Type Precision and Memory\n\nWhat's the memory difference between float64 and float32 for a (1000, 1000) tensor?\n\n**Calculate**:\n- float64: 8 bytes per element, float32: 4 bytes per element\n- Total elements: 1,000,000\n- Memory: float64 = 8MB, float32 = 4MB (2x difference)\n\n**Key Insight**: Production systems often use float16 or bfloat16 for 2x memory savings over float32 (2 bytes vs 4),\ntrading precision for capacity. Current accelerators carry 80-192 GB of on-package memory, so halving the bytes per element doubles the model that fits.\n\n### Question 4: Production Scale Memory\n\nA large-scale model has 175 billion parameters. How much RAM is needed just to store the weights?"
+  },
+  {
+   "type": "text",
+   "md": "**Calculate**:\n- Parameters: 175 x 10^9\n- Bytes per float32: 4\n- Weight memory: 700 GB\n\n**Key Insight**: This is why large-scale systems require significant hardware resources.\nYou'll explore what \"additional training state\" means in later modules.\n\n### Question 5: Hardware Awareness\n\nWhy do parallel processors strongly prefer operations on large tensors over many small ones?\n\n**Compare**:\n- Scenario A: 1000 separate (10, 10) matrix multiplications\n- Scenario B: 1 batched (1000, 10, 10) matrix multiplication\n\n**Key Insight**: Computation launch overhead (~5-10 microseconds per launch) dominates for small operations.\nBatching amortizes this overhead and maximizes parallelism across processing units."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module Integration Test."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,35 @@
+{
+ "title": "⭐ Aha Moment: Quantization Shrinks Models",
+ "summary": "TinyTorch quantization: ⭐ Aha Moment: Quantization Shrinks Models",
+ "source": {
+  "chapter": "tt-15",
+  "sections": [
+   "⭐ Aha Moment: Quantization Shrinks Models"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: Quantization Shrinks Models\n\n**What you built:** An INT8 quantization simulator with calibration and packed-storage accounting.\n\n**Why it matters:** Packing 400MB of FP32 weights as INT8 codes would use 100MB\nbefore metadata. This can help a model fit on an edge device. Accuracy changes\nmust be measured on representative inputs; the simulator lets you study them.\n\nYou now have a simulator for studying quantization error. Deployment would require packed storage and suitable inference kernels."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_quantization():\n    \"\"\"🎯 See quantization shrink model size.\"\"\"\n    print(\"🎯 AHA MOMENT: Quantization Shrinks Models\")\n    print(\"=\" * 45)\n\n    # Create FP32 weights with concrete values\n    weights = Tensor(np.array([\n        [0.5, -0.3, 0.8, 0.2],\n        [-0.2, 0.6, 0.1, -0.7],\n        [0.4, -0.5, 0.3, 0.9]\n    ]).astype(np.float32))\n\n    original_bytes = weights.data.nbytes\n\n    # Quantize to INT8\n    q_weights, scale, zero_point = quantize_int8(weights)\n    quantized_bytes = q_weights.data.size  # 1 byte per INT8 element\n\n    # Restore and verify accuracy preservation\n    restored = dequantize_int8(q_weights, scale, zero_point)\n    error = np.mean(np.abs(weights.data - restored.data))\n\n    print(f\"Original FP32: {original_bytes:,} bytes\")\n    print(f\"Modeled packed INT8: {quantized_bytes:,} bytes\")\n    print(f\"Packed storage model: {original_bytes / quantized_bytes:.0f}x smaller (actual Tensor codes remain float32)\")\n    print(f\"INT8 range: [{q_weights.data.min()}, {q_weights.data.max()}]\")\n    print(f\"Restoration error: {error:.6f}\")\n\n    print(\"\\n✨ Rounded values with a modeled 4x reduction in packed code storage!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Quantization\n\nYou've built an INT8 quantization simulator that measures rounding error and models packed storage savings!\n\n### Key Accomplishments\n- Built INT8 quantization with proper scaling and zero-point calculation\n- Implemented QuantizedLinear layer with calibration support\n- Created model-level quantization for complete neural networks\n- Measured per-layer sensitivity by quantizing one Linear layer at a time and comparing outputs\n- Measured the memory savings analytically (INT8 storage is simulated in float32 here)\n- All tests pass (validated by `test_module()`)\n\n### Systems Insights Discovered\n- Memory scaling: INT8 reduces storage by 4x (32 bits to 8 bits per parameter)\n- Metadata overhead: a scale and a zero point cost 8 bytes per array, so a tiny layer compresses about 1.9x where a large one approaches 4x\n- Hardware efficiency: Native INT8 kernels can improve speed on supported hardware; this simulator measures rounding effects\n- Deployment benefits: Smaller models fit on mobile and edge devices\n\n### Ready for Next Steps\nYour quantization pipeline simulates reduced precision without retraining. That\nmakes it the first optimization you would reach for when a model has to fit on\nhardware it was not trained on. Packed INT8 weights can approach 4x storage\nsavings; the accuracy cost depends on the model and calibration data. This\nsimulator lets you measure that cost before choosing a deployment format.\n\nExport with: `tito module complete 15`"
+  },
+  {
+   "type": "text",
+   "md": "**Next**: Module 16 will add compression: pruning, distillation, and low-rank approximation to shrink models further!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: Quantization Shrinks Models."
+   ]
+  }
+ ]
+}

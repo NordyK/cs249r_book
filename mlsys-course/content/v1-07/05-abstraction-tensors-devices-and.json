@@ -1,0 +1,77 @@
+{
+ "title": "Abstraction: Tensors, Devices, and Operations",
+ "summary": "Distinguish tensor views from tensor copies in terms of metadata, storage sharing, and layout constraints.",
+ "source": {
+  "chapter": "v1-07",
+  "sections": [
+   "Abstraction: Tensors, Devices, and Operations",
+   "Tensors",
+   "Devices and memory",
+   "Data loading",
+   "Core operations"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Distinguish tensor views from tensor copies in terms of metadata, storage sharing, and layout constraints\n- Analyze how pinned memory and non-blocking copies can help data movement, and distinguish transfer overlap from CPU data-loading bottlenecks\n- Explain how host-device synchronization calls destroy execution concurrency and pipeline overlap"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Frameworks, § Abstraction: Tensors, Devices, and Operations",
+   "md": "A model trained on data-center GPUs such as an NVIDIA H100 with tens of gigabytes of high-bandwidth memory must often deploy on a mobile phone's ARM CPU, an Apple neural engine, a Google TPU, or an ARM microcontroller with 256 KB of SRAM, where the same `torch.matmul` call must dispatch to cuBLAS on one device and a hand-tuned ARM NEON kernel on another."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Tensors\n- Devices and memory\n- Data loading\n- Core operations\n\nPay attention to: Tensor abstractions: storage buffers, strides, shapes, storage offsets, and views vs copies; Device memory management: CUDA caching allocator vs OS malloc latency; CUDA streams, asynchronous execution, and CPU-GPU overlap; Pinned host memory and non-blocking Direct Memory Access (DMA) transfers."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why can an accidental synchronous CPU-GPU tensor transfer (such as calling `.item()` or printing a tensor inside a training loop) degrade throughput far more than the raw byte transfer time would suggest?",
+   "md": "Host-device synchronization calls like `.item()` force the CPU thread to block until all previously queued GPU operations on the stream complete. This eliminates CPU-GPU execution concurrency, flushes the GPU work queue, exposes host dispatch latency, and prevents the framework from pipelining subsequent kernel launches."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-07-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In framework tensor implementations such as PyTorch `Tensor` or NumPy `ndarray`, what distinguishes a tensor *view* from a tensor *copy*?",
+     "explanation": "The correct answer is B. A view reinterprets existing storage through metadata such as shape, strides, and offset rather than allocating a new data buffer. The chapter emphasizes that transpose commonly creates a strided view, while reshape may return either a view or a copy depending on layout and stride compatibility. The datatype does not change just because something is a view, and a view is often noncontiguous rather than guaranteed to be C-contiguous. The host-copy answer also confuses storage sharing with device transfer, which is a separate operation.",
+     "hint": "Think about: distinguish tensor views from tensor copies in terms of metadata, storage sharing, and layout constraints",
+     "type": "single",
+     "options": [
+      "A view converts the underlying data from floating-point to integer representation",
+      "A view changes only tensor metadata while sharing the same storage, though reshape can do this only when the existing strides permit the requested layout",
+      "A view duplicates the tensor into host CPU memory while leaving device memory unchanged",
+      "A view guarantees the tensor is stored in contiguous C-order memory"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A training loop shows GPU idle time because batches arrive late from the input pipeline. How can `pin_memory=True` together with `tensor.to(device, non_blocking=True)` help, and what does it *not* guarantee by itself?",
+     "explanation": "The correct answer is C. Pinned host memory enables DMA-friendly transfers from page-locked RAM, and `non_blocking=True` can let those copies proceed asynchronously with respect to the host when the backend supports it. But the chapter is explicit that real overlap also requires enough independent work and correct stream synchronization; pinned memory is not a substitute for fixing a slow CPU loading pipeline with workers and prefetching. The quantization answer invents a mechanism unrelated to `pin_memory`, and the default-stream answer would reduce rather than create overlap opportunities.",
+     "hint": "Think about: analyze how pinned memory and non-blocking copies can help data movement, and distinguish transfer overlap from CPU data-loading bottlenecks",
+     "type": "single",
+     "options": [
+      "It automatically quantizes all host tensors to 8-bit precision so the GPU receives less data",
+      "It bypasses the data loader by executing preprocessing directly inside GPU kernels",
+      "It places batches in page-locked host memory so eligible host-to-device copies can use DMA and potentially overlap with device work, but actual overlap still depends on having independent batches, streams, and correct dependency ordering",
+      "It forces every CUDA kernel to run on the default stream so transfer and compute become easier to coordinate"
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now distinguish tensor views from tensor copies in terms of metadata, storage sharing, and layout constraints.",
+    "You can now analyze how pinned memory and non-blocking copies can help data movement, and distinguish transfer overlap from CPU data-loading bottlenecks.",
+    "You can now explain how host-device synchronization calls destroy execution concurrency and pipeline overlap."
+   ]
+  }
+ ]
+}

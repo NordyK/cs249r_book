@@ -1,0 +1,102 @@
+{
+ "title": "Level 3 Switch and Topology",
+ "summary": "Calculate host capacity and switch count for multi-tier Clos fat-tree topologies.",
+ "source": {
+  "chapter": "v2-03",
+  "sections": [
+   "Level 3 Switch and Topology",
+   "Top-of-rack (ToR) and the failure domain",
+   "Fat-tree (Clos) networks",
+   "Rail-optimized topology",
+   "Dragonfly and torus alternatives",
+   "Optical circuit switching and reconfigurable topology"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate host capacity and switch count for multi-tier Clos fat-tree topologies\n- Analyze the structural design and latency benefits of rail-optimized network topologies\n- Evaluate the performance and economic cost of network spine oversubscription on distributed collectives\n- Compare 3D torus and fat-tree topologies across regular versus irregular collective communication patterns\n- Distinguish aggregate edge bandwidth from bisection bandwidth in network topologies"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Network Fabrics, § Level 3 Switch and Topology",
+   "md": "A cluster can have thousands of fast links at the edge and still starve its AllReduce operations if the cross-sectional capacity at the narrowest point in the switching hierarchy is insufficient. The physical arrangement of switches determines whether that cross-section throttles collective communication or sustains full line-rate exchange across all participating workers. Two properties govern this capability: bisection bandwidth BisectionBandwidth and whether the fabric is non-blocking. The bisection bandwidth theorem (principle refpri-bisection-bandwidth) captures the constraint, stating that traffic crossing a cut is limited by the aggregate bandwidth of that cut."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Top-of-rack (ToR) and the failure domain\n- Fat-tree (Clos) networks\n- Rail-optimized topology\n- Dragonfly and torus alternatives\n- Optical circuit switching and reconfigurable topology\n\nPay attention to: Top-of-Rack switches, radix, and rack-level failure domains; Fat-tree (Clos) non-blocking topologies and scaling formulas; Rail-optimized topologies and same-rank latency dividends; Dragonfly and 3D Torus alternatives for specialized workloads."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A cluster operator considers saving capital expenditure by building a \\$4:1 oversubscribed spine in a 1,024-GPU training cluster. Explain the quantitative and economic impact of this design on a 100 GB per GPU AllReduce collective during distributed training.",
+   "md": "A \\$4:1 oversubscribed spine reduces the available bisection capacity by a factor of four, from \\$25.6 TB/s to \\$6.4 TB/s in this example. The bandwidth-bound portion of an AllReduce crossing that cut can consequently take up to four times as long under saturation. The actual penalty depends on placement, collective algorithm, and overlap; the 100 GB payload alone does not establish a dollar loss. The economic comparison must include added accelerator waiting time alongside switch savings."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-03-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A cluster designer builds a three-tier non-blocking fat-tree network using radix-64 switches ($k = 64$). What is the maximum number of hosts this fabric can support at 1:1 bisection bandwidth subscription, and how many total switches are required across all tiers?",
+     "explanation": "The correct answer is C. For a k-ary three-tier non-blocking fat-tree, the maximum host count is given by N_hosts = k^3 / 4 = (64)^3 / 4 = 262,144 / 4 = 65,536. The total switch count across core, aggregation, and edge tiers is \\$5k^2 / 4 = 5(4,096) / 4 = 5,120 switches. The choice of 2,048 hosts matches a standalone two-tier fabric (k^2/2 hosts, which needs only k + k/2 = 96 switches), not a full three-tier fabric. The choices of 16,384 hosts and 262,144 hosts represent arithmetic miscalculations of the cubic Clos scaling formula.",
+     "hint": "Think about: calculate host capacity and switch count for multi-tier Clos fat-tree topologies.",
+     "type": "single",
+     "options": [
+      "\\$2{,}048$ hosts and \\$128$ switches",
+      "\\$16{,}384$ hosts and \\$1{,}024$ switches",
+      "\\$65{,}536$ hosts and \\$5{,}120$ switches",
+      "\\$262{,}144$ hosts and \\$20{,}480$ switches"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Why does a rail-optimized network topology significantly reduce synchronization latency for 3D-parallel training jobs compared to a standard uniform fat-tree?",
+     "explanation": "The correct answer is B. In 3D-parallel LLM training, data-parallel AllReduce occurs exclusively between GPUs holding the same model shard (identical local ranks). Rail-optimized topologies dedicate separate switch planes (rails) to each GPU rank index, allowing same-rank transfers within a leaf group to complete in a single switch traversal; larger rails and cross-group transfers still traverse additional switches. The option mentioning liquid-cooled copper buses confuses physical packaging with network topology. The choice claiming it eliminates intra-node NVLink is incorrect because a fast local fabric remains advantageous for intra-node tensor parallelism. The option proposing routing packets through the GPU display engine is technically absurd.",
+     "hint": "Think about: analyze the structural design and latency benefits of rail-optimized network topologies.",
+     "type": "single",
+     "options": [
+      "It replaces optical fiber cables with liquid-cooled copper buses across all rows",
+      "It physically connects all GPUs of the same local rank (e.g., all GPU 0s) across server nodes to dedicated rail switches, allowing same-rail transfers within a leaf group to use a single switch hop",
+      "It eliminates the need for intra-node NVLink by routing all tensor-parallel traffic through Top-of-Rack switches",
+      "It dynamically routes all AllReduce packets through the GPU display engine to bypass PCIe contention"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Why did Google adopt a 3D torus topology for its TPU Pods, and what communication workload exposes the primary structural limitation of this topology?",
+     "explanation": "The correct answer is A. A 3D torus connects nodes directly to adjacent grid neighbors without external switches, offering low cabling cost and excellent locality for structured 2D/3D nearest-neighbor collectives (such as pipeline and data-parallel rings in standard transformers). However, global communication requires traversing the mesh diameter ($\\mathcal{O}(N^{1/3})$ hops), and irregular AllToAll token routing in MoE models congests the limited bisection bandwidth ($N^{2/3}$ scaling). The option claiming torus provides non-blocking bisection bandwidth contradicts the mesh bisection constraint. The choice regarding FEC and numerical precision confuses physical transport with numerical representations. The option claiming SerDes is disabled is physically impossible for high-speed interconnects.",
+     "hint": "Think about: compare 3D torus and fat-tree topologies across regular versus irregular collective communication patterns.",
+     "type": "single",
+     "options": [
+      "The 3D torus minimizes cabling cost and external switch hardware by leveraging direct neighbor-to-neighbor links that suit structured transformer collectives, but suffers high hop count ($\\mathcal{O}(N^{1/3})$) and bisection congestion under irregular AllToAll traffic from Mixture-of-Experts (MoE) models",
+      "The 3D torus provides full non-blocking bisection bandwidth for random permutation traffic, but fails when running ring AllReduce due to cyclic buffer dependencies",
+      "The 3D torus eliminates Forward Error Correction requirements, but cannot support FP16 numerical precision",
+      "The 3D torus reduces power consumption by disabling physical link SerDes, but restricts cluster scale to 32 nodes"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In a data center network, aggregate bandwidth (the sum of all endpoint link rates) and bisection bandwidth ($\\text{BW}_{\\text{bisect}}$) are identical metrics.",
+     "explanation": "False. Aggregate bandwidth is the sum of all edge link capacities connected to servers, whereas bisection bandwidth ($\\text{BW}_{\\text{bisect}}$) is the minimum capacity across any cut that divides the cluster into two equal halves. A star topology with 1,000 \\$400\\text{ Gb/s}$ endpoints has high aggregate bandwidth (\\$400\\text{ Tb/s}$), but its bisection bandwidth is constrained by the central switch's cross-sectional capacity, which may be significantly lower if oversubscribed.",
+     "hint": "Think about: distinguish aggregate edge bandwidth from bisection bandwidth in network topologies.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Bisection bandwidth**: The minimum aggregate link capacity across any cut that divides the cluster into two equal groups."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Bisection bandwidth",
+   "def": "The minimum aggregate link capacity across any cut that divides the cluster into two equal groups."
+  }
+ ]
+}

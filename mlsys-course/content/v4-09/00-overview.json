@@ -1,0 +1,283 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v4-09",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Spatial Memory** (Vol IV). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Spatial Memory, Purpose",
+   "md": "A person hidden behind a storage rack can keep moving while the robot's map still shows an empty aisle. Forgetting the person loses a constraint on motion; preserving the last position indefinitely turns old evidence into false certainty. The engineer must estimate the scene from measurements that arrive at different times with different errors, retain that estimate through brief sensing gaps, and limit how long it can support a decision."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Spatial Belief Persistence and Expiry",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Estimating State from Dated Measurements",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "The Spatial Memory Handoff and State Inv",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "State Epochs and Temporal Anchoring",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Coordinate Transform Expiry and Localiza",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Certified Spatial Assertions in Scene Me",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Forward State Propagation and Occlusion ",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Recursive estimation on dated measurements**",
+     "A state estimator alternates a prediction that widens uncertainty with elapsed time and updates that narrow it below every input by inverse-variance fusion, applying each measurement at its capture epoch and replaying out-of-sequence ones."
+    ],
+    [
+     "**Covariance is a claim**",
+     "A filter's reported covariance is a hypothesis tested offline by NEES against ground truth and online by NIS on innovations, and an above-band mean flags the safety-critical overconfident filter."
+    ],
+    [
+     "**Occupancy before identity**",
+     "Tracking adds identity and velocity for planners, but a tentative track's occupied region must reach clearance consumers before confirmation and stays occupied while it coasts."
+    ],
+    [
+     "**Belief record**",
+     "Every spatial claim carries evidence, estimate, and publication epochs, and only a physical measurement advances the evidence epoch, so prediction and republishing must preserve it."
+    ],
+    [
+     "**Frames age**",
+     "A transform is a belief with its own epoch, so composing a stale camera-to-slot edge with current kinematics yields a pose the arm never occupied, and the lever arm, not clock resolution, sets the error."
+    ],
+    [
+     "**Representation follows the query**",
+     "The map is chosen by the query it answers inside the permission tick's read budget, so the local snapshot is a dense distance field with four cell states and explicit negative evidence."
+    ],
+    [
+     "**Belief expiry**",
+     "A belief stops supporting motion when its validated error bound, growing from the evidence epoch, first reaches the task tolerance, and free space erodes inward from the unobserved boundary at a hidden agent's speed bound."
+    ],
+    [
+     "**Observability ceiling**",
+     "When distinct state histories give identical measurements no estimator can separate them, and innovations stay near zero while the true state drifts, so observability must be designed in by excitation or added sensing."
+    ],
+    [
+     "**Out-of-sequence replay**",
+     "A ring buffer sized to the delay horizon lets the filter rewind to a late measurement's capture epoch, correct, and replay, and measurements older than the buffer are rejected."
+    ],
+    [
+     "**Occlusion and free-space erosion**",
+     "Space last seen free stays free only until an unseen agent could have entered it, so occluded free space shrinks at that agent's speed bound and blind crossings need site controls, not memory."
+    ],
+    [
+     "**Multi-rate semantic mapping**",
+     "A metric loop at camera rate keeps geometry current while foundation backbones update semantics on keyframes, and semantics never certify clearance."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v4-09-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Recursive estimation on dated measurements",
+     "back": "A state estimator alternates a prediction that widens uncertainty with elapsed time and updates that narrow it below every input by inverse-variance fusion, applying each measurement at its capture epoch and replaying out-of-sequence ones."
+    },
+    {
+     "front": "Covariance is a claim",
+     "back": "A filter's reported covariance is a hypothesis tested offline by NEES against ground truth and online by NIS on innovations, and an above-band mean flags the safety-critical overconfident filter."
+    },
+    {
+     "front": "Occupancy before identity",
+     "back": "Tracking adds identity and velocity for planners, but a tentative track's occupied region must reach clearance consumers before confirmation and stays occupied while it coasts."
+    },
+    {
+     "front": "Belief record",
+     "back": "Every spatial claim carries evidence, estimate, and publication epochs, and only a physical measurement advances the evidence epoch, so prediction and republishing must preserve it."
+    },
+    {
+     "front": "Frames age",
+     "back": "A transform is a belief with its own epoch, so composing a stale camera-to-slot edge with current kinematics yields a pose the arm never occupied, and the lever arm, not clock resolution, sets the error."
+    },
+    {
+     "front": "Representation follows the query",
+     "back": "The map is chosen by the query it answers inside the permission tick's read budget, so the local snapshot is a dense distance field with four cell states and explicit negative evidence."
+    },
+    {
+     "front": "Belief expiry",
+     "back": "A belief stops supporting motion when its validated error bound, growing from the evidence epoch, first reaches the task tolerance, and free space erodes inward from the unobserved boundary at a hidden agent's speed bound."
+    },
+    {
+     "front": "Observability ceiling",
+     "back": "When distinct state histories give identical measurements no estimator can separate them, and innovations stay near zero while the true state drifts, so observability must be designed in by excitation or added sensing."
+    },
+    {
+     "front": "Out-of-sequence replay",
+     "back": "A ring buffer sized to the delay horizon lets the filter rewind to a late measurement's capture epoch, correct, and replay, and measurements older than the buffer are rejected."
+    },
+    {
+     "front": "Occlusion and free-space erosion",
+     "back": "Space last seen free stays free only until an unseen agent could have entered it, so occluded free space shrinks at that agent's speed bound and blind crossings need site controls, not memory."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v4-09-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Recursive estimation on dated measurements**?",
+     "options": [
+      "A belief stops supporting motion when its validated error bound, growing from the evidence epoch, first reaches the task tolerance, and free space erodes inward from the unobserved boundary at a hidden agent's speed bound.",
+      "A ring buffer sized to the delay horizon lets the filter rewind to a late measurement's capture epoch, correct, and replay, and measurements older than the buffer are rejected.",
+      "A state estimator alternates a prediction that widens uncertainty with elapsed time and updates that narrow it below every input by inverse-variance fusion, applying each measurement at its capture epoch and replaying out-of-sequence ones.",
+      "Tracking adds identity and velocity for planners, but a tentative track's occupied region must reach clearance consumers before confirmation and stays occupied while it coasts."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Recursive estimation on dated measurements itself, not a neighbouring idea.",
+     "explanation": "**Recursive estimation on dated measurements:** A state estimator alternates a prediction that widens uncertainty with elapsed time and updates that narrow it below every input by inverse-variance fusion, applying each measurement at its capture epoch and replaying out-of-sequence ones."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Covariance is a claim**?",
+     "options": [
+      "A filter's reported covariance is a hypothesis tested offline by NEES against ground truth and online by NIS on innovations, and an above-band mean flags the safety-critical overconfident filter.",
+      "A ring buffer sized to the delay horizon lets the filter rewind to a late measurement's capture epoch, correct, and replay, and measurements older than the buffer are rejected.",
+      "The map is chosen by the query it answers inside the permission tick's read budget, so the local snapshot is a dense distance field with four cell states and explicit negative evidence.",
+      "When distinct state histories give identical measurements no estimator can separate them, and innovations stay near zero while the true state drifts, so observability must be designed in by excitation or added sensing."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Covariance is a claim itself, not a neighbouring idea.",
+     "explanation": "**Covariance is a claim:** A filter's reported covariance is a hypothesis tested offline by NEES against ground truth and online by NIS on innovations, and an above-band mean flags the safety-critical overconfident filter."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Occupancy before identity**?",
+     "options": [
+      "A transform is a belief with its own epoch, so composing a stale camera-to-slot edge with current kinematics yields a pose the arm never occupied, and the lever arm, not clock resolution, sets the error.",
+      "A metric loop at camera rate keeps geometry current while foundation backbones update semantics on keyframes, and semantics never certify clearance.",
+      "The map is chosen by the query it answers inside the permission tick's read budget, so the local snapshot is a dense distance field with four cell states and explicit negative evidence.",
+      "Tracking adds identity and velocity for planners, but a tentative track's occupied region must reach clearance consumers before confirmation and stays occupied while it coasts."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Occupancy before identity itself, not a neighbouring idea.",
+     "explanation": "**Occupancy before identity:** Tracking adds identity and velocity for planners, but a tentative track's occupied region must reach clearance consumers before confirmation and stays occupied while it coasts."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Belief record**?",
+     "options": [
+      "The map is chosen by the query it answers inside the permission tick's read budget, so the local snapshot is a dense distance field with four cell states and explicit negative evidence.",
+      "Space last seen free stays free only until an unseen agent could have entered it, so occluded free space shrinks at that agent's speed bound and blind crossings need site controls, not memory.",
+      "Tracking adds identity and velocity for planners, but a tentative track's occupied region must reach clearance consumers before confirmation and stays occupied while it coasts.",
+      "Every spatial claim carries evidence, estimate, and publication epochs, and only a physical measurement advances the evidence epoch, so prediction and republishing must preserve it."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Belief record itself, not a neighbouring idea.",
+     "explanation": "**Belief record:** Every spatial claim carries evidence, estimate, and publication epochs, and only a physical measurement advances the evidence epoch, so prediction and republishing must preserve it."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Frames age**?",
+     "options": [
+      "A state estimator alternates a prediction that widens uncertainty with elapsed time and updates that narrow it below every input by inverse-variance fusion, applying each measurement at its capture epoch and replaying out-of-sequence ones.",
+      "A transform is a belief with its own epoch, so composing a stale camera-to-slot edge with current kinematics yields a pose the arm never occupied, and the lever arm, not clock resolution, sets the error.",
+      "When distinct state histories give identical measurements no estimator can separate them, and innovations stay near zero while the true state drifts, so observability must be designed in by excitation or added sensing.",
+      "A filter's reported covariance is a hypothesis tested offline by NEES against ground truth and online by NIS on innovations, and an above-band mean flags the safety-critical overconfident filter."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Frames age itself, not a neighbouring idea.",
+     "explanation": "**Frames age:** A transform is a belief with its own epoch, so composing a stale camera-to-slot edge with current kinematics yields a pose the arm never occupied, and the lever arm, not clock resolution, sets the error."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Recursive estimation on dated measurements: A state estimator alternates a prediction that widens uncertainty with elapsed time and updates that narrow it below every input by inverse-variance fusion, applying each measurement at its capture epoch and replaying out-of-sequence ones.",
+    "Covariance is a claim: A filter's reported covariance is a hypothesis tested offline by NEES against ground truth and online by NIS on innovations, and an above-band mean flags the safety-critical overconfident filter.",
+    "Occupancy before identity: Tracking adds identity and velocity for planners, but a tentative track's occupied region must reach clearance consumers before confirmation and stays occupied while it coasts.",
+    "Belief record: Every spatial claim carries evidence, estimate, and publication epochs, and only a physical measurement advances the evidence epoch, so prediction and republishing must preserve it."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Recursive estimation on dated measurements",
+   "def": "A state estimator alternates a prediction that widens uncertainty with elapsed time and updates that narrow it below every input by inverse-variance fusion, applying each measurement at its capture epoch and replaying out-of-sequence ones."
+  },
+  {
+   "term": "Covariance is a claim",
+   "def": "A filter's reported covariance is a hypothesis tested offline by NEES against ground truth and online by NIS on innovations, and an above-band mean flags the safety-critical overconfident filter."
+  },
+  {
+   "term": "Occupancy before identity",
+   "def": "Tracking adds identity and velocity for planners, but a tentative track's occupied region must reach clearance consumers before confirmation and stays occupied while it coasts."
+  },
+  {
+   "term": "Belief record",
+   "def": "Every spatial claim carries evidence, estimate, and publication epochs, and only a physical measurement advances the evidence epoch, so prediction and republishing must preserve it."
+  },
+  {
+   "term": "Frames age",
+   "def": "A transform is a belief with its own epoch, so composing a stale camera-to-slot edge with current kinematics yields a pose the arm never occupied, and the lever arm, not clock resolution, sets the error."
+  },
+  {
+   "term": "Representation follows the query",
+   "def": "The map is chosen by the query it answers inside the permission tick's read budget, so the local snapshot is a dense distance field with four cell states and explicit negative evidence."
+  },
+  {
+   "term": "Belief expiry",
+   "def": "A belief stops supporting motion when its validated error bound, growing from the evidence epoch, first reaches the task tolerance, and free space erodes inward from the unobserved boundary at a hidden agent's speed bound."
+  },
+  {
+   "term": "Observability ceiling",
+   "def": "When distinct state histories give identical measurements no estimator can separate them, and innovations stay near zero while the true state drifts, so observability must be designed in by excitation or added sensing."
+  },
+  {
+   "term": "Out-of-sequence replay",
+   "def": "A ring buffer sized to the delay horizon lets the filter rewind to a late measurement's capture epoch, correct, and replay, and measurements older than the buffer are rejected."
+  },
+  {
+   "term": "Occlusion and free-space erosion",
+   "def": "Space last seen free stays free only until an unseen agent could have entered it, so occluded free space shrinks at that agent's speed bound and blind crossings need site controls, not memory."
+  },
+  {
+   "term": "Multi-rate semantic mapping",
+   "def": "A metric loop at camera rate keeps geometry current while foundation backbones update semantics on keyframes, and semantics never certify clearance."
+  }
+ ]
+}

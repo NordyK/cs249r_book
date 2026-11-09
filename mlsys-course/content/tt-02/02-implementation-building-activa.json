@@ -1,0 +1,233 @@
+{
+ "title": "Implementation: Building Activation Functions",
+ "summary": "TinyTorch activations: Implementation: Building Activation Functions",
+ "source": {
+  "chapter": "tt-02",
+  "sections": [
+   "Implementation: Building Activation Functions"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Building Activation Functions\n\n### Implementation Pattern\n\nEach activation is two classes. The `Function` does the math on NumPy arrays;\nthe wrapper is what a network holds and calls:\n```python\nclass ActivationNameFunction(Function):\n    def forward(self, x):          # x is a NumPy array\n        # Apply mathematical transformation\n        # Return the result array (Module 06 adds backward)\n\nclass ActivationName:\n    def parameters(self):\n        return []                  # nothing to train\n\n    def forward(self, x: Tensor) -> Tensor:\n        return ActivationNameFunction.apply(x)\n\n    def __call__(self, x: Tensor) -> Tensor:\n        return self.forward(x)     # so relu(x) works like relu.forward(x)\n```\n\nEvery module-like object in TinyTorch answers `parameters()`. Module 03 will use\nit to collect the weights a layer trains, and Module 07 will hand that list to\nan optimizer. An activation owns no weights, so it returns an empty list; the\nmethod exists so a stack of layers and activations can be walked with one\nuniform call. You write only the `forward()` of each `Function`; the wrappers\nare given."
+  },
+  {
+   "type": "text",
+   "md": "### Sigmoid: The Probability Gatekeeper\n\nSigmoid maps any real number to the range \\$(0, 1)\\$, making it the standard function for probability estimation and binary decisions.\n\n#### Mathematical Formulation & Properties\n\n\\$\\$\\sigma(x) = \\frac{1}{1 + e^{-x}} = \\frac{e^x}{e^x + 1}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Property",
+    "Specification"
+   ],
+   "rows": [
+    [
+     "**Input Domain**",
+     "\\$x \\in (-\\infty, \\infty)\\$"
+    ],
+    [
+     "**Output Range**",
+     "\\$\\sigma(x) \\in (0, 1)\\$"
+    ],
+    [
+     "**Derivative**",
+     "\\$\\sigma'(x) = \\sigma(x)(1 - \\sigma(x))\\$ with peak \\$\\sigma'(0) = 0.25\\$"
+    ],
+    [
+     "**Symmetry**",
+     "Centered at \\$\\sigma(0) = 0.5\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "#### Numerical Vector Trace\n\n\\$\\$\\begin{bmatrix} -3.0 & -1.0 & 0.0 & 1.0 & 3.0 \\end{bmatrix} \\xrightarrow{\\sigma(x)} \\begin{bmatrix} 0.0474 & 0.2689 & 0.5000 & 0.7311 & 0.9526 \\end{bmatrix}\\$\\$\n\n**Why Sigmoid matters**: In binary classification, we need outputs between \\$0\\$ and \\$1\\$ to represent probabilities. Notice the red saturation zones where \\$|x| \\ge 3\\$: the gradient vanishes toward zero (\\$\\sigma'(x) \\to 0\\$), which will motivate ReLU and GELU in deep hidden layers."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class SigmoidFunction(Function):\n    \"\"\"\n    The Sigmoid operation. forward() works on NumPy arrays; Module 06 adds backward().\n    \"\"\"\n    def forward(self, x):\n        \"\"\"\n        Apply sigmoid activation element-wise.\n\n        TODO: Implement sigmoid function\n\n        APPROACH:\n        1. Compute z = exp(-abs(x)); its exponent is always <= 0, so it cannot overflow\n        2. For x >= 0 use 1 / (1 + z)\n        3. For x < 0 use z / (1 + z), the equivalent formula on the negative side\n        4. Pick the branch per element with np.where(x >= 0, branch_a, branch_b)\n\n        EXAMPLE:\n        >>> sigmoid = Sigmoid()\n        >>> x = Tensor([-2, 0, 2])\n        >>> result = sigmoid(x)\n        >>> print(result.data)\n        [0.119, 0.5, 0.881]  # All values between 0 and 1\n\n        HINT: The one-line formula 1 / (1 + np.exp(-x)) overflows at x = -1000\n        (exp(1000) is inf in float32). The unit test runs your code with NumPy\n        set to raise on overflow, so the naive form fails it\n        \"\"\"\n        # Both branches use the same bounded exponential, so neither overflows.\n        z = np.exp(-np.abs(x))\n        result = np.where(x >= 0, 1.0 / (1.0 + z), z / (1.0 + z))\n        return result\n\n\nclass Sigmoid:\n    \"\"\"\n    Sigmoid activation: σ(x) = 1/(1 + e^(-x))\n\n    Maps any real number to (0, 1) range.\n    Perfect for probabilities and binary classification.\n    \"\"\"\n\n    def parameters(self):\n        \"\"\"No weights to train, so Module 03's layers and Module 07's optimizers will have nothing to collect.\"\"\"\n        return []\n\n    def forward(self, x: Tensor) -> Tensor:\n        \"\"\"Apply Sigmoid through its operation, so Module 06 will be able to record it for gradients.\"\"\"\n        return SigmoidFunction.apply(x)\n\n    def __call__(self, x: Tensor) -> Tensor:\n        \"\"\"Allows the activation to be called like a function.\"\"\"\n        return self.forward(x)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Sigmoid\n\nThis test validates sigmoid activation behavior.\n\n**What we're testing**: Sigmoid maps inputs to (0, 1) range\n**Why it matters**: Ensures proper probability-like outputs\n**Expected**: All outputs between 0 and 1, sigmoid(0) = 0.5"
+  },
+  {
+   "type": "text",
+   "md": "### ReLU: The Sparsity Creator\n\nReLU (Rectified Linear Unit) is the standard hidden layer activation across deep learning. It clamps negative values to zero while passing positive values unchanged, introducing nonlinearity at near-zero hardware computational overhead.\n\n#### Mathematical Formulation & Properties\n\n\\$\\$f(x) = \\max(0, x) = \\begin{cases} x & \\text{if } x > 0 \\\\ 0 & \\text{if } x \\le 0 \\end{cases}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Property",
+    "Specification"
+   ],
+   "rows": [
+    [
+     "**Input Domain**",
+     "\\$x \\in (-\\infty, \\infty)\\$"
+    ],
+    [
+     "**Output Range**",
+     "\\$f(x) \\in [0, \\infty)\\$"
+    ],
+    [
+     "**Derivative**",
+     "\\$f'(x) = \\mathbb{I}(x > 0)\\$ (constant \\$1\\$ for \\$x > 0\\$, \\$0\\$ for \\$x < 0\\$)"
+    ],
+    [
+     "**Hardware Profile**",
+     "Branchless SIMD comparison; no transcendentals (\\$\\exp\\$) required"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "#### Numerical Vector Trace\n\n\\$\\$\\begin{bmatrix} -2.0 & -1.0 & 0.0 & 1.0 & 2.0 \\end{bmatrix} \\xrightarrow{\\text{ReLU}} \\begin{bmatrix} 0.0 & 0.0 & 0.0 & 1.0 & 2.0 \\end{bmatrix}\\$\\$\n\n\n  \n\n\n**Why ReLU matters**: By zeroing negative values, ReLU creates representation sparsity (often \\$\\approx 50\\%\\$ zeroed activations for a given input in trained networks). Because a comparison instruction (`max`) executes in a single clock cycle compared to multi-cycle transcendentals (`exp`), the ReLU kernel itself is the cheapest activation to evaluate, which the timing cell later in this module measures."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class ReLUFunction(Function):\n    \"\"\"\n    The ReLU operation. forward() works on NumPy arrays; Module 06 adds backward().\n    \"\"\"\n    def forward(self, x):\n        \"\"\"\n        Apply ReLU activation element-wise.\n\n        TODO: Implement ReLU function\n\n        APPROACH:\n        1. Use np.maximum(0, x) for element-wise max with zero\n        2. Return result as a NumPy array\n\n        EXAMPLE:\n        >>> relu = ReLU()\n        >>> x = Tensor([-2, -1, 0, 1, 2])\n        >>> result = relu(x)\n        >>> print(result.data)\n        [0, 0, 0, 1, 2]  # Negative values become 0, positive unchanged\n\n        HINT: np.maximum handles element-wise maximum automatically\n        \"\"\"\n        # Apply ReLU: max(0, x)\n        result = np.maximum(0, x)\n        return result\n\n\nclass ReLU:\n    \"\"\"\n    ReLU activation: f(x) = max(0, x)\n\n    Sets negative values to zero, keeps positive values unchanged.\n    Most popular activation for hidden layers.\n    \"\"\"\n\n    def parameters(self):\n        \"\"\"No weights to train, so Module 03's layers and Module 07's optimizers will have nothing to collect.\"\"\"\n        return []\n\n    def forward(self, x: Tensor) -> Tensor:\n        \"\"\"Apply ReLU through its operation, so Module 06 will be able to record it for gradients.\"\"\"\n        return ReLUFunction.apply(x)\n\n    def __call__(self, x: Tensor) -> Tensor:\n        \"\"\"Allows the activation to be called like a function.\"\"\"\n        return self.forward(x)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: ReLU\n\nThis test validates ReLU activation behavior.\n\n**What we're testing**: ReLU zeros negative values, preserves positive\n**Why it matters**: ReLU's sparsity helps neural networks train efficiently\n**Expected**: Negative becomes 0, positive unchanged, zero becomes 0"
+  },
+  {
+   "type": "text",
+   "md": "### Tanh: The Zero-Centered Alternative\n\nTanh (hyperbolic tangent) rescales the sigmoid curve to range \\$(-1, 1)\\$, centered symmetrically around the origin \\$(0, 0)\\$.\n\n#### Mathematical Formulation & Properties\n\n\\$\\$\\tanh(x) = \\frac{e^x - e^{-x}}{e^x + e^{-x}} = 2\\sigma(2x) - 1\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Property",
+    "Specification"
+   ],
+   "rows": [
+    [
+     "**Input Domain**",
+     "\\$x \\in (-\\infty, \\infty)\\$"
+    ],
+    [
+     "**Output Range**",
+     "\\$\\tanh(x) \\in (-1, 1)\\$"
+    ],
+    [
+     "**Derivative**",
+     "\\$\\tanh'(x) = 1 - \\tanh^2(x)\\$ with peak \\$\\tanh'(0) = 1.0\\$"
+    ],
+    [
+     "**Zero-Centered**",
+     "Odd function: \\$\\tanh(-x) = -\\tanh(x)\\$ with \\$\\tanh(0) = 0\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "#### Numerical Vector Trace\n\n\\$\\$\\begin{bmatrix} -2.0 & 0.0 & 2.0 \\end{bmatrix} \\xrightarrow{\\tanh(x)} \\begin{bmatrix} -0.9640 & 0.0000 & 0.9640 \\end{bmatrix}\\$\\$\n\n**Why Tanh matters**: Because Sigmoid outputs are strictly positive (\\$> 0\\$), downstream gradients all inherit the same sign, causing systematic zig-zagging in weight space. Tanh outputs have zero mean on symmetric inputs, preserving gradient balance across intermediate layers."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class TanhFunction(Function):\n    \"\"\"\n    The Tanh operation. forward() works on NumPy arrays; Module 06 adds backward().\n    \"\"\"\n    def forward(self, x):\n        \"\"\"\n        Apply tanh activation element-wise.\n\n        TODO: Implement tanh function\n\n        APPROACH:\n        1. Use np.tanh(x) for hyperbolic tangent\n        2. Return result as a NumPy array\n\n        EXAMPLE:\n        >>> tanh = Tanh()\n        >>> x = Tensor([-2, 0, 2])\n        >>> result = tanh(x)\n        >>> print(result.data)\n        [-0.964, 0.0, 0.964]  # Range (-1, 1), symmetric around 0\n\n        HINT: NumPy provides np.tanh function\n        \"\"\"\n        # Apply tanh using NumPy\n        result = np.tanh(x)\n        return result\n\n\nclass Tanh:\n    \"\"\"\n    Tanh activation: f(x) = (e^x - e^(-x))/(e^x + e^(-x))\n\n    Maps any real number to (-1, 1) range.\n    Zero-centered alternative to sigmoid.\n    \"\"\"\n\n    def parameters(self):\n        \"\"\"No weights to train, so Module 03's layers and Module 07's optimizers will have nothing to collect.\"\"\"\n        return []\n\n    def forward(self, x: Tensor) -> Tensor:\n        \"\"\"Apply Tanh through its operation, so Module 06 will be able to record it for gradients.\"\"\"\n        return TanhFunction.apply(x)\n\n    def __call__(self, x: Tensor) -> Tensor:\n        \"\"\"Allows the activation to be called like a function.\"\"\"\n        return self.forward(x)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Tanh\n\nThis test validates tanh activation behavior.\n\n**What we're testing**: Tanh maps inputs to (-1, 1) range, zero-centered\n**Why it matters**: Zero-centered outputs keep the next stage's inputs balanced around zero\n**Expected**: All outputs in [-1, 1] (saturating to exactly ±1 in float32 for |x| > 9), tanh(0) = 0, symmetric behavior"
+  },
+  {
+   "type": "text",
+   "md": "### GELU: The Smooth Modern Choice\n\nGELU (Gaussian Error Linear Unit) is a smooth, probabilistically motivated alternative to ReLU adopted across modern Transformer architectures (GPT, BERT, RoBERTa).\n\n#### Mathematical Formulation & Approximations\n\nGELU weights inputs by their standard normal cumulative distribution \\$\\Phi(x) = P(X \\le x), X \\sim \\mathcal{N}(0, 1)\\$:\n\n\\$\\$\\text{GELU}(x) = x \\cdot \\Phi(x) = x \\cdot \\frac{1}{2} \\left[1 + \\text{erf}\\left(\\frac{x}{\\sqrt{2}}\\right)\\right]\\$\\$\n\nIn practice, two high-performance approximations are used (Hendrycks & Gimpel, 2016):\n\\$\\$\\text{Sigmoid-GELU (Fast, used in TinyTorch): } \\text{GELU}(x) \\approx x \\cdot \\sigma(1.702 x)\\$\\$\n\\$\\$\\text{Tanh-GELU (GPT-2, BERT, TensorFlow): } \\text{GELU}(x) \\approx 0.5x \\left(1 + \\tanh\\left(\\sqrt{\\frac{2}{\\pi}}\\left(x + 0.044715x^3\\right)\\right)\\right)\\$\\$\n\nPyTorch's `torch.nn.GELU` defaults to `approximate='none'`, the exact \\$\\text{erf}\\$ form above; the tanh expression is what you get with `approximate='tanh'`."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Property",
+    "Specification"
+   ],
+   "rows": [
+    [
+     "**Input Domain**",
+     "\\$x \\in (-\\infty, \\infty)\\$"
+    ],
+    [
+     "**Output Range**",
+     "\\$[\\approx -0.1636, \\infty)\\$ for the implemented \\$x \\cdot \\sigma(1.702x)\\$; the exact \\$x \\cdot \\Phi(x)\\$ bottoms out at \\$\\approx -0.1700\\$"
+    ],
+    [
+     "**Smoothness**",
+     "Infinitely differentiable everywhere (\\$C^\\infty\\$)"
+    ],
+    [
+     "**Curvature**",
+     "Curvature well dipping to \\$\\approx -0.1636\\$ at \\$x \\approx -0.751\\$ (implemented form), smoothly passing through \\$(0, 0)\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "#### Numerical Vector Trace\n\n\\$\\$\\begin{bmatrix} -1.0 & 0.0 & 1.0 \\end{bmatrix} \\xrightarrow{\\text{GELU}} \\begin{bmatrix} -0.1542 & 0.0000 & 0.8458 \\end{bmatrix}\\$\\$\n\n**Why GELU matters**: Unlike ReLU's sharp non-differentiable hinge at \\$x = 0\\$, GELU provides smooth non-zero gradients everywhere, eliminating the \"dying neuron\" failure mode in deep Transformers."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class GELUFunction(Function):\n    \"\"\"\n    The GELU operation. forward() works on NumPy arrays; Module 06 adds backward().\n    \"\"\"\n    def forward(self, x):\n        \"\"\"\n        Apply GELU activation element-wise.\n\n        TODO: Implement GELU approximation\n\n        APPROACH:\n        1. Use approximation: x * sigmoid(1.702 * x)\n        2. Reuse the stable SigmoidFunction; scaled extreme inputs may saturate to infinity\n        3. Multiply by x element-wise; define the negative-infinity limit as zero\n        4. Return result as a NumPy array\n\n        EXAMPLE:\n        >>> gelu = GELU()\n        >>> x = Tensor([-1, 0, 1])\n        >>> result = gelu(x)\n        >>> print(result.data)\n        [-0.15, 0.0, 0.85]  # Smooth, like ReLU but differentiable everywhere\n\n        HINT: The 1.702 constant is empirically fitted so that sigmoid(1.702x) ≈ Φ(x)\n        \"\"\"\n        # Overflow in the scaled gate means saturation, which sigmoid handles.\n        with np.errstate(over=\"ignore\"):\n            sig = SigmoidFunction().forward(1.702 * x)\n        with np.errstate(invalid=\"ignore\"):\n            out = x * sig\n        if np.any(np.isneginf(x)):\n            out = np.where(np.isneginf(x), 0.0, out)\n        return out\n\n\nclass GELU:\n    \"\"\"\n    GELU activation: f(x) = x * Φ(x) ≈ x * Sigmoid(1.702 * x)\n\n    Smooth approximation to ReLU, used in modern architectures.\n    Where Φ(x) is the cumulative distribution function of standard normal.\n    \"\"\"\n\n    def parameters(self):\n        \"\"\"No weights to train, so Module 03's layers and Module 07's optimizers will have nothing to collect.\"\"\"\n        return []\n\n    def forward(self, x: Tensor) -> Tensor:\n        \"\"\"Apply GELU through its operation, so Module 06 will be able to record it for gradients.\"\"\"\n        return GELUFunction.apply(x)\n\n    def __call__(self, x: Tensor) -> Tensor:\n        \"\"\"Allows the activation to be called like a function.\"\"\"\n        return self.forward(x)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: GELU\n\nThis test validates GELU activation behavior.\n\n**What we're testing**: GELU provides smooth ReLU-like behavior\n**Why it matters**: GELU is used in modern transformers like GPT and BERT\n**Expected**: Smooth curve, GELU(0) approximately 0, positive values preserved roughly"
+  },
+  {
+   "type": "text",
+   "md": "### Softmax: The Probability Distributor\n\nSoftmax generalizes the sigmoid function to multidimensional vectors, converting unconstrained logit scores \\$\\mathbf{z}\\$ into a normalized categorical probability distribution that sums to \\$1.0\\$.\n\n#### Mathematical Formulation & Numerical Stabilization\n\nDirectly computing exponentials \\$\\exp(z_i)\\$ can overflow 32-bit floating point registers (e.g. \\$\\exp(89) > 10^{38}\\$). Subtracting the maximum value \\$\\max(\\mathbf{z})\\$ provides exact mathematical invariance while guaranteeing the exponent is \\$\\le 0\\$:\n\n\\$\\$\\text{Softmax}(\\mathbf{z})_i = \\frac{e^{z_i - \\max(\\mathbf{z})}}{\\sum_{j=1}^C e^{z_j - \\max(\\mathbf{z})}}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Property",
+    "Specification"
+   ],
+   "rows": [
+    [
+     "**Input Domain**",
+     "\\$\\mathbf{z} \\in \\mathbb{R}^C\\$"
+    ],
+    [
+     "**Output Range**",
+     "\\$p_i \\in (0, 1)\\$ such that \\$\\sum_{i=1}^C p_i = 1.0\\$"
+    ],
+    [
+     "**Invariance**",
+     "\\$\\text{Softmax}(\\mathbf{z} - c) = \\text{Softmax}(\\mathbf{z})\\$ for any scalar \\$c\\$"
+    ],
+    [
+     "**Masking Convention**",
+     "Unbounded negative infinity (\\$-\\infty\\$) exponentiates safely to \\$0.0\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "#### Step-by-Step Numerical Vector Trace\n\n\\$\\$\\mathbf{z} = \\begin{bmatrix} 1.0 \\\\ 2.0 \\\\ 3.0 \\\\ 4.0 \\end{bmatrix} \\xrightarrow{\\text{Shift } (z_i - 4.0)} \\begin{bmatrix} -3.0 \\\\ -2.0 \\\\ -1.0 \\\\ 0.0 \\end{bmatrix} \\xrightarrow{\\exp(\\cdot)} \\begin{bmatrix} 0.0498 \\\\ 0.1353 \\\\ 0.3679 \\\\ 1.0000 \\end{bmatrix} \\xrightarrow{\\div \\sum=1.5530} \\begin{bmatrix} 0.0321 \\\\ 0.0871 \\\\ 0.2369 \\\\ 0.6439 \\end{bmatrix}\\$\\$\n\n\\$\\$\\sum_{i=1}^4 p_i = 0.0321 + 0.0871 + 0.2369 + 0.6439 = 1.0000\\$\\$\n\n**Why Softmax matters**: Softmax produces valid probability distributions where the highest logit dominates while lower logits receive proportional mass. That is what multi-class classification needs, and Module 12 will reuse this same normalization to turn attention scores into weights."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 72 lines of code (starting with `class SoftmaxFunction(Function):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Softmax\n\nThis test validates softmax activation behavior.\n\n**What we're testing**: Softmax normalizes scores and handles masked entries\n**Why it matters**: Essential for multi-class classification outputs\n**Expected**: Nonnegative outputs sum to one for unmasked slices; fully masked slices are zero; the largest finite input gets the highest probability"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Implementation: Building Activation Functions."
+   ]
+  }
+ ]
+}

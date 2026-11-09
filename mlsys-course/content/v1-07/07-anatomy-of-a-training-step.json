@@ -1,0 +1,83 @@
+{
+ "title": "Anatomy of a Training Step",
+ "summary": "Analyze the dual computational and autograd-recording responsibilities of a framework forward pass.",
+ "source": {
+  "chapter": "v1-07",
+  "sections": [
+   "Anatomy of a Training Step",
+   "Forward pass",
+   "Backward pass",
+   "Memory traffic",
+   "Dispatch to hardware"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the dual computational and autograd-recording responsibilities of a framework forward pass\n- Analyze why small model training steps on fast accelerators can be overhead-bound rather than limited by raw compute or memory bandwidth\n- Compare the arithmetic intensity and likely bottlenecks of matrix multiplication versus element-wise activation under the roofline model\n- Order the operational phases of a standard deep learning training step\n- Analyze why the backward pass often incurs higher memory traffic than the forward pass"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Frameworks, § Anatomy of a Training Step",
+   "md": "In every iteration of a training loop, millions of floating-point operations, dynamic memory allocations, and hardware kernel launches must complete within a step that lasts anywhere from microseconds to seconds. Execution, differentiation, and hardware abstraction operate simultaneously during model training. Even a minimal two-layer multilayer perceptron, written as eight executable statements in a later section, exercises all three. For a network this small, host dispatch takes most of the step. Tracing each statement through the runtime stack connects the quantitative principles developed in a later section to physical execution."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Forward pass\n- Backward pass\n- Memory traffic\n- Dispatch to hardware\n\nPay attention to: The four phases of a training step: forward pass, backward pass, memory traffic analysis, and hardware abstraction dispatch; Autograd tape recording and intermediate activation caching during forward execution; Arithmetic intensity of MatMul (about 12 FLOP/byte) vs ReLU (0.125 FLOP/byte) for the 784-128-10 network at batch 32; Separate counts of Python calls and driver launches for the selected operators of the small model."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Contrast the arithmetic intensity of a matrix multiplication (`MatMul`) with an element-wise activation such as `ReLU`, and explain how their performance bottlenecks can differ on modern GPUs depending on shape and execution conditions.",
+   "md": "A matrix multiplication typically reuses its operands many times, so it performs much more arithmetic per byte moved than an element-wise activation does. By contrast, ReLU does very little computation for each value it reads and writes; in the chapter's simplified example it is about \\$0.125 FLOP/byte, which makes bandwidth and launch overhead loom large. A MatMul can therefore move toward a compute-bound regime when its shapes are favorable, while ReLU often stays memory- or overhead-sensitive because there is so little work per byte. The practical implication is that compilers often target ReLU-like chains with fusion, whereas large matrix multiplies are more often optimized through kernel quality, layout, and precision choices."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-07-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "During the forward execution of an MLP layer `h = torch.relu(x @ W1 + b1)` with `requires_grad=True`, what two operations occur concurrently inside the framework?",
+     "explanation": "The correct answer is C. The forward pass has a dual responsibility: computing the mathematical output tensors on the accelerator device, and recording the computational graph (`GradFn` nodes) while saving necessary forward activations (such as `x` and intermediate pre-activations) on the autograd tape for use during backpropagation. Weight updates happen during the optimizer step after the backward pass, not during the forward pass. Gradients are computed during the backward pass, not during forward execution. Forward execution does not compile the script into mobile binaries.",
+     "hint": "Think about: analyze the dual computational and autograd-recording responsibilities of a framework forward pass",
+     "type": "single",
+     "options": [
+      "It computes the forward output and immediately updates the weights `W1` using gradient descent",
+      "It executes the matrix multiplication on the GPU and transmits the gradients back to the host CPU",
+      "It computes the forward numerical activations on the hardware accelerator and constructs a dynamic autograd tape recording the operations and caching required intermediate tensors for the backward pass",
+      "It compiles the entire Python script into a native standalone mobile application"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In the chapter's two-layer MLP training-step analysis, suppose a hypothetical profiler showed many short kernels separated by host-side dispatch gaps. Why could the total eager-mode step time greatly exceed the idealized compute and memory lower bounds even on a very fast GPU?",
+     "explanation": "The correct answer is D. In that hypothetical profile, many short kernels separated by host dispatch gaps would support an overhead-bound diagnosis: even if compute and memory lower bounds are small, eager execution can still spend substantial time issuing many separate operations. The chapter's peak-rate lower bounds and dispatch-cost assumptions motivate this explanation, but by themselves they do not constitute an observed profile. The network answer does not fit a single-device step, and the thermal-throttling and memory-leak explanations are not the chapter's modeled source of overhead.",
+     "hint": "Think about: analyze why small model training steps on fast accelerators can be overhead-bound rather than limited by raw compute or memory bandwidth",
+     "type": "single",
+     "options": [
+      "Because network communication across multiple machines dominates every training step in the example",
+      "Because thermal throttling is the main bottleneck for small matrix operations in the scenario",
+      "Because the dynamic class hierarchy in the framework leaks memory between layers",
+      "Because repeated host-side dispatch and kernel-launch overhead for many small operations can dominate when the device kernels themselves are short"
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: During the backward pass of a training step, why is memory traffic often higher than in the forward pass even when the amount of arithmetic work is of the same order?",
+   "md": "Backward computation often has to revisit saved forward values, combine them with upstream gradients, and write out new gradients, so more tensors are read and written during the pass. For example, a layer may need the saved forward input plus the incoming gradient to produce both weight gradients and propagated gradients. In the chapter's two-layer MLP, backward evaluates three GEMMs because the raw input needs no gradient; its traffic follows the operands and results of those products plus the activation and loss derivatives, rather than a universal multiplier of forward traffic."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the dual computational and autograd-recording responsibilities of a framework forward pass.",
+    "You can now analyze why small model training steps on fast accelerators can be overhead-bound rather than limited by raw compute or memory bandwidth.",
+    "You can now compare the arithmetic intensity and likely bottlenecks of matrix multiplication versus element-wise activation under the roofline model.",
+    "You can now order the operational phases of a standard deep learning training step."
+   ]
+  }
+ ]
+}

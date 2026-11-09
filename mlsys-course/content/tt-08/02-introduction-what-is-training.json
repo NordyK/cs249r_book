@@ -1,0 +1,58 @@
+{
+ "title": "Introduction: What is Training?",
+ "summary": "TinyTorch training: Introduction: What is Training?",
+ "source": {
+  "chapter": "tt-08",
+  "sections": [
+   "Introduction: What is Training?"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: What is Training?\n\nTraining is the loop that turns a randomly initialized neural network into one that solves the problem. Nothing mysterious happens inside it. You show the model examples, it predicts, you measure how wrong it was, and you adjust its parameters so the next prediction lands closer. Every framework's training code is that sequence plus bookkeeping, and this module builds the bookkeeping.\n\nThe training process follows a consistent pattern across all machine learning:\n\n1. **Forward Pass**: Input flows through the model to produce predictions\n2. **Loss Calculation**: Compare predictions to true answers\n3. **Backward Pass**: Compute gradients showing how to improve\n4. **Parameter Update**: Adjust model weights using an optimizer\n5. **Repeat**: Continue until the model learns the pattern\n\nBut production training systems need much more than this basic loop. They need learning rate scheduling (starting fast, slowing down), gradient clipping (preventing exploding gradients), checkpointing (saving progress), and evaluation modes (testing without learning).\n\n**What we're building today:**\n- A complete `Trainer` class that orchestrates the entire learning process\n- Learning rate scheduling that adapts during training\n- Gradient clipping that prevents training instability\n- Checkpointing system for saving and resuming training\n- Train/eval modes for proper model behavior\n\n**What this harness will still be missing**, so you know where the gap is when you read a production trainer:\n- **No early stopping**, so nothing halts a run whose validation loss has turned around\n- **No best-checkpoint tracking**, so the file on disk is the latest state and not the best one\n- **No warmup**, so the first step lands at the full `max_lr`\n- **No per-step scheduling**, since the learning rate is read once per epoch and not once per optimizer step\n- **No RNG state and no dataloader position in the checkpoint**, so a resumed run continues the weights exactly but not the data order"
+  },
+  {
+   "type": "text",
+   "md": "Each of those is bookkeeping on top of the loop you are about to build, not a change to the loop itself."
+  },
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: Mathematical Background\n\nThe `Trainer` orchestrates the mathematical lifecycle of neural network learning, binding forward passes, loss functions, autograd backpropagation, gradient accumulation, and optimizer updates into an atomic state machine.\n\n### Mathematical Core of the Training Harness\n\n1. **Parameter Descent Dynamics**:\n   Model weights \\$\\boldsymbol{\\theta}\\$ are iteratively updated by stepping opposite to the loss surface gradient:\n   \\$\\$\\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\eta_t \\mathbf{u}(\\mathbf{g}_t, \\mathbf{s}_t)\\$\\$\n   where \\$\\eta_t\\$ is the dynamic learning rate at epoch \\$t\\$, \\$\\mathbf{g}_t = \\nabla_{\\boldsymbol{\\theta}} \\mathcal{L}\\$ is the accumulated gradient, and \\$\\mathbf{s}_t\\$ represents optimizer momentum buffers.\n\n2. **Cosine Annealing Learning Rate Schedule**:\n   Rather than keeping step size constant, cosine decay transitions smoothly from \\$\\eta_{\\max}\\$ to \\$\\eta_{\\min}\\$ over total epochs \\$T\\$:\n   \\$\\$\\eta(t) = \\eta_{\\min} + \\frac{1}{2}(\\eta_{\\max} - \\eta_{\\min})\\left(1 + \\cos\\left(\\frac{\\pi t}{T}\\right)\\right)\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "3. **Global Gradient Norm Clipping**:\n   To prevent catastrophic parameter divergence when traversing non-convex loss cliffs, the global gradient \\$\\ell_2\\$ norm across all parameters \\$\\mathcal{P}\\$ is bounded:\n   \\$\\$\\|\\mathbf{g}\\|_2 = \\sqrt{\\sum_{p \\in \\mathcal{P}} \\|\\mathbf{g}_p\\|_2^2} \\implies \\mathbf{g} \\leftarrow \\mathbf{g} \\cdot \\min\\left(1.0, \\frac{\\text{max-norm}}{\\|\\mathbf{g}\\|_2}\\right)\\$\\$\n\n4. **Sample-Weighted Gradient Accumulation**:\n   For \\$K\\$ microbatches with batch sizes \\$n_1, \\dots, n_K\\$ summing to effective batch size \\$B_{\\text{eff}} = \\sum_{i=1}^K n_i\\$:\n   \\$\\$\\nabla_{\\boldsymbol{\\theta}} \\mathcal{L}_{\\text{accum}} = \\frac{1}{B_{\\text{eff}}} \\sum_{i=1}^K n_i \\nabla_{\\boldsymbol{\\theta}} \\mathcal{L}_{\\text{batch}, i}\\$\\$\n   Because loss functions return sample-averaged means, weighting each microbatch backward seed by \\$n_i\\$ preserves exact numerical equivalence to full-batch optimization regardless of batch sizing.\n\n### Train vs Evaluation Mode Semantics\n\nNeural network architectures contain layers whose forward mathematics depend strictly on training context:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Architectural Subsystem",
+    "Training Mode (`training_mode = True`)",
+    "Evaluation Mode (`training_mode = False`)"
+   ],
+   "rows": [
+    [
+     "**Stochastic Layers (Dropout)**",
+     "Active (random neuron masking at dropout rate \\$p\\$)",
+     "Inactive (deterministic identity pass-through)"
+    ],
+    [
+     "**Normalization Layers**",
+     "Update running batch statistics (\\$\\mu_B, \\sigma_B^2\\$)",
+     "Freeze running statistics (use historical moving averages)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "That is the whole of what the flag does. Two things are routinely described as if `training_mode` controlled them, and it does not. The backward tape is switched off by `no_grad()`, which `evaluate` wraps around its forward pass, and weights are frozen by simply not calling `optimizer.step()`. Flipping `training_mode` to `False` on its own leaves the tape recording and leaves `step()` free to mutate weights. The flag routes layer behavior; the caller controls gradients and updates. It reaches the layers through Module 03's `set_training_mode`, which sets `training` on the model and on every layer stored inside it, so a Dropout buried in a hand-written model switches off just as one inside a `Sequential` does."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Introduction: What is Training?."
+   ]
+  }
+ ]
+}

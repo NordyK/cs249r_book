@@ -1,0 +1,80 @@
+{
+ "title": "Measuring Compression Gains",
+ "summary": "Use layerwise profiling to choose bottleneck-specific optimizations instead of assuming one metric or one tactic fits the whole model.",
+ "source": {
+  "chapter": "v1-10",
+  "sections": [
+   "Measuring Compression Gains",
+   "Profiling and opportunity analysis",
+   "Measuring optimization effectiveness",
+   "Diagnostic visualization"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Use layerwise profiling to choose bottleneck-specific optimizations instead of assuming one metric or one tactic fits the whole model\n- Identify the additional latency, memory, energy, and calibration measurements needed beyond top-1 accuracy to validate a compressed model\n- Compare top-1 classification accuracy with confidence calibration and probability reliability in quantized models\n- Explain the role of observer nodes in collecting activation statistics and computing quantization parameters"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Compression, § Measuring Compression Gains",
+   "md": "Shrinking a model's weights by \\$4\\times$ with INT8 quantization rarely cuts end-to-end latency by \\$4\\times$, because cache residency, memory bus contention, and kernel launch overhead absorb much of the theoretical gain. Every saving computed so far in this chapter is a paper bound, and only a measurement on the target device turns a bound into a result. Profiling on the deployment hardware identifies which resource limits each layer, fixes an honest baseline, and separates model execution time from runtime and pipeline overhead."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Profiling and opportunity analysis\n- Measuring optimization effectiveness\n- Diagnostic visualization\n\nPay attention to: heterogeneous layer profiling (ViT profile: MLP-dominated FLOPs vs. LayerNorm latency); multi-objective evaluation beyond top-1 accuracy (latency, peak memory, energy, calibration); confidence calibration distortion in quantized models; diagnostic inspection of quantization ranges with framework observers."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: An engineering team reports that an INT8-quantized ResNet-50 model maintains top-1 validation accuracy within \\$0.2\\% of its FP32 baseline on ImageNet. Explain why this metric alone is insufficient to certify the model as deployment-ready, identifying at least three additional critical measurement axes required by the chapter.",
+   "md": "Near-baseline top-1 accuracy says little about whether the compressed model meets deployment constraints. The chapter also requires measuring on-target latency, peak runtime memory rather than just artifact size, and energy per inference in joules or sustained power in watts. It also calls for checking calibration drift, because confidence quality can degrade even when accuracy looks stable. For example, with a \\$75.5\\%$ minimum top-1 accuracy and a \\$3.0\\%$ maximum calibration error, the modeled INT8 profile passes accuracy but fails calibration. Acceptance requires satisfying each stated limit; resource gains cannot compensate for a failed quality requirement."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-10-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A profile of a ViT-Base-sized model shows that the MLP blocks carry nearly two-thirds of FLOPs and the query, key, value, and output projections just under one-third, while layer normalization contributes almost no FLOPs yet claims a visible share of wall-clock latency. What is the primary systems lesson this profile teaches?",
+     "explanation": "The correct answer is D. The profile shows that FLOP-heavy components and latency-heavy components are not always the same. MLP and projection blocks dominate arithmetic work, while LayerNorm can consume noticeable time because it streams activations with low arithmetic intensity. The right response is heterogeneous optimization based on the bottleneck each component presents. A profiler showing high achieved arithmetic utilization in the heavy matmul region would further support a compute-focused intervention there, while LayerNorm may call for fusion or other memory-traffic reductions.",
+     "hint": "Think about: use layerwise profiling to choose bottleneck-specific optimizations instead of assuming one metric or one tactic fits the whole model",
+     "type": "single",
+     "options": [
+      "Optimization should focus exclusively on layer normalization because its latency share exceeds its FLOP share",
+      "A single global optimization technique (such as uniform pruning) must be applied equally across all layers to ensure balanced execution",
+      "Theoretical FLOP count is perfectly correlated with wall-clock execution time across all transformer layer types",
+      "Different components exhibit distinct physical bottlenecks, so optimization must be component-specific rather than uniform across the whole model"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "If an INT8-quantized classifier achieves the exact same top-1 accuracy as its full-precision baseline, its output probability distributions and confidence calibration are guaranteed to be equally reliable for downstream safety thresholds.",
+     "explanation": "False. Top-1 accuracy counts correct argmax predictions; equal aggregate accuracy does not require the same examples to be correct. Even when every argmax prediction stays unchanged, quantization can alter logit magnitudes and output probabilities, changing confidence calibration. In safety-critical systems, an uncalibrated quantized model may output overconfident or miscalibrated probabilities despite maintaining identical top-1 accuracy.",
+     "hint": "Think about: compare top-1 classification accuracy with confidence calibration and probability reliability in quantized models",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In PyTorch and TensorFlow quantization toolkits, ____ nodes are temporarily attached to tensor edges during calibration or Quantization-Aware Training (QAT) to collect running statistics (min/max or histograms) and compute scale and zero-point parameters without altering the forward-pass numerical values.",
+     "explanation": "observer. Observer nodes (or observers / quantization observers / observer nodes) monitor tensor value distributions during calibration passes or QAT epochs, calculating scale ($S$) and zero-point ($Z$) values before being removed or converted into fixed quantization parameters during final graph freezing.",
+     "hint": "Think about: explain the role of observer nodes in collecting activation statistics and computing quantization parameters",
+     "type": "fill",
+     "answer": [
+      "observer"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now use layerwise profiling to choose bottleneck-specific optimizations instead of assuming one metric or one tactic fits the whole model.",
+    "You can now identify the additional latency, memory, energy, and calibration measurements needed beyond top-1 accuracy to validate a compressed model.",
+    "You can now compare top-1 classification accuracy with confidence calibration and probability reliability in quantized models.",
+    "You can now explain the role of observer nodes in collecting activation statistics and computing quantization parameters."
+   ]
+  }
+ ]
+}

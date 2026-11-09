@@ -1,0 +1,103 @@
+{
+ "title": "Selection Engineering",
+ "summary": "Analyze the hardware empathy principles governing storage I/O and shuffle buffer design.",
+ "source": {
+  "chapter": "v1-09",
+  "sections": [
+   "Selection Engineering",
+   "The selection bottleneck",
+   "The random-access penalty",
+   "Data echoing",
+   "Selection across multiple accelerators"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the hardware empathy principles governing storage I/O and shuffle buffer design\n- Compare upstream and downstream echoing by how much pipeline work they amortize and how much sample diversity they preserve\n- Evaluate pipeline balance conditions under which data echoing provides zero throughput improvement\n- Compare centralized, shard-local, and hierarchical architectures for distributed coreset selection\n- Analyze score staleness in distributed active learning and choose a reproducible refresh strategy based on measured rank agreement"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Selection, § Selection Engineering",
+   "md": "A naive active learning loop that scans the entire dataset every epoch to select the \"best\" samples can turn a compute-bound training job into an I/O-bound bottleneck. **Selection engineering** is the work of making a chosen technique deliver its promised speedup on real hardware and real data pipelines. The pipeline must keep scoring cheap, reads sequential, and the accelerator fed."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The selection bottleneck\n- The random-access penalty\n- Data echoing\n- Selection across multiple accelerators\n\nPay attention to: Random-access penalty and sharded loading; Data echoing; Centralized versus hierarchical selection across workers; Stale scores in multi-worker active learning."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Contrast upstream data echoing (echoing before data augmentation) with downstream data echoing (echoing after augmentation) in terms of computational overhead and sample diversity.",
+   "md": "Upstream echoing amortizes work before augmentation and lets repeated passes receive fresh random augmentations, so it can preserve more view diversity while still reducing some repeated upstream overhead. Downstream echoing amortizes earlier work through augmentation, but repeats the same already-augmented tensors rather than creating new views. The practical implication is to place the echo point after the bottleneck stage whose work you want to amortize, then check whether the repeated data still preserves target quality."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-09-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why do naive random sample lookups across non-contiguous indices in large un-sharded dataset files severely degrade I/O throughput on storage hardware, and how do shuffle buffers mitigate this?",
+     "explanation": "The correct answer is D. Storage devices (HDDs, SATA SSDs, NVMe SSDs, and cloud object stores) provide peak throughput under large, contiguous sequential reads. Non-contiguous random 4 KB reads cut realized bandwidth (about 375$\\times$ on HDDs, about 14$\\times$ on SATA SSDs, and under 2$\\times$ on NVMe SSDs). Shuffle buffers co-design data loading by reading large sequential shards into host RAM and performing pseudo-random shuffling locally within memory, preserving peak sequential disk bandwidth. The other choices describe fictitious hardware or software failures.",
+     "hint": "Think about: analyze the hardware empathy principles governing storage I/O and shuffle buffer design.",
+     "type": "single",
+     "options": [
+      "Random lookups bypass host CPU caches, forcing floating-point registers to re-encode all labels",
+      "Random lookups violate PCIe parity checks, causing GPU kernel timeouts during backward passes",
+      "Random lookups trigger hash collisions in the Python garbage collector, halting dataloading threads",
+      "Random 4 KB reads fall below peak sequential storage bandwidth due to IOPS limits, by hundreds of times on HDDs, whereas shuffle buffers read large sequential chunks and randomize locally in memory"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "If the GPU training step takes 20 ms and the CPU data loading/augmentation pipeline takes 10 ms ($R = T_{\\text{pipeline}} / T_{\\text{GPU}} = 0.5$), applying a data echoing factor of $e = 2$ will double the end-to-end training throughput.",
+     "explanation": "False. When $R < 1$, the training job is accelerator-bound (the data pipeline is already faster than the GPU), so the GPU is never starved for data. Applying data echoing in this regime provides zero throughput gain and merely feeds duplicate or stale data to the accelerator.",
+     "hint": "Think about: evaluate pipeline balance conditions under which data echoing provides zero throughput improvement.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "On one host with two to eight accelerator workers, how can centralized coreset selection become a bottleneck, and what trade-off does hierarchical selection introduce?",
+     "explanation": "The correct answer is C. Centralized selection gathers candidate scores or embeddings at a coordinator process on the same host. Its memory demand and CPU dispatch can compete with decoding and batch preparation, so adding accelerator workers does not necessarily accelerate selection. Hierarchical selection distributes selection by having workers select local coresets on their shards before merging at the coordinator; however, this shard-local pruning can introduce distribution skew if rare classes or boundary cases are unevenly distributed across shards. The other choices state incorrect hardware, communication, or backpropagation limitations.",
+     "hint": "Think about: compare centralized, shard-local, and hierarchical architectures for distributed coreset selection.",
+     "type": "single",
+     "options": [
+      "Centralized selection requires all workers to share a single GPU; hierarchical selection distributes weights across SSDs",
+      "Centralized selection fails because sharding prevents network cards from transmitting floating-point values",
+      "Centralized selection can bottleneck host memory and coordinator dispatch; hierarchical selection prunes locally per shard, risking loss of globally rare samples across shards",
+      "Centralized selection eliminates gradient synchronization; hierarchical selection disables local backpropagation"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In distributed active learning, Worker A scores candidate samples using checkpoint step $t$, while Worker B has already advanced the shared model to step $t+100$. What consistency challenge arises, and what is the best response?",
+     "explanation": "The correct answer is D. The issue is ranking staleness: uncertainty scores from an older checkpoint can differ from those produced by a newer model. The chapter's remedy is not to assume such rankings are automatically invalid, but to make them reproducible with checkpoint versioning and to set refresh frequency from measured agreement decay. The other choices confuse the problem with autograd deadlock, storage overwrites, or memory exhaustion.",
+     "hint": "Think about: analyze score staleness in distributed active learning and choose a reproducible refresh strategy based on measured rank agreement.",
+     "type": "single",
+     "options": [
+      "Worker A encounters deadlock in CUDA streams; disable autograd during scoring",
+      "Worker B overwrites Worker A's local storage; mount the dataset read-only",
+      "Worker A's GPU runs out of memory; reduce batch size to 1",
+      "Worker A may produce stale rankings that differ from fresher ones; version checkpoints and choose the score-refresh interval from measured ranking agreement"
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain why performing independent, shard-local coreset pruning on an unstratified, partitioned dataset can cause minority class collapse during distributed training.",
+   "md": "When a dataset is sharded across workers without stratification, rare minority classes may appear in very few shards. If each worker independently selects its top-$k$ coreset based on local metrics, workers with only a few minority samples may discard them as outliers, systematically erasing the minority class from the global training corpus."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the hardware empathy principles governing storage I/O and shuffle buffer design.",
+    "You can now compare upstream and downstream echoing by how much pipeline work they amortize and how much sample diversity they preserve.",
+    "You can now evaluate pipeline balance conditions under which data echoing provides zero throughput improvement.",
+    "You can now compare centralized, shard-local, and hierarchical architectures for distributed coreset selection."
+   ]
+  }
+ ]
+}

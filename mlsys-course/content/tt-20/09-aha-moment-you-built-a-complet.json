@@ -1,0 +1,70 @@
+{
+ "title": "⭐ Aha Moment: You Built a Complete ML System",
+ "summary": "TinyTorch capstone: ⭐ Aha Moment: You Built a Complete ML System",
+ "source": {
+  "chapter": "tt-20",
+  "sections": [
+   "⭐ Aha Moment: You Built a Complete ML System"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: You Built a Complete ML System\n\n**What you built:** A benchmarking and submission system for your TinyTorch models, and one\nworked example of it reporting a result you would rather not have gotten.\n\n**Why it matters:** You've gone from raw tensors to complete ML systems. Your capstone ties\ntogether everything, from models and training through optimization and profiling to\nbenchmarking. The last piece is the one people skip. An artifact that records what you\nmeasured, on which machine, against which baseline, is what lets a claim survive contact\nwith someone else's hardware, and what lets a regression be found instead of argued about.\n\nCongratulations, you've built a deep learning framework from scratch."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_capstone() -> None:\n    \"\"\"🎯 See your complete system come together.\"\"\"\n    print(\"🎯 AHA MOMENT: You Built a Complete ML System\")\n    print(\"=\" * 45)\n\n    print(\"\\n📚 Your TinyTorch Journey:\")\n    print()\n    print(\"  Modules 01-08: Foundation\")\n    print(\"    Tensor -> Activations -> Layers -> Losses\")\n    print(\"    -> DataLoader -> Autograd -> Optimizers -> Training\")\n    print()\n    print(\"  Modules 09-13: Neural Architectures\")\n    print(\"    Conv2d -> Tokenization -> Embeddings\")\n    print(\"    -> Attention -> Transformers\")\n    print()\n    print(\"  Modules 14-19: Production Optimization\")\n    print(\"    Profiling -> Quantization -> Compression\")\n    print(\"    -> Acceleration -> KV Caching -> Benchmarking\")\n    print()\n    print(\"  Module 20: Capstone\")\n    print(\"    Benchmarking, submission, and the honest before-and-after comparison\")\n\n    print(\"\\n✨ From np.array to a framework you can measure. Congratulations!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Capstone\n\nCongratulations! You've completed the TinyTorch capstone by building a professional benchmarking and submission system!\n\n### Key Accomplishments\n- **Wrote the measurement core**: `SimpleMLP.__init__` and `forward`, `measure_latency` (warmup, then per-call `precise_timer` timing), and `measure_memory` (honor `size_bytes()`, otherwise sum array `nbytes`)\n- **Read and applied the given contract**: `generate_submission`, `validate_submission_schema` and `qualifies_event` ship complete, and you used them to assemble, check, and rule on a submission\n- **Compared two models on three axes**: speedup, compression ratio, and accuracy delta, computed from the two reports rather than asserted\n- **Measured a regression honestly**: the flagship workflow reports \\$0.50\\times\\$ compression and a sub-\\$1.0\\times\\$ speedup, prints the modeled packed size beside the dense bytes so the two are never confused, and declines to interpret its own accuracy delta because the model underneath it was never trained\n- **Recorded reproducibility context**: platform, Python and NumPy versions, and a timestamp travel with every submission\n\n#### 20-Module Grand Systems Milestone Scorecard"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Curriculum Tier",
+    "Modules Completed",
+    "Core Systems Primitives Built",
+    "Systems Capabilities Unlocked"
+   ],
+   "rows": [
+    [
+     "**Tier 1: Foundations**",
+     "`01_tensor` \\$\\rightarrow\\$ `08_training`",
+     "N-D array wrapper with explicit shape and memory-layout reasoning, activations, modular layers, cross-entropy loss, data batching, autograd DAG engine, SGD/Adam, training loop",
+     "Dynamic reverse-mode autodiff, loss convergence, backpropagation through a composed network"
+    ],
+    [
+     "**Tier 2: Architectures**",
+     "`09_convolutions` \\$\\rightarrow\\$ `13_transformers`",
+     "Sliding-window `Conv2d` and `MaxPool2d` with hand-written loops, `BatchNorm2d`, BPE tokenizer, token and positional embeddings, scaled dot-product multi-head causal attention, decoder-only Transformer",
+     "Vision filtering, subword tokenization, sequence autoregression, language modeling"
+    ],
+    [
+     "**Tier 3: Optimization**",
+     "`14_profiling` \\$\\rightarrow\\$ `18_memoization`",
+     "Analytic parameter and FLOP counters with `tracemalloc` peak tracking and roofline classification, INT8 asymmetric (affine) min/max quantization, magnitude and structured pruning, low-rank SVD factorization, knowledge distillation, vectorized and cache-tiled matmul, fused GELU, `im2col` GEMM lowering, KV-cache memoization",
+     "Locating the binding cost before optimizing it, a modeled \\$3.59\\times\\$ packed-int8 footprint on `SimpleMLP`, dense-GEMM dimension reduction, eliminating duplicate autoregressive attention compute"
+    ],
+    [
+     "**Tier 4: Evaluation**",
+     "`19_benchmarking` \\$\\rightarrow\\$ `20_capstone`",
+     "High-resolution monotonic timers, Student's \\$t\\$ confidence bounds, tail percentiles (\\$p_{50}/p_{95}/p_{99}\\$), multi-objective comparison tables and plots, a hand-written schema validator, classroom event eligibility rules",
+     "Publication-grade empirical measurement, before-and-after comparison that can report a regression, TinyTorch capstone event eligibility"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Systems Insights Discovered\n- **Benchmarking science**: Repeatability, comparability, and completeness principles\n- **Metrics that matter**: Latency vs throughput, mean vs variance, accuracy vs efficiency trade-offs\n- **Reproducibility requirements**: System context, schema validation, and standardized reporting\n- **A measurement that contradicts the technique's reputation is the useful one**: simulated quantization is for probing accuracy fidelity, not for saving bytes, and only the measurement said so\n- **Production patterns**: How real ML systems measure and compare model performance\n\n### Ready for Next Steps\n\nYou started Module 01 with a simple Tensor class. Now you have:\n- A complete ML framework built from first principles\n- Hardware-aware optimization techniques, and measurements that say when each one pays\n- Professional benchmarking and evaluation infrastructure\n- Reproducible, shareable, schema-validated results\n\n**You did not just learn ML systems, you BUILT one from scratch.**\n\nExport with: `tito module complete 20`\n\n**Next**: Run `tito milestone run 06` to put a trained model through this same profile, optimize, re-measure cycle, then point `BenchmarkReport` at your own milestone models (XOR, TinyDigits MLP and CNN, the Transformer) and compare them against each other. Congratulations on completing TinyTorch!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: You Built a Complete ML System."
+   ]
+  }
+ ]
+}

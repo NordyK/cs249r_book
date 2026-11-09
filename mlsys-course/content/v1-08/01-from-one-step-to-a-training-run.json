@@ -1,0 +1,63 @@
+{
+ "title": "From One Step to a Training Run",
+ "summary": "Calculate the static mixed-precision Adam training-state footprint from weights, gradients, master weights, and optimizer state.",
+ "source": {
+  "chapter": "v1-08",
+  "sections": [
+   "From One Step to a Training Run",
+   "Running cases: GPT-2 XL and ResNet-50"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate the static mixed-precision Adam training-state footprint from weights, gradients, master weights, and optimizer state\n- Distinguish memory-capacity failures from numerical-instability failures in mixed-precision training\n- Identify the systems term for trading backward recomputation against forward activation storage"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Training, § From One Step to a Training Run",
+   "md": "A training run is one training step repeated millions of times, so every byte a step holds and every millisecond it spends is multiplied by the length of the run. Each step reads a batch of examples, computes a forward pass and a loss, propagates gradients backward, and updates every parameter, and the run repeats that sequence until the model reaches its quality target."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: training-vs-inference cost asymmetry and memory footprint decomposition; the scale of one training step against a whole training run; numerical-range overflow versus memory capacity exhaustion; activation rematerialization trade-offs."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-08-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A 7-billion-parameter model uses 14 GB of FP16 weights for inference and fits comfortably on a single 40 GB accelerator. Switching the same model to standard mixed-precision Adam training causes immediate out-of-memory failures even before activations are accounted for. Using the mixed-precision Adam accounting that the section previews, which factor is most directly responsible?",
+     "explanation": "The correct answer is B. In the section's standard mixed-precision Adam recipe, training state includes 14 GB of FP16 weights, 14 GB of FP16 gradients, 28 GB of FP32 master weights, and 56 GB of FP32 moment state, for about 112 GB before activations. The idea that Adam re-runs model passes confuses optimizer state with the forward/backward computation, and dataset caching is part of the input pipeline rather than resident model-training state on the accelerator.",
+     "hint": "Think about: calculate the static mixed-precision Adam training-state footprint from weights, gradients, master weights, and optimizer state.",
+     "type": "single",
+     "options": [
+      "Adam internally re-runs the forward and backward passes, so the same weights must be stored several extra times during each step.",
+      "Adam adds 14 GB of FP16 gradients, 28 GB of FP32 master weights, and 56 GB of FP32 first- and second-moment state, pushing the static training state to about 112 GB before activations.",
+      "Adam requires the full training corpus to be cached in accelerator memory so batches can be reused across optimizer steps.",
+      "Adam forces all model tensors into FP64 during backpropagation, which multiplies the weight footprint beyond device capacity."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Sudden NaN loss spikes during mixed-precision training are usually the same failure mode as an out-of-memory error, because both come from the GPU running out of memory during backpropagation.",
+     "explanation": "False. An out-of-memory failure is a capacity problem that triggers an allocation error, while NaNs indicate numerical instability somewhere in the training computation. Mixed precision can contribute to numerical issues, but a NaN spike is not the same diagnosis as memory exhaustion.",
+     "hint": "Think about: distinguish memory-capacity failures from numerical-instability failures in mixed-precision training.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate the static mixed-precision Adam training-state footprint from weights, gradients, master weights, and optimizer state.",
+    "You can now distinguish memory-capacity failures from numerical-instability failures in mixed-precision training.",
+    "You can now identify the systems term for trading backward recomputation against forward activation storage."
+   ]
+  }
+ ]
+}

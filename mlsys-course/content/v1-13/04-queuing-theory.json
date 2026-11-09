@@ -1,0 +1,118 @@
+{
+ "title": "Queuing Theory",
+ "summary": "Calculate average in-system request population using Little's Law.",
+ "source": {
+  "chapter": "v1-13",
+  "sections": [
+   "Queuing Theory",
+   "Little's Law",
+   "The utilization-latency relationship",
+   "Tail latency",
+   "Tail-tolerant techniques",
+   "Scaling across multiple replicas"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate average in-system request population using Little's Law\n- Calculate fan-out tail-latency amplification in distributed multi-server inference architectures\n- Evaluate the trade-offs and operational mechanics of hedged requests for tail-latency mitigation\n- Design a measurement-driven workflow for selecting and validating overload mitigations in serving systems\n- Calculate mean queue residency time and analyze non-linear latency growth as utilization approaches saturation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Serving, § Queuing Theory",
+   "md": "An inference service that responds in a few milliseconds at moderate load can suffer sudden, tenfold latency spikes when traffic climbs toward capacity, even though no hardware has failed and the model's execution time has not changed. Because requests arrive in irregular bursts and contend for shared accelerator queues, host-to-device PCIe links, and memory buses, queuing theory governs how waiting times grow and why latency explodes nonlinearly as utilization approaches capacity."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Little's Law\n- The utilization-latency relationship\n- Tail latency\n- Tail-tolerant techniques\n- Scaling across multiple replicas\n\nPay attention to: Little's Law: L = lambda W; The utilization-latency curve and M/M/1 queue behavior (W = T_svc / (1 - rho)); The tail at scale problem: fanout latency amplification (\\$1 - (1 - p)^k); Tail-tolerant techniques: hedged requests, tied requests, load shedding."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In a distributed serving architecture, an aggregate user request fans out in parallel to 50 leaf model servers and must wait for all 50 responses before completing. Assume each leaf independently has a 1% probability of exceeding the same latency threshold, other latency sources are negligible, and all 50 requests are issued simultaneously. Explain the 'tail at scale' phenomenon and calculate the probability that the aggregate request suffers tail latency.",
+   "md": "Tail at scale means a fan-out request inherits the slowest participating subrequest, so a small per-node tail probability can become a much larger end-to-end tail probability when many backends must all finish. Under the independence and shared-threshold assumptions, the probability that at least one of 50 leaves misses the target is \\$1 - (0.99)^50 approx 39.5\\%. The practical implication is that single-node p99 performance is not enough when a user request depends on many parallel backends."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-13-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An online recommendation service handles an arrival rate of lambda = 500 queries per second. Instrumented telemetry reveals an average residency time (waiting time in queue + inference service time) of W = 40 ms (\\$0.04 s). According to Little's Law, what is the average number of concurrent requests (L) present in the serving system?",
+     "explanation": "The correct answer is D. Little's Law gives average in-system population as $L = \\lambda W$ for a stable system under a matched measurement boundary. Substituting \\$500\\,\\text{requests/s}$ and \\$0.04\\,\\text{s}$ yields $L = 500 \\times 0.04 = 20\\text{ requests}$. The other answers come from mismatched units or arithmetic errors, such as treating milliseconds as seconds or using the wrong operation entirely.",
+     "hint": "Think about: calculate average in-system request population using Little's Law.",
+     "type": "single",
+     "options": [
+      "$L = 12.5\\text{ requests}$",
+      "$L = 200\\text{ requests}$",
+      "$L = 2\\text{,}000\\text{ requests}$",
+      "$L = 20\\text{ requests}$"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Hedged requests (speculative backup requests) reduce p99 tail latency by sending identical duplicate requests to multiple servers simultaneously for every incoming query upon arrival, without incurring any additional cluster compute overhead.",
+     "explanation": "False. Hedging trades extra work for a chance to avoid stragglers, so it can add compute and queueing load rather than being free. Practical policies usually trigger duplicates only after a request looks slow relative to a reference distribution, but the extra load is not fixed: correlated slowdowns, traffic level, and cancellation behavior determine whether hedging helps or hurts.",
+     "hint": "Think about: evaluate the trade-offs and operational mechanics of hedged requests for tail-latency mitigation.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the following overload-handling workflow for a serving system from first diagnosis to final verification:",
+     "explanation": "The correct order is: (2) measure arrival rate, service time, queue depth, and observed tail latency, (3) identify the limiting constraint from those measurements, such as overload, queue growth, or service-time inflation, (1) choose a mitigation that fits the current bottleneck and SLO trade-off, such as admission control, graceful degradation, or a batching change, (4) validate the chosen policy under representative load and confirm it improves SLO compliance. This sequence is necessary because overload defenses are not universally ordered by aggressiveness: shortening a batching window, shedding load, or degrading quality can help or hurt depending on what is actually the bottleneck. Acting before measuring risks choosing a mitigation that lowers capacity or burns quality without protecting latency.",
+     "hint": "Think about: design a measurement-driven workflow for selecting and validating overload mitigations in serving systems.",
+     "type": "order",
+     "items": [
+      "measure arrival rate, service time, queue depth, and observed tail latency",
+      "identify the limiting constraint from those measurements, such as overload, queue growth, or service-time inflation",
+      "choose a mitigation that fits the current bottleneck and SLO trade-off, such as admission control, graceful degradation, or a batching change",
+      "validate the chosen policy under representative load and confirm it improves SLO compliance."
+     ]
+    },
+    {
+     "q": "An inference node modeled as an $M/M/1$ queue has an average execution service time of $T_{\\text{svc}} = 10\\text{ ms}$. If the arrival rate increases such that system utilization $\\rho$ increases from \\$50\\%$ ($\\rho = 0.5$) to \\$90\\%$ ($\\rho = 0.9$), what happens to the mean total response time $W$?",
+     "explanation": "The correct answer is B. In an $M/M/1$ model, mean total response time is $W = \\frac{T_{\\text{svc}}}{1 - \\rho}$. At $\\rho = 0.5$, this gives $\\frac{10\\text{ ms}}{0.5} = 20\\text{ ms}$; at $\\rho = 0.9$, it gives $\\frac{10\\text{ ms}}{0.1} = 100\\text{ ms}$. So utilization rises by \\$1.8\\times$, while mean response time rises by \\$5\\times$ because the dependence is reciprocal rather than linear.",
+     "hint": "Think about: calculate mean queue residency time and analyze non-linear latency growth as utilization approaches saturation.",
+     "type": "single",
+     "options": [
+      "$W$ increases linearly from 10 ms to 18 ms.",
+      "W increases nonlinearly from 20 ms to 100 ms (\\$5× increase).",
+      "$W$ decreases from 20 ms to 11.1 ms due to batching efficiency.",
+      "$W$ remains fixed at 10 ms because service time is independent of arrival rate."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Under a simple $M/M/1$ queueing model approximation, when server utilization ($\\rho_{\\text{serv}}$) reaches 90%, the 99th percentile (p99) tail latency is approximately equal to 1.5 times the mean latency.",
+     "explanation": "False. In an M/M/1 queueing model, mean residence time scales as T_svc / (1 - rho_serv), and the 99th percentile tail latency is approximately \\$4.6 × the mean latency (since ln(100) approx 4.605). At 90% utilization (rho_serv = 0.9), mean latency is \\$10 × T_svc, making p99 latency roughly \\$46 × T_svc, demonstrating the severe nonlinear divergence of tail latency from mean latency near saturation.",
+     "hint": "Think about: evaluate tail-latency divergence at high server utilization using queueing theory approximations.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Queueing delay**: Requests wait when arrivals compete for busy resources. Near saturation, small increases in utilization can produce large increases in waiting.",
+    "**Utilization**: Utilization compares offered work with available service capacity. High utilization leaves little room for variation in arrivals and execution.",
+    "**Arrival rate**: At fixed service capacity, a higher request arrival rate raises utilization. Burstiness also matters for waiting."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Queueing delay",
+   "def": "Requests wait when arrivals compete for busy resources. Near saturation, small increases in utilization can produce large increases in waiting."
+  },
+  {
+   "term": "Utilization",
+   "def": "Utilization compares offered work with available service capacity. High utilization leaves little room for variation in arrivals and execution."
+  },
+  {
+   "term": "Arrival rate",
+   "def": "At fixed service capacity, a higher request arrival rate raises utilization. Burstiness also matters for waiting."
+  }
+ ]
+}

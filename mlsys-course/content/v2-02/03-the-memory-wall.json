@@ -1,0 +1,99 @@
+{
+ "title": "The Memory Wall",
+ "summary": "Analyze how HBM's 3D-stacked TSV packaging simultaneously raises memory bandwidth and lowers energy per bit relative to DDR5.",
+ "source": {
+  "chapter": "v2-02",
+  "sections": [
+   "The Memory Wall",
+   "HBM and the memory wall",
+   "Roofline model"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze how HBM's 3D-stacked TSV packaging simultaneously raises memory bandwidth and lowers energy per bit relative to DDR5\n- Apply the Roofline Model to explain why compute-only upgrades cannot improve deeply memory-bound inference and identify the architectural levers that can\n- Apply roofline geometry to select a change that raises the limiting ceiling and distinguish that bound from achieved throughput\n- Order the accelerator memory tiers by bandwidth and capacity and connect that order to operand reuse\n- Define the ridge point and distinguish the lower roofline ceiling from a measured execution bottleneck"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Compute Infrastructure, § The Memory Wall",
+   "md": "Single-request inference on our … running model has a latency floor set by memory delivery. Its weights occupy … in FP16. In dense autoregressive decode at batch size 1, each generated token uses all of those weights, whose footprint far exceeds on-chip storage, so every token must stream them in from memory. Suppose, hypothetically, that one H100 could hold them. Streaming the whole … through that device's HBM at about … takes over 100 ms per token, long enough to be a perceptible pause between generated words."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- HBM and the memory wall\n- Roofline model\n\nPay attention to: HBM 3D-stacked TSV packaging physics and energy advantages relative to DDR5; Roofline Model diagnosis and ridge point behavior for memory-bound vs. compute-bound regimes; Memory capacity vs. memory bandwidth limits during autoregressive decode; Memory hierarchy staging (HBM to SRAM to Registers) and kernel fusion (FlashAttention)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: An engineering team compares an H100 with a hypothetical successor offering twice the dense FP16 peak but the same HBM bandwidth. Hold the FP16 weight payload, partition, and batch-1 shape fixed, assume sufficient capacity, and consider a weight-streaming model whose bandwidth ceiling is lower than its compute ceiling on both devices. What changes in the modeled token-latency floor, and which levers could lower it?",
+   "md": "The weight-only FP16 model performs two FLOPs per two-byte weight, so its intensity is about 1 FLOP/byte, below the H100 FP16 ridge. Doubling the matched-precision arithmetic peak raises only the nonbinding ceiling; fixed bytes divided by unchanged bandwidth gives the same streaming floor. More bandwidth, fewer bytes through validated quantization, or more reuse can change that bound. Actual latency must also account for other traffic, communication, execution overhead, and any changed partition."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-02-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "HBM3 provides a much wider interface and lower signaling energy per bit than socketed DDR5. Which packaging mechanism explains these advantages?",
+     "explanation": "The correct answer is C. TSVs connect the stacked dies vertically, while the processor-to-stack path also crosses the lateral interposer. On-package placement shortens the complete electrical path relative to socketed DDR5, lowering signaling energy, and the 1,024-bit interface per stack supplies parallel bandwidth without requiring proportionately faster pins. TSV length alone does not establish a 1,000-fold reduction in complete-path capacitance. Faster clocks, refresh-free cells, and on-die compression do not explain this packaging mechanism.",
+     "hint": "Think about: analyze how HBM's 3D-stacked TSV packaging simultaneously raises memory bandwidth and lowers energy per bit relative to DDR5.",
+     "type": "single",
+     "options": [
+      "HBM3 runs individual pins at \\$16× higher clock frequency than DDR5, overcoming PCB trace attenuation through high-frequency signaling.",
+      "HBM3 uses a novel DRAM cell structure that eliminates capacitor refresh cycles, reducing dynamic power consumption.",
+      "HBM3 stacks DRAM dies vertically with through-silicon vias (TSVs) and connects the stack to the processor through a wide, short silicon-interposer path on the package.",
+      "HBM3 compresses weight matrices on-die, transferring fewer physical bits across the memory bus."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A custom attention kernel has arithmetic intensity of 1.2 FLOP/byte on an H100 under the FP16 roofline convention. Which change most directly raises its memory-bandwidth performance ceiling, subject to measuring the resulting execution?",
+     "explanation": "The correct answer is A. At the supplied intensity, bandwidth supplies the lower roofline ceiling. SRAM-sized tiles and fusion can reduce HBM bytes per useful operation without requiring the complete attention matrix to fit on chip. Raising only the arithmetic peak leaves that ceiling unchanged; dummy reads lower intensity, and host offload adds a slower path. Intensity alone does not establish the measured bottleneck or guarantee the achieved speedup, so profiling must check the result.",
+     "hint": "Think about: apply roofline geometry to select a change that raises the limiting ceiling and distinguish that bound from achieved throughput.",
+     "type": "single",
+     "options": [
+      "Use SRAM-sized attention tiles and fusion to avoid materializing the full score matrix in HBM and reduce intermediate HBM round-trips.",
+      "Overclocking Tensor Cores to increase peak FP16 TFLOP/s, raising the horizontal ceiling of the roofline.",
+      "Adding dummy memory reads to artificially raise the measured memory traffic of the kernel.",
+      "Offloading the layer normalization and attention operations to host CPU DRAM over PCIe Gen5."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Order the following tiers of an H100-class accelerator's memory hierarchy from the highest aggregate bandwidth to the highest capacity:",
+     "explanation": "The correct order is: (2) register files, (4) L1 and shared memory, (3) the L2 cache, (1) HBM3. Each step away from the arithmetic units trades aggregate bandwidth for capacity, falling from hundreds of TB/s at the registers to a few TB/s at HBM while capacity grows from tens of megabytes to tens of gigabytes. Tiling exploits the order by staging operand blocks in the fast tiers so that each byte fetched from HBM feeds many multiply-accumulate operations.",
+     "hint": "Think about: order the accelerator memory tiers by bandwidth and capacity and connect that order to operand reuse.",
+     "type": "order",
+     "items": [
+      "the streaming multiprocessors' register files",
+      "the L2 cache",
+      "HBM3 on the package"
+     ]
+    },
+    {
+     "q": "In the Roofline Model, the specific arithmetic intensity where the diagonal memory bandwidth slope meets the horizontal peak compute ceiling ($I = R_{\\text{peak}} / \\text{BW}$) is called the ____.",
+     "explanation": "The correct answer is ridge point. It is the hardware balance threshold where the bandwidth and arithmetic ceilings meet. Below it, bandwidth supplies the lower modeled ceiling; above it, arithmetic does. A measured kernel can remain below either ceiling, so this classification does not establish its actual bottleneck.",
+     "hint": "Think about: define the ridge point and distinguish the lower roofline ceiling from a measured execution bottleneck.",
+     "type": "fill",
+     "answer": [
+      "The correct answer is ridge point"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Memory capacity**: The amount of state that can reside in a memory domain at once."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Memory capacity",
+   "def": "The amount of state that can reside in a memory domain at once."
+  }
+ ]
+}

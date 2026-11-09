@@ -1,0 +1,87 @@
+{
+ "title": "Collective Operation Primitives",
+ "summary": "Contrast the communication frequency, message granularity, and latency sensitivity of FSDP with standard Data Parallelism.",
+ "source": {
+  "chapter": "v2-05",
+  "sections": [
+   "Collective Operation Primitives",
+   "The six core primitives",
+   "FSDP communication patterns"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Contrast the communication frequency, message granularity, and latency sensitivity of FSDP with standard Data Parallelism\n- Analyze FSDP communication exposure using parameter dependencies, gradient readiness, prefetch memory, and available overlap windows\n- Identify the fundamental two-phase decomposition of AllReduce into ReduceScatter and AllGather"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Collective Communication, § Collective Operation Primitives",
+   "md": "Sending a gradient tensor to a peer does not specify which workers must contribute or where the final result belongs. Collective operations supply that group-level contract, using a vocabulary standardized by MPI and inherited by modern ML communication libraries. The four contracts sketched at the start of the chapter differ in what each rank holds afterward (a later section). AllReduce leaves an identical sum (GlyphSigma) on every rank. AllGather leaves every rank with the concatenation of all shards. ReduceScatter sums across ranks but leaves each rank one reduced shard (GlyphSigma_i)."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The six core primitives\n- FSDP communication patterns\n\nPay attention to: Decomposition of AllReduce into ReduceScatter followed by AllGather; FSDP communication patterns: parameter sharding, AllGather in forward, ReduceScatter in backward, startup sensitivity; Dependency exposure of FSDP gathers and reductions."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In Fully Sharded Data Parallel (FSDP), when does a parameter AllGather or gradient ReduceScatter add exposed delay to a training step? Explain why the primitive name alone does not identify a latency-bound or bandwidth-bound transfer.",
+   "md": "A layer waits when its parameter AllGather has not completed by the time computation needs those parameters. Prefetching can hide the gather within independent work, at the cost of additional resident parameters. ReduceScatter starts after the required gradients are ready and can overlap remaining backward computation, but its final transfer or backlog can remain exposed before the optimizer step. Message size, group size, topology, achieved transfer duration, and the available overlap window determine the cost; a consumer dependency does not establish startup dominance."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-05-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "How does the communication pattern of Fully Sharded Data Parallel (FSDP / ZeRO-3) differ structurally and operationally from standard Distributed Data Parallelism (DDP)?",
+     "explanation": "The correct answer is C. DDP keeps replicated state and launches AllReduce as gradient buckets become ready. With one FSDP unit per layer and resharding after forward, two AllGathers and one ReduceScatter produce approximately \\$3N_L calls per step. Wrapping and resharding policy can change that count. FSDP saves resident state through communication, not by eliminating networking or permanently retaining full parameters.",
+     "hint": "Think about: contrast the communication frequency, message granularity, and latency sensitivity of FSDP with standard Data Parallelism.",
+     "type": "single",
+     "options": [
+      "DDP communicates twice per transformer layer using Point-to-Point Send/Recv, whereas FSDP communicates only once at the end of the step using Broadcast.",
+      "FSDP replaces all network communication with CPU host memory paging, eliminating collective communication entirely.",
+      "DDP reduces ready gradient buckets, whereas layer-wrapped full-shard FSDP with resharding typically issues \\$3N_L collectives: forward and backward AllGathers plus backward ReduceScatters, increasing launch-latency sensitivity.",
+      "FSDP eliminates AllGather operations by permanently keeping full model parameters in every GPU high-bandwidth memory."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "The mathematical identity that an AllReduce can be decomposed into an intra-group ____ phase (where each worker retains a reduced chunk) followed by an ____ phase (where workers circulate and concatenate the reduced chunks) forms the foundational communication mechanism behind both Ring AllReduce and ZeRO-3/FSDP memory sharding.",
+     "explanation": "ReduceScatter, AllGather (or Reduce-Scatter and All-Gather). In Ring AllReduce, this decomposition executes in two $N-1$ step phases; in FSDP, the AllGather is invoked per layer during the forward pass to reconstruct parameters, and the ReduceScatter is invoked during the backward pass to shard the accumulated gradients.",
+     "hint": "Think about: identify the fundamental two-phase decomposition of AllReduce into ReduceScatter and AllGather.",
+     "type": "fill",
+     "answer": [
+      "ReduceScatter, AllGather",
+      "ReduceScatter, AllGather (or Reduce Scatter and All Gather)",
+      "ReduceScatter, AllGather (or Reduce-Scatter and All-Gather)"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**AllReduce**: A collective that reduces contributions from every participant and returns the result to every participant.",
+    "**AllGather**: A collective that assembles the contributions of all ranks into a complete tensor at every rank.",
+    "**ReduceScatter**: A collective that reduces corresponding input contributions and distributes different reduced shards among ranks."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "AllReduce",
+   "def": "A collective that reduces contributions from every participant and returns the result to every participant."
+  },
+  {
+   "term": "AllGather",
+   "def": "A collective that assembles the contributions of all ranks into a complete tensor at every rank."
+  },
+  {
+   "term": "ReduceScatter",
+   "def": "A collective that reduces corresponding input contributions and distributes different reduced shards among ranks."
+  }
+ ]
+}

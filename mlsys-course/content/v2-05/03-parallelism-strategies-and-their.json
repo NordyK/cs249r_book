@@ -1,0 +1,63 @@
+{
+ "title": "Parallelism Strategies and Their Traffic",
+ "summary": "Classify distributed parallelism strategies by their corresponding collective communication primitives and governing physical constraints.",
+ "source": {
+  "chapter": "v2-05",
+  "sections": [
+   "Parallelism Strategies and Their Traffic"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Classify distributed parallelism strategies by their corresponding collective communication primitives and governing physical constraints\n- Identify GPUDirect RDMA as a mechanism for avoiding host-memory payload staging"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Collective Communication, § Parallelism Strategies and Their Traffic",
+   "md": "Once a training job splits its batch, layers, or parameters across devices, no rank holds all the state needed to finish a step on its own. A synchronous data-parallel worker computes gradients from its local batch slice, but its optimizer cannot update the weights until every replica's gradients have been combined. Some of those reductions can start as backward layers finish, while earlier layers are still computing. Tensor ownership determines where each tensor must go, and gradient or activation readiness determines when each transfer can start."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Mapping parallelism strategies to collective primitives and constraints; GPUDirect RDMA and zero-copy kernel bypass."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-05-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A machine learning engineer evaluates the communication traffic induced by different model parallelism strategies. According to the chapter's parallelism-to-collective mapping, which mapping correctly pairs a parallelism strategy with its primary collective primitive and primary physical constraint?",
+     "explanation": "The correct answer is B. MoE routing exchanges token payloads with the ranks hosting selected experts. Its AllToAll pattern can create many peer messages, skewed destinations, and bisection contention. The $N(N-1)$ potential directed peer relationships do not imply quadratic bytes at fixed per-rank payload. FSDP uses AllGather and ReduceScatter, while dense data-parallel training uses AllReduce rather than root-only Reduce.",
+     "hint": "Think about: classify distributed parallelism strategies by their corresponding collective communication primitives and governing physical constraints.",
+     "type": "single",
+     "options": [
+      "Fully Sharded Data Parallel (FSDP) -> Broadcast primitive -> Memory capacity constraint.",
+      "Mixture-of-Experts (MoE) Routing -> AllToAll primitive -> Latency and bisection network contention constraint.",
+      "Tensor Parallelism within a node -> Point-to-Point Send/Recv -> Inter-node bisection bandwidth constraint.",
+      "Data Parallelism -> Reduce primitive -> Host-to-device PCIe bandwidth constraint."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "On a supported hardware and transport path, the mechanism that lets a NIC read and write GPU memory without staging payloads through host DRAM is known as ____ RDMA.",
+     "explanation": "GPUDirect. A supported GPUDirect RDMA path lets the NIC access GPU memory without staging the payload through host DRAM. This removes that staging traffic, but does not guarantee a particular launch latency, eliminate CPU coordination, or prevent every source of host-memory contention. Measure the configured device, PCIe, NIC, and transport path.",
+     "hint": "Think about: identify GPUDirect RDMA as a mechanism for avoiding host-memory payload staging.",
+     "type": "fill",
+     "answer": [
+      "GPUDirect"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify distributed parallelism strategies by their corresponding collective communication primitives and governing physical constraints.",
+    "You can now identify GPUDirect RDMA as a mechanism for avoiding host-memory payload staging."
+   ]
+  }
+ ]
+}

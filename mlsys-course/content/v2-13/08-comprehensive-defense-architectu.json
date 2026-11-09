@@ -1,0 +1,93 @@
+{
+ "title": "Comprehensive Defense Architectures",
+ "summary": "Analyze hardware memory constraints in Trusted Execution Environments for ML model deployment.",
+ "source": {
+  "chapter": "v2-13",
+  "sections": [
+   "Comprehensive Defense Architectures",
+   "Hardware security foundations",
+   "Secure model deployment",
+   "Runtime system monitoring",
+   "Secure model design",
+   "Privacy-preserving data techniques"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze hardware memory constraints in Trusted Execution Environments for ML model deployment\n- Evaluate why federated learning alone is insufficient for privacy and justify the necessity of secure aggregation\n- Compare the security implications of model serialization formats in production ML pipelines\n- Compare the computational latency and trust assumptions of Fully Homomorphic Encryption (FHE) versus Confidential Computing TEEs\n- Explain how model watermarking supplies bounded evidence for an intellectual property claim"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Security & Privacy, § Comprehensive Defense Architectures",
+   "md": "An adversary who bypasses an API rate limit may still face authorization checks, restricted outputs, or an isolated execution environment. These controls protect different assets and constrain different actions. Secure ML systems use defense in depth to limit what follows from a failed mechanism. The benefit depends on whether the remaining controls retain their enforcement power; several checks that share the same compromised credential or runtime do not provide independent barriers."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Hardware security foundations\n- Secure model deployment\n- Runtime system monitoring\n- Secure model design\n- Privacy-preserving data techniques\n\nPay attention to: TEE memory constraints (SGX 128 MB EPC limit vs ResNet models); Gradient inversion attacks and secure aggregation in federated learning; Model packaging security (SafeTensors vs Python pickle RCE); The cost of trusted compute (FHE vs TEE vs AES latency)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In federated learning, raw data remains on client devices, but Deep Leakage from Gradients (Zhu et al., 2019) demonstrated that an adversary observing raw gradient updates can reconstruct original training images pixel-by-pixel. Explain how secure aggregation mitigates this attack and describe its operational boundary.",
+   "md": "Secure aggregation hides individual updates from the server by revealing only an aggregate under the protocol's stated participation and collusion assumptions. This blocks direct access to a participant's raw gradient, but it does not prove that aggregates or the released model reveal no information. Differential privacy separately bounds an individual's contribution; access control and lifecycle governance protect other privacy boundaries."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-13-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team wants to run deep learning inference inside an Intel SGX enclave with a 128 MiB Enclave Page Cache (EPC). A ResNet-50 model with FP32 weights occupies approximately 102.2 MB of memory before accounting for intermediate activation tensors and runtime buffers. What happens if the combined memory footprint of the model and activations exceeds the available resident EPC capacity on a configuration that supports protected paging during inference?",
+     "explanation": "The correct answer is A. The EPC holds resident protected pages; it is not the enclave's entire virtual address space. On a platform that supports protected paging, a larger working set can trigger page transfers and cryptographic processing. The cost depends on access patterns, page traffic, and platform capacity, not a universal 100x penalty. Paging neither quantizes weights automatically nor reroutes execution to federated learning.",
+     "hint": "Think about: analyze hardware memory constraints in Trusted Execution Environments for ML model deployment.",
+     "type": "single",
+     "options": [
+      "Protected pages can be paged to untrusted memory with cryptographic protection, adding workload-dependent overhead that must be measured against the serving deadline.",
+      "The SGX hardware automatically quantizes all FP32 weights to 2-bit integers to force the model into the EPC.",
+      "The CPU halts immediately and burns an internal fuse, requiring physical motherboard replacement.",
+      "The inference pipeline automatically falls back to unencrypted peer-to-peer federated learning across local nodes."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A production ML platform is replacing legacy PyTorch `.pth` checkpoint files with the `SafeTensors` format for its public model repository. What primary security vulnerability does this change eliminate?",
+     "explanation": "The correct answer is B. PyTorch's default `.pth` format uses Python `pickle`, which can execute arbitrary code during deserialization (`__reduce__` exploit), creating severe remote code execution risks when loading untrusted model checkpoints. `SafeTensors` stores only raw tensor buffers and header metadata, removing pickle-style executable object reconstruction from the format; it does not guarantee the loader implementation or downstream model is free of vulnerabilities. `SafeTensors` does not defend against API query extraction. It does not provide differential privacy guarantees. It is a file format and does not alter the hardware execution mechanism.",
+     "hint": "Think about: compare the security implications of model serialization formats in production ML pipelines.",
+     "type": "single",
+     "options": [
+      "It prevents black-box model extraction queries against the deployed HTTP API endpoint.",
+      "It eliminates arbitrary code execution during model deserialization by storing only tensor data buffers without executable Python object serialization.",
+      "It guarantees $(\\epsilon, \\delta)$ differential privacy for the training dataset encoded in the weights.",
+      "It reduces inference latency by replacing floating-point operations with optical matrix multiplication."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "To support an ownership claim for a proprietary neural network, developers may embed a model ____, such as a secret trigger-set response pattern, and test its effect on normal utility and its survival under model modification.",
+     "explanation": "The correct answer is watermark. A watermark can supply evidence of model provenance, but it does not automatically prove ownership or survive fine-tuning. Evaluate false attribution, normal-task utility, and resistance to removal under the claimed threat model.",
+     "hint": "Think about: explain how model watermarking supplies bounded evidence for an intellectual property claim.",
+     "type": "fill",
+     "answer": [
+      "The correct answer is watermark"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: When designing privacy-preserving cloud inference for sensitive patient records, compare the systems trade-offs of Fully Homomorphic Encryption (FHE) versus Confidential Computing with hardware TEEs (such as NVIDIA H100 Confidential Computing) across latency overhead and trust assumptions.",
+   "md": "FHE computes on ciphertext under cryptographic security and key-custody assumptions; it does not establish correct execution or protect every authorized output. Its latency and memory overhead depend on the encrypted circuit, model, parameters, and implementation. TEEs instead execute protected plaintext and rely on hardware, firmware, trusted code, and attestation. Their overhead also requires measurement. Compare both against the same workload and latency target while stating their different trust boundaries."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze hardware memory constraints in Trusted Execution Environments for ML model deployment.",
+    "You can now evaluate why federated learning alone is insufficient for privacy and justify the necessity of secure aggregation.",
+    "You can now compare the security implications of model serialization formats in production ML pipelines.",
+    "You can now compare the computational latency and trust assumptions of Fully Homomorphic Encryption (FHE) versus Confidential Computing TEEs."
+   ]
+  }
+ ]
+}

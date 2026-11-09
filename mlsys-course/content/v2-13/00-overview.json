@@ -1,0 +1,289 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v2-13",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Security & Privacy** (Vol II). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Security & Privacy, Purpose",
+   "md": "Many useful machine learning systems depend on personal data, institutional knowledge, or behavioral patterns, creating tension between utility and protection. Models can encode sensitive information and later reveal it through their outputs, extending risk beyond transient data processing. An authorized request can expose a private training example, while accepted training data can be manipulated to alter future behavior. In both cases, the software may execute as designed while the service violates its intended boundaries."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Expanded Attack Surface",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Security and Privacy Foundations",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Learning from Security Breaches",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Systematic Threat Analysis and Risk Asse",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Model-Specific Attack Vectors",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Fleet-Internal Trust Boundaries",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Hardware-Level Security Vulnerabilities",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**ML threat model**",
+     "Attacks on a learned system arrive through interfaces the fleet exposes on purpose, so a threat model writes down asset, trust boundary, adversary capability and goal, and control, and keeps model visibility separate from write capability; the serving interface adds prompt injection, which crosses the boundary between instructions and data, and denial of wallet, which spends the cost budget while the endpoint stays available."
+    ],
+    [
+     "**Extraction budgets**",
+     "Exact artifact theft and approximate behavioral theft need different controls, and because a daily rate limit slows collection without capping its lifetime total, query-based extraction is bounded by cumulative per-principal budgets and the output contract."
+    ],
+    [
+     "**Poisoning as a bilevel attack**",
+     "A poisoner needs write access to something the model learns from and solves a bilevel problem over the defender's training, so targeted, backdoor, and subpopulation attacks can leave aggregate validation accuracy unchanged, and clean-label poisons that keep every label correct pass any label audit, as concept poisoning of a text-to-image model (Nightshade) shows at a dose of a few hundred images."
+    ],
+    [
+     "**Breakdown point of the gradient mean**",
+     "In synchronous data parallelism one compromised worker contributes to every replica's update and the mean's breakdown point is zero, so integrity needs robust aggregation rules whose gather-based traffic exceeds a ring AllReduce's."
+    ],
+    [
+     "**Security controls priced on a C3 axis**",
+     "Every isolation and confidentiality control spends capacity in a specific Fleet Law term, so encrypting bandwidth-bound collectives slows T_comm and partitioning, scrubbing, and tenant-scoped caches strand capacity or forfeit hits."
+    ],
+    [
+     "**Provenance bounds trust**",
+     "A model can be trusted only as far as a verifiable record of its data, code, weights, and hardware extends, so signatures establish origin but not benign content, and the release record must bind every input the artifact depends on."
+    ],
+    [
+     "**Leakage through authorized outputs**",
+     "Persistent learning means a correctly executing model can leak its training data through authorized queries (membership in one bit, properties by inversion, verbatim records by memorization), so storage access control cannot protect it, an empirical membership-inference audit is only a lower bound on that leakage, and differential privacy supplies the upper bound."
+    ],
+    [
+     "**Differential privacy**",
+     "(epsilon, delta)-differential privacy bounds how much one protected unit can change a release, named by an adjacency relation, so it holds against any auxiliary information, and noise scaled to sensitivity over epsilon costs small groups the most."
+    ],
+    [
+     "**Hardware trust questions**",
+     "Hardware security is four narrow deployment decisions (processor isolation, physical access and fault injection, side-channel observability, provenance and lifecycle trust), each answered by one primitive, and fleet procurement correlates their failure."
+    ],
+    [
+     "**Privacy techniques by excluded observer**",
+     "De-identification and k-anonymity constrain only the shape of a released table, and federated learning, secure aggregation, homomorphic encryption, secure computation, and synthetic data each exclude a different observer, and none of them bounds what the released model or aggregate reveals."
+    ],
+    [
+     "**Privacy budget account**",
+     "Privacy loss accumulates across every data-dependent release about the same population, so DP-SGD's many sampled steps need a tested accountant whose recorded inputs (sampling, noise, steps, clipping, adjacency) form the release record, and the cumulative budget becomes a release gate."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$\\text{Dec}(sk, \\text{Eval}(pk, f, \\text{Enc}(pk, x))) = f(x)$$\n\n$$\\max_{\\mathcal{S}_{\\text{poison}}} \\ \\mathcal{L}(f_{\\mathcal{S} \\cup \\mathcal{S}_{\\text{poison}}}, \\mathcal{S}_{\\text{test}})$$\n\n$$\\min_{\\mathcal{S}_{\\text{poison}}} \\ \\mathcal{L}(f_{\\mathcal{S} \\cup \\mathcal{S}_{\\text{poison}}}, x_t, y_t)$$\n\n$$\\mathcal{D}_{\\text{KL}}(p_{\\text{user}} \\lVert p_{\\text{expected}}) > \\tau_{\\text{alert}}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v2-13-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "ML threat model",
+     "back": "Attacks on a learned system arrive through interfaces the fleet exposes on purpose, so a threat model writes down asset, trust boundary, adversary capability and goal, and control, and keeps model visibility separate from write capability; the serving interface adds prompt injection, which crosses the boundary between instructions and data, and denial of wallet, which spends the cost budget while the endpoint stays available."
+    },
+    {
+     "front": "Extraction budgets",
+     "back": "Exact artifact theft and approximate behavioral theft need different controls, and because a daily rate limit slows collection without capping its lifetime total, query-based extraction is bounded by cumulative per-principal budgets and the output contract."
+    },
+    {
+     "front": "Poisoning as a bilevel attack",
+     "back": "A poisoner needs write access to something the model learns from and solves a bilevel problem over the defender's training, so targeted, backdoor, and subpopulation attacks can leave aggregate validation accuracy unchanged, and clean-label poisons that keep every label correct pass any label audit, as concept poisoning of a text-to-image model (Nightshade) shows at a dose of a few hundred images."
+    },
+    {
+     "front": "Breakdown point of the gradient mean",
+     "back": "In synchronous data parallelism one compromised worker contributes to every replica's update and the mean's breakdown point is zero, so integrity needs robust aggregation rules whose gather-based traffic exceeds a ring AllReduce's."
+    },
+    {
+     "front": "Security controls priced on a C3 axis",
+     "back": "Every isolation and confidentiality control spends capacity in a specific Fleet Law term, so encrypting bandwidth-bound collectives slows T_comm and partitioning, scrubbing, and tenant-scoped caches strand capacity or forfeit hits."
+    },
+    {
+     "front": "Provenance bounds trust",
+     "back": "A model can be trusted only as far as a verifiable record of its data, code, weights, and hardware extends, so signatures establish origin but not benign content, and the release record must bind every input the artifact depends on."
+    },
+    {
+     "front": "Leakage through authorized outputs",
+     "back": "Persistent learning means a correctly executing model can leak its training data through authorized queries (membership in one bit, properties by inversion, verbatim records by memorization), so storage access control cannot protect it, an empirical membership-inference audit is only a lower bound on that leakage, and differential privacy supplies the upper bound."
+    },
+    {
+     "front": "Differential privacy",
+     "back": "(epsilon, delta)-differential privacy bounds how much one protected unit can change a release, named by an adjacency relation, so it holds against any auxiliary information, and noise scaled to sensitivity over epsilon costs small groups the most."
+    },
+    {
+     "front": "Hardware trust questions",
+     "back": "Hardware security is four narrow deployment decisions (processor isolation, physical access and fault injection, side-channel observability, provenance and lifecycle trust), each answered by one primitive, and fleet procurement correlates their failure."
+    },
+    {
+     "front": "Privacy techniques by excluded observer",
+     "back": "De-identification and k-anonymity constrain only the shape of a released table, and federated learning, secure aggregation, homomorphic encryption, secure computation, and synthetic data each exclude a different observer, and none of them bounds what the released model or aggregate reveals."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v2-13-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **ML threat model**?",
+     "options": [
+      "Hardware security is four narrow deployment decisions (processor isolation, physical access and fault injection, side-channel observability, provenance and lifecycle trust), each answered by one primitive, and fleet procurement correlates their failure.",
+      "In synchronous data parallelism one compromised worker contributes to every replica's update and the mean's breakdown point is zero, so integrity needs robust aggregation rules whose gather-based traffic exceeds a ring AllReduce's.",
+      "Attacks on a learned system arrive through interfaces the fleet exposes on purpose, so a threat model writes down asset, trust boundary, adversary capability and goal, and control, and keeps model visibility separate from write capability; the serving interface adds prompt injection, which crosses the boundary between instructions and data, and denial of wallet, which spends the cost budget while the endpoint stays available.",
+      "(epsilon, delta)-differential privacy bounds how much one protected unit can change a release, named by an adjacency relation, so it holds against any auxiliary information, and noise scaled to sensitivity over epsilon costs small groups the most."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is ML threat model itself, not a neighbouring idea.",
+     "explanation": "**ML threat model:** Attacks on a learned system arrive through interfaces the fleet exposes on purpose, so a threat model writes down asset, trust boundary, adversary capability and goal, and control, and keeps model visibility separate from write capability; the serving interface adds prompt injection, which crosses the boundary between instructions and data, and denial of wallet, which spends the cost budget while the endpoint stays available."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Extraction budgets**?",
+     "options": [
+      "Privacy loss accumulates across every data-dependent release about the same population, so DP-SGD's many sampled steps need a tested accountant whose recorded inputs (sampling, noise, steps, clipping, adjacency) form the release record, and the cumulative budget becomes a release gate.",
+      "Hardware security is four narrow deployment decisions (processor isolation, physical access and fault injection, side-channel observability, provenance and lifecycle trust), each answered by one primitive, and fleet procurement correlates their failure.",
+      "Persistent learning means a correctly executing model can leak its training data through authorized queries (membership in one bit, properties by inversion, verbatim records by memorization), so storage access control cannot protect it, an empirical membership-inference audit is only a lower bound on that leakage, and differential privacy supplies the upper bound.",
+      "Exact artifact theft and approximate behavioral theft need different controls, and because a daily rate limit slows collection without capping its lifetime total, query-based extraction is bounded by cumulative per-principal budgets and the output contract."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Extraction budgets itself, not a neighbouring idea.",
+     "explanation": "**Extraction budgets:** Exact artifact theft and approximate behavioral theft need different controls, and because a daily rate limit slows collection without capping its lifetime total, query-based extraction is bounded by cumulative per-principal budgets and the output contract."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Poisoning as a bilevel attack**?",
+     "options": [
+      "De-identification and k-anonymity constrain only the shape of a released table, and federated learning, secure aggregation, homomorphic encryption, secure computation, and synthetic data each exclude a different observer, and none of them bounds what the released model or aggregate reveals.",
+      "A poisoner needs write access to something the model learns from and solves a bilevel problem over the defender's training, so targeted, backdoor, and subpopulation attacks can leave aggregate validation accuracy unchanged, and clean-label poisons that keep every label correct pass any label audit, as concept poisoning of a text-to-image model (Nightshade) shows at a dose of a few hundred images.",
+      "In synchronous data parallelism one compromised worker contributes to every replica's update and the mean's breakdown point is zero, so integrity needs robust aggregation rules whose gather-based traffic exceeds a ring AllReduce's.",
+      "A model can be trusted only as far as a verifiable record of its data, code, weights, and hardware extends, so signatures establish origin but not benign content, and the release record must bind every input the artifact depends on."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Poisoning as a bilevel attack itself, not a neighbouring idea.",
+     "explanation": "**Poisoning as a bilevel attack:** A poisoner needs write access to something the model learns from and solves a bilevel problem over the defender's training, so targeted, backdoor, and subpopulation attacks can leave aggregate validation accuracy unchanged, and clean-label poisons that keep every label correct pass any label audit, as concept poisoning of a text-to-image model (Nightshade) shows at a dose of a few hundred images."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Breakdown point of the gradient mean**?",
+     "options": [
+      "A poisoner needs write access to something the model learns from and solves a bilevel problem over the defender's training, so targeted, backdoor, and subpopulation attacks can leave aggregate validation accuracy unchanged, and clean-label poisons that keep every label correct pass any label audit, as concept poisoning of a text-to-image model (Nightshade) shows at a dose of a few hundred images.",
+      "De-identification and k-anonymity constrain only the shape of a released table, and federated learning, secure aggregation, homomorphic encryption, secure computation, and synthetic data each exclude a different observer, and none of them bounds what the released model or aggregate reveals.",
+      "Attacks on a learned system arrive through interfaces the fleet exposes on purpose, so a threat model writes down asset, trust boundary, adversary capability and goal, and control, and keeps model visibility separate from write capability; the serving interface adds prompt injection, which crosses the boundary between instructions and data, and denial of wallet, which spends the cost budget while the endpoint stays available.",
+      "In synchronous data parallelism one compromised worker contributes to every replica's update and the mean's breakdown point is zero, so integrity needs robust aggregation rules whose gather-based traffic exceeds a ring AllReduce's."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Breakdown point of the gradient mean itself, not a neighbouring idea.",
+     "explanation": "**Breakdown point of the gradient mean:** In synchronous data parallelism one compromised worker contributes to every replica's update and the mean's breakdown point is zero, so integrity needs robust aggregation rules whose gather-based traffic exceeds a ring AllReduce's."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Security controls priced on a C3 axis**?",
+     "options": [
+      "Attacks on a learned system arrive through interfaces the fleet exposes on purpose, so a threat model writes down asset, trust boundary, adversary capability and goal, and control, and keeps model visibility separate from write capability; the serving interface adds prompt injection, which crosses the boundary between instructions and data, and denial of wallet, which spends the cost budget while the endpoint stays available.",
+      "De-identification and k-anonymity constrain only the shape of a released table, and federated learning, secure aggregation, homomorphic encryption, secure computation, and synthetic data each exclude a different observer, and none of them bounds what the released model or aggregate reveals.",
+      "Exact artifact theft and approximate behavioral theft need different controls, and because a daily rate limit slows collection without capping its lifetime total, query-based extraction is bounded by cumulative per-principal budgets and the output contract.",
+      "Every isolation and confidentiality control spends capacity in a specific Fleet Law term, so encrypting bandwidth-bound collectives slows T_comm and partitioning, scrubbing, and tenant-scoped caches strand capacity or forfeit hits."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Security controls priced on a C3 axis itself, not a neighbouring idea.",
+     "explanation": "**Security controls priced on a C3 axis:** Every isolation and confidentiality control spends capacity in a specific Fleet Law term, so encrypting bandwidth-bound collectives slows T_comm and partitioning, scrubbing, and tenant-scoped caches strand capacity or forfeit hits."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "ML threat model: Attacks on a learned system arrive through interfaces the fleet exposes on purpose, so a threat model writes down asset, trust boundary, adversary capability and goal, and control, and keeps model visibility separate from write capability; the serving interface adds prompt injection, which crosses the boundary between instructions and data, and denial of wallet, which spends the cost budget while the endpoint stays available.",
+    "Extraction budgets: Exact artifact theft and approximate behavioral theft need different controls, and because a daily rate limit slows collection without capping its lifetime total, query-based extraction is bounded by cumulative per-principal budgets and the output contract.",
+    "Poisoning as a bilevel attack: A poisoner needs write access to something the model learns from and solves a bilevel problem over the defender's training, so targeted, backdoor, and subpopulation attacks can leave aggregate validation accuracy unchanged, and clean-label poisons that keep every label correct pass any label audit, as concept poisoning of a text-to-image model (Nightshade) shows at a dose of a few hundred images.",
+    "Breakdown point of the gradient mean: In synchronous data parallelism one compromised worker contributes to every replica's update and the mean's breakdown point is zero, so integrity needs robust aggregation rules whose gather-based traffic exceeds a ring AllReduce's."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "ML threat model",
+   "def": "Attacks on a learned system arrive through interfaces the fleet exposes on purpose, so a threat model writes down asset, trust boundary, adversary capability and goal, and control, and keeps model visibility separate from write capability; the serving interface adds prompt injection, which crosses the boundary between instructions and data, and denial of wallet, which spends the cost budget while the endpoint stays available."
+  },
+  {
+   "term": "Extraction budgets",
+   "def": "Exact artifact theft and approximate behavioral theft need different controls, and because a daily rate limit slows collection without capping its lifetime total, query-based extraction is bounded by cumulative per-principal budgets and the output contract."
+  },
+  {
+   "term": "Poisoning as a bilevel attack",
+   "def": "A poisoner needs write access to something the model learns from and solves a bilevel problem over the defender's training, so targeted, backdoor, and subpopulation attacks can leave aggregate validation accuracy unchanged, and clean-label poisons that keep every label correct pass any label audit, as concept poisoning of a text-to-image model (Nightshade) shows at a dose of a few hundred images."
+  },
+  {
+   "term": "Breakdown point of the gradient mean",
+   "def": "In synchronous data parallelism one compromised worker contributes to every replica's update and the mean's breakdown point is zero, so integrity needs robust aggregation rules whose gather-based traffic exceeds a ring AllReduce's."
+  },
+  {
+   "term": "Security controls priced on a C3 axis",
+   "def": "Every isolation and confidentiality control spends capacity in a specific Fleet Law term, so encrypting bandwidth-bound collectives slows T_comm and partitioning, scrubbing, and tenant-scoped caches strand capacity or forfeit hits."
+  },
+  {
+   "term": "Provenance bounds trust",
+   "def": "A model can be trusted only as far as a verifiable record of its data, code, weights, and hardware extends, so signatures establish origin but not benign content, and the release record must bind every input the artifact depends on."
+  },
+  {
+   "term": "Leakage through authorized outputs",
+   "def": "Persistent learning means a correctly executing model can leak its training data through authorized queries (membership in one bit, properties by inversion, verbatim records by memorization), so storage access control cannot protect it, an empirical membership-inference audit is only a lower bound on that leakage, and differential privacy supplies the upper bound."
+  },
+  {
+   "term": "Differential privacy",
+   "def": "(epsilon, delta)-differential privacy bounds how much one protected unit can change a release, named by an adjacency relation, so it holds against any auxiliary information, and noise scaled to sensitivity over epsilon costs small groups the most."
+  },
+  {
+   "term": "Hardware trust questions",
+   "def": "Hardware security is four narrow deployment decisions (processor isolation, physical access and fault injection, side-channel observability, provenance and lifecycle trust), each answered by one primitive, and fleet procurement correlates their failure."
+  },
+  {
+   "term": "Privacy techniques by excluded observer",
+   "def": "De-identification and k-anonymity constrain only the shape of a released table, and federated learning, secure aggregation, homomorphic encryption, secure computation, and synthetic data each exclude a different observer, and none of them bounds what the released model or aggregate reveals."
+  },
+  {
+   "term": "Privacy budget account",
+   "def": "Privacy loss accumulates across every data-dependent release about the same population, so DP-SGD's many sampled steps need a tested accountant whose recorded inputs (sampling, noise, steps, clipping, adjacency) form the release record, and the cumulative budget becomes a release gate."
+  }
+ ]
+}

@@ -1,0 +1,63 @@
+{
+ "title": "Quarantined Readers and Ingestion Isolation",
+ "summary": "Work through Quarantined Readers and Ingestion Isolation.",
+ "source": {
+  "chapter": "v3-09",
+  "sections": [
+   "Quarantined Readers and Ingestion Isolation",
+   "Context and permission separation",
+   "Extraction field semantics",
+   "Redirection through valid fields",
+   "Opaque handles for retained content",
+   "Extraction loss and overhead"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Quarantined Readers and Ingestion Isolation**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Agent Security, § Quarantined Readers and Ingestion Isolation",
+   "md": "When the repair task inspects a third-party README, the planner needs to know which test flags or version constraints the package documents, not the raw prose in which an attacker hid the fixture-exfiltration note. Allowing that raw prose into the planner's context window exposes the reasoning loop that holds the task's tool grants, even if an egress policy later blocks the resulting search request."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Context and permission separation\n- Extraction field semantics\n- Redirection through valid fields\n- Opaque handles for retained content\n- Extraction loss and overhead"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Quarantined readers matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A quarantined reader keeps raw untrusted text out of the planner and typed handles keep untrusted bytes out of context, but a schema-valid field is still an untrusted claim, not evidence."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-09-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Quarantined Readers and Ingestion Isolation** develops one of the chapter's claims. Which one?",
+     "options": [
+      "When an agent acts for a requester, effective permission is the intersection of requester rights, service principal, task grant, and issuer and receiver policy, with identities taken from the runtime's task record, never from prompt text.",
+      "Detection only lowers the rate at which payloads get through, whereas separation by construction bounds what any payload can reach, detected or not.",
+      "An agent that combines access to private data, exposure to untrusted content, and an external communication channel can be steered to exfiltrate, and removing any one leg breaks the attack path.",
+      "A quarantined reader keeps raw untrusted text out of the planner and typed handles keep untrusted bytes out of context, but a schema-valid field is still an untrusted claim, not evidence."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Quarantined readers**: A quarantined reader keeps raw untrusted text out of the planner and typed handles keep untrusted bytes out of context, but a schema-valid field is still an untrusted claim, not evidence."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Quarantined Readers and Ingestion Isolation."
+   ]
+  }
+ ]
+}

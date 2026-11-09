@@ -1,0 +1,299 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v3-08",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Agent Sandboxes** (Vol III). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Agent Sandboxes, Purpose",
+   "md": "When an agent runs a shell command or a test script, what that code can touch is set by the environment it runs in, not by the tool description or the prompt that produced it. A command that passes every schema check can still read a credentials file, open a connection to an unapproved host, fork until the machine stalls, or rewrite the tests that will judge it."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Reach of Admitted Code",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "The Agent Threat Model",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Limits of In-Process Restriction",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Capabilities and Credentials",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Choosing an Isolation Envelope",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "The Agent Workspace",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Egress Control",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Containment beneath the model**",
+     "Admitting a well-typed call does not bound what the code it starts can reach, so the limit must be enforced below the executing process by a mechanism the code cannot modify."
+    ],
+    [
+     "**In-process restriction fails**",
+     "Pruning an interpreter's globals is an interface filter, not an execution boundary, because reachable object references, shared native libraries, and inherited authority leave the supervisor's full power within reach."
+    ],
+    [
+     "**Capability grants**",
+     "A capability is an unforgeable reference that designates a resource and authorizes operations on it, and a grant admits an access only if the reference is authentic and the operation, object, condition, and expiry all match."
+    ],
+    [
+     "**Attenuation and revocation**",
+     "A derived grant may only narrow its parent, and chained-caveat tokens let any holder narrow offline but never widen, while attenuation never withdraws the parent grant it came from."
+    ],
+    [
+     "**Isolation envelopes**",
+     "Shared-kernel containers, user-space kernels, microVMs, and restricted bytecode differ first in where a system call lands, which sets the trusted components and the per-call tax each envelope pays."
+    ],
+    [
+     "**Copy-on-write workspace**",
+     "A task workspace separates immutable baseline, private modifications, scratch, and exportable artifacts, and copy-on-write makes provisioning cost track what the agent writes rather than what it can see."
+    ],
+    [
+     "**Egress control**",
+     "Outbound reach is enforced on the host data path with a packet filter and an operation-aware mediator that cover each other's blind spots, never by guest proxy settings."
+    ],
+    [
+     "**Reset contract**",
+     "A used environment may serve a new tenant only after a reset that fences authority, quiesces owned work, exports permitted outputs, and clears four state domains in order."
+    ],
+    [
+     "**Credential brokering**",
+     "A host-side broker holds the credential outside the guest and performs only the authorized operation on its behalf, which removes the most valuable target from an injected environment."
+    ],
+    [
+     "**Sandbox pool sizing**",
+     "Mean active leases follow N_active = lambda * T_hold over the whole trajectory, so pool cost is driven by memory residency over the horizon, and the standby reserve is set by the replenishment window."
+    ],
+    [
+     "**Least privilege**",
+     "Each component receives only the authority its current task needs, which capabilities make enforceable rather than aspirational."
+    ],
+    [
+     "**Ambient authority**",
+     "Authority that comes from where a program runs rather than from the request it serves is what an injected or buggy process inherits, and capabilities replace it with explicit grants."
+    ],
+    [
+     "**Blast radius**",
+     "The set of state and principals an action can damage if it goes wrong bounds the worst-case cost of containment failure and sets how strong a boundary must be."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v3-08-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Containment beneath the model",
+     "back": "Admitting a well-typed call does not bound what the code it starts can reach, so the limit must be enforced below the executing process by a mechanism the code cannot modify."
+    },
+    {
+     "front": "In-process restriction fails",
+     "back": "Pruning an interpreter's globals is an interface filter, not an execution boundary, because reachable object references, shared native libraries, and inherited authority leave the supervisor's full power within reach."
+    },
+    {
+     "front": "Capability grants",
+     "back": "A capability is an unforgeable reference that designates a resource and authorizes operations on it, and a grant admits an access only if the reference is authentic and the operation, object, condition, and expiry all match."
+    },
+    {
+     "front": "Attenuation and revocation",
+     "back": "A derived grant may only narrow its parent, and chained-caveat tokens let any holder narrow offline but never widen, while attenuation never withdraws the parent grant it came from."
+    },
+    {
+     "front": "Isolation envelopes",
+     "back": "Shared-kernel containers, user-space kernels, microVMs, and restricted bytecode differ first in where a system call lands, which sets the trusted components and the per-call tax each envelope pays."
+    },
+    {
+     "front": "Copy-on-write workspace",
+     "back": "A task workspace separates immutable baseline, private modifications, scratch, and exportable artifacts, and copy-on-write makes provisioning cost track what the agent writes rather than what it can see."
+    },
+    {
+     "front": "Egress control",
+     "back": "Outbound reach is enforced on the host data path with a packet filter and an operation-aware mediator that cover each other's blind spots, never by guest proxy settings."
+    },
+    {
+     "front": "Reset contract",
+     "back": "A used environment may serve a new tenant only after a reset that fences authority, quiesces owned work, exports permitted outputs, and clears four state domains in order."
+    },
+    {
+     "front": "Credential brokering",
+     "back": "A host-side broker holds the credential outside the guest and performs only the authorized operation on its behalf, which removes the most valuable target from an injected environment."
+    },
+    {
+     "front": "Sandbox pool sizing",
+     "back": "Mean active leases follow N_active = lambda * T_hold over the whole trajectory, so pool cost is driven by memory residency over the horizon, and the standby reserve is set by the replenishment window."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v3-08-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Containment beneath the model**?",
+     "options": [
+      "A capability is an unforgeable reference that designates a resource and authorizes operations on it, and a grant admits an access only if the reference is authentic and the operation, object, condition, and expiry all match.",
+      "Admitting a well-typed call does not bound what the code it starts can reach, so the limit must be enforced below the executing process by a mechanism the code cannot modify.",
+      "A host-side broker holds the credential outside the guest and performs only the authorized operation on its behalf, which removes the most valuable target from an injected environment.",
+      "A used environment may serve a new tenant only after a reset that fences authority, quiesces owned work, exports permitted outputs, and clears four state domains in order."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Containment beneath the model itself, not a neighbouring idea.",
+     "explanation": "**Containment beneath the model:** Admitting a well-typed call does not bound what the code it starts can reach, so the limit must be enforced below the executing process by a mechanism the code cannot modify."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **In-process restriction fails**?",
+     "options": [
+      "Pruning an interpreter's globals is an interface filter, not an execution boundary, because reachable object references, shared native libraries, and inherited authority leave the supervisor's full power within reach.",
+      "A capability is an unforgeable reference that designates a resource and authorizes operations on it, and a grant admits an access only if the reference is authentic and the operation, object, condition, and expiry all match.",
+      "A host-side broker holds the credential outside the guest and performs only the authorized operation on its behalf, which removes the most valuable target from an injected environment.",
+      "Mean active leases follow N_active = lambda * T_hold over the whole trajectory, so pool cost is driven by memory residency over the horizon, and the standby reserve is set by the replenishment window."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is In-process restriction fails itself, not a neighbouring idea.",
+     "explanation": "**In-process restriction fails:** Pruning an interpreter's globals is an interface filter, not an execution boundary, because reachable object references, shared native libraries, and inherited authority leave the supervisor's full power within reach."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Capability grants**?",
+     "options": [
+      "A capability is an unforgeable reference that designates a resource and authorizes operations on it, and a grant admits an access only if the reference is authentic and the operation, object, condition, and expiry all match.",
+      "A derived grant may only narrow its parent, and chained-caveat tokens let any holder narrow offline but never widen, while attenuation never withdraws the parent grant it came from.",
+      "Outbound reach is enforced on the host data path with a packet filter and an operation-aware mediator that cover each other's blind spots, never by guest proxy settings.",
+      "A host-side broker holds the credential outside the guest and performs only the authorized operation on its behalf, which removes the most valuable target from an injected environment."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Capability grants itself, not a neighbouring idea.",
+     "explanation": "**Capability grants:** A capability is an unforgeable reference that designates a resource and authorizes operations on it, and a grant admits an access only if the reference is authentic and the operation, object, condition, and expiry all match."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Attenuation and revocation**?",
+     "options": [
+      "A derived grant may only narrow its parent, and chained-caveat tokens let any holder narrow offline but never widen, while attenuation never withdraws the parent grant it came from.",
+      "Admitting a well-typed call does not bound what the code it starts can reach, so the limit must be enforced below the executing process by a mechanism the code cannot modify.",
+      "Authority that comes from where a program runs rather than from the request it serves is what an injected or buggy process inherits, and capabilities replace it with explicit grants.",
+      "A task workspace separates immutable baseline, private modifications, scratch, and exportable artifacts, and copy-on-write makes provisioning cost track what the agent writes rather than what it can see."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Attenuation and revocation itself, not a neighbouring idea.",
+     "explanation": "**Attenuation and revocation:** A derived grant may only narrow its parent, and chained-caveat tokens let any holder narrow offline but never widen, while attenuation never withdraws the parent grant it came from."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Isolation envelopes**?",
+     "options": [
+      "A used environment may serve a new tenant only after a reset that fences authority, quiesces owned work, exports permitted outputs, and clears four state domains in order.",
+      "Authority that comes from where a program runs rather than from the request it serves is what an injected or buggy process inherits, and capabilities replace it with explicit grants.",
+      "A host-side broker holds the credential outside the guest and performs only the authorized operation on its behalf, which removes the most valuable target from an injected environment.",
+      "Shared-kernel containers, user-space kernels, microVMs, and restricted bytecode differ first in where a system call lands, which sets the trusted components and the per-call tax each envelope pays."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Isolation envelopes itself, not a neighbouring idea.",
+     "explanation": "**Isolation envelopes:** Shared-kernel containers, user-space kernels, microVMs, and restricted bytecode differ first in where a system call lands, which sets the trusted components and the per-call tax each envelope pays."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Containment beneath the model: Admitting a well-typed call does not bound what the code it starts can reach, so the limit must be enforced below the executing process by a mechanism the code cannot modify.",
+    "In-process restriction fails: Pruning an interpreter's globals is an interface filter, not an execution boundary, because reachable object references, shared native libraries, and inherited authority leave the supervisor's full power within reach.",
+    "Capability grants: A capability is an unforgeable reference that designates a resource and authorizes operations on it, and a grant admits an access only if the reference is authentic and the operation, object, condition, and expiry all match.",
+    "Attenuation and revocation: A derived grant may only narrow its parent, and chained-caveat tokens let any holder narrow offline but never widen, while attenuation never withdraws the parent grant it came from."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Containment beneath the model",
+   "def": "Admitting a well-typed call does not bound what the code it starts can reach, so the limit must be enforced below the executing process by a mechanism the code cannot modify."
+  },
+  {
+   "term": "In-process restriction fails",
+   "def": "Pruning an interpreter's globals is an interface filter, not an execution boundary, because reachable object references, shared native libraries, and inherited authority leave the supervisor's full power within reach."
+  },
+  {
+   "term": "Capability grants",
+   "def": "A capability is an unforgeable reference that designates a resource and authorizes operations on it, and a grant admits an access only if the reference is authentic and the operation, object, condition, and expiry all match."
+  },
+  {
+   "term": "Attenuation and revocation",
+   "def": "A derived grant may only narrow its parent, and chained-caveat tokens let any holder narrow offline but never widen, while attenuation never withdraws the parent grant it came from."
+  },
+  {
+   "term": "Isolation envelopes",
+   "def": "Shared-kernel containers, user-space kernels, microVMs, and restricted bytecode differ first in where a system call lands, which sets the trusted components and the per-call tax each envelope pays."
+  },
+  {
+   "term": "Copy-on-write workspace",
+   "def": "A task workspace separates immutable baseline, private modifications, scratch, and exportable artifacts, and copy-on-write makes provisioning cost track what the agent writes rather than what it can see."
+  },
+  {
+   "term": "Egress control",
+   "def": "Outbound reach is enforced on the host data path with a packet filter and an operation-aware mediator that cover each other's blind spots, never by guest proxy settings."
+  },
+  {
+   "term": "Reset contract",
+   "def": "A used environment may serve a new tenant only after a reset that fences authority, quiesces owned work, exports permitted outputs, and clears four state domains in order."
+  },
+  {
+   "term": "Credential brokering",
+   "def": "A host-side broker holds the credential outside the guest and performs only the authorized operation on its behalf, which removes the most valuable target from an injected environment."
+  },
+  {
+   "term": "Sandbox pool sizing",
+   "def": "Mean active leases follow N_active = lambda * T_hold over the whole trajectory, so pool cost is driven by memory residency over the horizon, and the standby reserve is set by the replenishment window."
+  },
+  {
+   "term": "Least privilege",
+   "def": "Each component receives only the authority its current task needs, which capabilities make enforceable rather than aspirational."
+  },
+  {
+   "term": "Ambient authority",
+   "def": "Authority that comes from where a program runs rather than from the request it serves is what an injected or buggy process inherits, and capabilities replace it with explicit grants."
+  },
+  {
+   "term": "Blast radius",
+   "def": "The set of state and principals an action can damage if it goes wrong bounds the worst-case cost of containment failure and sets how strong a boundary must be."
+  }
+ ]
+}

@@ -1,0 +1,323 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v4-06",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Policy Training** (Vol IV). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Policy Training, Purpose",
+   "md": "A learned policy acquires its behavior from the experience its training supplies, and its weights keep no record of which experience that was. Demonstrations can omit the recovery from a displaced fixture, a simulator can reward a fast approach that a real contact surface cannot tolerate, and a model pretrained on other robots can behave plausibly in conditions no one has tested on this machine."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Dual Failure Modes of Policy Training",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Policy Training Regimes",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Reinforcement Learning and Environment I",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "The Simulator as a System Component",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Physical Channels of the Sim-to-Real Gap",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Real-Robot Fine-Tuning and Residual Cont",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Training Failure Modes and Permission-Pa",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Training-regime hidden dependency**",
+     "A policy's weights keep what its experience rewarded but not which experience it was, so each regime (demonstrations, logged rewards, simulation, trial on the machine, a pretrained base) leaves a characteristic dependency no training score shows."
+    ],
+    [
+     "**Mode averaging**",
+     "The squared-error optimum of a point-regression policy is the conditional mean of the action, so two valid evasions average to an action no demonstrator chose, and more data or capacity cannot fix it."
+    ],
+    [
+     "**Decoder renewal slack**",
+     "A decoder chosen for multimodality must fit the proposal deadline, since latency is encoding plus every dependent decoder evaluation, so the head and evaluation count that training picks decide schedulability."
+    ],
+    [
+     "**Offline RL support limit**",
+     "Fitting values over a fixed log and acting greedily inflates values at actions the log never executed, and conservative objectives reduce that error but cannot create support the log lacks."
+    ],
+    [
+     "**Physical RL exploration cost**",
+     "A trial campaign's wall clock is trials times rollout plus reset over rigs (about 93 days of execution for 10^6 latch trials before resets), and every trial spends heat and drivetrain life."
+    ],
+    [
+     "**Reality gap as a vector**",
+     "Sim-to-real mismatch decomposes into dynamics, sensing, appearance, and timing channels, each sized by paired probing, and randomization covers modeled parameters but never omitted mechanisms."
+    ],
+    [
+     "**Update is a new checkpoint**",
+     "On-machine fine-tuning absorbs a measurable local mismatch but produces new weights whose earlier evaluations no longer apply, and a gated residual bounds where adaptation may act."
+    ],
+    [
+     "**Policy manifest**",
+     "The policy manifest records how a checkpoint was produced (regime sequence, base digest, inference contract, data support, omission log, wear log) and computes the declared ODD as support minus omissions."
+    ],
+    [
+     "**Reward as specification**",
+     "Posing the task as an MDP makes the engineer-written reward and discount the whole objective, so the optimizer exploits any omitted or mismeasured term."
+    ],
+    [
+     "**Pretrained borrowed competence**",
+     "Post-training a pretrained generalist can cut task-data needs, but no pretraining episode joins this machine's scenario table, so it supplies competence, not evidence."
+    ],
+    [
+     "**Simulator contact exploit**",
+     "A simulator's contact model decides what the optimizer learns, and a soft penalty spring lets a policy pass through contacts the real plate would resist."
+    ],
+    [
+     "**Privileged information limits**",
+     "Asymmetric critics and teacher-student distillation speed training under partial observability, but the student cannot recover a state its sensors never observe."
+    ],
+    [
+     "**Paired probing**",
+     "Identical open-loop excitations on the robot and its simulated twin, scored against error budgets per channel, size each component of the reality gap."
+    ],
+    [
+     "**Velocity versus torque drift**",
+     "A velocity-commanded policy has a disturbance-rejecting loop beneath it and its error integrates once, while a torque-commanded policy's error integrates twice."
+    ],
+    [
+     "**Chunk imitation objective**",
+     "Chunked imitation fits a horizon of actions with a Huber penalty on normalized residuals, which buys outlier robustness, not smoothness or feasibility."
+    ],
+    [
+     "**RL value functions**",
+     "State value, action value, advantage, and the Bellman relation express value as negated cost-to-go, with LQR as the closed-form linear-quadratic case."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v4-06-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Training-regime hidden dependency",
+     "back": "A policy's weights keep what its experience rewarded but not which experience it was, so each regime (demonstrations, logged rewards, simulation, trial on the machine, a pretrained base) leaves a characteristic dependency no training score shows."
+    },
+    {
+     "front": "Mode averaging",
+     "back": "The squared-error optimum of a point-regression policy is the conditional mean of the action, so two valid evasions average to an action no demonstrator chose, and more data or capacity cannot fix it."
+    },
+    {
+     "front": "Decoder renewal slack",
+     "back": "A decoder chosen for multimodality must fit the proposal deadline, since latency is encoding plus every dependent decoder evaluation, so the head and evaluation count that training picks decide schedulability."
+    },
+    {
+     "front": "Offline RL support limit",
+     "back": "Fitting values over a fixed log and acting greedily inflates values at actions the log never executed, and conservative objectives reduce that error but cannot create support the log lacks."
+    },
+    {
+     "front": "Physical RL exploration cost",
+     "back": "A trial campaign's wall clock is trials times rollout plus reset over rigs (about 93 days of execution for 10^6 latch trials before resets), and every trial spends heat and drivetrain life."
+    },
+    {
+     "front": "Reality gap as a vector",
+     "back": "Sim-to-real mismatch decomposes into dynamics, sensing, appearance, and timing channels, each sized by paired probing, and randomization covers modeled parameters but never omitted mechanisms."
+    },
+    {
+     "front": "Update is a new checkpoint",
+     "back": "On-machine fine-tuning absorbs a measurable local mismatch but produces new weights whose earlier evaluations no longer apply, and a gated residual bounds where adaptation may act."
+    },
+    {
+     "front": "Policy manifest",
+     "back": "The policy manifest records how a checkpoint was produced (regime sequence, base digest, inference contract, data support, omission log, wear log) and computes the declared ODD as support minus omissions."
+    },
+    {
+     "front": "Reward as specification",
+     "back": "Posing the task as an MDP makes the engineer-written reward and discount the whole objective, so the optimizer exploits any omitted or mismeasured term."
+    },
+    {
+     "front": "Pretrained borrowed competence",
+     "back": "Post-training a pretrained generalist can cut task-data needs, but no pretraining episode joins this machine's scenario table, so it supplies competence, not evidence."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v4-06-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Training-regime hidden dependency**?",
+     "options": [
+      "A policy's weights keep what its experience rewarded but not which experience it was, so each regime (demonstrations, logged rewards, simulation, trial on the machine, a pretrained base) leaves a characteristic dependency no training score shows.",
+      "Chunked imitation fits a horizon of actions with a Huber penalty on normalized residuals, which buys outlier robustness, not smoothness or feasibility.",
+      "State value, action value, advantage, and the Bellman relation express value as negated cost-to-go, with LQR as the closed-form linear-quadratic case.",
+      "Identical open-loop excitations on the robot and its simulated twin, scored against error budgets per channel, size each component of the reality gap."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Training-regime hidden dependency itself, not a neighbouring idea.",
+     "explanation": "**Training-regime hidden dependency:** A policy's weights keep what its experience rewarded but not which experience it was, so each regime (demonstrations, logged rewards, simulation, trial on the machine, a pretrained base) leaves a characteristic dependency no training score shows."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Mode averaging**?",
+     "options": [
+      "On-machine fine-tuning absorbs a measurable local mismatch but produces new weights whose earlier evaluations no longer apply, and a gated residual bounds where adaptation may act.",
+      "State value, action value, advantage, and the Bellman relation express value as negated cost-to-go, with LQR as the closed-form linear-quadratic case.",
+      "The squared-error optimum of a point-regression policy is the conditional mean of the action, so two valid evasions average to an action no demonstrator chose, and more data or capacity cannot fix it.",
+      "The policy manifest records how a checkpoint was produced (regime sequence, base digest, inference contract, data support, omission log, wear log) and computes the declared ODD as support minus omissions."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Mode averaging itself, not a neighbouring idea.",
+     "explanation": "**Mode averaging:** The squared-error optimum of a point-regression policy is the conditional mean of the action, so two valid evasions average to an action no demonstrator chose, and more data or capacity cannot fix it."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Decoder renewal slack**?",
+     "options": [
+      "The policy manifest records how a checkpoint was produced (regime sequence, base digest, inference contract, data support, omission log, wear log) and computes the declared ODD as support minus omissions.",
+      "Posing the task as an MDP makes the engineer-written reward and discount the whole objective, so the optimizer exploits any omitted or mismeasured term.",
+      "A decoder chosen for multimodality must fit the proposal deadline, since latency is encoding plus every dependent decoder evaluation, so the head and evaluation count that training picks decide schedulability.",
+      "A simulator's contact model decides what the optimizer learns, and a soft penalty spring lets a policy pass through contacts the real plate would resist."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Decoder renewal slack itself, not a neighbouring idea.",
+     "explanation": "**Decoder renewal slack:** A decoder chosen for multimodality must fit the proposal deadline, since latency is encoding plus every dependent decoder evaluation, so the head and evaluation count that training picks decide schedulability."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Offline RL support limit**?",
+     "options": [
+      "Fitting values over a fixed log and acting greedily inflates values at actions the log never executed, and conservative objectives reduce that error but cannot create support the log lacks.",
+      "Post-training a pretrained generalist can cut task-data needs, but no pretraining episode joins this machine's scenario table, so it supplies competence, not evidence.",
+      "Posing the task as an MDP makes the engineer-written reward and discount the whole objective, so the optimizer exploits any omitted or mismeasured term.",
+      "A trial campaign's wall clock is trials times rollout plus reset over rigs (about 93 days of execution for 10^6 latch trials before resets), and every trial spends heat and drivetrain life."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Offline RL support limit itself, not a neighbouring idea.",
+     "explanation": "**Offline RL support limit:** Fitting values over a fixed log and acting greedily inflates values at actions the log never executed, and conservative objectives reduce that error but cannot create support the log lacks."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Physical RL exploration cost**?",
+     "options": [
+      "On-machine fine-tuning absorbs a measurable local mismatch but produces new weights whose earlier evaluations no longer apply, and a gated residual bounds where adaptation may act.",
+      "Sim-to-real mismatch decomposes into dynamics, sensing, appearance, and timing channels, each sized by paired probing, and randomization covers modeled parameters but never omitted mechanisms.",
+      "A decoder chosen for multimodality must fit the proposal deadline, since latency is encoding plus every dependent decoder evaluation, so the head and evaluation count that training picks decide schedulability.",
+      "A trial campaign's wall clock is trials times rollout plus reset over rigs (about 93 days of execution for 10^6 latch trials before resets), and every trial spends heat and drivetrain life."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Physical RL exploration cost itself, not a neighbouring idea.",
+     "explanation": "**Physical RL exploration cost:** A trial campaign's wall clock is trials times rollout plus reset over rigs (about 93 days of execution for 10^6 latch trials before resets), and every trial spends heat and drivetrain life."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Training-regime hidden dependency: A policy's weights keep what its experience rewarded but not which experience it was, so each regime (demonstrations, logged rewards, simulation, trial on the machine, a pretrained base) leaves a characteristic dependency no training score shows.",
+    "Mode averaging: The squared-error optimum of a point-regression policy is the conditional mean of the action, so two valid evasions average to an action no demonstrator chose, and more data or capacity cannot fix it.",
+    "Decoder renewal slack: A decoder chosen for multimodality must fit the proposal deadline, since latency is encoding plus every dependent decoder evaluation, so the head and evaluation count that training picks decide schedulability.",
+    "Offline RL support limit: Fitting values over a fixed log and acting greedily inflates values at actions the log never executed, and conservative objectives reduce that error but cannot create support the log lacks."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Training-regime hidden dependency",
+   "def": "A policy's weights keep what its experience rewarded but not which experience it was, so each regime (demonstrations, logged rewards, simulation, trial on the machine, a pretrained base) leaves a characteristic dependency no training score shows."
+  },
+  {
+   "term": "Mode averaging",
+   "def": "The squared-error optimum of a point-regression policy is the conditional mean of the action, so two valid evasions average to an action no demonstrator chose, and more data or capacity cannot fix it."
+  },
+  {
+   "term": "Decoder renewal slack",
+   "def": "A decoder chosen for multimodality must fit the proposal deadline, since latency is encoding plus every dependent decoder evaluation, so the head and evaluation count that training picks decide schedulability."
+  },
+  {
+   "term": "Offline RL support limit",
+   "def": "Fitting values over a fixed log and acting greedily inflates values at actions the log never executed, and conservative objectives reduce that error but cannot create support the log lacks."
+  },
+  {
+   "term": "Physical RL exploration cost",
+   "def": "A trial campaign's wall clock is trials times rollout plus reset over rigs (about 93 days of execution for 10^6 latch trials before resets), and every trial spends heat and drivetrain life."
+  },
+  {
+   "term": "Reality gap as a vector",
+   "def": "Sim-to-real mismatch decomposes into dynamics, sensing, appearance, and timing channels, each sized by paired probing, and randomization covers modeled parameters but never omitted mechanisms."
+  },
+  {
+   "term": "Update is a new checkpoint",
+   "def": "On-machine fine-tuning absorbs a measurable local mismatch but produces new weights whose earlier evaluations no longer apply, and a gated residual bounds where adaptation may act."
+  },
+  {
+   "term": "Policy manifest",
+   "def": "The policy manifest records how a checkpoint was produced (regime sequence, base digest, inference contract, data support, omission log, wear log) and computes the declared ODD as support minus omissions."
+  },
+  {
+   "term": "Reward as specification",
+   "def": "Posing the task as an MDP makes the engineer-written reward and discount the whole objective, so the optimizer exploits any omitted or mismeasured term."
+  },
+  {
+   "term": "Pretrained borrowed competence",
+   "def": "Post-training a pretrained generalist can cut task-data needs, but no pretraining episode joins this machine's scenario table, so it supplies competence, not evidence."
+  },
+  {
+   "term": "Simulator contact exploit",
+   "def": "A simulator's contact model decides what the optimizer learns, and a soft penalty spring lets a policy pass through contacts the real plate would resist."
+  },
+  {
+   "term": "Privileged information limits",
+   "def": "Asymmetric critics and teacher-student distillation speed training under partial observability, but the student cannot recover a state its sensors never observe."
+  },
+  {
+   "term": "Paired probing",
+   "def": "Identical open-loop excitations on the robot and its simulated twin, scored against error budgets per channel, size each component of the reality gap."
+  },
+  {
+   "term": "Velocity versus torque drift",
+   "def": "A velocity-commanded policy has a disturbance-rejecting loop beneath it and its error integrates once, while a torque-commanded policy's error integrates twice."
+  },
+  {
+   "term": "Chunk imitation objective",
+   "def": "Chunked imitation fits a horizon of actions with a Huber penalty on normalized residuals, which buys outlier robustness, not smoothness or feasibility."
+  },
+  {
+   "term": "RL value functions",
+   "def": "State value, action value, advantage, and the Bellman relation express value as negated cost-to-go, with LQR as the closed-form linear-quadratic case."
+  }
+ ]
+}

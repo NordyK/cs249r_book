@@ -1,0 +1,64 @@
+{
+ "title": "The Memory Write Path",
+ "summary": "Work through The Memory Write Path.",
+ "source": {
+  "chapter": "v3-06",
+  "sections": [
+   "The Memory Write Path",
+   "Record scope and evidence",
+   "Admission before deduplication",
+   "Recorded observations and derived lessons",
+   "Revalidation, expiration, and deletion",
+   "Consolidation",
+   "Self-reinforcing errors"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **The Memory Write Path**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Long-Term Memory, § The Memory Write Path",
+   "md": "Retrieval can return only what the system has retained. An assistant that carries the directive “no meetings before 10:00” strictly within its current context window loses that constraint the moment the session terminates. Persisting the preference into long-term storage solves immediate conversational volatility, but it introduces the consistency challenge previewed in a later section. When the user later moves the boundary to 11:00, the runtime must ensure the earlier record stops governing new scheduling decisions without corrupting the historical audit trail."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Record scope and evidence\n- Admission before deduplication\n- Recorded observations and derived lessons\n- Revalidation, expiration, and deletion\n- Consolidation\n- Self-reinforcing errors"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Memory write policy matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: The runtime, not the model, decides what persists: admission checks run before deduplication, same-scope updates supersede by compare-and-swap, and deletion (on request, on withdrawn consent, or at the end of a recorded retention period) is a lifecycle event the store must honor."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-06-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Memory Write Path** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A session must observe its own committed memory writes on later reads, which a lagging index or replica silently violates unless reads are pinned to a generation at or after the write.",
+      "An exact vector scan is bandwidth-bound with floor N*d*b/BW, which screens it against the search budget, while approximate indexes trade recall for bytes touched.",
+      "The runtime, not the model, decides what persists: admission checks run before deduplication, same-scope updates supersede by compare-and-swap, and deletion (on request, on withdrawn consent, or at the end of a recorded retention period) is a lifecycle event the store must honor.",
+      "Repeated retrieval or re-summarization adds no independent evidence, so preventing a withdrawn or unverified claim from persisting needs a provenance graph over derived records whose invalidation cascades."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Memory write policy**: The runtime, not the model, decides what persists: admission checks run before deduplication, same-scope updates supersede by compare-and-swap, and deletion (on request, on withdrawn consent, or at the end of a recorded retention period) is a lifecycle event the store must honor."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through The Memory Write Path."
+   ]
+  }
+ ]
+}

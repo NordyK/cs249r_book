@@ -1,0 +1,76 @@
+{
+ "title": "Architectural Principles",
+ "summary": "Apply the inductive bias concept to justify a CNN-over-MLP architecture choice on structured spatial data and explain how the bias reduces per-detector parameter count while preserving useful spatial structure.",
+ "source": {
+  "chapter": "v1-06",
+  "sections": [
+   "Architectural Principles"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Apply the inductive bias concept to justify a CNN-over-MLP architecture choice on structured spatial data and explain how the bias reduces per-detector parameter count while preserving useful spatial structure\n- Evaluate the trade-offs of inductive bias strength and justify why structural assumptions must align with data domain properties\n- Explain how architectural graph structure acts as an infrastructure commitment by setting work, state, and dependency patterns that shape the iron-law terms"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Network Architectures, § Architectural Principles",
+   "md": "Three requests reach the same accelerator: a camera frame for an image classifier, a prompt for a language model, and a click for a recommender. The silicon is identical, yet the first request keeps the arithmetic units busy, the second leaves them waiting on memory bandwidth, and the third cannot begin until the system decides where its multi-gigabyte embedding tables can live. What differs is the network architecture: how each model arranges the same arithmetic around the structure of its data."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Inductive bias as the unifying concept mapping data structure to hardware behavior; Arithmetic intensity as the diagnostic for compute-bound vs bandwidth-bound regimes; Lighthouse workload signatures (ResNet-50, GPT-2, DLRM, MobileNetV2, KWS) and their dominant bottlenecks; Architecture choice as an infrastructure commitment locking in iron law terms."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why does the chapter describe selecting a neural network architecture as 'signing a contract with physics' rather than merely selecting a mathematical modeling preference? Explain how architectural graph structure shapes or constrains the terms in the iron law of ML systems ($T_{\\text{exec}} = D_{\\text{vol}}/\\text{BW} + O/(R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}) + L_{\\text{lat}}$) without making those terms fully fixed.",
+   "md": "Selecting an architecture commits the system to a particular pattern of work, state, and dependencies before low-level optimization begins. A CNN tends to create local reuse, an RNN imposes ordered state updates, a transformer creates dense token interactions and KV-cache growth, and a DLRM can create capacity pressure when embedding tables exceed device memory; batching, cache behavior, precision, and kernel choices then determine how those structural commitments appear in realized data movement, utilization, and overhead. The practical consequence is that architecture choice constrains which iron-law term is likely to dominate, but it does not make memory traffic or launch overhead immutable properties of the family."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-06-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team must choose between an MLP and a CNN for classifying \\$224 × 224 pixel RGB medical images. A single dense first layer would require \\$224 × 224 × 3 = 150,528 input weights per output unit (yielding roughly 150 million weights for a 1,000-unit layer), whereas a CNN uses a shared \\$3 × 3 × 3 filter (27 weights). Using the chapter's framing of inductive bias, which statement best explains why the CNN is the superior starting point?",
+     "explanation": "The correct answer is D. The chapter's point is not that CNNs are universally better, but that their locality and weight-sharing prior matches image structure well: the same detector can be reused across positions, and convolution is translation equivariant while later pooling can support invariant class labels. An answer based on greater expressiveness gets the comparison backwards, since CNNs are more constrained than MLPs, and the claim that convolutions remove learning is false because CNN filters are still learned by gradient descent.",
+     "hint": "Think about: apply the inductive bias concept to justify a CNN-over-MLP architecture choice on structured spatial data and explain how the bias reduces per-detector parameter count while preserving useful spatial structure.",
+     "type": "single",
+     "options": [
+      "The CNN is strictly more expressive than the MLP, allowing it to approximate non-continuous functions that the Universal Approximation Theorem forbids.",
+      "The MLP is mathematically incapable of representing any 2D spatial feature mapping due to lack of convolutional instruction support.",
+      "The CNN eliminates gradient descent during optimization because convolutional spatial filters are deterministic, handcrafted operators.",
+      "The CNN's spatial locality and weight-sharing prior directly matches image structure: convolution is translation equivariant, later pooling or aggregation can provide invariance for classification, and each feature detector uses far fewer weights than a dense detector."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Because an inductive bias restricts the hypothesis space to a smaller set of representable functions, machine learning systems engineers should always select the architecture with the strongest possible inductive bias for every workload.",
+     "explanation": "False. By the No Free Lunch theorem, an inductive bias only improves generalization and efficiency when its structural assumptions align with the true data-generating distribution. Imposing a strong spatial locality bias (such as a CNN) on tabular records or global language dependencies prevents the model from representing necessary non-local relationships, resulting in severe underfitting and degraded accuracy.",
+     "hint": "Think about: evaluate the trade-offs of inductive bias strength and justify why structural assumptions must align with data domain properties.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Inductive bias**: A structural assumption encoded by an architecture that restricts its hypothesis space and changes learning and execution costs.",
+    "**Self-attention**: An operation that lets tokens combine information from other positions; dense score computation grows quadratically with sequence length."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Inductive bias",
+   "def": "A structural assumption encoded by an architecture that restricts its hypothesis space and changes learning and execution costs."
+  },
+  {
+   "term": "Self-attention",
+   "def": "An operation that lets tokens combine information from other positions; dense score computation grows quadratically with sequence length."
+  }
+ ]
+}

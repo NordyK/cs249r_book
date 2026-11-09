@@ -1,0 +1,104 @@
+{
+ "title": "Pipeline Optimizations",
+ "summary": "Calculate the steady-state throughput interval of an overlapped training pipeline from its stage times.",
+ "source": {
+  "chapter": "v1-08",
+  "sections": [
+   "Pipeline Optimizations",
+   "Systematic optimization framework",
+   "Data prefetching and overlapping",
+   "Mixed-precision training",
+   "FlashAttention: IO-aware attention optimization",
+   "Gradient accumulation and checkpointing",
+   "GPT-2 optimization walkthrough"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate the steady-state throughput interval of an overlapped training pipeline from its stage times\n- Explain how IO-aware tiling and backward recomputation reduce attention memory traffic without changing attention mathematics\n- Justify FP32 master weights and selected FP32 reductions in the conventional FP16 mixed-precision training recipe\n- Analyze the memory behavior of gradient accumulation across multiple micro-batches\n- Identify loss scaling as the technique used to reduce FP16 gradient underflow risk"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Training, § Pipeline Optimizations",
+   "md": "Even well-designed training pipelines rarely approach hardware peak throughput without targeted optimization: at a typical model-FLOP utilization of … to …, an H100 rated at … delivers only …--… of useful model arithmetic. These derived scenario values reflect the gaps between peak and realized throughput reported across published large-model systems. Systems such as SuperNeurons show one version of this problem, in which memory-management bottlenecks prevent larger networks from training efficiently unless the runtime actively optimizes activation storage and transfer."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Systematic optimization framework\n- Data prefetching and overlapping\n- Mixed-precision training\n- FlashAttention: IO-aware attention optimization\n- Gradient accumulation and checkpointing\n- GPT-2 optimization walkthrough\n\nPay attention to: asynchronous prefetching and CUDA stream double buffering; FlashAttention IO-aware tiling, online softmax, and backward recomputation; mixed precision numerical stability, FP32 master weights, and selective FP32 reductions; gradient accumulation memory scaling mechanics."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how FlashAttention computes exact self-attention with substantially lower memory footprint than standard attention, and describe what its backward pass does instead of reading a full stored score matrix from HBM.",
+   "md": "FlashAttention keeps the same attention mathematics, with possible floating-point rounding differences, but changes where intermediate work lives: it processes query, key, and value tiles in on-chip SRAM and maintains the softmax statistics online instead of materializing the full $S \\times S$ score matrix in HBM. That cuts saved activation storage and reduces off-chip traffic tied to those score blocks rather than implying a linear law for all HBM IO. In backward, it recomputes the needed tiled score and probability blocks from saved inputs and normalization statistics rather than loading a full stored score matrix, so the systems gain comes from less HBM traffic, not from changing the attention mathematics."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-08-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "For each batch, a training step has three dependent stages in a serial baseline: data preprocessing ($T_{\\text{prep}} = 30\\text{ ms}$), host-to-device transfer ($T_{\\text{xfer}} = 10\\text{ ms}$), and GPU compute ($T_{\\text{comp}} = 50\\text{ ms}$). Different batches can occupy independent resources and overlap with correct handoff. If the team implements steady-state overlapping with prefetching and double buffering, what iteration interval is theoretically possible after fill and before drain?",
+     "explanation": "The correct answer is B. The serial baseline takes \\$30 + 10 + 50 = 90 ms per batch, but ideal steady-state overlap changes the limiting interval to max(30, 10, 50) = 50 ms. That is a throughput improvement to \\$90/50 = 1.8×, not a promise that the latency of one isolated batch falls to 50 ms from startup. The \\$10 ms answer uses the fastest stage instead of the slowest, and the no-overlap answer ignores the purpose of prefetching and copy/compute concurrency.",
+     "hint": "Think about: calculate the steady-state throughput interval of an overlapped training pipeline from its stage times.",
+     "type": "single",
+     "options": [
+      "\\$40 ms, because preprocessing and transfer replace compute once overlap is enabled.",
+      "\\$50 ms, because in ideal steady state the interval is bounded by the slowest overlapped stage rather than the serial sum.",
+      "\\$10 ms, because all stages run concurrently and the fastest one sets the pace.",
+      "\\$90 ms, because DMA transfers cannot overlap useful GPU computation."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Why does the chapter's conventional FP16 mixed-precision recipe keep FP32 master weights and perform selected reductions in FP32 instead of forcing every part of training into 16-bit precision?",
+     "explanation": "The correct answer is D. The section's FP16 recipe keeps FP32 master weights because an update can be too small to change a stored FP16 weight after rounding even when the update itself is representable; preserving the update in FP32 avoids losing it across many steps. The same section also notes that selected reductions are often kept in FP32 because wider accumulation improves numerical behavior, though it does not guarantee stability everywhere. The FP64 and host-RAM claims invent hardware requirements the chapter does not make, and autodiff does not require a purely FP32 graph representation.",
+     "hint": "Think about: justify FP32 master weights and selected FP32 reductions in the conventional FP16 mixed-precision training recipe.",
+     "type": "single",
+     "options": [
+      "Tensor Cores cannot execute backpropagation unless gradients are stored in FP64.",
+      "FP16 allocations can lock the accelerator memory bus unless the master weights are moved to host RAM.",
+      "Automatic differentiation requires symbolic derivatives to be represented only in FP32.",
+      "Very small parameter updates can be rounded away when applied directly to FP16 weights, and selected reductions benefit from the wider range or precision of FP32 accumulation."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Gradient accumulation increases the memory footprint on the accelerator linearly with the accumulation factor $K$ because all $K$ micro-batches' intermediate activations must remain in GPU memory simultaneously until the optimizer step.",
+     "explanation": "False. Gradient accumulation executes forward and backward passes sequentially across $K$ micro-batches, accumulating (summing) only the parameter gradients in a single fixed-size gradient buffer. Saved backward tensors for each micro-batch can be released after its backward pass when the graph is not retained; other references or cached tensors may extend storage lifetime. Consequently, activation memory is bounded by the size of a single micro-batch ($B_{\\text{micro}}$), allowing systems to emulate an effective batch size of $K \\times B_{\\text{micro}}$ without increasing activation memory.",
+     "hint": "Think about: analyze the memory behavior of gradient accumulation across multiple micro-batches.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In FP16 mixed-precision training, the loss is multiplied before backpropagation so the resulting gradients are shifted into a safer numeric range, then divided back down before the optimizer update. This technique is known as loss ____.",
+     "explanation": "scaling. Loss scaling multiplies the loss before backward so the resulting gradients are less likely to underflow in FP16, then unscales them before the optimizer step.",
+     "hint": "Think about: identify loss scaling as the technique used to reduce FP16 gradient underflow risk.",
+     "type": "fill",
+     "answer": [
+      "scaling"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A team enables mixed precision on a transformer model and observes compute time drop by 45 percent, but total step time decreases by only 10 percent because the GPU now shows large idle gaps. Explain what likely happened in the system pipeline and what the team should do next.",
+   "md": "The compute optimization removed part of the old critical path, but the new timeline shows that another stage is now exposed because the GPU is spending meaningful time idle. Those gaps are not proof of a data-loader problem by themselves: they could come from input waits, dispatch overhead, synchronization, or another serial stage. The right next step is to re-profile and correlate the gaps with pipeline stages so the next optimization targets the new bottleneck rather than assuming mixed precision failed."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Activation checkpointing**: Retaining selected forward tensors and recomputing discarded intermediates during backward to reduce activation memory."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Activation checkpointing",
+   "def": "Retaining selected forward tensors and recomputing discarded intermediates during backward to reduce activation memory."
+  }
+ ]
+}

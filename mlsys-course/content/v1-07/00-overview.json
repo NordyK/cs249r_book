@@ -1,0 +1,305 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v1-07",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **ML Frameworks** (Vol I). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Frameworks, Purpose",
+   "md": "Model equations do not execute themselves. A framework translates an architecture into work that hardware can run, and that translation is not neutral. It decides when operations execute, what intermediate state training retains, how memory is allocated, and which deployment targets can use the resulting artifact. These choices shape more than speed."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Three Framework Problems",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Evolution of Framework Abstractions",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Execution: From Graphs to Kernels",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Differentiation: Automatic Gradient Comp",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Abstraction: Tensors, Devices, and Opera",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Modules: From Operations to Models",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Anatomy of a Training Step",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Three framework problems**",
+     "Every framework must solve execution, differentiation, and hardware abstraction; the model fixes the operation count while the framework shapes the other iron-law terms, with execution bearing on overhead, differentiation on bytes, and abstraction on efficiency."
+    ],
+    [
+     "**Eager, graph, and JIT execution**",
+     "Eager execution exposes intermediate values to ordinary debugging but shows the runtime one operation at a time, static graphs give the compiler whole-program visibility at the price of graph-only control flow, and graph-capture JIT guards captured regions and pays a graph break wherever capture fails."
+    ],
+    [
+     "**Dispatch overhead law**",
+     "Each eagerly dispatched operation pays a fixed host cost of microseconds, so a workload of many small kernels is overhead-bound when total dispatch time exceeds device time, while large GEMM-dominated layers are device-bound; compilation, fusion, larger batches, and graph replay are the levers."
+    ],
+    [
+     "**Kernel fusion**",
+     "Most elementwise and normalization operators are memory-bound, so fusing a chain of k of them into one kernel cuts idealized traffic from 2kNb to 2Nb and removes k-1 launches, but a compiler fuses only what it sees together and fusion cannot drop values a backward rule must read."
+    ],
+    [
+     "**Reverse-mode autodiff**",
+     "Reverse mode propagates adjoints as vector-Jacobian products from a scalar loss and yields every gradient in one backward sweep at a small constant multiple of forward cost, never materializing a Jacobian, at the price of a recorded graph and retained forward values."
+    ],
+    [
+     "**Saved forward state**",
+     "Every backward rule reads values from the forward operating point, so saved activations grow linearly with batch and depth, peak at the start of backward, and can exceed the weights by orders of magnitude, while the recorded graph decides when each is freed and recomputation or detachment changes what is kept."
+    ],
+    [
+     "**Compilation breakeven**",
+     "Compiling pays only when production executions amortize compile time, with breakeven at compile time divided by the per-run saving, so prototyping loops stay eager and long training or serving runs compile."
+    ],
+    [
+     "**Tensor metadata and placement**",
+     "A tensor's shape, dtype, strides, and device select the kernel and forbid silent cross-device mixing, and because the host link runs far below device memory bandwidth, placement, pinned memory, and stream overlap decide whether transfers sit on the critical path."
+    ],
+    [
+     "**Framework abstraction ladder**",
+     "Frameworks accreted bottom-up from BLAS kernels through array libraries and autodiff frameworks to graph compilers, each layer automating what the one below left to the programmer and hiding shape, dtype, device, and unit assumptions that must be checked at boundaries."
+    ],
+    [
+     "**Module abstraction**",
+     "A module tree provides automatic parameter discovery, a train/eval mode flag propagated from the root, and hierarchical serialization through dotted state-dict keys, so one object can be optimized, saved, frozen, and inspected."
+    ],
+    [
+     "**Major frameworks compared**",
+     "TensorFlow, PyTorch, and JAX each solve all three framework problems but emphasize different paths, so the useful comparison is what each lets the compiler see and which constraint to profile, not a speed leaderboard."
+    ],
+    [
+     "**Choosing a framework**",
+     "A development framework is chosen by first eliminating paths that cannot export every required operator to a runtime that fits the deployment target, then ranking survivors by team pipeline and migration cost."
+    ],
+    [
+     "**Mixed precision and checkpointing mechanics**",
+     "Frameworks implement mixed precision as a dispatch policy (autocast's per-operator precision list plus a gradient scaler) and activation checkpointing as recorded segments recomputed during backward, which is the machinery a training run configures."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$\\text{Compilation Benefit} = \\frac{N_{\\text{prod}} \\cdot (T_{\\text{eager}} - T_{\\text{compiled}})}{T_{\\text{compile}} + N_{\\text{dev}} \\cdot T_{\\text{compile}}}$$\n\n$$N_{\\text{breakeven}} = \\frac{T_{\\text{compile}}}{T_{\\text{eager}} - T_{\\text{compiled}}}$$\n\n$$\\text{Overhead Ratio} = \\frac{N_{\\text{ops}} \\cdot t_{\\text{dispatch}}}{T_{\\text{compute}} + T_{\\text{memory}}}$$\n\n$$\\text{Tensor footprint} = \\prod_i \\text{shape}_i \\times \\text{dtype bytes}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v1-07-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Three framework problems",
+     "back": "Every framework must solve execution, differentiation, and hardware abstraction; the model fixes the operation count while the framework shapes the other iron-law terms, with execution bearing on overhead, differentiation on bytes, and abstraction on efficiency."
+    },
+    {
+     "front": "Eager, graph, and JIT execution",
+     "back": "Eager execution exposes intermediate values to ordinary debugging but shows the runtime one operation at a time, static graphs give the compiler whole-program visibility at the price of graph-only control flow, and graph-capture JIT guards captured regions and pays a graph break wherever capture fails."
+    },
+    {
+     "front": "Dispatch overhead law",
+     "back": "Each eagerly dispatched operation pays a fixed host cost of microseconds, so a workload of many small kernels is overhead-bound when total dispatch time exceeds device time, while large GEMM-dominated layers are device-bound; compilation, fusion, larger batches, and graph replay are the levers."
+    },
+    {
+     "front": "Kernel fusion",
+     "back": "Most elementwise and normalization operators are memory-bound, so fusing a chain of k of them into one kernel cuts idealized traffic from 2kNb to 2Nb and removes k-1 launches, but a compiler fuses only what it sees together and fusion cannot drop values a backward rule must read."
+    },
+    {
+     "front": "Reverse-mode autodiff",
+     "back": "Reverse mode propagates adjoints as vector-Jacobian products from a scalar loss and yields every gradient in one backward sweep at a small constant multiple of forward cost, never materializing a Jacobian, at the price of a recorded graph and retained forward values."
+    },
+    {
+     "front": "Saved forward state",
+     "back": "Every backward rule reads values from the forward operating point, so saved activations grow linearly with batch and depth, peak at the start of backward, and can exceed the weights by orders of magnitude, while the recorded graph decides when each is freed and recomputation or detachment changes what is kept."
+    },
+    {
+     "front": "Compilation breakeven",
+     "back": "Compiling pays only when production executions amortize compile time, with breakeven at compile time divided by the per-run saving, so prototyping loops stay eager and long training or serving runs compile."
+    },
+    {
+     "front": "Tensor metadata and placement",
+     "back": "A tensor's shape, dtype, strides, and device select the kernel and forbid silent cross-device mixing, and because the host link runs far below device memory bandwidth, placement, pinned memory, and stream overlap decide whether transfers sit on the critical path."
+    },
+    {
+     "front": "Framework abstraction ladder",
+     "back": "Frameworks accreted bottom-up from BLAS kernels through array libraries and autodiff frameworks to graph compilers, each layer automating what the one below left to the programmer and hiding shape, dtype, device, and unit assumptions that must be checked at boundaries."
+    },
+    {
+     "front": "Module abstraction",
+     "back": "A module tree provides automatic parameter discovery, a train/eval mode flag propagated from the root, and hierarchical serialization through dotted state-dict keys, so one object can be optimized, saved, frozen, and inspected."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v1-07-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Three framework problems**?",
+     "options": [
+      "Compiling pays only when production executions amortize compile time, with breakeven at compile time divided by the per-run saving, so prototyping loops stay eager and long training or serving runs compile.",
+      "Every framework must solve execution, differentiation, and hardware abstraction; the model fixes the operation count while the framework shapes the other iron-law terms, with execution bearing on overhead, differentiation on bytes, and abstraction on efficiency.",
+      "A tensor's shape, dtype, strides, and device select the kernel and forbid silent cross-device mixing, and because the host link runs far below device memory bandwidth, placement, pinned memory, and stream overlap decide whether transfers sit on the critical path.",
+      "Reverse mode propagates adjoints as vector-Jacobian products from a scalar loss and yields every gradient in one backward sweep at a small constant multiple of forward cost, never materializing a Jacobian, at the price of a recorded graph and retained forward values."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Three framework problems itself, not a neighbouring idea.",
+     "explanation": "**Three framework problems:** Every framework must solve execution, differentiation, and hardware abstraction; the model fixes the operation count while the framework shapes the other iron-law terms, with execution bearing on overhead, differentiation on bytes, and abstraction on efficiency."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Eager, graph, and JIT execution**?",
+     "options": [
+      "Eager execution exposes intermediate values to ordinary debugging but shows the runtime one operation at a time, static graphs give the compiler whole-program visibility at the price of graph-only control flow, and graph-capture JIT guards captured regions and pays a graph break wherever capture fails.",
+      "Reverse mode propagates adjoints as vector-Jacobian products from a scalar loss and yields every gradient in one backward sweep at a small constant multiple of forward cost, never materializing a Jacobian, at the price of a recorded graph and retained forward values.",
+      "Compiling pays only when production executions amortize compile time, with breakeven at compile time divided by the per-run saving, so prototyping loops stay eager and long training or serving runs compile.",
+      "A module tree provides automatic parameter discovery, a train/eval mode flag propagated from the root, and hierarchical serialization through dotted state-dict keys, so one object can be optimized, saved, frozen, and inspected."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Eager, graph, and JIT execution itself, not a neighbouring idea.",
+     "explanation": "**Eager, graph, and JIT execution:** Eager execution exposes intermediate values to ordinary debugging but shows the runtime one operation at a time, static graphs give the compiler whole-program visibility at the price of graph-only control flow, and graph-capture JIT guards captured regions and pays a graph break wherever capture fails."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Dispatch overhead law**?",
+     "options": [
+      "A tensor's shape, dtype, strides, and device select the kernel and forbid silent cross-device mixing, and because the host link runs far below device memory bandwidth, placement, pinned memory, and stream overlap decide whether transfers sit on the critical path.",
+      "Every backward rule reads values from the forward operating point, so saved activations grow linearly with batch and depth, peak at the start of backward, and can exceed the weights by orders of magnitude, while the recorded graph decides when each is freed and recomputation or detachment changes what is kept.",
+      "A module tree provides automatic parameter discovery, a train/eval mode flag propagated from the root, and hierarchical serialization through dotted state-dict keys, so one object can be optimized, saved, frozen, and inspected.",
+      "Each eagerly dispatched operation pays a fixed host cost of microseconds, so a workload of many small kernels is overhead-bound when total dispatch time exceeds device time, while large GEMM-dominated layers are device-bound; compilation, fusion, larger batches, and graph replay are the levers."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Dispatch overhead law itself, not a neighbouring idea.",
+     "explanation": "**Dispatch overhead law:** Each eagerly dispatched operation pays a fixed host cost of microseconds, so a workload of many small kernels is overhead-bound when total dispatch time exceeds device time, while large GEMM-dominated layers are device-bound; compilation, fusion, larger batches, and graph replay are the levers."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Kernel fusion**?",
+     "options": [
+      "Most elementwise and normalization operators are memory-bound, so fusing a chain of k of them into one kernel cuts idealized traffic from 2kNb to 2Nb and removes k-1 launches, but a compiler fuses only what it sees together and fusion cannot drop values a backward rule must read.",
+      "A development framework is chosen by first eliminating paths that cannot export every required operator to a runtime that fits the deployment target, then ranking survivors by team pipeline and migration cost.",
+      "TensorFlow, PyTorch, and JAX each solve all three framework problems but emphasize different paths, so the useful comparison is what each lets the compiler see and which constraint to profile, not a speed leaderboard.",
+      "Every framework must solve execution, differentiation, and hardware abstraction; the model fixes the operation count while the framework shapes the other iron-law terms, with execution bearing on overhead, differentiation on bytes, and abstraction on efficiency."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Kernel fusion itself, not a neighbouring idea.",
+     "explanation": "**Kernel fusion:** Most elementwise and normalization operators are memory-bound, so fusing a chain of k of them into one kernel cuts idealized traffic from 2kNb to 2Nb and removes k-1 launches, but a compiler fuses only what it sees together and fusion cannot drop values a backward rule must read."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Reverse-mode autodiff**?",
+     "options": [
+      "Each eagerly dispatched operation pays a fixed host cost of microseconds, so a workload of many small kernels is overhead-bound when total dispatch time exceeds device time, while large GEMM-dominated layers are device-bound; compilation, fusion, larger batches, and graph replay are the levers.",
+      "Reverse mode propagates adjoints as vector-Jacobian products from a scalar loss and yields every gradient in one backward sweep at a small constant multiple of forward cost, never materializing a Jacobian, at the price of a recorded graph and retained forward values.",
+      "Eager execution exposes intermediate values to ordinary debugging but shows the runtime one operation at a time, static graphs give the compiler whole-program visibility at the price of graph-only control flow, and graph-capture JIT guards captured regions and pays a graph break wherever capture fails.",
+      "Compiling pays only when production executions amortize compile time, with breakeven at compile time divided by the per-run saving, so prototyping loops stay eager and long training or serving runs compile."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Reverse-mode autodiff itself, not a neighbouring idea.",
+     "explanation": "**Reverse-mode autodiff:** Reverse mode propagates adjoints as vector-Jacobian products from a scalar loss and yields every gradient in one backward sweep at a small constant multiple of forward cost, never materializing a Jacobian, at the price of a recorded graph and retained forward values."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Three framework problems: Every framework must solve execution, differentiation, and hardware abstraction; the model fixes the operation count while the framework shapes the other iron-law terms, with execution bearing on overhead, differentiation on bytes, and abstraction on efficiency.",
+    "Eager, graph, and JIT execution: Eager execution exposes intermediate values to ordinary debugging but shows the runtime one operation at a time, static graphs give the compiler whole-program visibility at the price of graph-only control flow, and graph-capture JIT guards captured regions and pays a graph break wherever capture fails.",
+    "Dispatch overhead law: Each eagerly dispatched operation pays a fixed host cost of microseconds, so a workload of many small kernels is overhead-bound when total dispatch time exceeds device time, while large GEMM-dominated layers are device-bound; compilation, fusion, larger batches, and graph replay are the levers.",
+    "Kernel fusion: Most elementwise and normalization operators are memory-bound, so fusing a chain of k of them into one kernel cuts idealized traffic from 2kNb to 2Nb and removes k-1 launches, but a compiler fuses only what it sees together and fusion cannot drop values a backward rule must read."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Three framework problems",
+   "def": "Every framework must solve execution, differentiation, and hardware abstraction; the model fixes the operation count while the framework shapes the other iron-law terms, with execution bearing on overhead, differentiation on bytes, and abstraction on efficiency."
+  },
+  {
+   "term": "Eager, graph, and JIT execution",
+   "def": "Eager execution exposes intermediate values to ordinary debugging but shows the runtime one operation at a time, static graphs give the compiler whole-program visibility at the price of graph-only control flow, and graph-capture JIT guards captured regions and pays a graph break wherever capture fails."
+  },
+  {
+   "term": "Dispatch overhead law",
+   "def": "Each eagerly dispatched operation pays a fixed host cost of microseconds, so a workload of many small kernels is overhead-bound when total dispatch time exceeds device time, while large GEMM-dominated layers are device-bound; compilation, fusion, larger batches, and graph replay are the levers."
+  },
+  {
+   "term": "Kernel fusion",
+   "def": "Most elementwise and normalization operators are memory-bound, so fusing a chain of k of them into one kernel cuts idealized traffic from 2kNb to 2Nb and removes k-1 launches, but a compiler fuses only what it sees together and fusion cannot drop values a backward rule must read."
+  },
+  {
+   "term": "Reverse-mode autodiff",
+   "def": "Reverse mode propagates adjoints as vector-Jacobian products from a scalar loss and yields every gradient in one backward sweep at a small constant multiple of forward cost, never materializing a Jacobian, at the price of a recorded graph and retained forward values."
+  },
+  {
+   "term": "Saved forward state",
+   "def": "Every backward rule reads values from the forward operating point, so saved activations grow linearly with batch and depth, peak at the start of backward, and can exceed the weights by orders of magnitude, while the recorded graph decides when each is freed and recomputation or detachment changes what is kept."
+  },
+  {
+   "term": "Compilation breakeven",
+   "def": "Compiling pays only when production executions amortize compile time, with breakeven at compile time divided by the per-run saving, so prototyping loops stay eager and long training or serving runs compile."
+  },
+  {
+   "term": "Tensor metadata and placement",
+   "def": "A tensor's shape, dtype, strides, and device select the kernel and forbid silent cross-device mixing, and because the host link runs far below device memory bandwidth, placement, pinned memory, and stream overlap decide whether transfers sit on the critical path."
+  },
+  {
+   "term": "Framework abstraction ladder",
+   "def": "Frameworks accreted bottom-up from BLAS kernels through array libraries and autodiff frameworks to graph compilers, each layer automating what the one below left to the programmer and hiding shape, dtype, device, and unit assumptions that must be checked at boundaries."
+  },
+  {
+   "term": "Module abstraction",
+   "def": "A module tree provides automatic parameter discovery, a train/eval mode flag propagated from the root, and hierarchical serialization through dotted state-dict keys, so one object can be optimized, saved, frozen, and inspected."
+  },
+  {
+   "term": "Major frameworks compared",
+   "def": "TensorFlow, PyTorch, and JAX each solve all three framework problems but emphasize different paths, so the useful comparison is what each lets the compiler see and which constraint to profile, not a speed leaderboard."
+  },
+  {
+   "term": "Choosing a framework",
+   "def": "A development framework is chosen by first eliminating paths that cannot export every required operator to a runtime that fits the deployment target, then ranking survivors by team pipeline and migration cost."
+  },
+  {
+   "term": "Mixed precision and checkpointing mechanics",
+   "def": "Frameworks implement mixed precision as a dispatch policy (autocast's per-operator precision list plus a gradient scaler) and activation checkpointing as recorded segments recomputed during backward, which is the machinery a training run configures."
+  }
+ ]
+}

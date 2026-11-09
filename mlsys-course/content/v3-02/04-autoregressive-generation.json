@@ -1,0 +1,68 @@
+{
+ "title": "Autoregressive Generation",
+ "summary": "Work through Autoregressive Generation.",
+ "source": {
+  "chapter": "v3-02",
+  "sections": [
+   "Autoregressive Generation",
+   "Token-by-token generation",
+   "Sampling controls",
+   "Repetition and replay"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Autoregressive Generation**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Foundation Model, § Autoregressive Generation",
+   "md": "Even when a request fixes the conversation history and the list of available tool schemas, the model's reply remains open-ended and stochastic. On the same repair prompt, one call might propose `read_file` on a configuration path, a second might inspect a different directory, and a third might return prose instead of a tool call."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Token-by-token generation\n- Sampling controls\n- Repetition and replay"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Sampling shapes candidates, not correctness matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Temperature, top-k, and top-p reshape which candidates appear but none makes a likely token a correct one, so sampling settings are chosen by measured task pass rates."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-02-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Autoregressive Generation** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Temperature, top-k, and top-p reshape which candidates appear but none makes a likely token a correct one, so sampling settings are chosen by measured task pass rates.",
+      "Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever.",
+      "Re-sending an append-only history submits H*S0 + Delta*H(H-1)/2 prompt tokens, compatible prefix reuse cuts fresh prefill to S0 + (H-1)*Delta, and latency, work, and billed dollars remain separate accounts.",
+      "A per-state logit mask guarantees a completed output is in the enforced language, but only for syntax, only on COMPLETED status, and an over-constrained schema forces confabulation unless it offers an explicit unknown variant."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Sampling shapes candidates, not correctness**: Temperature, top-k, and top-p reshape which candidates appear but none makes a likely token a correct one, so sampling settings are chosen by measured task pass rates."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Sampling shapes candidates, not correctness* must be assessed against *Task acceptance contract*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Sampling shapes candidates, not correctness must be assessed against Task acceptance contract."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Autoregressive Generation."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,117 @@
+{
+ "title": "Learning Process",
+ "summary": "Calculate and interpret the loss values and gradient signals produced by softmax cross-entropy on confident versus misclassified examples.",
+ "source": {
+  "chapter": "v1-05",
+  "sections": [
+   "Learning Process",
+   "Supervised learning from labeled examples",
+   "Forward pass computation",
+   "Loss functions",
+   "Gradient descent and parameter updates",
+   "Gradient computation and backpropagation",
+   "Iterative learning process"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate and interpret the loss values and gradient signals produced by softmax cross-entropy on confident versus misclassified examples\n- Compare reverse-mode automatic differentiation to numerical differentiation in terms of computational complexity and graph traversal\n- Compare backpropagation and gradient descent in terms of computational execution and memory footprint\n- Analyze why training memory exceeds inference memory by decomposing the training memory estimate into activations, gradients, and optimizer state\n- Explain vanishing gradients as shrinkage in the product of full layer-wise Jacobian factors across a depth-$N_L$ network"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Neural Computation, § Learning Process",
+   "md": "The MNIST network currently holds … set to random values, numbers that encode no knowledge at all. Learning turns them into a working classifier by repeating one short cycle of computation millions of times, and that repetition multiplies every cost the previous sections counted for a single forward pass."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Supervised learning from labeled examples\n- Forward pass computation\n- Loss functions\n- Gradient descent and parameter updates\n- Gradient computation and backpropagation\n- Iterative learning process\n\nPay attention to: Mathematics and gradient signals of softmax cross-entropy loss; Computational complexity of reverse-mode automatic differentiation vs numerical differentiation; Systems separation between backpropagation (gradient computation) and gradient descent (optimizer state); Memory footprint decomposition during training: activations, gradients, optimizer buffers."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Distinguish between **backpropagation** and **gradient descent** (the optimizer) in terms of their computational roles and memory requirements during training.",
+   "md": "Backpropagation is a gradient-computation algorithm that applies the chain rule across the computational graph in reverse; its memory requirement is determined by retaining (or recomputing) intermediate forward-pass activations (mathcalO(B sum n_ell)). Gradient descent (and optimizers like Adam) is the parameter update algorithm that consumes those gradients; its memory requirement is determined by maintaining optimizer state tensors, such as Adam's first- and second-moment estimates."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-05-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A classification model trained with softmax cross-entropy outputs a predicted probability $\\hat{y}_c = 0.99$ for the correct target class on Example 1, and outputs $\\hat{y}_c = 0.01$ for the correct class on Example 2. Based on the definition of cross-entropy loss ($\\mathcal{L} = -\\log(\\hat{y}_c)$) and the combined softmax cross-entropy logit gradient ($\\frac{\\partial \\mathcal{L}}{\\partial z_c} = \\hat{y}_c - 1$), what are the relative loss values and gradient magnitudes for these two examples?",
+     "explanation": "The correct answer is D. Cross-entropy loss is -log(haty_c). For Example 2, -log(0.01) approx 4.61 and its logit gradient is haty_c - 1 = 0.01 - 1 = -0.99. For Example 1, -log(0.99) approx 0.010 and its logit gradient is \\$0.99 - 1 = -0.01. The misclassified example generates a loss over \\$400× higher and an update gradient magnitude \\$99× stronger than the confident correct prediction. Reversing the loss values confuses high error with correct classification. Softmax probabilities sum to 1 across classes for an individual sample, but gradients on different samples depend on model confidence. Logarithmic cross-entropy on probabilities in [0, 1] is strictly non-negative.",
+     "hint": "Think about: calculate and interpret the loss values and gradient signals produced by softmax cross-entropy on confident versus misclassified examples",
+     "type": "single",
+     "options": [
+      "Example 1 produces loss $\\approx 4.61$ and logit gradient $-0.99$, while Example 2 produces loss $\\approx 0.01$ and logit gradient $-0.01$.",
+      "Both examples generate identical gradient magnitudes because softmax normalization forces the sum of class gradients to equal zero.",
+      "Example 2 produces negative loss because probabilities below \\$0.5 invert the sign of the cross-entropy objective.",
+      "Example 2 produces high loss (-log(0.01) approx 4.61) and an error gradient of \\$0.01 - 1 = -0.99, while Example 1 produces near-zero loss (-log(0.99) approx 0.01) and an error gradient of \\$0.99 - 1 = -0.01, yielding an error signal roughly \\$99× stronger on the misclassified example."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "What is the primary computational complexity advantage of reverse-mode automatic differentiation (backpropagation) over numerical differentiation (finite differences) when training a neural network with $P$ parameters?",
+     "explanation": "The correct answer is A. Reverse-mode automatic differentiation (backpropagation) applies the chain rule in a single backward sweep, computing gradients with respect to all P parameters simultaneously with a computational cost proportional to the graph size. The roughly \\$2× backward-to-forward dense-matrix ratio assumes both weight and input gradients are required; ordinary parameter training can omit the first layer's raw-input gradient product when no earlier trainable computation needs it. Numerical differentiation requires perturbing each parameter individually and evaluating the entire network, scaling as mathcalO(P × graph)—which is computationally intractable for networks with millions or billions of parameters. Differentiation applies to continuous parameters rather than complex-number conversions. Backpropagation requires the relevant forward values to evaluate derivatives during the reverse pass; implementations retain or recompute those values. Backpropagation fundamentally relies on the chain rule.",
+     "hint": "Think about: compare reverse-mode automatic differentiation to numerical differentiation in terms of computational complexity and graph traversal",
+     "type": "single",
+     "options": [
+      "Backpropagation computes exact gradients for all P parameters in a single reverse graph traversal costing on the order of the forward graph, often approximately \\$2× forward-pass FLOPs for dense layers when both weight and input gradients are required, whereas numerical differentiation requires P separate forward passes costing mathcalO(P × graph).",
+      "Numerical differentiation is unstable for integer parameters, while backpropagation converts all tensors to complex numbers.",
+      "Backpropagation eliminates the requirement to store or cache intermediate activations from the forward pass.",
+      "Reverse-mode automatic differentiation executes without using the mathematical chain rule."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In deep neural networks, vanishing gradients can occur when the full product of layer-wise Jacobian factors during backpropagation shrinks with depth, causing early-layer gradients to become extremely small.",
+     "explanation": "True. Backpropagation multiplies together Jacobian factors across the network, so gradients reaching early layers can decay when that product contracts with depth. Saturated activation derivatives are one contributor, but they are not the whole gradient by themselves: weights and other Jacobian terms also matter. This is why using only an activation-derivative product is an incomplete explanation of vanishing gradients.",
+     "hint": "Think about: explain vanishing gradients as shrinkage in the product of full layer-wise Jacobian factors across a depth-$N_L$ network",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "Order the computational phases executed within a single supervised mini-batch training step:",
+     "explanation": "The correct order is: (3) Perform the forward pass to compute layer activations and predictions, (2) Evaluate the loss function by comparing predictions to ground-truth labels, (4) Execute backpropagation via the chain rule to compute parameter gradients, (1) Update model weights using the optimizer update rule. The forward pass (3) must first compute output predictions and cache intermediate activations; the loss function (2) then compares these predictions against target labels to produce a scalar error; backpropagation (4) traverses the graph in reverse from the loss to compute gradients for all parameters; and finally the optimizer (1) applies the weight update rule using the newly computed gradients.",
+     "hint": "Think about: analyze the four sequential phases of a supervised training iteration and justify their causal dependencies",
+     "type": "order",
+     "items": [
+      "Perform the forward pass to compute layer activations and predictions",
+      "Evaluate the loss function by comparing predictions to ground-truth labels",
+      "Execute backpropagation via the chain rule to compute parameter gradients.",
+      "Update model weights using the optimizer update rule"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain why the peak memory footprint during model training significantly exceeds the memory footprint during inference for the same model architecture and batch size. Identify the three major tensor categories present during training that are absent during inference.",
+   "md": "Inference requires memory only for model parameters and a small rotating buffer for the current layer's activations. Training requires substantially more memory because it must store: (1) intermediate forward-pass activation tensors across all layers to evaluate chain-rule derivatives during backpropagation, (2) gradient tensors matching the shape of all trainable parameters, and (3) optimizer state buffers (such as Adam's first- and second-moment estimates, which add \\$2× the parameter footprint)."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Matrix multiplication**: A shared arithmetic primitive for dense layers and lowered neural-network operations.",
+    "**Parameter gradients**: Derivatives of training loss with respect to parameters, used to update those parameters.",
+    "**Training state**: Resident weights, saved activations, gradients, and optimizer state required during training."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Matrix multiplication",
+   "def": "A shared arithmetic primitive for dense layers and lowered neural-network operations."
+  },
+  {
+   "term": "Parameter gradients",
+   "def": "Derivatives of training loss with respect to parameters, used to update those parameters."
+  },
+  {
+   "term": "Training state",
+   "def": "Resident weights, saved activations, gradients, and optimizer state required during training."
+  }
+ ]
+}

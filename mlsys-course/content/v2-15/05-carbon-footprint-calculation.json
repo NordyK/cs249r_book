@@ -1,0 +1,123 @@
+{
+ "title": "Carbon Footprint Calculation",
+ "summary": "Compare the mathematical formulations for operational carbon and amortized embodied carbon.",
+ "source": {
+  "chapter": "v2-15",
+  "sections": [
+   "Carbon Footprint Calculation",
+   "Carbon accountability and lifecycle phases",
+   "Emission scopes and the development boundary",
+   "Grid carbon intensity and regional variation",
+   "Operational carbon calculation",
+   "Embodied carbon assessment",
+   "Lifecycle carbon accounting"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare the mathematical formulations for operational carbon and amortized embodied carbon\n- Analyze why grid decarbonization shifts the dominant lifecycle carbon component from operational to embodied emissions\n- Classify AI system emissions sources into Scope 1, Scope 2, and Scope 3 under the GHG Protocol\n- Explain how grid carbon intensity translates electrical energy into operational carbon emissions\n- Calculate the crossover point where cumulative inference energy exceeds one-time training energy"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Sustainable AI, § Carbon Footprint Calculation",
+   "md": "Consider a data center supplied by a hydro-heavy grid. Its operational carbon intensity can be far below a fossil-heavy grid, but hydroelectric generation is not lifecycle-zero, and the AI system is not carbon-free. Reservoir construction and operation have impacts, while mining the silicon, manufacturing the GPUs, and pouring the concrete for the data center emitted carbon before the servers were turned on. A complete footprint calculation must account for operational electricity, embodied carbon, and the ecological effects excluded from a carbon-only metric."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Carbon accountability and lifecycle phases\n- Emission scopes and the development boundary\n- Grid carbon intensity and regional variation\n- Operational carbon calculation\n- Embodied carbon assessment\n- Lifecycle carbon accounting\n\nPay attention to: operational vs embodied carbon equations; impact of grid decarbonization on embodied share; GHG Protocol Scope 1/2/3 classification; lifecycle carbon calculation steps."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: When a hyperscaler relocates a training cluster from a fossil-heavy grid (800 $\\text{gCO}_2/\\text{kWh}$) to a clean hydro grid (20 $\\text{gCO}_2/\\text{kWh}$), its sustainability dashboard reveals that embodied carbon becomes the dominant component of total lifecycle emissions. Explain the mechanism behind this inversion and its implications for hardware procurement.",
+   "md": "With facility energy held constant, changing the scenario grid intensity from 800 to 20 gCO2/kWh reduces operational emissions by 97.5%, while manufacturing emissions are unchanged. The embodied share therefore rises, but its final percentage requires the actual manufacturing footprint and lifetime energy. Procurement should compare lifetime extension and replacement using that lifecycle boundary rather than assume a universal embodied-carbon share."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-15-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Which equation pair correctly formalizes operational carbon emissions and daily amortized embodied carbon for AI hardware according to the chapter's accounting methodology?",
+     "explanation": "The correct answer is D. $C_{\\text{operational}} = E_{\\text{total}} \\times \\text{CI}_{\\text{grid}}$ (where $E_{\\text{total}} = E_{\\text{IT}} \\times \\text{PUE}$) and $C_{\\text{embodied,daily}} = \\frac{C_{\\text{manufacturing}}}{T_{\\text{lifetime}} \\times 365}$. Operational carbon is facility energy (IT energy scaled by PUE) multiplied by grid carbon intensity, and embodied carbon is total manufacturing emissions divided by expected lifetime in days ($T_{\\text{lifetime}} \\times 365$). Dividing IT energy by PUE inverts facility overhead; adding energy to carbon intensity mixes incompatible units; and multiplying facility energy by PUE a second time double-counts facility overhead.",
+     "hint": "Think about: compare the mathematical formulations for operational carbon and amortized embodied carbon",
+     "type": "single",
+     "options": [
+      "$C_{\\text{operational}} = E_{\\text{IT}} / \\text{PUE}$ and $C_{\\text{embodied,daily}} = C_{\\text{manufacturing}} \\times T_{\\text{lifetime}}$.",
+      "$C_{\\text{operational}} = E_{\\text{total}} + \\text{CI}_{\\text{grid}}$ and $C_{\\text{embodied,daily}} = C_{\\text{manufacturing}} / 365$.",
+      "$C_{\\text{operational}} = E_{\\text{total}} \\times \\text{PUE} \\times \\text{CI}_{\\text{grid}}$ and $C_{\\text{embodied,daily}} = C_{\\text{manufacturing}} \\times 365 / T_{\\text{lifetime}}$.",
+      "$C_{\\text{operational}} = E_{\\text{total}} \\times \\text{CI}_{\\text{grid}}$ (where $E_{\\text{total}} = E_{\\text{IT}} \\times \\text{PUE}$) and $C_{\\text{embodied,daily}} = \\frac{C_{\\text{manufacturing}}}{T_{\\text{lifetime}} \\times 365}$."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "An engineering team is auditing the greenhouse gas emissions of an AI platform. Which option correctly maps the five operational sources to their respective GHG Protocol scopes?\n\n- S1: Diesel fuel burned by backup generators during a power outage at an owned facility.\n- S2: Grid electricity purchased to power an owned GPU cluster.\n- S3: Grid electricity consumed by cooling chillers in the same owned facility.\n- S4: Embodied carbon from manufacturing the GPUs at an external foundry.\n- S5: Electrical energy consumed by end-user smartphones running the deployed mobile inference app.",
+     "explanation": "The correct answer is A. S1: Scope 1; S2: Scope 2; S3: Scope 2; S4: Scope 3; S5: Scope 3. Scope 1 encompasses direct emissions from owned combustion sources (on-site diesel generators). Scope 2 covers indirect emissions from purchased electricity (powering servers and facility cooling equipment). Scope 3 covers value-chain emissions upstream (semiconductor manufacturing at external foundries) and downstream (end-user mobile device execution). Classifying diesel as Scope 2 confuses direct combustion with purchased utility power; classifying cooling electricity as Scope 1 treats purchased utility power as on-site combustion; and classifying upstream semiconductor fabrication as Scope 1 misattributes supplier manufacturing to direct operations.",
+     "hint": "Think about: classify AI system emissions sources into Scope 1, Scope 2, and Scope 3 under the GHG Protocol",
+     "type": "single",
+     "options": [
+      "S1: Scope 1; S2: Scope 2; S3: Scope 2; S4: Scope 3; S5: Scope 3.",
+      "S1: Scope 2; S2: Scope 1; S3: Scope 2; S4: Scope 3; S5: Scope 3.",
+      "S1: Scope 1; S2: Scope 2; S3: Scope 1; S4: Scope 2; S5: Scope 3.",
+      "S1: Scope 3; S2: Scope 2; S3: Scope 2; S4: Scope 1; S5: Scope 1."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "The metric representing the mass of carbon dioxide emitted per unit of electricity generated, expressed in grams of $\\text{CO}_2$ per kilowatt-hour, is known as `____`.",
+     "explanation": "carbon intensity. Grid carbon intensity ($\\text{gCO}_2/\\text{kWh}$) varies by location and time, governing the operational emissions associated with electricity consumption.",
+     "hint": "Think about: explain how grid carbon intensity translates electrical energy into operational carbon emissions",
+     "type": "fill",
+     "answer": [
+      "carbon intensity"
+     ]
+    },
+    {
+     "q": "A production language model consumed 1,200 MWh during its one-time training run. In production, it serves 8 million requests per day, consuming 0.0005 kWh per request. After how many days of continuous serving will the cumulative inference energy reach the one-time training energy?",
+     "explanation": "The correct answer is B. 300 days. Daily inference energy is \\$8{,}000{,}000\\text{ requests/day} \\times 0.0005\\text{ kWh/request} = 4{,}000\\text{ kWh/day} = 4\\text{ MWh/day}$. Dividing total training energy by daily inference energy yields \\$1{,}200\\text{ MWh} / 4\\text{ MWh/day} = 300\\text{ days}$. A calculation yielding 120 days underestimates the crossover period; 600 days assumes half the daily inference volume; and 1,200 days erroneously assumes 1 MWh/day serving energy.",
+     "hint": "Think about: calculate the crossover point where cumulative inference energy exceeds one-time training energy",
+     "type": "single",
+     "options": [
+      "120 days.",
+      "300 days.",
+      "600 days.",
+      "1,200 days."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Give one valid order for the following steps in computing the specified operational-plus-accelerator-manufacturing carbon subtotal of a model training workload:",
+     "explanation": "One valid order is: (3) measure or estimate raw IT electrical power and duration across GPUs, CPUs, and memory, (1) multiply IT energy by facility PUE to obtain total facility energy consumption, (5) multiply total facility energy by regional grid carbon intensity to determine operational carbon, (2) amortize accelerator manufacturing footprint over total operational lifetime to calculate the job's embodied share, (4) sum operational and embodied carbon to determine the accounted subtotal. IT energy must be measured first; facility PUE is applied to calculate total electrical draw; grid carbon intensity converts facility energy into operational emissions; embodied manufacturing carbon is amortized over the run's duration; and both components are summed for this partial lifecycle account. Manufacturing of hosts, networking, storage, and facilities, and any other lifecycle stages outside the stated inventory, must be added before claiming a complete footprint. PUE and carbon intensity may be multiplied in either order, but facility overhead must be included exactly once; embodied carbon can be computed independently before the final sum.",
+     "hint": "Think about: analyze the sequential calculation workflow for AI lifecycle carbon accounting",
+     "type": "order",
+     "items": [
+      "measure or estimate raw IT electrical power and duration across GPUs, CPUs, and memory",
+      "multiply IT energy by facility PUE to obtain total facility energy consumption",
+      "multiply total facility energy by regional grid carbon intensity to determine operational carbon.",
+      "amortize accelerator manufacturing footprint over total operational lifetime to calculate the job's embodied share",
+      "sum operational and embodied carbon to determine the accounted subtotal"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Operational carbon**: Emissions attributed to operating energy under a stated facility boundary and grid-carbon signal.",
+    "**Embodied carbon**: Emissions from manufacturing and other non-operating lifecycle processes allocated to the measured system or workload."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Operational carbon",
+   "def": "Emissions attributed to operating energy under a stated facility boundary and grid-carbon signal."
+  },
+  {
+   "term": "Embodied carbon",
+   "def": "Emissions from manufacturing and other non-operating lifecycle processes allocated to the measured system or workload."
+  }
+ ]
+}

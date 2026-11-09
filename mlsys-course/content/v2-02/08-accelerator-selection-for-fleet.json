@@ -1,0 +1,81 @@
+{
+ "title": "Accelerator Selection for Fleet Workloads",
+ "summary": "Select the procurement metric that matches the binding constraint of a serving workload.",
+ "source": {
+  "chapter": "v2-02",
+  "sections": [
+   "Accelerator Selection for Fleet Workloads",
+   "Precision and throughput trade-offs",
+   "Benchmarking accelerator performance",
+   "Inference-specific infrastructure considerations",
+   "The accelerator decision matrix"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Select the procurement metric that matches the binding constraint of a serving workload\n- Calculate how quantization changes serving device counts and explain why payload reduction does not translate directly into latency\n- Distinguish the per-device binding constraint from the constraint that binds the fleet as a whole\n- Interpret benchmark results under the measurement rules that produced them"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Compute Infrastructure, § Accelerator Selection for Fleet Workloads",
+   "md": "The same H100 that sustains 30--50 percent of peak throughput during well-tuned large-batch training may achieve less than 5 percent utilization during single-request inference, because the binding constraint shifts from arithmetic to memory bandwidth. An accelerator's compute throughput, memory bandwidth, memory capacity, and power consumption are meaningful only in relation to the workload running on it. Selecting the right accelerator therefore requires mapping each workload archetype to its position on the roofline plot and identifying which physical resource dominates its performance."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Precision and throughput trade-offs\n- Benchmarking accelerator performance\n- Inference-specific infrastructure considerations\n- The accelerator decision matrix\n\nPay attention to: Choosing the procurement metric from the binding per-device constraint; Quantization as a change in device count for serving; Per-device versus fleet-level binding constraints; Reading benchmark results under their measurement rules."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: The 175B running model needs about 350 GB for FP16 weights. Using 80 GB accelerators, how many devices are needed for the weights alone at FP16, INT8, and INT4, and why does a fourfold smaller payload not guarantee a fourfold lower token latency?",
+   "md": "The weights need at least five devices at FP16 (350 GB), three at INT8 (175 GB), and two at INT4 (87.5 GB). These are weight-only capacity bounds; quantization metadata, key-value cache, and workspace also need memory. Reading 4-bit instead of 16-bit weights quarters the raw payload, but kernel support, dequantization work, other memory traffic, any change in device count and communication, and validation of model quality determine the realized latency gain."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-02-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team will serve a dense language model at batch size 1 with a strict per-token latency target. Which metric should dominate its comparison of candidate accelerators?",
+     "explanation": "The correct answer is B. Batch-1 decode sits near 1 FLOP/byte, far below the ridge point, so the weight-streaming time set by memory bandwidth dominates and more arithmetic barely changes it. Peak FLOP/s raises a nonbinding ceiling, host memory is far slower than HBM, and independent replicas need not send every request across the cluster fabric. Measured throughput at the latency target confirms the screen.",
+     "hint": "Think about: select the procurement metric that matches the binding constraint of a serving workload.",
+     "type": "single",
+     "options": [
+      "Peak FP8 TFLOP/s per dollar, because decode performs two floating-point operations per parameter.",
+      "Memory bandwidth per dollar, confirmed by measured throughput at the required latency, because batch-1 decode streams the weights with little reuse.",
+      "Host DRAM capacity per dollar, because the weights should be served from host memory.",
+      "Bisection bandwidth of the cluster fabric, because every request crosses the network."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A workload whose binding constraint on each device is arithmetic throughput cannot be communication-bound across the cluster.",
+     "explanation": "False. The decision matrix names the per-device constraint, what one accelerator must supply. Whether the fleet as a whole is limited by compute, communication, or coordination is a separate question. Large-batch LLM training can be compute-bound on each device and still be communication-bound across the cluster, as Archetype A (GPT-4/Llama-3) is.",
+     "hint": "Think about: distinguish the per-device binding constraint from the constraint that binds the fleet as a whole.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "MLPerf results that fix the workload and the quality target so that different implementations can be compared belong to the ____ division.",
+     "explanation": "The correct answer is closed. The open division permits broader changes. Neither predicts a deployment automatically, so a procurement team must compare the submission's workload, software, precision, hardware count, and quality target with the intended system.",
+     "hint": "Think about: interpret benchmark results under the measurement rules that produced them.",
+     "type": "fill",
+     "answer": [
+      "The correct answer is closed"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now select the procurement metric that matches the binding constraint of a serving workload.",
+    "You can now calculate how quantization changes serving device counts and explain why payload reduction does not translate directly into latency.",
+    "You can now distinguish the per-device binding constraint from the constraint that binds the fleet as a whole.",
+    "You can now interpret benchmark results under the measurement rules that produced them."
+   ]
+  }
+ ]
+}

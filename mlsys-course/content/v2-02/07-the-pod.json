@@ -1,0 +1,75 @@
+{
+ "title": "The Pod",
+ "summary": "Explain the warehouse-scale-computer perspective and its implications for how pod-scale infrastructure is engineered.",
+ "source": {
+  "chapter": "v2-02",
+  "sections": [
+   "The Pod",
+   "The pod as a warehouse-scale computer"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain the warehouse-scale-computer perspective and its implications for how pod-scale infrastructure is engineered\n- Calculate distributed scaling efficiency to evaluate the economic returns of cluster scale-out and identify diagnostic profiling steps\n- Contrast the impact of gray failures versus hard crashes on cluster-wide throughput in synchronous distributed training\n- Identify the Fat-Tree network topology and its role in delivering non-blocking full bisection bandwidth for distributed training\n- Sequence the worked training-time accounting model and distinguish its local efficiency and incremental overhead denominators"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Compute Infrastructure, § The Pod",
+   "md": "Training our … model on a single DGX H100 node (8 GPUs, … of aggregate dense FP16 peak) would take about … years at the efficiency assumed below, even if the model state could fit. Roughly … nodes bring the compute-only time down to two weeks, and about … nodes bring it to a single day, before any communication or recovery overhead. A pod is the cluster-scale unit that makes this possible: many racks under one high-speed fabric, power envelope, and cooling design."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: The Warehouse-Scale Computer (WSC) thesis applied to pod-scale ML infrastructure; Pod network topologies: Fat-tree full bisection vs. Torus nearest-neighbor locality; Scaling efficiency metrics and diminishing returns at cluster scale; Gray failures, stragglers, and fleet-level cross-layer observability."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A team doubles a distributed training cluster from 1,024 to 2,048 GPUs and observes wall-clock training time drop from 14 days to 10 days rather than the ideal 7 days. Calculate the realized scaling efficiency, determine whether the cost per useful FLOP increased, and identify the next diagnostic step.",
+   "md": "Scaling efficiency is $\\eta = \\text{Speedup} / (\\text{Hardware Factor}) = (14 / 10) / (2048 / 1024) = 1.4 / 2.0 = 0.70$ (70%). The team pays for 2,048 GPUs but extracts the useful throughput of only $\\approx 1{,}434$ GPUs, so cost per useful FLOP increases by $\\approx 43\\%$ (\\$1 / 0.70 - 1$). The scale-out is economically justified only if saving 4 calendar days has high strategic value. To diagnose the \\$30\\%$ efficiency loss, the team should profile the step-time breakdown to measure whether exposed gradient AllReduce communication, pipeline bubbles, or I/O stragglers expanded at the larger scale."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-02-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Barroso and Hölzle's Warehouse-Scale Computer (WSC) thesis reframes an ML pod from 'a room full of computers' to 'a single computer that fills a room.' Which practical consequence most directly shapes infrastructure engineering at pod scale?",
+     "explanation": "The correct answer is A. In the WSC paradigm, the building is the computer. The high-speed network fabric (InfiniBand/RoCE) functions as an internal system bus, distributed storage functions as a disk hierarchy, and the cluster orchestrator schedules resources like an OS kernel. Subsystems must be co-designed for tight, synchronous execution. The claim that building-scale systems share a single hardware cache-coherence bus is false. The description of embarrassingly parallel batch jobs characterizes traditional web scraping rather than synchronously coupled ML training. The claim that failure rates decrease with scale is backwards: component failures compound linearly, occurring every few hours at warehouse scale.",
+     "hint": "Think about: explain the warehouse-scale-computer perspective and its implications for how pod-scale infrastructure is engineered.",
+     "type": "single",
+     "options": [
+      "The entire facility is engineered as a unified machine where the network fabric acts as the system bus, distributed storage acts as the disk subsystem, and the cluster orchestrator acts as the operating system.",
+      "All servers share a single hardware cache-coherence bus across the entire building, eliminating the need for message-passing software.",
+      "Workloads are structured as embarrassingly parallel, uncoordinated batch jobs that completely isolate nodes from one another.",
+      "Component failure rates decrease at warehouse scale, allowing fault tolerance to be managed as an offline manual process."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A synchronous training job spans 10,000 GPUs. Assume a hard crash is detected and recovered from a valid checkpoint, while a persistent gray failure remains undetected and delays dependent steps. Why can the gray failure cost more useful work over a long run?",
+     "explanation": "The correct answer is C. A late required participant can delay dependent work in its synchronous job or process group. A hard failure has a bounded interruption only under the stated detection and recovery assumptions; an undetected slowdown accumulates loss for as long as it persists. Which costs more depends on the exposed delay, its duration, and recovery cost. This does not imply that unrelated jobs wait, that detection is immediate, or that every gray failure preserves numerical correctness.",
+     "hint": "Think about: contrast the impact of gray failures versus hard crashes on cluster-wide throughput in synchronous distributed training.",
+     "type": "single",
+     "options": [
+      "Gray failures permanently corrupt the model weights, forcing the entire training run to restart from step zero.",
+      "Gray failures trip circuit breakers in the rack, causing cascading facility blackouts.",
+      "The hard crash incurs detection, restart, and lost-work costs, while the undetected straggler can repeatedly delay the participating job until it is diagnosed.",
+      "Gray failures disable FP8 Tensor Cores, silently falling back to double-precision FP64 and exhausting memory."
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the warehouse-scale-computer perspective and its implications for how pod-scale infrastructure is engineered.",
+    "You can now calculate distributed scaling efficiency to evaluate the economic returns of cluster scale-out and identify diagnostic profiling steps.",
+    "You can now contrast the impact of gray failures versus hard crashes on cluster-wide throughput in synchronous distributed training.",
+    "You can now identify the Fat-Tree network topology and its role in delivering non-blocking full bisection bandwidth for distributed training."
+   ]
+  }
+ ]
+}

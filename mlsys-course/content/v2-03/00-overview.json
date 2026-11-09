@@ -1,0 +1,281 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v2-03",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Network Fabrics** (Vol II). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Network Fabrics, Purpose",
+   "md": "A single accelerator can perform trillions of operations per second, but distributed training requires devices to exchange results before dependent work can proceed. When network capacity cannot keep pace with computation, accelerators sit idle, and adding more devices can increase the waiting instead of shortening the run. The resulting cost extends beyond the network equipment: an inexpensive connection can leave expensive compute capacity unused throughout a long experiment."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Synchronization Backbone",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "How ML Networking Inverts Data-Center As",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Level 1 Wire and Link",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Level 2 Transport and the Performance Mo",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Level 3 Switch and Topology",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Level 4 Fabric Behavior, Congestion, and",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Level 5 Cluster Design and Case Studies",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**ML traffic inversion**",
+     "Synchronous training releases a few large, correlated flows whose completion gates a job-wide barrier, so a fabric is judged by collective completion time and its tail, static ECMP hashing makes persistent hot spots, and oversubscription becomes a workload decision. The chapter defines bulk synchronous parallel (BSP) execution, the barrier model that distributed training later trades against SSP and ASP, and tail latency (p99) at its first use, the completion-time measure later chapters reuse."
+    ],
+    [
+     "**RDMA reliable-delivery contract**",
+     "Kernel-bypass RDMA with GPUDirect cuts per-message startup to microseconds, and InfiniBand and RoCE differ in where they place losslessness, so the requirement is reliable completion with a bounded recovery tail, a deployment contract rather than a property of RDMA."
+    ],
+    [
+     "**Alpha-beta model**",
+     "Point-to-point message time T(n) = alpha + n/beta splits at the crossover n* = alpha*beta, so small control and pipeline messages are startup-bound and barely gain from faster links while multi-MB gradient shards are bandwidth-bound."
+    ],
+    [
+     "**Bisection bandwidth and topology economics**",
+     "Traffic that crosses a cut is bounded by bisection bandwidth, so k:1 oversubscription multiplies the cut-crossing time by k, and fat-tree, torus, and dragonfly trade cut capacity against switches and cabling as a price-per-bisection-byte decision."
+    ],
+    [
+     "**Traffic-matched topology**",
+     "Wiring should follow the parallelism plan: rail-optimized fabrics isolate same-rank data-parallel groups, a torus suits dimension-ordered rings but congests under MoE AllToAll, and no single link-rate benchmark predicts training performance, while optical circuit switching lets a pod rewire its topology per job and around failures at millisecond reconfiguration cost."
+    ],
+    [
+     "**Lossless fabric hazards**",
+     "PFC prevents drops by pausing senders, which turns one slow drainer into congestion spreading and can freeze a lossless class through a buffer-dependency cycle, so operators move toward PFC-free, selective-retransmit transports."
+    ],
+    [
+     "**Fabric behavior under load**",
+     "Under synchronized load end-to-end congestion control is a latency requirement, adaptive routing repairs ECMP collisions without adding capacity, and incast is spread in time, space, and priority rather than eliminated."
+    ],
+    [
+     "**Silent fabric waste**",
+     "Fabric faults usually show up as silent waste rather than errors (a link trained at half rate stays up), so detection compares delivered throughput against a baseline and diagnoses top-down through utilization, collective logs, RDMA tests, congestion counters, and physical errors."
+    ],
+    [
+     "**Link physics sets cluster geometry**",
+     "PAM4 signaling forces FEC that adds per-hop latency, and copper reach shrinks as lane rate rises, so the cost and power of optics push accelerators into dense racks with copper inside and optics only where distance demands it."
+    ],
+    [
+     "**Fabric sharing and isolation**",
+     "SR-IOV, virtual lanes, traffic classes, and network slices let tenants and checkpoint bursts share a fabric with the synchronization path, but they only reduce interference, and a configured slice is a hard ceiling a job cannot burst past."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$1. Latency-dominated (n < \\alpha\\beta): Transfer time is dominated by the startup cost \\alpha. Small control messages and pipeline bubbles fall here.$$\n\n$$2. Bandwidth-dominated (n > \\alpha\\beta): Transfer time scales with n/\\beta. Gradient AllReduce typically falls here.$$\n\n$$Apply T(n) = \\alpha + n/\\beta for a 4 KB control message and a 350 MB gradient shard.$$\n\n$$InfiniBand: 1.5\\mu s + 4 KB/50 GB/s = 1.5 + 0.08 = \\mathbf{1.58 \\mu s}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v2-03-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "ML traffic inversion",
+     "back": "Synchronous training releases a few large, correlated flows whose completion gates a job-wide barrier, so a fabric is judged by collective completion time and its tail, static ECMP hashing makes persistent hot spots, and oversubscription becomes a workload decision. The chapter defines bulk synchronous parallel (BSP) execution, the barrier model that distributed training later trades against SSP and ASP, and tail latency (p99) at its first use, the completion-time measure later chapters reuse."
+    },
+    {
+     "front": "RDMA reliable-delivery contract",
+     "back": "Kernel-bypass RDMA with GPUDirect cuts per-message startup to microseconds, and InfiniBand and RoCE differ in where they place losslessness, so the requirement is reliable completion with a bounded recovery tail, a deployment contract rather than a property of RDMA."
+    },
+    {
+     "front": "Alpha-beta model",
+     "back": "Point-to-point message time T(n) = alpha + n/beta splits at the crossover n* = alpha*beta, so small control and pipeline messages are startup-bound and barely gain from faster links while multi-MB gradient shards are bandwidth-bound."
+    },
+    {
+     "front": "Bisection bandwidth and topology economics",
+     "back": "Traffic that crosses a cut is bounded by bisection bandwidth, so k:1 oversubscription multiplies the cut-crossing time by k, and fat-tree, torus, and dragonfly trade cut capacity against switches and cabling as a price-per-bisection-byte decision."
+    },
+    {
+     "front": "Traffic-matched topology",
+     "back": "Wiring should follow the parallelism plan: rail-optimized fabrics isolate same-rank data-parallel groups, a torus suits dimension-ordered rings but congests under MoE AllToAll, and no single link-rate benchmark predicts training performance, while optical circuit switching lets a pod rewire its topology per job and around failures at millisecond reconfiguration cost."
+    },
+    {
+     "front": "Lossless fabric hazards",
+     "back": "PFC prevents drops by pausing senders, which turns one slow drainer into congestion spreading and can freeze a lossless class through a buffer-dependency cycle, so operators move toward PFC-free, selective-retransmit transports."
+    },
+    {
+     "front": "Fabric behavior under load",
+     "back": "Under synchronized load end-to-end congestion control is a latency requirement, adaptive routing repairs ECMP collisions without adding capacity, and incast is spread in time, space, and priority rather than eliminated."
+    },
+    {
+     "front": "Silent fabric waste",
+     "back": "Fabric faults usually show up as silent waste rather than errors (a link trained at half rate stays up), so detection compares delivered throughput against a baseline and diagnoses top-down through utilization, collective logs, RDMA tests, congestion counters, and physical errors."
+    },
+    {
+     "front": "Link physics sets cluster geometry",
+     "back": "PAM4 signaling forces FEC that adds per-hop latency, and copper reach shrinks as lane rate rises, so the cost and power of optics push accelerators into dense racks with copper inside and optics only where distance demands it."
+    },
+    {
+     "front": "Fabric sharing and isolation",
+     "back": "SR-IOV, virtual lanes, traffic classes, and network slices let tenants and checkpoint bursts share a fabric with the synchronization path, but they only reduce interference, and a configured slice is a hard ceiling a job cannot burst past."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v2-03-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **ML traffic inversion**?",
+     "options": [
+      "Kernel-bypass RDMA with GPUDirect cuts per-message startup to microseconds, and InfiniBand and RoCE differ in where they place losslessness, so the requirement is reliable completion with a bounded recovery tail, a deployment contract rather than a property of RDMA.",
+      "Synchronous training releases a few large, correlated flows whose completion gates a job-wide barrier, so a fabric is judged by collective completion time and its tail, static ECMP hashing makes persistent hot spots, and oversubscription becomes a workload decision. The chapter defines bulk synchronous parallel (BSP) execution, the barrier model that distributed training later trades against SSP and ASP, and tail latency (p99) at its first use, the completion-time measure later chapters reuse.",
+      "SR-IOV, virtual lanes, traffic classes, and network slices let tenants and checkpoint bursts share a fabric with the synchronization path, but they only reduce interference, and a configured slice is a hard ceiling a job cannot burst past.",
+      "PFC prevents drops by pausing senders, which turns one slow drainer into congestion spreading and can freeze a lossless class through a buffer-dependency cycle, so operators move toward PFC-free, selective-retransmit transports."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is ML traffic inversion itself, not a neighbouring idea.",
+     "explanation": "**ML traffic inversion:** Synchronous training releases a few large, correlated flows whose completion gates a job-wide barrier, so a fabric is judged by collective completion time and its tail, static ECMP hashing makes persistent hot spots, and oversubscription becomes a workload decision. The chapter defines bulk synchronous parallel (BSP) execution, the barrier model that distributed training later trades against SSP and ASP, and tail latency (p99) at its first use, the completion-time measure later chapters reuse."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **RDMA reliable-delivery contract**?",
+     "options": [
+      "PFC prevents drops by pausing senders, which turns one slow drainer into congestion spreading and can freeze a lossless class through a buffer-dependency cycle, so operators move toward PFC-free, selective-retransmit transports.",
+      "Point-to-point message time T(n) = alpha + n/beta splits at the crossover n* = alpha*beta, so small control and pipeline messages are startup-bound and barely gain from faster links while multi-MB gradient shards are bandwidth-bound.",
+      "Kernel-bypass RDMA with GPUDirect cuts per-message startup to microseconds, and InfiniBand and RoCE differ in where they place losslessness, so the requirement is reliable completion with a bounded recovery tail, a deployment contract rather than a property of RDMA.",
+      "Fabric faults usually show up as silent waste rather than errors (a link trained at half rate stays up), so detection compares delivered throughput against a baseline and diagnoses top-down through utilization, collective logs, RDMA tests, congestion counters, and physical errors."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is RDMA reliable-delivery contract itself, not a neighbouring idea.",
+     "explanation": "**RDMA reliable-delivery contract:** Kernel-bypass RDMA with GPUDirect cuts per-message startup to microseconds, and InfiniBand and RoCE differ in where they place losslessness, so the requirement is reliable completion with a bounded recovery tail, a deployment contract rather than a property of RDMA."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Alpha-beta model**?",
+     "options": [
+      "SR-IOV, virtual lanes, traffic classes, and network slices let tenants and checkpoint bursts share a fabric with the synchronization path, but they only reduce interference, and a configured slice is a hard ceiling a job cannot burst past.",
+      "Kernel-bypass RDMA with GPUDirect cuts per-message startup to microseconds, and InfiniBand and RoCE differ in where they place losslessness, so the requirement is reliable completion with a bounded recovery tail, a deployment contract rather than a property of RDMA.",
+      "Point-to-point message time T(n) = alpha + n/beta splits at the crossover n* = alpha*beta, so small control and pipeline messages are startup-bound and barely gain from faster links while multi-MB gradient shards are bandwidth-bound.",
+      "PFC prevents drops by pausing senders, which turns one slow drainer into congestion spreading and can freeze a lossless class through a buffer-dependency cycle, so operators move toward PFC-free, selective-retransmit transports."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Alpha-beta model itself, not a neighbouring idea.",
+     "explanation": "**Alpha-beta model:** Point-to-point message time T(n) = alpha + n/beta splits at the crossover n* = alpha*beta, so small control and pipeline messages are startup-bound and barely gain from faster links while multi-MB gradient shards are bandwidth-bound."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Bisection bandwidth and topology economics**?",
+     "options": [
+      "Wiring should follow the parallelism plan: rail-optimized fabrics isolate same-rank data-parallel groups, a torus suits dimension-ordered rings but congests under MoE AllToAll, and no single link-rate benchmark predicts training performance, while optical circuit switching lets a pod rewire its topology per job and around failures at millisecond reconfiguration cost.",
+      "Point-to-point message time T(n) = alpha + n/beta splits at the crossover n* = alpha*beta, so small control and pipeline messages are startup-bound and barely gain from faster links while multi-MB gradient shards are bandwidth-bound.",
+      "Traffic that crosses a cut is bounded by bisection bandwidth, so k:1 oversubscription multiplies the cut-crossing time by k, and fat-tree, torus, and dragonfly trade cut capacity against switches and cabling as a price-per-bisection-byte decision.",
+      "Kernel-bypass RDMA with GPUDirect cuts per-message startup to microseconds, and InfiniBand and RoCE differ in where they place losslessness, so the requirement is reliable completion with a bounded recovery tail, a deployment contract rather than a property of RDMA."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Bisection bandwidth and topology economics itself, not a neighbouring idea.",
+     "explanation": "**Bisection bandwidth and topology economics:** Traffic that crosses a cut is bounded by bisection bandwidth, so k:1 oversubscription multiplies the cut-crossing time by k, and fat-tree, torus, and dragonfly trade cut capacity against switches and cabling as a price-per-bisection-byte decision."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Traffic-matched topology**?",
+     "options": [
+      "Point-to-point message time T(n) = alpha + n/beta splits at the crossover n* = alpha*beta, so small control and pipeline messages are startup-bound and barely gain from faster links while multi-MB gradient shards are bandwidth-bound.",
+      "PAM4 signaling forces FEC that adds per-hop latency, and copper reach shrinks as lane rate rises, so the cost and power of optics push accelerators into dense racks with copper inside and optics only where distance demands it.",
+      "Synchronous training releases a few large, correlated flows whose completion gates a job-wide barrier, so a fabric is judged by collective completion time and its tail, static ECMP hashing makes persistent hot spots, and oversubscription becomes a workload decision. The chapter defines bulk synchronous parallel (BSP) execution, the barrier model that distributed training later trades against SSP and ASP, and tail latency (p99) at its first use, the completion-time measure later chapters reuse.",
+      "Wiring should follow the parallelism plan: rail-optimized fabrics isolate same-rank data-parallel groups, a torus suits dimension-ordered rings but congests under MoE AllToAll, and no single link-rate benchmark predicts training performance, while optical circuit switching lets a pod rewire its topology per job and around failures at millisecond reconfiguration cost."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Traffic-matched topology itself, not a neighbouring idea.",
+     "explanation": "**Traffic-matched topology:** Wiring should follow the parallelism plan: rail-optimized fabrics isolate same-rank data-parallel groups, a torus suits dimension-ordered rings but congests under MoE AllToAll, and no single link-rate benchmark predicts training performance, while optical circuit switching lets a pod rewire its topology per job and around failures at millisecond reconfiguration cost."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "ML traffic inversion: Synchronous training releases a few large, correlated flows whose completion gates a job-wide barrier, so a fabric is judged by collective completion time and its tail, static ECMP hashing makes persistent hot spots, and oversubscription becomes a workload decision.",
+    "RDMA reliable-delivery contract: Kernel-bypass RDMA with GPUDirect cuts per-message startup to microseconds, and InfiniBand and RoCE differ in where they place losslessness, so the requirement is reliable completion with a bounded recovery tail, a deployment contract rather than a property of RDMA.",
+    "Alpha-beta model: Point-to-point message time T(n) = alpha + n/beta splits at the crossover n* = alpha*beta, so small control and pipeline messages are startup-bound and barely gain from faster links while multi-MB gradient shards are bandwidth-bound.",
+    "Bisection bandwidth and topology economics: Traffic that crosses a cut is bounded by bisection bandwidth, so k:1 oversubscription multiplies the cut-crossing time by k, and fat-tree, torus, and dragonfly trade cut capacity against switches and cabling as a price-per-bisection-byte decision."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "ML traffic inversion",
+   "def": "Synchronous training releases a few large, correlated flows whose completion gates a job-wide barrier, so a fabric is judged by collective completion time and its tail, static ECMP hashing makes persistent hot spots, and oversubscription becomes a workload decision. The chapter defines bulk synchronous parallel (BSP) execution, the barrier model that distributed training later trades against SSP and ASP, and tail latency (p99) at its first use, the completion-time measure later chapters reuse."
+  },
+  {
+   "term": "RDMA reliable-delivery contract",
+   "def": "Kernel-bypass RDMA with GPUDirect cuts per-message startup to microseconds, and InfiniBand and RoCE differ in where they place losslessness, so the requirement is reliable completion with a bounded recovery tail, a deployment contract rather than a property of RDMA."
+  },
+  {
+   "term": "Alpha-beta model",
+   "def": "Point-to-point message time T(n) = alpha + n/beta splits at the crossover n* = alpha*beta, so small control and pipeline messages are startup-bound and barely gain from faster links while multi-MB gradient shards are bandwidth-bound."
+  },
+  {
+   "term": "Bisection bandwidth and topology economics",
+   "def": "Traffic that crosses a cut is bounded by bisection bandwidth, so k:1 oversubscription multiplies the cut-crossing time by k, and fat-tree, torus, and dragonfly trade cut capacity against switches and cabling as a price-per-bisection-byte decision."
+  },
+  {
+   "term": "Traffic-matched topology",
+   "def": "Wiring should follow the parallelism plan: rail-optimized fabrics isolate same-rank data-parallel groups, a torus suits dimension-ordered rings but congests under MoE AllToAll, and no single link-rate benchmark predicts training performance, while optical circuit switching lets a pod rewire its topology per job and around failures at millisecond reconfiguration cost."
+  },
+  {
+   "term": "Lossless fabric hazards",
+   "def": "PFC prevents drops by pausing senders, which turns one slow drainer into congestion spreading and can freeze a lossless class through a buffer-dependency cycle, so operators move toward PFC-free, selective-retransmit transports."
+  },
+  {
+   "term": "Fabric behavior under load",
+   "def": "Under synchronized load end-to-end congestion control is a latency requirement, adaptive routing repairs ECMP collisions without adding capacity, and incast is spread in time, space, and priority rather than eliminated."
+  },
+  {
+   "term": "Silent fabric waste",
+   "def": "Fabric faults usually show up as silent waste rather than errors (a link trained at half rate stays up), so detection compares delivered throughput against a baseline and diagnoses top-down through utilization, collective logs, RDMA tests, congestion counters, and physical errors."
+  },
+  {
+   "term": "Link physics sets cluster geometry",
+   "def": "PAM4 signaling forces FEC that adds per-hop latency, and copper reach shrinks as lane rate rises, so the cost and power of optics push accelerators into dense racks with copper inside and optics only where distance demands it."
+  },
+  {
+   "term": "Fabric sharing and isolation",
+   "def": "SR-IOV, virtual lanes, traffic classes, and network slices let tenants and checkpoint bursts share a fabric with the synchronization path, but they only reduce interference, and a configured slice is a hard ceiling a job cannot burst past."
+  }
+ ]
+}

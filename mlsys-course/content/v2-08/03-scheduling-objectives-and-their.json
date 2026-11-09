@@ -1,0 +1,69 @@
+{
+ "title": "Scheduling Objectives and Their Conflicts",
+ "summary": "Define job slowdown as an outcome measure of the delay a job experiences.",
+ "source": {
+  "chapter": "v2-08",
+  "sections": [
+   "Scheduling Objectives and Their Conflicts"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Define job slowdown as an outcome measure of the delay a job experiences\n- Distinguish resource-share fairness from completion-delay fairness and name the metrics for each\n- Calculate the expected queue waiting time multiplier for heavy-tailed ML workloads compared to uniform workloads using the Pollaczek-Khinchine formula"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Orchestration, § Scheduling Objectives and Their Conflicts",
+   "md": "Giving a large training gang an unbroken allocation for weeks amortizes launch and data-movement overhead, but leaves short interactive debugging jobs waiting hours in the queue. Preempting the large gang so short jobs start immediately burns cluster capacity on checkpoint saves and restarts. Every scheduling policy trades four competing objectives against one another: throughput, fairness, latency, and cost efficiency. Throughput benefits from allocations that sustain useful work and amortize launch, interruption, and data-movement overhead; a large allocation helps only while the job scales effectively."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Slowdown as an outcome measure of fairness; Resource-share fairness versus completion-delay fairness; Waiting time versus utilization and service-time variability (M/G/1)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Two teams receive equal dominant shares of the fleet over a month, yet one team's jobs routinely wait days. Which measurements expose this unfairness, and why does share parity miss it?",
+   "md": "Share parity measures allocated resources, not the delay users experience before obtaining results. The scheduler should report the distribution of slowdown by user and job class and the age of the oldest pending feasible job: slowdown exposes unequal delay, and maximum feasible wait exposes starvation risk. A policy can be fair in GPU-hours while unfair in the time users wait."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-08-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A one-hour job waits nine hours in the queue and then runs for its isolated runtime of one hour. Its ____, the ratio of its queueing-plus-running time to its isolated runtime, is 10, even if its team eventually receives its nominal GPU share.",
+     "explanation": "slowdown. Slowdown divides the time from submission to completion by the isolated runtime, here (9 + 1) / 1 = 10. It measures the delay a job experiences, which resource-share parity cannot reveal.",
+     "hint": "Think about: define job slowdown as an outcome measure of the delay a job experiences.",
+     "type": "fill",
+     "answer": [
+      "slowdown"
+     ]
+    },
+    {
+     "q": "Based on the Pollaczek-Khinchine queue model $\\frac{W_q}{1/\\mu} = \\frac{\\rho}{1-\\rho} \\cdot \\frac{1+C_s^2}{2}$, under this illustrative single-server approximation, how does a queue with heavy-tailed job durations ($C_s = 3$) operating at $\\rho = 0.8$ utilization compare in expected waiting time ($W_q$) to a queue with the same mean service time and exponential durations ($C_s = 1$) at the same utilization?",
+     "explanation": "The correct answer is B. For rho = 0.8, the utilization multiplier fracrho1-rho = frac0.80.2 = 4. For an exponential distribution (C_s = 1), the variance term is frac1+1^22 = 1, yielding W_q = 4 × (1/mu). For an ML cluster with heavy-tailed durations (C_s = 3), the variance term is frac1+3^22 = 5, yielding W_q = 4 × 5 = 20 × (1/mu), which represents a \\$5× increase in expected wait time. The assertion of a \\$2× increase mistakenly scales linearly with C_s rather than quadratic variance. The \\$9× multiplier erroneously squares C_s without averaging with the baseline offset. The claim of no change ignores service-time variability. This single-server model illustrates queue pressure; a gang-scheduled fleet requires its own measured arrival, placement, and service behavior.",
+     "hint": "Think about: calculate the expected queue waiting time multiplier for heavy-tailed ML workloads compared to uniform workloads using the Pollaczek-Khinchine formula.",
+     "type": "single",
+     "options": [
+      "The ML cluster experiences a \\$2× increase in expected wait time (\\$8× vs. \\$4× the average job duration).",
+      "The ML cluster experiences a \\$5× increase in expected wait time (\\$20× vs. \\$4× the average job duration).",
+      "The ML cluster experiences a \\$9× increase in expected wait time (\\$36× vs. \\$4× the average job duration).",
+      "The ML cluster experiences no change in expected wait time because utilization $\\rho$ dominates the Pollaczek-Khinchine denominator."
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now define job slowdown as an outcome measure of the delay a job experiences.",
+    "You can now distinguish resource-share fairness from completion-delay fairness and name the metrics for each.",
+    "You can now calculate the expected queue waiting time multiplier for heavy-tailed ML workloads compared to uniform workloads using the Pollaczek-Khinchine formula."
+   ]
+  }
+ ]
+}

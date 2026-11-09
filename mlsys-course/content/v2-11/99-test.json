@@ -1,0 +1,148 @@
+{
+ "title": "Test: Edge Intelligence",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-11-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "Gradient checkpointing reduces the total electrical energy consumed by an on-device training workload because it reduces peak SRAM/DRAM memory allocation.",
+     "explanation": "False. Checkpointing trades saved activations for recomputation. The extra arithmetic can increase energy, while reduced memory traffic or avoiding spill may offset that cost. Lower peak allocation alone therefore does not determine energy per update; measure the complete workload on the target device.",
+     "hint": "Think about: evaluate the compute, memory, and energy trade-offs of gradient checkpointing in edge training.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A development team attempts to deploy an on-device personalization algorithm across an IoT ecosystem spanning both 64 MHz ARM Cortex-M microcontrollers (with 256 KB SRAM) and flagship mobile phones (with 12 GB RAM). The team uses identical full-model fine-tuning hyperparameters across all endpoints. What pitfall does this design encounter?",
+     "explanation": "The correct answer is B. The stated memory capacities differ by several orders of magnitude, but they do not establish a CPU-throughput ratio or NPU underutilization. The same model can have different residency, backward support, and sustained costs on each device. Compare measured update paths under matched tasks and operating states, then choose and validate feasible tier-specific policies; full fine-tuning is not automatically admissible on either class.",
+     "hint": "Think about: analyze system failures resulting from ignoring hardware heterogeneity across microcontroller and mobile edge tiers.",
+     "type": "single",
+     "options": [
+      "Mobile phones will refuse to execute floating-point operations because microcontrollers only understand binary code.",
+      "It ignores differences in available working memory, supported update operators, and energy budgets; an identical policy needs a separate feasibility and quality check on each device class.",
+      "Microcontroller clock speeds will accelerate to 3 GHz due to thermal resonance with mobile phones.",
+      "Full-model fine-tuning requires all microcontrollers to be physically connected via optical fiber cables."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Consider the end-to-end memory lifecycle of a single gradient update during on-device backpropagation for a convolutional layer. Order the following operational stages from first to last in execution sequence:",
+     "explanation": "The correct order is (3) -> (2) -> (4) -> (1).\nFirst, (3) Fetch batch inputs into SRAM buffer prepares the raw or preprocessed batch tensors in accessible working memory.\nSecond, (2) Forward pass computes and caches layer activations sequentially through the network layers, saving feature maps needed for gradient calculation.\nThird, (4) Loss evaluation and backward pass calculates layer gradients using cached activations, traversing backward from the loss through the computation graph.\nFinally, (1) Discard intermediate activations and compute parameter updates in optimizer state applies the optimizer step (e.g., SGD or Adam) to update weights, freeing cached activations and gradients.",
+     "hint": "Think about: analyze the chronological memory allocation and deallocation stages of an on-device backpropagation training step.",
+     "type": "order",
+     "items": [
+      "Fetch batch inputs into SRAM buffer",
+      "Forward pass computes and caches layer activations",
+      "Loss evaluation and backward pass calculates layer gradients using cached activations",
+      "Discard intermediate activations and compute parameter updates in optimizer state"
+     ]
+    },
+    {
+     "q": "A common fallacy in federated learning treats the central coordinator as a simple stateless aggregation server, ignoring that production fleet coordination is an active control loop that must manage client ____ criteria (such as verifying that devices are charging, on unmetered Wi-Fi, and thermally stable).",
+     "explanation": "eligibility. Admission checks enforce device resource and availability requirements before local training, protecting foreground service and reducing round failures.",
+     "hint": "Think about: analyze client eligibility filtering and admission control requirements in production federated orchestration.",
+     "type": "fill",
+     "answer": [
+      "eligibility"
+     ]
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **FedAvg under sampling and non-IID data**?",
+     "options": [
+      "The runtime admits an adaptation window only if its energy, thermal, and foreground-latency tests all hold, charging relaxes only the energy test, and admission is revoked when the measured envelope changes.",
+      "An on-device update must fit its peak training working set inside the allowance the OS grants a background task, a few hundred MB on a phone rather than its installed RAM, so a model whose weights fit easily can still fail to train.",
+      "FedAvg is local SGD under a sampled cohort and non-IID shards, so local epochs that save uplink rounds also pull clients toward their own optima (client drift), and the comparison is measured time to a quality target, not rounds.",
+      "On-device data is sparse, weakly labeled, non-IID, and unshuffleable, so few-shot sets, streaming updates, replay buffers, and compressed representations each spend a different scarce resource, and an embedding is not anonymized by being low-dimensional."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is FedAvg under sampling and non-IID data itself, not a neighbouring idea.",
+     "explanation": "**FedAvg under sampling and non-IID data:** FedAvg is local SGD under a sampled cohort and non-IID shards, so local epochs that save uplink rounds also pull clients toward their own optima (client drift), and the comparison is measured time to a quality target, not rounds."
+    },
+    {
+     "q": "In structured parameter adaptation, a technique that approximates a full weight matrix update FiniteChangeWeightMatrix in mathbbR^WeightMatrixRowCount × WeightMatrixColumnCount as the product of a low-rank up-projection AdapterUpProjectionMatrix in mathbbR^WeightMatrixRowCount × AdapterRank and down-projection AdapterDownProjectionMatrix in mathbbR^AdapterRank × WeightMatrixColumnCount (where AdapterRank ll min(WeightMatrixRowCount, WeightMatrixColumnCount)) is known as ____ (low-rank adaptation).",
+     "explanation": "LoRA. Low-rank factors restrict the trainable update to a compact subspace, reducing parameter and optimizer-state storage relative to full-matrix adaptation.",
+     "hint": "Think about: apply low-rank matrix decomposition principles to parameter-efficient edge fine-tuning.",
+     "type": "fill",
+     "answer": [
+      "LoRA"
+     ]
+    },
+    {
+     "q": "An edge health tracker adapts a continuous activity classifier to a user's walking gait over several weeks. When the user starts cycling, the device adapts its model, but suddenly misclassifies normal walking as cycling. What core failure mode has occurred, and why did it happen?",
+     "explanation": "The correct answer is D. Catastrophic forgetting is the fundamental stability failure of sequential learning in neural networks: when a model updates parameters on a new data stream (cycling) without mechanisms to preserve prior distributions (walking), gradient steps overwrite the representations that encoded the old task. Overfitting on a single batch does not describe sequential task erosion. Sensor overflow is a hardware I/O fault, and model inversion is an adversarial privacy attack, not a continuous learning stability failure.",
+     "hint": "Think about: analyze catastrophic forgetting in streaming on-device adaptation.",
+     "type": "single",
+     "options": [
+      "Overfitting on a single static batch caused by excessive L2 regularization.",
+      "Numerical floating-point overflow in the hardware accelerometer sensor buffer.",
+      "Model inversion attack where cycling data erased the operating system kernel.",
+      "Catastrophic forgetting, where sequential gradient updates on new data distributions overwrite the weight configurations responsible for preserving performance on previously learned tasks."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In production edge learning systems, tracking global fleet-wide average accuracy is sufficient to ensure high quality, because individual device variances cancel out across millions of deployed nodes.",
+     "explanation": "False. Tracking only global fleet-wide averages masks critical cohort-specific failures. Because edge fleets exhibit extreme heterogeneity, high-performing flagship devices with fast networks can skew the global average upward, completely hiding severe regressions or adaptation failures occurring on budget devices, specific geographic regions, or underrepresented device demographics. Production monitoring requires segmented cohort tracking across hardware tiers, connectivity types, and participation frequencies.",
+     "hint": "Think about: evaluate why global fleet metrics fail to capture cohort-specific regressions in heterogeneous edge deployments.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A mobile federated learning deployment encounters severe client drift due to extreme non-IID typing patterns across users, causing standard FedAvg to oscillate and fail to converge. Which algorithmic modification directly addresses client drift by constraining local updates to stay close to the global model?",
+     "explanation": "The correct answer is B. FedProx adds $\\frac{\\mu}{2}\\|w-w_t\\|^2$ to penalize departure from the current global reference. This can mitigate client drift, but does not guarantee convergence for every workload or hyperparameter choice; evaluate matched quality and resource budgets. Raising the learning rate can worsen drift, while isolated training abandons the federated objective.",
+     "hint": "Think about: apply algorithmic regularizers (FedProx proximal term) to mitigate client drift in non-IID federated optimization.",
+     "type": "single",
+     "options": [
+      "Switching from 32-bit floating-point to 1-bit stochastic sign quantization without error compensation.",
+      "Adding a proximal regularization term $\\frac{\\mu}{2} \\|w - w_t\\|^2$ to the local client objective (as in FedProx) to penalize excessive deviation from the global server model $w_t$.",
+      "Increasing the local learning rate by \\$10× to accelerate convergence on outlier devices.",
+      "Dropping the central aggregation server and allowing devices to train purely in isolation without synchronization."
+     ],
+     "answer": 1
+    },
+    {
+     "type": "single",
+     "q": "The section **Why Learn on the Device** develops one of the chapter's claims. Which one?",
+     "options": [
+      "On-device data is sparse, weakly labeled, non-IID, and unshuffleable, so few-shot sets, streaming updates, replay buffers, and compressed representations each spend a different scarce resource, and an embedding is not anonymized by being low-dimensional.",
+      "A returned update is meaningful only against its base version and schema, so the coordinator binds updates to version and round, reconciles devices returning after days offline, and down-weights stale contributions in buffered asynchronous aggregation.",
+      "Freezing removes a parameter's gradient and optimizer state but not its place on the backward path, so bias-only updates, LoRA, and residual adapters each shrink a different term of the peak-memory budget.",
+      "Centralized, local-only, and federated learning differ in what crosses the device boundary, and local training is justified only when a measured adaptation gain beats feature-based personalization under privacy and resource constraints."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Local training must earn its place**: Centralized, local-only, and federated learning differ in what crosses the device boundary, and local training is justified only when a measured adaptation gain beats feature-based personalization under privacy and resource constraints."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Update working set within the background allowance**?",
+     "options": [
+      "Once models learn after release the release artifact is an adaptation policy versioned with its base model, adapters, and schemas, rollback must restore a compatible set, a shadow comparison against a frozen model is a gate, not a judge, and fleet promotion adds hardware-in-the-loop validation, compatibility across long version skew, and a hold when a cohort's reporting coverage is too low to count as evidence.",
+      "An on-device update must fit its peak training working set inside the allowance the OS grants a background task, a few hundred MB on a phone rather than its installed RAM, so a model whose weights fit easily can still fail to train.",
+      "Freezing removes a parameter's gradient and optimizer state but not its place on the backward path, so bias-only updates, LoRA, and residual adapters each shrink a different term of the peak-memory budget.",
+      "Sequential local updates that each pass the budget and a local metric can compound into catastrophic forgetting and drift from the validated release, so stability needs a mechanism priced in device state and forgetting measured per cohort."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Update working set within the background allowance itself, not a neighbouring idea.",
+     "explanation": "**Update working set within the background allowance:** An on-device update must fit its peak training working set inside the allowance the OS grants a background task, a few hundred MB on a phone rather than its installed RAM, so a model whose weights fit easily can still fail to train."
+    },
+    {
+     "q": "A production MLOps system executes a federated A/B deployment to validate a new on-device adaptation algorithm before fleet-wide rollout. Order the stages of this validation workflow from first to last:",
+     "explanation": "The correct order is (3) -> (2) -> (4) -> (1).\nFirst, (3) Stratify device fleet into statistically balanced treatment and control cohorts across hardware capability tiers to ensure fair comparative groups.\nSecond, (2) Deploy candidate adaptation strategy to treatment cohort while control cohort retains baseline strategy under identical operating policies.\nThird, (4) Aggregate differentially private validation metrics and compare convergence speed and user task-proxy satisfaction between cohorts.\nFinally, (1) Gradually expand rollout across the general population once treatment confirms statistically significant quality gains without regressions.",
+     "hint": "Think about: design a federated A/B testing workflow for safe production rollout on edge fleets.",
+     "type": "order",
+     "items": [
+      "Stratify device fleet into statistically balanced treatment and control cohorts across hardware capability tiers",
+      "Deploy candidate adaptation strategy to treatment cohort while control cohort retains baseline strategy",
+      "Aggregate differentially private validation metrics and compare convergence speed and user task-proxy satisfaction",
+      "Gradually expand rollout across the general population once treatment confirms statistically significant quality gains without regressions"
+     ]
+    }
+   ]
+  }
+ ]
+}

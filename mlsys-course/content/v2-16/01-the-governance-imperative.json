@@ -1,0 +1,73 @@
+{
+ "title": "The Governance Imperative",
+ "summary": "Analyze how the Governance band establishes coordination constraints on the ML fleet stack.",
+ "source": {
+  "chapter": "v2-16",
+  "sections": [
+   "The Governance Imperative"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze how the Governance band establishes coordination constraints on the ML fleet stack\n- Compare the system objectives of Responsible AI and Robust AI\n- Evaluate why Responsible AI must be integrated throughout the ML lifecycle rather than treated as a post-hoc compliance gate\n- Explain how historical data bias causes statistically optimized models to generate discriminatory outcomes"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Responsible AI, § The Governance Imperative",
+   "md": "In 2018, Reuters reported that Amazon had abandoned an experimental hiring algorithm trained on historical resume data after discovering it systematically penalized female candidates. The historical records supplied a computable training objective, but reproducing patterns in those records was not the same as identifying qualified applicants fairly. The experiment exposed a mismatch between the learned objective and the legitimate hiring goal, because historical success could encode unequal access rather than merit-based qualifications."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Governance band in the ML fleet stack; Stability versus efficiency; Amazon hiring algorithm case study; Distinction between Responsible AI and Robust AI."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Contrast the engineering objectives of Responsible AI with those of Robust AI.",
+   "md": "Robust AI focuses on defending system integrity against external threats, hardware faults, and deliberate adversarial perturbations to ensure availability and nominal correctness. In contrast, Responsible AI evaluates whether a properly functioning, uncompromised system produces equitable, transparent, and legally accountable outcomes that align with societal welfare."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-16-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In the ML fleet stack, why does Responsible AI constitute the Governance band rather than existing as a supplementary post-training checklist?",
+     "explanation": "The correct answer is C. Governance defines the intended use, requirements, evidence, owners, and response paths for the fleet. These constraints make optimization answerable to stated human and legal requirements; their existence does not guarantee absence of harm. Replacing execution frameworks, maximizing throughput, and preventing server overheating describe different infrastructure functions.",
+     "hint": "Think about: analyze how the Governance band establishes coordination constraints on the ML fleet stack.",
+     "type": "single",
+     "options": [
+      "Because it replaces lower-level distributed execution frameworks with legal compliance parsers",
+      "Because it serves solely to optimize training throughput and hardware acceleration efficiency",
+      "Because it establishes requirements, evidence, and accountable owners for why the system runs and whom it serves, including risks that statistical optimization alone does not resolve",
+      "Because it operates exclusively as a hardware watchdog circuit to prevent physical server overheating"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Responsible AI is primarily an ethical review process applied to a finished model artifact at the end of the deployment pipeline.",
+     "explanation": "False. Responsible AI requires technical mechanisms (representative data curation, differential privacy, bias-aware training objectives, and audit trails) designed directly into every stage of the ML lifecycle. Post-hoc interventions cannot easily correct representations learned from biased data without fundamental retraining.",
+     "hint": "Think about: evaluate why Responsible AI must be integrated throughout the ML lifecycle rather than treated as a post-hoc compliance gate.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: How does the Amazon hiring algorithm incident illustrate that statistical optimization can coexist with severe societal harm?",
+   "md": "The experimental hiring model was statistically optimized on historical resume data where past successful hires were predominantly male. Consequently, the model learned to encode historical bias by penalizing resumes containing terms like 'women\\'s', demonstrating that an algorithmically sound model can achieve high predictive fidelity to historical data while perpetuating systemic discrimination."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze how the Governance band establishes coordination constraints on the ML fleet stack.",
+    "You can now compare the system objectives of Responsible AI and Robust AI.",
+    "You can now evaluate why Responsible AI must be integrated throughout the ML lifecycle rather than treated as a post-hoc compliance gate.",
+    "You can now explain how historical data bias causes statistically optimized models to generate discriminatory outcomes."
+   ]
+  }
+ ]
+}

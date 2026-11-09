@@ -1,0 +1,113 @@
+{
+ "title": "Introduction: The Performance Challenge & The Roofline Model",
+ "summary": "TinyTorch acceleration: Introduction: The Performance Challenge & The Roofline Model",
+ "source": {
+  "chapter": "tt-17",
+  "sections": [
+   "Introduction: The Performance Challenge & The Roofline Model"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 💡 Introduction: The Performance Challenge & The Roofline Model\n\nModern deep learning workloads are constrained not only by theoretical FLOP capacity, but by the physical movement of bytes across silicon memory hierarchies. Understanding whether a workload is compute-bound or memory-bound dictates whether optimization requires algorithmic restructuring or memory traffic elimination.\n\n### The Two Fundamental Execution Bottlenecks"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Characteristic",
+    "Compute-Bound Regime",
+    "Memory-Bound Regime"
+   ],
+   "rows": [
+    [
+     "**Silicon Limiter**",
+     "ALU / Vector / Tensor Core throughput",
+     "DRAM / High-Bandwidth Memory (HBM) bus"
+    ],
+    [
+     "**Typical Operations**",
+     "Large GEMMs (\\$M, N, K \\ge 512\\$), 2D Convolutions, Multi-Head Attention projections",
+     "Element-wise activations (GELU, ReLU), LayerNorm, Softmax, Batch Size 1 inference"
+    ],
+    [
+     "**Hardware State**",
+     "Execution units saturated (\\$100\\%\\$ compute); memory bus partially idle",
+     "Compute units stalled waiting for operands; memory bus saturated (\\$100\\%\\$ bandwidth)"
+    ],
+    [
+     "**Optimization Strategy**",
+     "Vectorization (SIMD/BLAS), systolic tiling, algorithmic lowering (im2col, Winograd)",
+     "Operator fusion (Triton/CUDA), buffer elimination, memory coalescing, quantization"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### The Roofline Model Formulation\n\nThe Williams et al. Roofline Model establishes the upper bound on attainable execution throughput \\$P\\$ as a function of operational arithmetic intensity \\$\\mathcal{I}\\$:\n\n\\$\\$\\mathcal{I} = \\frac{\\text{Work (FLOPs)}}{\\text{Memory Traffic (Bytes)}} \\quad \\left[\\frac{\\text{FLOP}}{\\text{Byte}}\\right]\\$\\$\n\n\\$\\$P_{\\text{attainable}} = \\min\\left( P_{\\text{peak}}, \\; \\beta \\times \\mathcal{I} \\right)\\$\\$\n\nwhere:\n- \\$P_{\\text{peak}}\\$ is the processor's theoretical peak floating-point throughput (\\$\\text{GFLOP/s}\\$ or \\$\\text{TFLOP/s}\\$).\n- \\$\\beta\\$ is the processor's sustainable peak memory bandwidth (\\$\\text{GB/s}\\$).\n- The **Ridge Point** \\$\\mathcal{I}^* = \\frac{P_{\\text{peak}}}{\\beta}\\$ represents the exact arithmetic intensity needed to saturate compute:\n  - If \\$\\mathcal{I} < \\mathcal{I}^*\\$: The kernel is **memory-bound**; adding faster ALUs yields zero speedup.\n  - If \\$\\mathcal{I} \\ge \\mathcal{I}^*\\$: The kernel is **compute-bound**; execution hits the theoretical compute ceiling.\n\n### Arithmetic Intensity Across Core Deep Learning Primitives"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Operation",
+    "Arithmetic Formula",
+    "FLOP Count",
+    "Bytes Transferred (FP32)",
+    "Arithmetic Intensity \\$\\mathcal{I}\\$",
+    "Operational Regime"
+   ],
+   "rows": [
+    [
+     "**Vector Add**",
+     "\\$z = x + y\\$ (\\$N\\$ elements)",
+     "\\$N\\$",
+     "\\$3 \\times 4N = 12N\\$",
+     "\\$\\frac{1}{12} \\approx 0.083\\text{ FLOP/B}\\$",
+     "Severely Memory-Bound"
+    ],
+    [
+     "**GELU Activation**",
+     "\\$y = \\text{GELU}(x)\\$",
+     "\\$\\sim 8N\\$",
+     "\\$2 \\times 4N = 8N\\$",
+     "\\$\\sim 1.0\\text{ FLOP/B}\\$",
+     "Memory-Bound"
+    ],
+    [
+     "**LayerNorm**",
+     "\\$\\hat{x} = \\frac{x - \\mu}{\\sigma} \\gamma + \\beta\\$",
+     "\\$\\sim 7N\\$",
+     "\\$2 \\times 4N = 8N\\$",
+     "\\$\\sim 0.88\\text{ FLOP/B}\\$",
+     "Memory-Bound"
+    ],
+    [
+     "**Matrix Multiply (GEMM)**",
+     "\\$C = A B\\$ (\\$N \\times N\\$)",
+     "\\$2 N^3\\$",
+     "\\$3 \\times 4N^2 = 12 N^2\\$",
+     "\\$\\frac{N}{6}\\text{ FLOP/B}\\$",
+     "Compute-Bound (\\$N \\ge 512\\$)"
+    ],
+    [
+     "**2D Convolution**",
+     "\\$N \\times C_{\\text{out}} \\times H \\times W\\$",
+     "\\$2 N C_{\\text{out}} H W C_{\\text{in}} K^2\\$",
+     "Input bytes only, \\$4 N C_{\\text{in}} H W\\$ (an upper bound on \\$\\mathcal{I}\\$)",
+     "\\$\\frac{C_{\\text{out}} K^2}{2}\\text{ FLOP/B}\\$",
+     "Compute-Bound (\\$K \\ge 3\\$)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The convolution row counts only the input read, which is why its intensity is a clean \\$C_{\\text{out}} K^2 / 2\\$. Counting the output and kernel bytes as well lowers it: for \\$N = 4\\$, \\$C_{\\text{in}} = 32\\$, \\$C_{\\text{out}} = 64\\$, \\$32 \\times 32\\$, \\$K = 3\\$, the input-only figure is \\$288\\text{ FLOP/B}\\$ while input \\$+\\$ kernel \\$+\\$ output gives \\$91.7\\text{ FLOP/B}\\$. Both are far above any ridge point worth worrying about, so the conclusion survives, but they are not the same number and a byte model has to say which bytes it counts."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Introduction: The Performance Challenge & The Roofline Model."
+   ]
+  }
+ ]
+}

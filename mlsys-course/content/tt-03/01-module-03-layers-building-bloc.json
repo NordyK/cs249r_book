@@ -1,0 +1,35 @@
+{
+ "title": "Module 03: Layers - Building Blocks of Neural Networks",
+ "summary": "TinyTorch layers: Module 03: Layers - Building Blocks of Neural Networks",
+ "source": {
+  "chapter": "tt-03",
+  "sections": [
+   "Module 03: Layers - Building Blocks of Neural Networks"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 03: Layers - Building Blocks of Neural Networks\n\nWelcome to Module 03! You're about to build the fundamental building blocks that make neural networks possible.\n\n## 🔗 Prerequisites & Progress\n**You've Built**: Tensor class (Module 01) with all operations and activations (Module 02)\n**You'll Build**: A Layer base class, Linear layers, Dropout regularization, and a Sequential container\n**You'll Enable**: Multi-layer neural networks and forward passes, with parameters collected in the form the optimizers will later consume (nothing trains yet)\n\n**Connection Pipeline**:\n\\$\\$\\mathbf{X} \\in \\text{Tensor} \\xrightarrow{\\text{Nonlinearity}} \\sigma(\\mathbf{X}) \\in \\text{Activations} \\xrightarrow{\\text{Affine Transform}} \\mathbf{X}\\mathbf{W} + \\mathbf{b} \\in \\text{Layers} \\xrightarrow{\\text{Composition}} \\text{Sequential} \\in \\text{Networks}\\$\\$\n\n## 🎯 Learning Objectives\nBy the end of this module, you will:\n1. Implement Linear layers with proper weight initialization\n2. Add Dropout for regularization during training\n3. Understand parameter management and counting\n4. Compose layers into a network, first by hand and then with a Sequential container\n5. Test individual layer components\n\nLet's get started!\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/03_layers/layers.ipynb`\n**Building Side:** Code exports to tinytorch.core.layers"
+  },
+  {
+   "type": "text",
+   "md": "```python\n# Final package structure:\nfrom tinytorch.core.layers import Layer, Linear, Dropout, Sequential  # This module\nfrom tinytorch.core.tensor import Tensor  # Module 01 - foundation\nfrom tinytorch.core.activations import ReLU  # Module 02 - intelligence\n```\n\n**Why this matters:**\n- **Learning:** Complete layer system in one focused module for deep understanding\n- **Production:** Proper organization like PyTorch's torch.nn with all layer building blocks together\n- **Consistency:** All layer operations and parameter management in core.layers\n- **Integration:** Works seamlessly with tensors and activations for complete neural networks"
+  },
+  {
+   "type": "text",
+   "md": "## 📋 Module Dependencies\n\n**Prerequisites**: Modules 01 (Tensor) and 02 (Activations) must be completed\n\n**External Dependencies**:\n- `numpy` (for array operations and numerical computing)\n- `inspect` (Python standard library; Sequential uses it to see which layers accept a training flag)\n\n**TinyTorch Dependencies**:\n- `tinytorch.core.tensor.Tensor` (Module 01)\n- `tinytorch.core.activations.ReLU` (Module 02)\n\nThis module depends on Tensor and Activations.\nEnsure previous modules are completed and exported.\n\n**Dependency Flow**:\n\\$\\$\\underbrace{\\text{Module 01: Tensor}}_{\\text{Data Container and Autograd}} \\longrightarrow \\underbrace{\\text{Module 02: Activations}}_{\\text{Nonlinear Functions}} \\longrightarrow \\underbrace{\\text{Module 03: Layers}}_{\\text{Parametric Architecture}}\\$\\$\n\nStudents completing this module will have built the neural network\nlayers that enable multi-layer architectures."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import inspect\nimport numpy as np\n# Module-level RNG is seeded so Linear weight init is deterministic by default.\n# This is what the integration test suite (and any cross-run reproducibility)\n# relies on. Demo scripts that want fresh weights every run rebind this name\n# to an unseeded RNG locally before constructing their model — see\n# milestones/01_1958_perceptron/01_rosenblatt_forward.py for the pattern.\nrng = np.random.default_rng(7)\n\n# Import from TinyTorch package (previous modules must be completed and exported)\nfrom tinytorch.core.tensor import Tensor\nfrom tinytorch.core.activations import ReLU\n\n# Constant for weight initialization\n# Note: True Xavier/Glorot uses sqrt(2/(fan_in+fan_out)), but we use the simpler\n# LeCun-style sqrt(1/fan_in) for pedagogical clarity. Both keep the output\n# variance of a layer close to its input variance.\nINIT_SCALE_FACTOR = 1.0  # LeCun-style initialization: sqrt(1/fan_in)\n\n# Constants for dropout\nDROPOUT_MIN_PROB = 0.0  # Minimum dropout probability (no dropout)\nDROPOUT_MAX_PROB = 1.0  # Maximum dropout probability (drop everything)"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 03: Layers - Building Blocks of Neural Networks."
+   ]
+  }
+ ]
+}

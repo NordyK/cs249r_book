@@ -1,0 +1,94 @@
+{
+ "title": "Gradient Compression Under Bandwidth Scarcity",
+ "summary": "Calculate the realized compression ratio of Top-k gradient sparsification by accounting for coordinate index encoding overhead.",
+ "source": {
+  "chapter": "v2-05",
+  "sections": [
+   "Gradient Compression Under Bandwidth Scarcity",
+   "Precision reduction via quantization",
+   "Gradient sparsification methods",
+   "Error feedback and residual accumulation",
+   "1-bit Adam compression-aware optimization",
+   "Bandwidth versus convergence trade-offs in compression"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate the realized compression ratio of Top-k gradient sparsification by accounting for coordinate index encoding overhead\n- Explain the conditional cumulative-update conservation established by the error-feedback recurrence\n- Analyze the two-phase architecture of 1-bit Adam that separates variance stabilization from error-compensated momentum compression\n- Evaluate why gradient compression fails to improve wall-clock time in compute-bound or low-latency communication regimes\n- Explain the two phases and residual dependencies of 1-bit Adam without imposing an unnecessary transport order"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Collective Communication, § Gradient Compression Under Bandwidth Scarcity",
+   "md": "Training across data centers over wide-area links or on cloud instances with commodity Ethernet can leave each worker with 10--100$\\times$ less network bandwidth than the reference InfiniBand fabric. Federated training on phone-class devices, the Archetype C (Federated MobileNet) regime, faces cellular or Wi-Fi uplinks that are both slower and intermittently available. Even after hierarchical routing and schedule tuning extract all usable capacity from such links, moving a full-precision gradient or a multi-step client update can still dominate step time."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Precision reduction via quantization\n- Gradient sparsification methods\n- Error feedback and residual accumulation\n- 1-bit Adam compression-aware optimization\n- Bandwidth versus convergence trade-offs in compression\n\nPay attention to: Quantization: FP16, INT8, 1-bit SGD, and Block Quantization; Sparsification: Top-k compression, Random-k, and sparse index encoding overhead; The convergence problem: systematic bias of lossy gradient compression; Error feedback mechanism: local residual accumulation e_{t+1} = g_t + e_t - v_t and telescoping sums."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: How does 1-bit Adam achieve high compression ratios on optimizer state communication without suffering the severe convergence degradation of naive 1-bit SGD?",
+   "md": "1-bit Adam first runs uncompressed Adam until the second-moment estimate stabilizes, then freezes that estimate as a preconditioner and communicates compressed momentum with residual correction. This optimizer-aware design supports the method’s convergence analysis under its assumptions. The paper reports up to fivefold end-to-end communication-volume reduction while matching uncompressed Adam’s convergence speed on its evaluated workloads; that result is not a guarantee for every workload or a fivefold training speedup. Warmup, scale metadata, encoding cost, and exposed communication determine the realized benefit."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-05-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A distributed training team applies Top-k sparsification with $K_{\\text{top}} = 0.001 \\times d_{\\text{grad}}$ (retaining 0.1% of elements) to FP32 gradients ($d_{\\text{grad}}$ elements at 4 bytes each). Transmitting the sparse gradient requires sending both FP32 values (4 bytes) and INT32 index locations (4 bytes) for each surviving element. What is the realized compression ratio compared to the dense FP32 gradient baseline?",
+     "explanation": "The correct answer is A. \\$500×, because each kept element requires 8 bytes (value plus index), yielding an encoded payload of \\$8 × 0.001 d_grad = 0.008 d_grad bytes compared to the \\$4 d_grad dense baseline. While retaining 0.1% of elements suggests a \\$1000× reduction based on element count alone, transmitting a sparse tensor across a network requires sending both the non-zero values and their coordinate indices so the receiver can reconstruct the tensor. For K_top elements in FP32 with INT32 indices, the message size is K_top × (4 + 4) = 8 K_top bytes. The effective compression ratio is frac4 d_grad8 K_top = frac4 d_grad8 × 0.001 d_grad = frac40.008 = 500×. The \\$1000× claim ignores mandatory index metadata, the \\$100× claim confuses local memory storage with transmitted payload, and the \\$32× choice confuses sparsification with 1-bit quantization.",
+     "hint": "Think about: calculate the realized compression ratio of Top-k gradient sparsification by accounting for coordinate index encoding overhead.",
+     "type": "single",
+     "options": [
+      "\\$500×, because each kept element requires 8 bytes (value plus index), yielding an encoded payload of \\$8 × 0.001 d_grad = 0.008 d_grad bytes compared to the \\$4 d_grad dense baseline.",
+      "\\$1000×, because index encoding overhead is completely eliminated by the network interface hardware.",
+      "\\$100×, because the error-feedback accumulator doubles the size of the transmitted index buffer.",
+      "\\$32×, because sparse tensors automatically conform to 1-bit quantization limits."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Why is the Error Feedback mechanism ($e_{t+1} = g_t + e_t - v_t$) mathematically essential when applying aggressive lossy compression (such as 1-bit SGD or Top-k sparsification) in distributed training?",
+     "explanation": "The correct answer is D. Error feedback carries discarded information into later updates. Summing the recurrence gives $\\sum v_t=\\sum g_t+e_1-e_{K+1}$. The average difference vanishes only when the residual divided by the step count tends to zero. This identity supports convergence analysis under further assumptions; it does not guarantee convergence for any compressor or workload.",
+     "hint": "Think about: explain the conditional cumulative-update conservation established by the error-feedback recurrence.",
+     "type": "single",
+     "options": [
+      "It dynamically recompiles CUDA backward kernels to eliminate all register spills during gradient calculation.",
+      "It converts AllReduce operations into asynchronous point-to-point transfers to bypass network switch buffers.",
+      "It forces all model weights to remain strictly positive throughout optimization.",
+      "It preserves deferred residuals, so average transmitted and original updates differ by $(e_1-e_{K+1})/K$, which vanishes if the residual grows sublinearly."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Applying \\$4× gradient quantization will always decrease end-to-end training step time because reducing communication payload bytes is unconditionally beneficial regardless of whether the cluster is in a compute-bound or communication-bound regime.",
+     "explanation": "False. Reducing payload bytes can save transfer time, but encoding and decoding consume execution resources, startup costs remain, and communication already hidden behind computation offers little exposed time to remove. In a serial synchronization budget, encoding must cost less than the transfer time saved; with overlap, compare the exposed critical-path saving. Compression can also change the number of steps needed to reach the same quality target. That penalty is workload-dependent, so evaluate complete time to quality rather than assuming a fixed extra-iteration percentage.",
+     "hint": "Think about: evaluate why gradient compression fails to improve wall-clock time in compute-bound or low-latency communication regimes.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Describe the two phases of 1-bit Adam and the dependency that connects each compressed momentum message to the next residual-corrected update. Does residual storage have to wait for network transmission to finish?",
+   "md": "Uncompressed Adam first stabilizes the second-moment estimate, which is then frozen as a preconditioner. In the compressed phase, the current momentum and carried residual determine the compressed message and next residual. The message is communicated through the supported compressed aggregation path, and the residual must be preserved before the next update that uses it. Computing or storing that residual need not wait for transmission to finish when buffer ownership and runtime dependencies permit; the essential order is warmup before freezing and residual production before its next use."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Gradient compression**: Encoding gradient updates with fewer transmitted bits, with convergence and encoding costs to evaluate."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Gradient compression",
+   "def": "Encoding gradient updates with fewer transmitted bits, with convergence and encoding costs to evaluate."
+  }
+ ]
+}

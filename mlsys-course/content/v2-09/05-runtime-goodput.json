@@ -1,0 +1,106 @@
+{
+ "title": "Runtime Goodput",
+ "summary": "Compose a job's runtime loss from its owners' terms and identify the lever that reaches the most held time.",
+ "source": {
+  "chapter": "v2-09",
+  "sections": [
+   "Runtime Goodput",
+   "What runtime goodput counts",
+   "Composing runtime loss from its owners",
+   "Evidence, size, and the serving replica"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compose a job's runtime loss from its owners' terms and identify the lever that reaches the most held time\n- Explain how normalizing to the fault-free step time separates runtime from program losses\n- Apply the composition rules that prevent an interval from entering two runtime loss terms\n- Interpret a runtime goodput value through its composition rather than its sum\n- Recognize the coupling between the preemption budget and the checkpoint interval"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Efficiency, § Runtime Goodput",
+   "md": "A training job that loses held time to input stalls, synchronous checkpoint pauses, hardware failures, and forced preemptions encounters each loss in a different unit. @Sec-data-storage expresses input stalls as a fraction of step time, a later section expresses checkpointing and recovery overhead against fault-free training time, and a later section prices preemption in wasted minutes per eviction event. Runtime goodput—the fraction of a job's all-allocated held time that becomes retained progress—places all of those losses on a single common denominator."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- What runtime goodput counts\n- Composing runtime loss from its owners\n- Evidence, size, and the serving replica\n\nPay attention to: Retained steps at the job's fault-free step time over held time; Composing runtime loss from five owners' terms without double counting; The running example's runtime loss and which term dominates; The coupling between preemption budget and checkpoint interval; serving replica readiness."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Runtime goodput's numerator is the number of retained steps multiplied by the job's fault-free step time. Explain why this normalization charges a straggler that slows every step for days to program goodput, but charges the same slowdown confined to the minutes after a restart to runtime goodput.",
+   "md": "The fault-free step time is the job's steady-state step time with the input batch ready and no recovery in progress, so it already contains exposed communication, pipeline bubbles, memory stalls, and a persistent straggler; those losses pass through the runtime boundary and are charged to program goodput. Steps just after a relaunch run slower because caches are cold, kernels are compiling, and the input pipeline is refilling, so their excess over the fault-free time belongs to the recovery that caused it and is a runtime loss."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-09-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "The Llama 2 70B running example holds 128 GPUs for a week under a budget of one forced preemption a day. Its runtime loss terms are about 0.05% startup, 7.7% input waits, 0.4% checkpoint waste, 0.03% recovery, and 1.4% preemption. Which conclusion follows?",
+     "explanation": "The correct answer is A. The five terms add to a loss of about 10%, so runtime goodput is about 0.90, with input waits and preemption accounting for 9.1% of it. Checkpoint waste and recovery together are under half a percent, so the input pipeline reaches about 17$\\times$ as much held time as checkpoint waste and recovery combined. Checkpoint waste and recovery grow with device count and pass input waits only near 13,000 GPUs. Preemption is a runtime loss because the job held its allocation, and input waits are carved out of the step and charged here.",
+     "hint": "Think about: compose a job's runtime loss from its owners' terms and identify the lever that reaches the most held time.",
+     "type": "single",
+     "options": [
+      "Runtime goodput is about 0.90, and the input pipeline reaches far more held time than faster checkpoint writes and warm restart could",
+      "Runtime goodput is about 0.90, and the reliability layer owns the largest lever because checkpoint waste and recovery grow with device count",
+      "Runtime goodput is about 0.97, because preemption is charged to scheduling goodput",
+      "Runtime goodput is about 0.92, because input waits are a program loss"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "The five runtime loss terms can be added only if no interval enters two of them. Which rule keeps a failure's lost work from being counted twice?",
+     "explanation": "The correct answer is D. Each interval is charged once. Checkpoint waste counts synchronous writes plus the expected rework after failures; a forced preemption's lost work sits in the preemption overhead; warmup belongs to the event that caused it, so the startup term counts only launches no interruption caused; the data stall ratio is a steady-state quantity; and only synchronous checkpoint pauses are runtime losses. Steps after the last commit in a window are handled by closing the window at a commit, not by excluding rework.",
+     "hint": "Think about: apply the composition rules that prevent an interval from entering two runtime loss terms.",
+     "type": "single",
+     "options": [
+      "Rework is charged to both the checkpoint and failure terms, and the sum is halved",
+      "All rework is charged to the preemption term, because preemptions and failures discard work the same way",
+      "Rework is excluded entirely, because steps after the last checkpoint are neither retained nor lost",
+      "The checkpoint waste term already counts the steps a failure erases, so the failure term uses the recovery budget without rework"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Because the running example's runtime goodput of about 0.90 matches the at least 0.90 implied for Llama 3 405B, the two jobs should call on the same owners to improve it.",
+     "explanation": "False. The agreement hides a difference in kind. The Llama 3 run, dedicated and spread over 128$\\times$ as many devices, had to hold its loss down in the failure-driven terms that grow with device count. The running example loses almost nothing there and nearly all of its loss to input waits and preemption. The same value of a factor can point to different owners, so the report carries the terms, not only their sum.",
+     "hint": "Think about: interpret a runtime goodput value through its composition rather than its sum.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The running example's Young-Daly checkpoint interval of about 77 minutes was computed from hardware failures alone. Counting its budgeted preemptions as interruptions too shortens the interval to about ____ minutes.",
+     "explanation": "21. A forced preemption discards the work since the last checkpoint exactly as a failure does, so for choosing an interval it is another interruption. The interval belongs to the fault-tolerance layer and the preemption budget to orchestration, and only the composition shows that the two decisions are one.",
+     "hint": "Think about: recognize the coupling between the preemption budget and the checkpoint interval.",
+     "type": "fill",
+     "answer": [
+      "21"
+     ]
+    },
+    {
+     "q": "A serving replica needs about 5.7 minutes to fetch, load, and warm up after it is placed. How does the replica's lifetime change this runtime loss, and what does a warm pool of loaded, idle replicas do to it?",
+     "explanation": "The correct answer is B. Once placed, the replica holds a complete allocation even though it cannot yet serve, so loading and warmup are runtime losses read from its lifecycle log, while provisioning precedes the complete allocation and is not charged here. Lifetime sets the share, so the capacity a fleet adds for short bursts pays the largest fraction. A warm pool keeps replicas ready but idle, which converts the loss into headroom, a program goodput loss.",
+     "hint": "Think about: size a serving replica's readiness loss against its lifetime and classify the effect of a warm pool.",
+     "type": "single",
+     "options": [
+      "The loss is a scheduling loss because the replica cannot serve yet, so lifetime does not affect it",
+      "The loss is about 0.4% of held time for a replica released once a day and about 9% for one added for a single burst hour; a warm pool moves it to program goodput as headroom rather than removing it",
+      "The loss is the same share of held time regardless of lifetime, and a warm pool removes it entirely",
+      "The loss is charged to serving latency, so it never enters runtime goodput"
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compose a job's runtime loss from its owners' terms and identify the lever that reaches the most held time.",
+    "You can now explain how normalizing to the fault-free step time separates runtime from program losses.",
+    "You can now apply the composition rules that prevent an interval from entering two runtime loss terms.",
+    "You can now interpret a runtime goodput value through its composition rather than its sum."
+   ]
+  }
+ ]
+}

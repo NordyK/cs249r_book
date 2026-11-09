@@ -1,0 +1,94 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Evaluate why a high-peak-compute accelerator may fail to speed up a small inference workload and identify the measurements needed to isolate the bottleneck.",
+ "source": {
+  "chapter": "v1-05",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Evaluate why a high-peak-compute accelerator may fail to speed up a small inference workload and identify the measurements needed to isolate the bottleneck\n- Evaluate the failure of aggregate accuracy on imbalanced datasets and justify the requirement for class-specific metrics\n- Explain the architectural and optimization limitations of scaling network depth in isolation\n- Evaluate neural network interpretability and justify systematic debugging techniques against the black-box fallacy\n- Analyze diverging training and validation loss curves to identify likely overfitting and select an evidence-driven checkpointing and mitigation workflow"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Neural Computation, § Fallacies and Pitfalls",
+   "md": "Statistical learning adds failure modes that line-by-line code inspection alone cannot reveal. Each of the recurring mistakes below treats a property of the data, the optimization, or the machine as if the model's source code alone decided it."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Memory-bandwidth bottlenecks on accelerators with high peak TFLOP/s; Aggregate accuracy deception on imbalanced datasets; Depth-only scaling limitations and vanishing gradient compound risks; Overfitting detection and systematic debugging techniques."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A colleague argues that 'because neural networks contain millions of weights functioning as an uninterpretable black box, they cannot be systematically debugged when prediction errors occur.' Refute this claim by describing three concrete systems diagnostic techniques used to debug neural models.",
+   "md": "Neural networks can be systematically debugged using: (1) activation and gradient distribution histograms to detect vanishing gradients, activation saturation, or dead neurons across layers; (2) numerical assertion checks and tensor statistics to catch NaNs, Infs, and loss plateaus; and (3) ablation studies, feature attribution maps, and slice-based error analysis to verify whether the model relies on valid task features or spurious dataset correlations."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-05-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An engineering team migrates a small multilayer perceptron inference workload with low arithmetic intensity from a CPU to a high-end GPU featuring \\$10\\times$ higher peak TFLOP/s, but observes less than a \\$1.2\\times$ end-to-end speedup. Which systems explanation correctly diagnoses this outcome?",
+     "explanation": "The correct answer is A. Low arithmetic intensity and limited speedup suggest that higher peak TFLOP/s is not the limiting resource, but they do not by themselves prove a pure bandwidth diagnosis. The right systems move is to discriminate among likely causes such as memory traffic, launch overhead, and poor occupancy by measuring bandwidth and cache behavior, achieved utilization, kernel timelines, and the full end-to-end path. A single-metric explanation based only on peak TFLOP/s or only on parameter count ignores the possibility that different bottlenecks are competing in the real execution pipeline.",
+     "hint": "Think about: evaluate why a high-peak-compute accelerator may fail to speed up a small inference workload and identify the measurements needed to isolate the bottleneck",
+     "type": "single",
+     "options": [
+      "The workload may be limited by memory traffic, launch overhead, or underutilization rather than peak arithmetic throughput, so the next step is to measure bandwidth use, kernel timelines, achieved utilization, and end-to-end stage breakdowns.",
+      "The model should be tuned only for the highest achieved TFLOP/s metric, because low arithmetic intensity means memory behavior is no longer informative.",
+      "The small speedup proves the CPU implementation is already optimal, so further measurement of competing bottlenecks is unnecessary.",
+      "Because GPU utilization is lower than peak TFLOP/s, the only meaningful next step is to increase parameter count until the accelerator saturates."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "On a fraud detection dataset where \\$99.5\\% of transactions are legitimate and \\$0.5\\% are fraudulent, a newly trained classifier achieves \\$99.4\\% aggregate accuracy on held-out test data. Why is this aggregate metric deceptive from an ML systems engineering standpoint?",
+     "explanation": "The correct answer is C. On highly imbalanced datasets, aggregate accuracy is dominated by the majority class. A trivial constant predictor that always predicts the majority class achieves \\$99.5\\%$ accuracy without detecting a single fraudulent transaction; thus, \\$99.4\\%$ accuracy could represent a model that fails on almost every fraud instance. Systems engineers must evaluate class-specific metrics such as precision, recall, and confusion matrices. Cross-entropy is mathematically well-defined regardless of class proportions. A 99.4% accuracy is a standard statistical proportion well within floating-point ranges. Accuracy metrics do not cause GPU memory exhaustion.",
+     "hint": "Think about: evaluate the failure of aggregate accuracy on imbalanced datasets and justify the requirement for class-specific metrics",
+     "type": "single",
+     "options": [
+      "Cross-entropy loss is undefined when class proportions differ by more than \\$10×.",
+      "An accuracy of \\$99.4\\% exceeds the theoretical mathematical limit of floating-point representation.",
+      "A naive baseline that blindly predicts 'legitimate' for every transaction achieves \\$99.5\\% accuracy; an aggregate \\$99.4\\% accuracy can conceal a near-\\$100\\% failure rate on detecting actual fraud cases.",
+      "High accuracy on an imbalanced dataset causes immediate GPU out-of-memory errors during inference."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A development team attempts to improve model accuracy by repeatedly stacking additional layers to a neural network (scaling depth alone) without modifying layer widths or input resolution. Why does this depth-only scaling strategy typically suffer from diminishing returns and training instability?",
+     "explanation": "The correct answer is B. Stacking layers increases the chain-rule path length during backpropagation, compounding vanishing/exploding gradients and making optimization increasingly difficult. Furthermore, depth increases sequential dependency chains during the forward pass, raising latency. EfficientNet demonstrated improved accuracy and efficiency trade-offs from compound scaling in its evaluated image-classification regime; the best balance still requires measurement for the intended workload. Adding layers increases parameter count and activation storage rather than reducing it. Modern accelerators routinely support networks with hundreds of layers. Activation functions are mathematical operators with no legal restrictions.",
+     "hint": "Think about: explain the architectural and optimization limitations of scaling network depth in isolation",
+     "type": "single",
+     "options": [
+      "Adding layers automatically reduces total parameter count by compressing intermediate representations.",
+      "Increasing depth alone elongates the backpropagation chain-rule path, amplifying vanishing and exploding gradient risks while increasing sequential execution latency, without providing the balanced capacity gains of compound scaling across width, depth, and resolution.",
+      "Modern GPU hardware architectures cannot allocate computational graphs with more than 10 layers.",
+      "Deeper networks are legally restricted from using nonlinear activation functions."
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: During a model training run, an engineer observes that training loss continuously decreases across 50 epochs, but validation loss reaches a minimum at epoch 20 and increases steadily thereafter. Diagnose the model's operational regime and describe a sensible next workflow.",
+   "md": "The curve suggests overfitting: the model keeps improving on the training sample after epoch 20, but that improvement is no longer transferring to held-out data. For example, epoch 20 is a sensible checkpoint candidate because it minimizes validation loss, but it should still pass the normal evaluation checks before any deployment decision. The next workflow is to restore that candidate checkpoint, validate it on the required metrics and slices, and then test interventions such as regularization, more representative data, or early stopping rather than assuming any single fix is guaranteed to work."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate why a high-peak-compute accelerator may fail to speed up a small inference workload and identify the measurements needed to isolate the bottleneck.",
+    "You can now evaluate the failure of aggregate accuracy on imbalanced datasets and justify the requirement for class-specific metrics.",
+    "You can now explain the architectural and optimization limitations of scaling network depth in isolation.",
+    "You can now evaluate neural network interpretability and justify systematic debugging techniques against the black-box fallacy."
+   ]
+  }
+ ]
+}

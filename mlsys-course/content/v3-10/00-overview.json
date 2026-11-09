@@ -1,0 +1,299 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v3-10",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **The Agent Harness** (Vol III). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Agent Harness, Purpose",
+   "md": "A single model invocation succeeds or fails on its own, but an autonomous agent runs across a horizon of many turns, and per-step errors compound with every turn. Over dozens of sequential tool interactions, a malformed call, a stale observation, or an unhandled exception can carry an unsupervised trajectory into a failure or a loop that no single step reveals."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Supervising Continuation",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "The Loop and the Harness",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "The Trajectory Record",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Trajectory States",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Control Actions",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Supervised Waiting",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Approval Gates",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Harness owns continuation**",
+     "A model that honors a pause or allowance with probability p per turn holds it over H turns only p^H of the time, so the decision to take another step belongs to a harness that treats every reply as an untrusted proposal."
+    ],
+    [
+     "**Trajectory record**",
+     "Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan."
+    ],
+    [
+     "**Guarded transitions**",
+     "The trajectory advances only along legal state-machine edges whose guards pass on a current record version, and admission commits atomically under the record lock before any request leaves the host (register before send)."
+    ],
+    [
+     "**Settlement rule**",
+     "Withdrawing a result's eligibility to inform the model never clears the operation's obligation, and no trajectory reaches a terminal state until every obligation is settled or explicitly transferred."
+    ],
+    [
+     "**Turn-boundary control**",
+     "Operator control takes effect at turn boundaries, so a harness that checks only when a reply ends lets one call postpone a pause by K_max x t_dec, and pause, interrupt, cancel, kill, and budget stop change admission differently."
+    ],
+    [
+     "**Approval escrow**",
+     "A proposal that requires review is held undispatched, bound by digest and expiry, and a favorable decision is one precondition rather than an order, so dispatch re-runs the full admission check and silence expires rather than denies."
+    ],
+    [
+     "**Bounded-liability admission**",
+     "A budget is an enforceable ceiling only if each operation is admitted when actual consumption plus outstanding reservations plus its worst-case liability plus a protected finalization reserve fits the allowance in every dimension."
+    ],
+    [
+     "**Trajectory budget vector**",
+     "A runaway retry loop is locally compliant at every step, so the harness bounds turns, tokens, wall time, and dollars as one vector, reads the largest used fraction, and escalates through steer, restrict, and finalize."
+    ],
+    [
+     "**Supervised waiting**",
+     "An asynchronous wait frees the worker thread but not the workspace lease, KV residency, reservations, or deadline, and a wait deadline ends the harness's wait, never the remote operation."
+    ],
+    [
+     "**Fair model-call scheduling**",
+     "Weighted deficit round-robin charged by each call's full input plus maximum output fixes a class's share of charge, not of calls, and fairness, provider quotas, and budgets are independent gates."
+    ],
+    [
+     "**Budget ceiling selection**",
+     "A budget ceiling is chosen by evaluating the complete control policy on representative tasks and minimizing cost per accepted task, counting failed and budget-halted attempts."
+    ],
+    [
+     "**Budget reservation**",
+     "An operation's maximum additional charge is withheld at admission and released only when evidence settles the operation, so ambiguous dispatches stay reserved."
+    ],
+    [
+     "**Streaming cancellation**",
+     "Cancelling a stream removes the dependence of control latency on output length, and partial or canceled output is quarantined and never dispatched."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v3-10-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Harness owns continuation",
+     "back": "A model that honors a pause or allowance with probability p per turn holds it over H turns only p^H of the time, so the decision to take another step belongs to a harness that treats every reply as an untrusted proposal."
+    },
+    {
+     "front": "Trajectory record",
+     "back": "Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan."
+    },
+    {
+     "front": "Guarded transitions",
+     "back": "The trajectory advances only along legal state-machine edges whose guards pass on a current record version, and admission commits atomically under the record lock before any request leaves the host (register before send)."
+    },
+    {
+     "front": "Settlement rule",
+     "back": "Withdrawing a result's eligibility to inform the model never clears the operation's obligation, and no trajectory reaches a terminal state until every obligation is settled or explicitly transferred."
+    },
+    {
+     "front": "Turn-boundary control",
+     "back": "Operator control takes effect at turn boundaries, so a harness that checks only when a reply ends lets one call postpone a pause by K_max x t_dec, and pause, interrupt, cancel, kill, and budget stop change admission differently."
+    },
+    {
+     "front": "Approval escrow",
+     "back": "A proposal that requires review is held undispatched, bound by digest and expiry, and a favorable decision is one precondition rather than an order, so dispatch re-runs the full admission check and silence expires rather than denies."
+    },
+    {
+     "front": "Bounded-liability admission",
+     "back": "A budget is an enforceable ceiling only if each operation is admitted when actual consumption plus outstanding reservations plus its worst-case liability plus a protected finalization reserve fits the allowance in every dimension."
+    },
+    {
+     "front": "Trajectory budget vector",
+     "back": "A runaway retry loop is locally compliant at every step, so the harness bounds turns, tokens, wall time, and dollars as one vector, reads the largest used fraction, and escalates through steer, restrict, and finalize."
+    },
+    {
+     "front": "Supervised waiting",
+     "back": "An asynchronous wait frees the worker thread but not the workspace lease, KV residency, reservations, or deadline, and a wait deadline ends the harness's wait, never the remote operation."
+    },
+    {
+     "front": "Fair model-call scheduling",
+     "back": "Weighted deficit round-robin charged by each call's full input plus maximum output fixes a class's share of charge, not of calls, and fairness, provider quotas, and budgets are independent gates."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v3-10-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Harness owns continuation**?",
+     "options": [
+      "Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan.",
+      "Cancelling a stream removes the dependence of control latency on output length, and partial or canceled output is quarantined and never dispatched.",
+      "A model that honors a pause or allowance with probability p per turn holds it over H turns only p^H of the time, so the decision to take another step belongs to a harness that treats every reply as an untrusted proposal.",
+      "A proposal that requires review is held undispatched, bound by digest and expiry, and a favorable decision is one precondition rather than an order, so dispatch re-runs the full admission check and silence expires rather than denies."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Harness owns continuation itself, not a neighbouring idea.",
+     "explanation": "**Harness owns continuation:** A model that honors a pause or allowance with probability p per turn holds it over H turns only p^H of the time, so the decision to take another step belongs to a harness that treats every reply as an untrusted proposal."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Trajectory record**?",
+     "options": [
+      "Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan.",
+      "The trajectory advances only along legal state-machine edges whose guards pass on a current record version, and admission commits atomically under the record lock before any request leaves the host (register before send).",
+      "Cancelling a stream removes the dependence of control latency on output length, and partial or canceled output is quarantined and never dispatched.",
+      "An asynchronous wait frees the worker thread but not the workspace lease, KV residency, reservations, or deadline, and a wait deadline ends the harness's wait, never the remote operation."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Trajectory record itself, not a neighbouring idea.",
+     "explanation": "**Trajectory record:** Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Guarded transitions**?",
+     "options": [
+      "A budget ceiling is chosen by evaluating the complete control policy on representative tasks and minimizing cost per accepted task, counting failed and budget-halted attempts.",
+      "A model that honors a pause or allowance with probability p per turn holds it over H turns only p^H of the time, so the decision to take another step belongs to a harness that treats every reply as an untrusted proposal.",
+      "The trajectory advances only along legal state-machine edges whose guards pass on a current record version, and admission commits atomically under the record lock before any request leaves the host (register before send).",
+      "Weighted deficit round-robin charged by each call's full input plus maximum output fixes a class's share of charge, not of calls, and fairness, provider quotas, and budgets are independent gates."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Guarded transitions itself, not a neighbouring idea.",
+     "explanation": "**Guarded transitions:** The trajectory advances only along legal state-machine edges whose guards pass on a current record version, and admission commits atomically under the record lock before any request leaves the host (register before send)."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Settlement rule**?",
+     "options": [
+      "Cancelling a stream removes the dependence of control latency on output length, and partial or canceled output is quarantined and never dispatched.",
+      "Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan.",
+      "A proposal that requires review is held undispatched, bound by digest and expiry, and a favorable decision is one precondition rather than an order, so dispatch re-runs the full admission check and silence expires rather than denies.",
+      "Withdrawing a result's eligibility to inform the model never clears the operation's obligation, and no trajectory reaches a terminal state until every obligation is settled or explicitly transferred."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Settlement rule itself, not a neighbouring idea.",
+     "explanation": "**Settlement rule:** Withdrawing a result's eligibility to inform the model never clears the operation's obligation, and no trajectory reaches a terminal state until every obligation is settled or explicitly transferred."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Turn-boundary control**?",
+     "options": [
+      "A model that honors a pause or allowance with probability p per turn holds it over H turns only p^H of the time, so the decision to take another step belongs to a harness that treats every reply as an untrusted proposal.",
+      "Operator control takes effect at turn boundaries, so a harness that checks only when a reply ends lets one call postpone a pause by K_max x t_dec, and pause, interrupt, cancel, kill, and budget stop change admission differently.",
+      "Weighted deficit round-robin charged by each call's full input plus maximum output fixes a class's share of charge, not of calls, and fairness, provider quotas, and budgets are independent gates.",
+      "An operation's maximum additional charge is withheld at admission and released only when evidence settles the operation, so ambiguous dispatches stay reserved."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Turn-boundary control itself, not a neighbouring idea.",
+     "explanation": "**Turn-boundary control:** Operator control takes effect at turn boundaries, so a harness that checks only when a reply ends lets one call postpone a pause by K_max x t_dec, and pause, interrupt, cancel, kill, and budget stop change admission differently."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Harness owns continuation: A model that honors a pause or allowance with probability p per turn holds it over H turns only p^H of the time, so the decision to take another step belongs to a harness that treats every reply as an untrusted proposal.",
+    "Trajectory record: Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan.",
+    "Guarded transitions: The trajectory advances only along legal state-machine edges whose guards pass on a current record version, and admission commits atomically under the record lock before any request leaves the host (register before send).",
+    "Settlement rule: Withdrawing a result's eligibility to inform the model never clears the operation's obligation, and no trajectory reaches a terminal state until every obligation is settled or explicitly transferred."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Harness owns continuation",
+   "def": "A model that honors a pause or allowance with probability p per turn holds it over H turns only p^H of the time, so the decision to take another step belongs to a harness that treats every reply as an untrusted proposal."
+  },
+  {
+   "term": "Trajectory record",
+   "def": "Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan."
+  },
+  {
+   "term": "Guarded transitions",
+   "def": "The trajectory advances only along legal state-machine edges whose guards pass on a current record version, and admission commits atomically under the record lock before any request leaves the host (register before send)."
+  },
+  {
+   "term": "Settlement rule",
+   "def": "Withdrawing a result's eligibility to inform the model never clears the operation's obligation, and no trajectory reaches a terminal state until every obligation is settled or explicitly transferred."
+  },
+  {
+   "term": "Turn-boundary control",
+   "def": "Operator control takes effect at turn boundaries, so a harness that checks only when a reply ends lets one call postpone a pause by K_max x t_dec, and pause, interrupt, cancel, kill, and budget stop change admission differently."
+  },
+  {
+   "term": "Approval escrow",
+   "def": "A proposal that requires review is held undispatched, bound by digest and expiry, and a favorable decision is one precondition rather than an order, so dispatch re-runs the full admission check and silence expires rather than denies."
+  },
+  {
+   "term": "Bounded-liability admission",
+   "def": "A budget is an enforceable ceiling only if each operation is admitted when actual consumption plus outstanding reservations plus its worst-case liability plus a protected finalization reserve fits the allowance in every dimension."
+  },
+  {
+   "term": "Trajectory budget vector",
+   "def": "A runaway retry loop is locally compliant at every step, so the harness bounds turns, tokens, wall time, and dollars as one vector, reads the largest used fraction, and escalates through steer, restrict, and finalize."
+  },
+  {
+   "term": "Supervised waiting",
+   "def": "An asynchronous wait frees the worker thread but not the workspace lease, KV residency, reservations, or deadline, and a wait deadline ends the harness's wait, never the remote operation."
+  },
+  {
+   "term": "Fair model-call scheduling",
+   "def": "Weighted deficit round-robin charged by each call's full input plus maximum output fixes a class's share of charge, not of calls, and fairness, provider quotas, and budgets are independent gates."
+  },
+  {
+   "term": "Budget ceiling selection",
+   "def": "A budget ceiling is chosen by evaluating the complete control policy on representative tasks and minimizing cost per accepted task, counting failed and budget-halted attempts."
+  },
+  {
+   "term": "Budget reservation",
+   "def": "An operation's maximum additional charge is withheld at admission and released only when evidence settles the operation, so ambiguous dispatches stay reserved."
+  },
+  {
+   "term": "Streaming cancellation",
+   "def": "Cancelling a stream removes the dependence of control latency on output length, and partial or canceled output is quarantined and never dispatched."
+  }
+ ]
+}

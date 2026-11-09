@@ -1,0 +1,77 @@
+{
+ "title": "Four Deployment Regimes Across Nine Orders of Magnitude",
+ "summary": "Compare the operational power and memory envelopes across the four deployment paradigms.",
+ "source": {
+  "chapter": "v1-02",
+  "sections": [
+   "Four Deployment Regimes Across Nine Orders of Magnitude"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare the operational power and memory envelopes across the four deployment paradigms\n- Explain the concept of the silicon contract and how physical hardware constraints define system performance limits\n- Justify why deployment must be treated as a first-order D·A·M co-design problem rather than a late-stage packaging task"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, System Paradigms, § Four Deployment Regimes Across Nine Orders of Magnitude",
+   "md": "A wake-word detector on a smartwatch operates inside milliwatt power budgets and kilobyte memory limits, whereas a recommendation engine in a data center draws on terabytes of embedding tables and megawatt-scale infrastructure. The two sit at opposite ends of the range of machines that run ML. The introduction's D·A·M taxonomy (a later section) treated Data, Algorithm, and Machine as three interacting dimensions of one design problem, and across real deployments the machine is the dimension that changes most sharply. Its physical limits decide which data and algorithmic choices remain open."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Four deployment paradigms across nine orders of magnitude in power and memory; The single-node stack architecture and the silicon contract; D·A·M taxonomy framing of deployment as a first-order co-design problem."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why does deploying an ML model across different paradigms require treating deployment as a first-order D·A·M co-design problem rather than a late-stage packaging step?",
+   "md": "Deployment is a first-order co-design problem because physical machine constraints (such as power, thermal dissipation, memory bandwidth, and on-chip SRAM capacity) dictate what algorithmic structures and data representations are feasible. Deferring deployment until after training often results in models that exceed target memory budgets or violate latency SLAs, requiring fundamental redesigns of the model architecture, precision formats, or batching strategies."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-02-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Which statement correctly characterizes the span of power and memory capacity across the four deployment paradigms (Cloud ML, Edge ML, Mobile ML, and TinyML)?",
+     "explanation": "The correct answer is A. Cloud ML operates at megawatt (\\$10^6\\text{ W}$) scale in data centers with terabytes (\\$10^{12}\\text{ bytes}$) of memory, whereas TinyML operates on microcontrollers consuming milliwatts (\\$10^{-3}\\text{ W}$) with kilobytes (\\$10^3\\text{ bytes}$) of RAM, establishing a nine-order-of-magnitude span in power and memory capacity. The option claiming a three-order power span severely underestimates data-center power and microcontroller power limits. The claim that Edge, Mobile, and TinyML have identical sub-5 W power ignores that edge servers typically consume 100 W to several hundred watts. The option asserting only a \\$10^3$ memory variation fails to recognize the gap between terabytes and kilobytes (\\$10^9$ ratio).",
+     "hint": "Think about: compare the operational power and memory envelopes across the four deployment paradigms.",
+     "type": "single",
+     "options": [
+      "Power spans approximately nine orders of magnitude from megawatts in cloud data centers to milliwatts in microcontrollers, while memory spans from terabytes to kilobytes.",
+      "Power spans three orders of magnitude from kilowatts to watts, while memory remains in the gigabyte range across all four deployment tiers.",
+      "Power is identical across Edge, Mobile, and TinyML tiers (all operating under 5 W), with only Cloud ML exceeding 100 W.",
+      "Memory capacity varies by at most a factor of \\$10^3$ between cloud servers and microcontrollers, while power varies by \\$10^{12}$."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In ML systems engineering, what is meant by the **silicon contract** established by a single-node stack?",
+     "explanation": "The correct answer is B. The silicon contract refers to the fixed performance bargain a specific piece of hardware provides to a model, dictated by its physical limits: peak arithmetic rate ($R_{\\text{peak}}$), memory bandwidth ($\\text{BW}$), and fixed execution overhead ($L_{\\text{lat}}$). Software can only optimize within this boundary. The option referring to legal foundry warranties confuses systems architectural concepts with commercial guarantees. The choice describing an automated portability abstraction conflates compiler frameworks with hardware limits. The claim regarding exceeding thermal limits indefinitely violates basic thermodynamics.",
+     "hint": "Think about: explain the concept of the silicon contract and how physical hardware constraints define system performance limits.",
+     "type": "single",
+     "options": [
+      "The legal warranty provided by chip foundries guaranteeing zero hardware defects during multi-week training runs.",
+      "The fixed performance bargain offered by a hardware platform, defined by its peak compute rate, memory bandwidth, and fixed launch overhead.",
+      "The software abstraction layer that guarantees automated portability across CPUs, GPUs, and microcontrollers without performance regression.",
+      "The dynamic power-scaling policy that allows an accelerator to exceed its thermal design power indefinitely under heavy batch loads."
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Memory capacity**: The amount of resident model and runtime state a machine can hold; fitting is a feasibility condition before speed is considered."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Memory capacity",
+   "def": "The amount of resident model and runtime state a machine can hold; fitting is a feasibility condition before speed is considered."
+  }
+ ]
+}

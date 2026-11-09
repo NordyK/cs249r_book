@@ -1,0 +1,75 @@
+{
+ "title": "Durable Intent Before Dispatch",
+ "summary": "Work through Durable Intent Before Dispatch.",
+ "source": {
+  "chapter": "v3-11",
+  "sections": [
+   "Durable Intent Before Dispatch",
+   "Acknowledgment and the failure domain",
+   "Durable admission ordering",
+   "Recovery evidence and the completeness rule",
+   "Group commit"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Durable Intent Before Dispatch**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Durable Execution, § Durable Intent Before Dispatch",
+   "md": "In the crash worksheet, the repair worker's next step is to submit `test_r18` against workspace `ws_r18`. If the harness dispatches that test request across the network and crashes before the `ToolIntent` record reaches durable storage, a replacement worker folding the surviving log recovers a plan that still says \"run the test.\" Meanwhile the original job is already executing on the remote cluster and accruing charges. Recording only the eventual result leaves that blind spot open on every call."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Acknowledgment and the failure domain\n- Durable admission ordering\n- Recovery evidence and the completeness rule\n- Group commit"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Durable intent before dispatch matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: An admitted operation's identity, arguments, grant reference, and reservation must be durable under the declared failure domain before the request leaves, so no effect can exist without its intent on record."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-11-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Durable Intent Before Dispatch** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Young's interval prices checkpoints when a crash loses work to re-execute, and once each turn is logged the stride lengthens by the square root of the cost ratio because a crash costs reconstruction, not resampling.",
+      "Resume is an authorized continuation in ordered stages (prove the prefix, acquire ownership with a fencing epoch, restore by fold, reconcile in-doubt operations) rather than a restart.",
+      "Where a crash falls in the ordering decides whether an operation is not dispatched, in doubt, or established, and an absent intent proves non-dispatch only in a complete authoritative log prefix.",
+      "An admitted operation's identity, arguments, grant reference, and reservation must be durable under the declared failure domain before the request leaves, so no effect can exist without its intent on record."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Durable intent before dispatch**: An admitted operation's identity, arguments, grant reference, and reservation must be durable under the declared failure domain before the request leaves, so no effect can exist without its intent on record."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Durable intent before dispatch* records intent before the effect covered by *Trajectory record*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Durable intent before dispatch* records intent before the effect covered by *Trajectory saga*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Durable intent**: A durable pre-dispatch record preserves admitted operation identity and outstanding liability; it does not prove a remote effect happened."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Durable intent",
+   "def": "A durable pre-dispatch record preserves admitted operation identity and outstanding liability; it does not prove a remote effect happened."
+  }
+ ]
+}

@@ -1,0 +1,269 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v2-14",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Robust AI** (Vol II). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Robust AI, Purpose",
+   "md": "A model service can maintain stable latency and uptime while its predictions become unreliable. Changes in operating conditions, manipulated inputs, or corrupted computation may leave ordinary health signals untouched, allowing errors to affect decisions long before business metrics expose them. Conventional software can also fail silently; machine learning adds statistical failures that a successful request cannot reveal. At fleet scale, replicating a model across healthy machines does not remove a weakness shared by every copy."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Silent Failure Problem",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Real-World Robustness Failures",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "A Unified Framework for Robust AI",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Environmental Shifts",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Adversarial Attacks",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Adversarial Defenses",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Data Poisoning Defenses",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Robustness per failure class**",
+     "Drift, adversarial inputs, poisoning, and silent faults can keep every service-health signal green while predictions become invalid, and replication does not remove a weakness every copy shares, so robustness is claimed only per stated failure class."
+    ],
+    [
+     "**Shift taxonomy**",
+     "Covariate shift changes P(x), label shift changes P(y), and concept drift changes P(y|x), so input monitors can be silent under pure concept drift and the type of shift selects the remedy (reweighting, recalibration, or adaptation on fresh labels)."
+    ],
+    [
+     "**Drift alert to model update**",
+     "A drift alert opens an investigation rather than a retrain: detection, correlation with outcome performance, and action are separate levels, and a model update needs labels that confirm the shift and a root cause the update addresses."
+    ],
+    [
+     "**Per-request competence contract**",
+     "Population monitors cannot say whether one request lies inside demonstrated competence, so serving trades coverage against selective risk along a threshold, and conformal prediction adds a coverage guarantee that holds only under exchangeability."
+    ],
+    [
+     "**Adversarial robustness for a named threat model**",
+     "Attacker access defines the evaluation a defense must survive (for a physical attack, the full sensor loop rather than saved images), and robustness is bought empirically in training compute (adversarial training multiplies passes per batch) or certifiably in serving samples."
+    ],
+    [
+     "**Layered poisoning defense**",
+     "Because poisoned records can preserve clean aggregate accuracy, defense runs as ordered layers along the data path (ingress controls, anomaly detection and sanitization, robust training, post-training checks), each with a named blind spot, made reversible by lineage."
+    ],
+    [
+     "**Generative reliability**",
+     "A hallucination rate is meaningful only against a stated evidence source, prompt set, and decoding settings, and entropy and self-consistency are priced routing signals, not factuality scores."
+    ],
+    [
+     "**Distinguishing faults from shift**",
+     "A preprocessing bug moves feature statistics like covariate shift and a numerical overflow flips decisions like an adversarial example, so operators read system evidence (timing against releases, fixed-input replay, cross-layer correlation) before choosing a defense."
+    ],
+    [
+     "**Adversarial transferability**",
+     "Adversarial examples crafted on a surrogate often transfer to the deployed model, which makes black-box attacks practical without gradient access."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$\\text{PSI} = \\sum_{i=1}^{k} (p_i - q_i) \\times \\ln\\left(\\frac{p_i}{q_i}\\right)$$\n\n$$D_{\\text{KL}}(P \\| Q) = \\int_{-\\infty}^{\\infty} p(x) \\ln\\left(\\frac{p(x)}{q(x)}\\right) dx$$\n\n$$D_{n,m} = \\sup_x |F_n(x) - G_m(x)|$$\n\n$$D_{n,m} > c(\\alpha) \\sqrt{\\frac{n + m}{nm}}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v2-14-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Robustness per failure class",
+     "back": "Drift, adversarial inputs, poisoning, and silent faults can keep every service-health signal green while predictions become invalid, and replication does not remove a weakness every copy shares, so robustness is claimed only per stated failure class."
+    },
+    {
+     "front": "Shift taxonomy",
+     "back": "Covariate shift changes P(x), label shift changes P(y), and concept drift changes P(y|x), so input monitors can be silent under pure concept drift and the type of shift selects the remedy (reweighting, recalibration, or adaptation on fresh labels)."
+    },
+    {
+     "front": "Drift alert to model update",
+     "back": "A drift alert opens an investigation rather than a retrain: detection, correlation with outcome performance, and action are separate levels, and a model update needs labels that confirm the shift and a root cause the update addresses."
+    },
+    {
+     "front": "Per-request competence contract",
+     "back": "Population monitors cannot say whether one request lies inside demonstrated competence, so serving trades coverage against selective risk along a threshold, and conformal prediction adds a coverage guarantee that holds only under exchangeability."
+    },
+    {
+     "front": "Adversarial robustness for a named threat model",
+     "back": "Attacker access defines the evaluation a defense must survive (for a physical attack, the full sensor loop rather than saved images), and robustness is bought empirically in training compute (adversarial training multiplies passes per batch) or certifiably in serving samples."
+    },
+    {
+     "front": "Layered poisoning defense",
+     "back": "Because poisoned records can preserve clean aggregate accuracy, defense runs as ordered layers along the data path (ingress controls, anomaly detection and sanitization, robust training, post-training checks), each with a named blind spot, made reversible by lineage."
+    },
+    {
+     "front": "Generative reliability",
+     "back": "A hallucination rate is meaningful only against a stated evidence source, prompt set, and decoding settings, and entropy and self-consistency are priced routing signals, not factuality scores."
+    },
+    {
+     "front": "Distinguishing faults from shift",
+     "back": "A preprocessing bug moves feature statistics like covariate shift and a numerical overflow flips decisions like an adversarial example, so operators read system evidence (timing against releases, fixed-input replay, cross-layer correlation) before choosing a defense."
+    },
+    {
+     "front": "Adversarial transferability",
+     "back": "Adversarial examples crafted on a surrogate often transfer to the deployed model, which makes black-box attacks practical without gradient access."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v2-14-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Robustness per failure class**?",
+     "options": [
+      "Drift, adversarial inputs, poisoning, and silent faults can keep every service-health signal green while predictions become invalid, and replication does not remove a weakness every copy shares, so robustness is claimed only per stated failure class.",
+      "Attacker access defines the evaluation a defense must survive (for a physical attack, the full sensor loop rather than saved images), and robustness is bought empirically in training compute (adversarial training multiplies passes per batch) or certifiably in serving samples.",
+      "Because poisoned records can preserve clean aggregate accuracy, defense runs as ordered layers along the data path (ingress controls, anomaly detection and sanitization, robust training, post-training checks), each with a named blind spot, made reversible by lineage.",
+      "A drift alert opens an investigation rather than a retrain: detection, correlation with outcome performance, and action are separate levels, and a model update needs labels that confirm the shift and a root cause the update addresses."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Robustness per failure class itself, not a neighbouring idea.",
+     "explanation": "**Robustness per failure class:** Drift, adversarial inputs, poisoning, and silent faults can keep every service-health signal green while predictions become invalid, and replication does not remove a weakness every copy shares, so robustness is claimed only per stated failure class."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Shift taxonomy**?",
+     "options": [
+      "Drift, adversarial inputs, poisoning, and silent faults can keep every service-health signal green while predictions become invalid, and replication does not remove a weakness every copy shares, so robustness is claimed only per stated failure class.",
+      "Covariate shift changes P(x), label shift changes P(y), and concept drift changes P(y|x), so input monitors can be silent under pure concept drift and the type of shift selects the remedy (reweighting, recalibration, or adaptation on fresh labels).",
+      "Because poisoned records can preserve clean aggregate accuracy, defense runs as ordered layers along the data path (ingress controls, anomaly detection and sanitization, robust training, post-training checks), each with a named blind spot, made reversible by lineage.",
+      "Population monitors cannot say whether one request lies inside demonstrated competence, so serving trades coverage against selective risk along a threshold, and conformal prediction adds a coverage guarantee that holds only under exchangeability."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Shift taxonomy itself, not a neighbouring idea.",
+     "explanation": "**Shift taxonomy:** Covariate shift changes P(x), label shift changes P(y), and concept drift changes P(y|x), so input monitors can be silent under pure concept drift and the type of shift selects the remedy (reweighting, recalibration, or adaptation on fresh labels)."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Drift alert to model update**?",
+     "options": [
+      "A drift alert opens an investigation rather than a retrain: detection, correlation with outcome performance, and action are separate levels, and a model update needs labels that confirm the shift and a root cause the update addresses.",
+      "A preprocessing bug moves feature statistics like covariate shift and a numerical overflow flips decisions like an adversarial example, so operators read system evidence (timing against releases, fixed-input replay, cross-layer correlation) before choosing a defense.",
+      "Because poisoned records can preserve clean aggregate accuracy, defense runs as ordered layers along the data path (ingress controls, anomaly detection and sanitization, robust training, post-training checks), each with a named blind spot, made reversible by lineage.",
+      "Population monitors cannot say whether one request lies inside demonstrated competence, so serving trades coverage against selective risk along a threshold, and conformal prediction adds a coverage guarantee that holds only under exchangeability."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Drift alert to model update itself, not a neighbouring idea.",
+     "explanation": "**Drift alert to model update:** A drift alert opens an investigation rather than a retrain: detection, correlation with outcome performance, and action are separate levels, and a model update needs labels that confirm the shift and a root cause the update addresses."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Per-request competence contract**?",
+     "options": [
+      "Drift, adversarial inputs, poisoning, and silent faults can keep every service-health signal green while predictions become invalid, and replication does not remove a weakness every copy shares, so robustness is claimed only per stated failure class.",
+      "Population monitors cannot say whether one request lies inside demonstrated competence, so serving trades coverage against selective risk along a threshold, and conformal prediction adds a coverage guarantee that holds only under exchangeability.",
+      "Attacker access defines the evaluation a defense must survive (for a physical attack, the full sensor loop rather than saved images), and robustness is bought empirically in training compute (adversarial training multiplies passes per batch) or certifiably in serving samples.",
+      "Covariate shift changes P(x), label shift changes P(y), and concept drift changes P(y|x), so input monitors can be silent under pure concept drift and the type of shift selects the remedy (reweighting, recalibration, or adaptation on fresh labels)."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Per-request competence contract itself, not a neighbouring idea.",
+     "explanation": "**Per-request competence contract:** Population monitors cannot say whether one request lies inside demonstrated competence, so serving trades coverage against selective risk along a threshold, and conformal prediction adds a coverage guarantee that holds only under exchangeability."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Adversarial robustness for a named threat model**?",
+     "options": [
+      "Because poisoned records can preserve clean aggregate accuracy, defense runs as ordered layers along the data path (ingress controls, anomaly detection and sanitization, robust training, post-training checks), each with a named blind spot, made reversible by lineage.",
+      "Covariate shift changes P(x), label shift changes P(y), and concept drift changes P(y|x), so input monitors can be silent under pure concept drift and the type of shift selects the remedy (reweighting, recalibration, or adaptation on fresh labels).",
+      "Attacker access defines the evaluation a defense must survive (for a physical attack, the full sensor loop rather than saved images), and robustness is bought empirically in training compute (adversarial training multiplies passes per batch) or certifiably in serving samples.",
+      "A preprocessing bug moves feature statistics like covariate shift and a numerical overflow flips decisions like an adversarial example, so operators read system evidence (timing against releases, fixed-input replay, cross-layer correlation) before choosing a defense."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Adversarial robustness for a named threat model itself, not a neighbouring idea.",
+     "explanation": "**Adversarial robustness for a named threat model:** Attacker access defines the evaluation a defense must survive (for a physical attack, the full sensor loop rather than saved images), and robustness is bought empirically in training compute (adversarial training multiplies passes per batch) or certifiably in serving samples."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Robustness per failure class: Drift, adversarial inputs, poisoning, and silent faults can keep every service-health signal green while predictions become invalid, and replication does not remove a weakness every copy shares, so robustness is claimed only per stated failure class.",
+    "Shift taxonomy: Covariate shift changes P(x), label shift changes P(y), and concept drift changes P(y|x), so input monitors can be silent under pure concept drift and the type of shift selects the remedy (reweighting, recalibration, or adaptation on fresh labels).",
+    "Drift alert to model update: A drift alert opens an investigation rather than a retrain: detection, correlation with outcome performance, and action are separate levels, and a model update needs labels that confirm the shift and a root cause the update addresses.",
+    "Per-request competence contract: Population monitors cannot say whether one request lies inside demonstrated competence, so serving trades coverage against selective risk along a threshold, and conformal prediction adds a coverage guarantee that holds only under exchangeability."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Robustness per failure class",
+   "def": "Drift, adversarial inputs, poisoning, and silent faults can keep every service-health signal green while predictions become invalid, and replication does not remove a weakness every copy shares, so robustness is claimed only per stated failure class."
+  },
+  {
+   "term": "Shift taxonomy",
+   "def": "Covariate shift changes P(x), label shift changes P(y), and concept drift changes P(y|x), so input monitors can be silent under pure concept drift and the type of shift selects the remedy (reweighting, recalibration, or adaptation on fresh labels)."
+  },
+  {
+   "term": "Drift alert to model update",
+   "def": "A drift alert opens an investigation rather than a retrain: detection, correlation with outcome performance, and action are separate levels, and a model update needs labels that confirm the shift and a root cause the update addresses."
+  },
+  {
+   "term": "Per-request competence contract",
+   "def": "Population monitors cannot say whether one request lies inside demonstrated competence, so serving trades coverage against selective risk along a threshold, and conformal prediction adds a coverage guarantee that holds only under exchangeability."
+  },
+  {
+   "term": "Adversarial robustness for a named threat model",
+   "def": "Attacker access defines the evaluation a defense must survive (for a physical attack, the full sensor loop rather than saved images), and robustness is bought empirically in training compute (adversarial training multiplies passes per batch) or certifiably in serving samples."
+  },
+  {
+   "term": "Layered poisoning defense",
+   "def": "Because poisoned records can preserve clean aggregate accuracy, defense runs as ordered layers along the data path (ingress controls, anomaly detection and sanitization, robust training, post-training checks), each with a named blind spot, made reversible by lineage."
+  },
+  {
+   "term": "Generative reliability",
+   "def": "A hallucination rate is meaningful only against a stated evidence source, prompt set, and decoding settings, and entropy and self-consistency are priced routing signals, not factuality scores."
+  },
+  {
+   "term": "Distinguishing faults from shift",
+   "def": "A preprocessing bug moves feature statistics like covariate shift and a numerical overflow flips decisions like an adversarial example, so operators read system evidence (timing against releases, fixed-input replay, cross-layer correlation) before choosing a defense."
+  },
+  {
+   "term": "Adversarial transferability",
+   "def": "Adversarial examples crafted on a surrogate often transfer to the deployed model, which makes black-box attacks practical without gradient access."
+  }
+ ]
+}

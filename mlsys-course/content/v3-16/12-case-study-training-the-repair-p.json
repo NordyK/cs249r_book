@@ -1,0 +1,52 @@
+{
+ "title": "Case Study: Training the Repair Policy",
+ "summary": "Work through Case Study: Training the Repair Policy.",
+ "source": {
+  "chapter": "v3-16",
+  "sections": [
+   "Case Study: Training the Repair Policy"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Case Study: Training the Repair Policy**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Trajectory Fine-Tuning, § Case Study: Training the Repair Policy",
+   "md": "The recovery record that opened the chapter can now become a training artifact. The behavior to teach is narrow. When the runtime refuses an invalid tool proposal, the policy should inspect the schema, issue a corrected invocation that satisfies the interface, and end with a bounded report. Consider an illustrative supervised fine-tuning run that ingests `repair_demonstrations_v1` to produce candidate policy `trained_policy_v1`. That artifact is a set of weights, distinct from `ws_r20`, the workspace the demonstration produced."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Preference training matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-16-12-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Case Study: Training the Repair Policy** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A costly teacher configuration generates trajectories that pass the same admission as any demonstration, so distillation from sampled tokens is imitation rather than soft-target matching.",
+      "When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context.",
+      "Loss values are comparable only under identical split, serialization, mask, and normalization, and promotion requires closed-loop task acceptance under the serving configuration, not lower loss.",
+      "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Preference training**: When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Case Study: Training the Repair Policy."
+   ]
+  }
+ ]
+}

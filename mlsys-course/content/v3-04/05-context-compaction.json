@@ -1,0 +1,61 @@
+{
+ "title": "Context Compaction",
+ "summary": "Work through Context Compaction.",
+ "source": {
+  "chapter": "v3-04",
+  "sections": [
+   "Context Compaction",
+   "Choosing a compaction method",
+   "Protecting task-scoped fields",
+   "Scheduling compaction within the request budget"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Context Compaction**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Context Engineering, § Context Compaction",
+   "md": "As the connection-pool repair runs across turns, it accumulates repeated source listings, boilerplate test-setup output, and long execution traces. Keeping every line in every prompt uses space that later turns need for patch inspection and regression checks. Yet collapsing that trace into a bare note like \"the test failed\" drops the clues that matter: which revision failed, which thread schedule ran, and which assertion tripped. Compaction must shorten the working context without erasing the causal links future decisions rely on."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Choosing a compaction method\n- Protecting task-scoped fields\n- Scheduling compaction within the request budget"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Context compaction matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Every compaction is a lossy transform that can silently drop evidence a later decision needs, so the runtime pins a protected-field set and keeps handles to raw records."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-04-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Context Compaction** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Usable context is an empirical property of a model, configuration, representation, and workload found by decision-level evaluation, because attention dilutes a target key as staged keys accumulate and position matters.",
+      "Every compaction is a lossy transform that can silently drop evidence a later decision needs, so the runtime pins a protected-field set and keeps handles to raw records.",
+      "Staging the request as root, trunk, and leaf by change rate keeps the longest exact token prefix reusable, so volatile fields belong in the leaf, although correctness always overrides cache economics.",
+      "Context policies are compared as complete policies on accepted outcomes under a fixed model, tools, budget, and fixture, and retention or compression ratios are diagnostics with explicit denominators, not verdicts."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Context compaction**: Every compaction is a lossy transform that can silently drop evidence a later decision needs, so the runtime pins a protected-field set and keeps handles to raw records."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Context Compaction."
+   ]
+  }
+ ]
+}

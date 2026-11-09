@@ -1,0 +1,90 @@
+{
+ "title": "System Balance and Hardware",
+ "summary": "Analyze why single-batch inference is memory-bound across heterogeneous hardware platforms using the roofline model.",
+ "source": {
+  "chapter": "v1-02",
+  "sections": [
+   "System Balance and Hardware",
+   "Inside one machine: The single-node stack",
+   "Matching workloads to hardware"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze why single-batch inference is memory-bound across heterogeneous hardware platforms using the roofline model\n- Explain how the dominant bottleneck shifts between compute-bound and memory-bound regimes across training and inference phases\n- Apply the critical path latency rule to evaluate end-to-end ML service level agreements\n- Calculate the hardware balance point and use it to classify workloads into compute-bound and memory-bound regimes\n- Identify the dominant iron-law term for a deployment tier and the optimizations it rewards"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, System Paradigms, § System Balance and Hardware",
+   "md": "A model that clears its latency budget on paper can still stall on a real host if transfers over PCIe, the expansion bus that connects the CPU to the GPU, choke the pipeline or if single-sample inference leaves the accelerator's matrix units starved for bytes. Checking the iron law and workload archetypes against real hardware means tracing a request through every layer of one host, from the application's latency or throughput target down to the silicon that must meet it."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Inside one machine: The single-node stack\n- Matching workloads to hardware\n\nPay attention to: Critical-path latency rule and the dominant iron-law term per deployment tier; Roofline analysis and arithmetic intensity vs. hardware balance point; Batch=1 memory-bound behavior of ResNet-50 across cloud accelerators and mobile NPUs."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why does a convolutional neural network (e.g., ResNet-50) shift from a compute-bound regime during cloud training to a memory-bound regime during single-sample ($\\text{batch}=1$) edge inference?",
+   "md": "During cloud training with large batch sizes (e.g., $\\text{batch}=256$), loaded model weights are reused across hundreds of input samples in parallel, raising arithmetic intensity ($I = \\text{FLOPs/byte}$) above the hardware balance point into the compute-bound regime. During single-sample inference ($\\text{batch}=1$), the full set of model weights must be streamed from memory to process just one input without reuse, causing arithmetic intensity to plummet onto the memory-bandwidth-bound slope of the roofline."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-02-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why is single-image (batch=1) ResNet-50 inference memory-bound on both a high-end cloud accelerator (NVIDIA A100) and a mobile NPU (iPhone 15 Pro)?",
+     "explanation": "The correct answer is C. For single-image inference ($\\text{batch}=1$), the full model weight parameters must be fetched from memory to process a single sample. Because weights cannot be amortized across multiple samples in parallel, the effective arithmetic intensity ($I = \\text{FLOPs/byte}$) is low and falls to the left of the roofline ridge point ($R_{\\text{peak}}/\\text{BW}$) on both the A100 and the mobile NPU, making memory bandwidth the limiting constraint on both chips. The option citing dynamic control flow is incorrect because ResNet-50 consists of regular static feedforward convolutions. The claim that both platforms lack matrix acceleration is false, as both feature specialized tensor cores / NPUs. The option claiming activations exceed memory capacity is false, as ResNet-50 activations at batch=1 require only a few megabytes.",
+     "hint": "Think about: analyze why single-batch inference is memory-bound across heterogeneous hardware platforms using the roofline model.",
+     "type": "single",
+     "options": [
+      "ResNet-50 contains dynamic control flow that causes branching stalls on SIMD execution units.",
+      "Both platforms lack matrix multiplication coprocessors, forcing scalar CPU execution.",
+      "At batch=1, model weights must be loaded from memory once per single image without weight reuse across batch items, keeping arithmetic intensity below each platform's hardware balance point ($R_{\\text{peak}}/\\text{BW}$).",
+      "The activations at batch=1 exceed the total high-bandwidth memory (HBM) and SRAM capacities of both devices."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "An ML service SLA guarantees a total end-to-end response time of 100 ms. The pipeline involves client preprocessing, a cross-region network RPC, model inference, and postprocessing. According to critical path latency principles, why will this system fail if a cross-region network call taking 120 ms is placed on the synchronous critical path?",
+     "explanation": "The correct answer is D. In a synchronous pipeline, end-to-end latency is bounded below by the sum of sequential operations on the critical path. If an individual operation on the critical path requires 120 ms, the system latency is guaranteed to be at least 120 ms, violating the 100 ms budget before accounting for inference, preprocessing, or postprocessing. The options citing compiler lowering errors, tensor precision corruption, or halved accelerator throughput invent non-existent technical failures instead of applying critical-path analysis.",
+     "hint": "Think about: apply the critical path latency rule to evaluate end-to-end ML service level agreements.",
+     "type": "single",
+     "options": [
+      "The ML framework compiler will refuse to lower the graph if network RPC operations are detected.",
+      "Cross-region RPCs corrupt the numerical precision of FP16 tensors during serialization.",
+      "A cross-region network call reduces the accelerator compute throughput ($R_{\\text{peak}}$) by half.",
+      "The critical path is the longest sequential chain of dependent operations; any single stage exceeding 100 ms guarantees the end-to-end SLA will be breached regardless of how fast all other stages execute."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "For batch-1 LLM decode in the cloud and for most edge inference, the iron-law term that dominates is memory ____ rather than peak compute, so a faster accelerator alone yields little speedup.",
+     "explanation": "bandwidth. These workloads stream weights and activations with little reuse per byte loaded, so the data-movement term $D_{\\text{vol}}/\\text{BW}$ dominates. The productive optimizations reduce bytes moved (smaller models, lower precision, more reuse per loaded weight) rather than adding peak FLOP/s.",
+     "hint": "Think about: identify the dominant iron-law term for a deployment tier and the optimizations it rewards.",
+     "type": "fill",
+     "answer": [
+      "bandwidth"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: What is the hardware balance point (or roofline ridge point) of an accelerator, and what does it tell an ML systems engineer about whether a workload will be compute-bound or memory-bound?",
+   "md": "The hardware balance point is the ratio of peak arithmetic throughput to memory bandwidth ($R_{\\text{peak}} / \\text{BW}$), expressed in $\\text{FLOPs/byte}$. If a workload's arithmetic intensity ($I = \\text{operations} / \\text{bytes moved}$) is greater than this balance point ($I > R_{\\text{peak}}/\\text{BW}$), the workload is compute-bound and limited by processor arithmetic capacity. If $I < R_{\\text{peak}}/\\text{BW}$, the workload is memory-bound and limited by memory bandwidth, meaning buying more peak FLOP/s will provide zero speedup unless data movement is reduced."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze why single-batch inference is memory-bound across heterogeneous hardware platforms using the roofline model.",
+    "You can now explain how the dominant bottleneck shifts between compute-bound and memory-bound regimes across training and inference phases.",
+    "You can now apply the critical path latency rule to evaluate end-to-end ML service level agreements.",
+    "You can now calculate the hardware balance point and use it to classify workloads into compute-bound and memory-bound regimes."
+   ]
+  }
+ ]
+}

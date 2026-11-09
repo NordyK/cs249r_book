@@ -1,0 +1,103 @@
+{
+ "title": "Feature Store Operations",
+ "summary": "Justify the dual-store architectural pattern for enterprise feature store operations.",
+ "source": {
+  "chapter": "v2-12",
+  "sections": [
+   "Feature Store Operations",
+   "Feature store architecture",
+   "Freshness SLOs",
+   "Point-in-time correctness",
+   "Feature versioning and lineage",
+   "Backfill procedures",
+   "Scale challenges",
+   "Data quality operations"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Justify the dual-store architectural pattern for enterprise feature store operations\n- Analyze the mechanisms and production risks of temporal data leakage in feature engineering\n- Evaluate the operational and revenue impact of feature staleness on recommendation systems\n- Calculate the historical storage scaling footprint required for point-in-time feature retention\n- Evaluate the failure modes of unversioned schema mutations in shared feature platforms"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, ML Operations at Scale, § Feature Store Operations",
+   "md": "Governing model checkpoints and their dependency edges still leaves the input values those models ingest unprotected if training and serving compute features through separate code paths. Consider a fraud detection system that needs to know a user's transaction volume over the last ten minutes. Serving retrieves that feature within the prediction's latency budget, while training reconstructs it for many historical transactions. These access paths differ, but the feature's meaning must remain compatible."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Feature store architecture\n- Freshness SLOs\n- Point-in-time correctness\n- Feature versioning and lineage\n- Backfill procedures\n- Scale challenges\n- Data quality operations\n\nPay attention to: Dual-store architecture for training vs. serving access patterns; Point-in-time correctness and data leakage prevention; Feature staleness cost on DLRM and immutable versioning contracts."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In the context of Deep Learning Recommendation Models (DLRM), explain the cost of feature staleness that results from lagged streaming feature pipelines.",
+   "md": "The cost of staleness is the quality or business loss from serving features that no longer reflect the user's relevant state. Its size depends on the feature, workload, lag, and evaluation window. Measure CTR or other outcome changes rather than assigning a universal 5% to 15% penalty to a given delay."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-12-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why does an enterprise feature store implement a dual-store architecture (separating an offline store from an online store) instead of relying on a single unified database system?",
+     "explanation": "The correct answer is B. Historical analytical scans and low-latency serving lookups favor different indexing, storage, and scaling choices. Separating the stores lets each be optimized for its workload while shared definitions preserve semantic consistency. This is a practical architecture trade-off, not proof that no database could support both access patterns.",
+     "hint": "Think about: justify the dual-store architectural pattern for enterprise feature store operations.",
+     "type": "single",
+     "options": [
+      "Online stores can store only integer IDs, whereas offline stores are required for floating-point feature values.",
+      "Training requires high-throughput sequential analytical batch scans over historical data, whereas serving requires sub-10 millisecond point lookups for individual entity keys.",
+      "Cloud providers legally mandate separating batch compute from streaming ingress databases.",
+      "Single database systems crash when table schemas exceed ten columns."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "What failure mode occurs when a training pipeline constructs training examples using current feature values rather than historical values as of each event timestamp?",
+     "explanation": "The correct answer is C. Point-in-time correctness prevents 'time travel' data leakage. If an event occurring at noon is joined with a daily aggregation computed at midnight, the model learns from future signals unavailable at inference time, leading to severe production accuracy degradation.",
+     "hint": "Think about: analyze the mechanisms and production risks of temporal data leakage in feature engineering.",
+     "type": "single",
+     "options": [
+      "GPU kernel deadlocks during forward propagation.",
+      "Hardware bit errors in the offline data lake storage controller.",
+      "'Time travel' data leakage, where future information contaminates training data, producing deceptively high offline metrics but disastrous performance in production.",
+      "Out-of-memory errors in distributed model serving sidecars."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In an enterprise feature store, modifying the feature transformation logic of a shared feature in-place (e.g., changing normalization from z-score to min-max) is safe as long as the feature name and output datatype remain unchanged.",
+     "explanation": "False. Shared feature definitions are immutable production API contracts. In-place transformation changes invalidate feature distribution assumptions across all downstream consuming models, causing silent model degradation and severe cross-team debugging toil; feature modifications require explicit semantic versioning.",
+     "hint": "Think about: evaluate the failure modes of unversioned schema mutations in shared feature platforms.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The subtle difference in feature transformation logic between offline batch training pipelines and online real-time inference pipelines is known as ____.",
+     "explanation": "training-serving skew. Training-serving skew is the critical operational failure mode where differences in preprocessing logic between training and inference cause models to receive inputs formatted differently from what they learned, causing silent performance degradation.",
+     "hint": "Think about: identify the core operational failure mode solved by unified feature stores.",
+     "type": "fill",
+     "answer": [
+      "training serving skew",
+      "training-serving skew"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Calculate the raw uncompressed historical storage footprint for a recommendation feature store with \\$100\\text{ million}$ users, \\$1,000$ features per user, \\$1\\text{ year}$ retention (\\$8,760\\text{ hours}$), hourly full snapshots, and a \\$32\\text{-byte}$ stored row (an \\$8\\text{-byte}$ value, an \\$8\\text{-byte}$ entity key, and \\$8\\text{-byte}$ event and availability timestamps).",
+   "md": "Total feature value records equal \\$10^8 users × 1,000 features × 8,760 versions = 8.76 × 10^14 rows. Multiplying by \\$32 bytes per row yields \\$2.8 × 10^16 bytes approx 28 PB, three quarters of it metadata that makes point-in-time joins reproducible, which is why feature stores store only changed values and rely on compression and tiered retention."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now justify the dual-store architectural pattern for enterprise feature store operations.",
+    "You can now analyze the mechanisms and production risks of temporal data leakage in feature engineering.",
+    "You can now evaluate the operational and revenue impact of feature staleness on recommendation systems.",
+    "You can now calculate the historical storage scaling footprint required for point-in-time feature retention."
+   ]
+  }
+ ]
+}

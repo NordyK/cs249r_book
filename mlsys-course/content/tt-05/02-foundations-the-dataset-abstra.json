@@ -1,0 +1,131 @@
+{
+ "title": "Foundations: The Dataset Abstraction",
+ "summary": "TinyTorch dataloader: Foundations: The Dataset Abstraction",
+ "source": {
+  "chapter": "tt-05",
+  "sections": [
+   "Foundations: The Dataset Abstraction"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: The Dataset Abstraction\n\nThe Dataset class provides a uniform interface for accessing data, regardless of whether it's stored as files, in memory, in databases, or generated on-the-fly:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Method",
+    "Type Signature",
+    "Operational Semantics",
+    "Systems Contract"
+   ],
+   "rows": [
+    [
+     "`__len__()`",
+     "`() -> int`",
+     "Total sample count \\$N\\$",
+     "Enables batch partitioning \\$\\lceil N / B \\rceil\\$"
+    ],
+    [
+     "`__getitem__(idx)`",
+     "`(int) -> Any`",
+     "Retrieve sample at index \\$i\\$",
+     "\\$O(1)\\$ random access slicing \\$0 \\le i < N\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Connection to systems**: This abstraction is crucial because it separates *how data is stored* from *how it's accessed*, enabling optimizations like caching, prefetching, and parallel loading."
+  },
+  {
+   "type": "text",
+   "md": "### Dataset Base Class Implementation\n\nFirst, we implement the abstract Dataset base class that defines the interface."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class Dataset(ABC):\n    \"\"\"\n    Abstract base class for all datasets.\n\n    Provides the fundamental interface that all datasets must implement:\n    - __len__(): Returns the total number of samples\n    - __getitem__(idx): Returns the sample at given index\n\n    TODO: Implement the abstract Dataset base class\n\n    APPROACH:\n    1. Use ABC (Abstract Base Class) to define interface\n    2. Mark methods as @abstractmethod to force implementation\n    3. Provide clear docstrings for subclasses\n\n    EXAMPLE:\n    >>> class MyDataset(Dataset):\n    ...     def __len__(self): return 100\n    ...     def __getitem__(self, idx): return idx\n    >>> dataset = MyDataset()\n    >>> print(len(dataset))  # 100\n    >>> print(dataset[42])   # 42\n\n    HINT: Abstract methods force subclasses to implement core functionality\n    \"\"\"\n\n    @abstractmethod\n    def __len__(self) -> int:\n        \"\"\"\n        Return the total number of samples in the dataset.\n\n        This method must be implemented by all subclasses to enable\n        len(dataset) calls and batch size calculations.\n        \"\"\"\n        pass\n\n    @abstractmethod\n    def __getitem__(self, idx: int):\n        \"\"\"\n        Return the sample at the given index.\n\n        Args:\n            idx: Index of the sample to retrieve (0 <= idx < len(dataset))\n\n        Returns:\n            The sample at index idx. Format depends on the dataset implementation.\n            Could be (data, label) tuple, single tensor, etc.\n        \"\"\"\n        pass"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Dataset Abstract Base Class\n\nThis test validates our Dataset abstract base class is properly defined.\n\n**What we're testing**: Abstract methods are enforced, concrete implementations work\n**Why it matters**: Foundation interface for all dataset types\n**Expected**: Cannot instantiate abstract Dataset, can instantiate concrete implementations"
+  },
+  {
+   "type": "text",
+   "md": "## 🏗️ TensorDataset: When Data Lives in Memory\n\nNow let's implement TensorDataset, the most common dataset type for when your data is already loaded into tensors. This is perfect for datasets like MNIST where you can fit everything in memory.\n\n### Understanding TensorDataset Structure\n\nTensorDataset takes multiple tensors and aligns them along axis 0 (the sample dimension):"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Sample Index \\$i\\$",
+    "Features Tensor \\$\\mathbf{X} \\in \\mathbb{R}^{N \\times 3}\\$",
+    "Labels Tensor \\$\\mathbf{y} \\in \\mathbb{R}^{N}\\$",
+    "Metadata Tensor \\$\\mathbf{m}\\$",
+    "Dataset Sample `dataset[i]`"
+   ],
+   "rows": [
+    [
+     "**0**",
+     "\\$[1.2, 3.4, 5.6]\\$",
+     "\\$0\\$ (cat)",
+     "`\"image_001.jpg\"`",
+     "\\$(\\mathbf{x}_0, y_0, m_0)\\$"
+    ],
+    [
+     "**1**",
+     "\\$[2.1, 4.3, 6.5]\\$",
+     "\\$1\\$ (dog)",
+     "`\"image_002.jpg\"`",
+     "\\$(\\mathbf{x}_1, y_1, m_1)\\$"
+    ],
+    [
+     "**2**",
+     "\\$[3.0, 5.2, 7.4]\\$",
+     "\\$0\\$ (cat)",
+     "`\"image_003.jpg\"`",
+     "\\$(\\mathbf{x}_2, y_2, m_2)\\$"
+    ],
+    [
+     "\\$\\vdots\\$",
+     "\\$\\vdots\\$",
+     "\\$\\vdots\\$",
+     "\\$\\vdots\\$",
+     "\\$\\vdots\\$"
+    ],
+    [
+     "**\\$N-1\\$**",
+     "\\$\\mathbf{x}_{N-1}\\$",
+     "\\$y_{N-1}\\$",
+     "\\$m_{N-1}\\$",
+     "\\$(\\mathbf{x}_{N-1}, y_{N-1}, m_{N-1})\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\text{dataset}[i] \\longrightarrow \\big(\\mathbf{X}[i], \\mathbf{y}[i], \\mathbf{m}[i]\\big)\\$\\$\n\n### Why TensorDataset is Powerful\n\n**Memory Locality**: All data is pre-loaded and stored contiguously in memory, enabling fast access patterns.\n\n**Vectorized Operations**: Since everything is already tensors, no conversion overhead during training.\n\n**Supervised Learning Perfect**: Naturally handles (features, labels) pairs, plus any additional metadata.\n\n**Batch-Friendly**: When DataLoader needs a batch, it can slice multiple samples efficiently.\n\n### Real-World Usage Patterns\n\n```\n# Computer Vision\nimages = Tensor(np.zeros((50000, 32, 32, 3), dtype=np.float32))  # CIFAR-10 images\nlabels = Tensor(np.zeros(50000))            # Class labels 0-9\ndataset = TensorDataset(images, labels)\n\n# Natural Language Processing\ntoken_ids = Tensor(np.zeros((10000, 512)))     # Tokenized sentences\nlabels = Tensor(np.zeros(10000))            # Sentiment labels\ndataset = TensorDataset(token_ids, labels)\n\n# Time Series\nsequences = Tensor(np.zeros((1000, 100, 5)))   # 100 timesteps, 5 features\ntargets = Tensor(np.zeros((1000, 10)))         # 10-step ahead prediction\ndataset = TensorDataset(sequences, targets)\n```\n\nThe key insight: TensorDataset transforms \"arrays of data\" into \"a dataset that serves samples\"."
+  },
+  {
+   "type": "text",
+   "md": "### TensorDataset Implementation\n\nNow we implement TensorDataset for tensor-based data storage."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 117 lines of code (starting with `class TensorDataset(Dataset):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: TensorDataset\n\nThis test validates our TensorDataset implementation works correctly with tensor-based data.\n\n**What we're testing**: Length calculation, indexing, tuple returns, error handling\n**Why it matters**: Core dataset type for in-memory training data\n**Expected**: Correct sample retrieval with proper tensor wrapping"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Foundations: The Dataset Abstraction."
+   ]
+  }
+ ]
+}

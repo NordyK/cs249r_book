@@ -1,0 +1,111 @@
+{
+ "title": "Checkpointing and Progress Preservation",
+ "summary": "Evaluate whether a checkpoint policy satisfies stated recovery point and recovery time objectives.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "Checkpointing and Progress Preservation",
+   "The Young-Daly checkpoint interval",
+   "Checkpoint interval from failure analysis",
+   "Checkpoint overhead analysis",
+   "Checkpoint storage and recovery",
+   "Checkpoint coordination patterns"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Evaluate whether a checkpoint policy satisfies stated recovery point and recovery time objectives\n- Calculate the mathematical scaling of the Young-Daly optimal checkpoint interval as cluster size increases\n- Compare sharded checkpointing with centralized checkpointing in terms of I/O parallelism and recovery complexity\n- Analyze the composition of checkpoint storage payloads across model weights and optimizer states\n- Design the operational phases of a distributed sharded checkpoint protocol"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, § Checkpointing and Progress Preservation",
+   "md": "When a top-of-rack switch dies two weeks into the training run of a 175-billion-parameter model, the cluster loses 64 GPUs instantly. Because a large cluster experiences such interruptions routinely (a later section), it cannot restart multi-week jobs from scratch; training fault tolerance must preserve state, detect and classify the failure, and resume or resize the worker group. Checkpointing supplies the first of those three obligations, and every detection, restart, and elastic-resizing path later in the chapter depends on the durable snapshot it produces."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The Young-Daly checkpoint interval\n- Checkpoint interval from failure analysis\n- Checkpoint overhead analysis\n- Checkpoint storage and recovery\n- Checkpoint coordination patterns\n\nPay attention to: Recovery point and recovery time objectives as the contract a checkpoint policy must satisfy; Young-Daly optimal interval derivation and cluster scaling consequences; Checkpoint payload composition: FP32 AdamW optimizer states vs weights; Synchronous vs asynchronous vs incremental checkpointing trade-offs."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A training cluster quadruples in size from 1,000 GPUs to 4,000 GPUs, reducing its system MTBF by a factor of 4. Assuming checkpoint write time $T_{\\text{write}}$ remains constant, calculate by what factor the Young-Daly optimal checkpoint interval $\\tau_{\\text{opt}}$ changes.",
+   "md": "Under the Young-Daly formula $\\tau_{\\text{opt}} = \\sqrt{2 \\cdot T_{\\text{write}} \\cdot \\text{MTBF}_{\\text{system}}}$, the optimal interval scales with the square root of MTBF. When MTBF decreases by a factor of 4 ($\\text{MTBF}' = \\text{MTBF}/4$), the new optimal interval becomes $\\tau_{\\text{opt}}' = \\sqrt{2 \\cdot T_{\\text{write}} \\cdot (\\text{MTBF}/4)} = \\frac{1}{2}\\tau_{\\text{opt}}$. The optimal interval halves (becomes \\$2\\times$ more frequent), not \\$4\\times$, due to the square-root relationship."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team checkpoints every 30 minutes with asynchronous flushing. It promises a recovery point objective (RPO) of 15 minutes and a recovery time objective (RTO) of 10 minutes, and reloading the checkpoint alone takes 12 minutes. Which assessment is correct?",
+     "explanation": "The correct answer is D. Lost progress can reach a full interval, and asynchronous flushing can leave the last durable generation older still, so a 15-minute RPO needs a more frequent durable log or replica. Recovery time covers detection, replacement, restore, and warmup, so a 12-minute reload alone breaks a 10-minute RTO. The Young-Daly interval minimizes expected waste but does not certify these service constraints, and asynchronous flushing shortens the training pause without making the newest checkpoint durable sooner.",
+     "hint": "Think about: evaluate whether a checkpoint policy satisfies stated recovery point and recovery time objectives.",
+     "type": "single",
+     "options": [
+      "Both promises hold, because the Young-Daly interval already minimizes expected waste.",
+      "The RPO holds because asynchronous flushing removes the write from the critical path, but the RTO fails.",
+      "The RTO holds because detection and warmup overlap with checkpoint reload, but the RPO fails.",
+      "Both promises fail, because a 30-minute interval cannot bound lost progress below 30 minutes without a more frequent durable log or replica, and a 12-minute reload alone exceeds the 10-minute RTO before detection, replacement, and warmup are counted."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "How does sharded checkpointing (such as in ZeRO-3 or PyTorch FSDP) differ from centralized checkpointing in terms of I/O parallelism and recovery requirements?",
+     "explanation": "The correct answer is C. Under ZeRO-3/FSDP sharded checkpointing, each worker saves only its local partition of weights and optimizer states (e.g., $\\approx 10$ GB per worker instead of 10 TB total), parallelizing write bandwidth across the cluster. The trade-off is recovery complexity: all worker shards must be present, and changing the worker count upon restart requires remapping and resharding state. Broadcasting state to all peers describes redundant replication. Writing a monolithic file from Rank 0 describes centralized checkpointing. Discarding optimizer state would prevent deterministic optimizer resumption.",
+     "hint": "Think about: compare sharded checkpointing with centralized checkpointing in terms of I/O parallelism and recovery complexity.",
+     "type": "single",
+     "options": [
+      "Sharded checkpointing requires every worker to broadcast its state to all peers before writing, doubling network communication overhead.",
+      "Sharded checkpointing writes a single monolithic file from Rank 0, minimizing storage metadata operations.",
+      "Each worker writes only its locally partitioned parameter and optimizer shard directly to storage in parallel, aggregating storage fabric bandwidth but requiring all shards to be present and consistent during recovery.",
+      "Sharded checkpointing stores only model weights, discarding optimizer state to achieve sub-second write times."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Sequence the 6 steps of a standard distributed sharded checkpoint coordination protocol in chronological order:",
+     "explanation": "The correct sequence is (4) -> (5) -> (2) -> (6) -> (1) -> (3).\n- (4) Coordinator broadcasts checkpoint initiation request with checkpoint ID.\n- (5) Workers reach consistent step boundary via barrier synchronization.\n- (2) Workers write their respective state shards in parallel.\n- (6) Workers report write completion to the coordinator.\n- (1) Coordinator commits metadata once all shards are verified.\n- (3) Coordinator broadcasts completion signal so normal training resumes.",
+     "hint": "Think about: design the operational phases of a distributed sharded checkpoint protocol.",
+     "type": "order",
+     "items": [
+      "Coordinator broadcasts checkpoint initiation request with a unique checkpoint ID",
+      "Each worker reaches a consistent execution state via barrier synchronization",
+      "Each worker writes its local state shard directly to persistent storage",
+      "Each worker reports shard write completion back to the coordinator",
+      "Coordinator confirms all writes and commits checkpoint metadata",
+      "Coordinator broadcasts checkpoint completion signal, allowing next barrier clearance"
+     ]
+    },
+    {
+     "q": "What is the primary advantage of adopting a bounded asynchronous checkpoint consistency model over a strict synchronous checkpoint model in a 10,000-GPU cluster?",
+     "explanation": "The correct answer is A. A bounded-asynchronous protocol can reduce barrier waiting, but bounded step skew alone does not make saved shards mutually consistent. The manager must retain compatible versions or sufficient replay information to reconstruct a valid cut before publishing a recoverable generation. This differs from asynchronous flushing of one synchronized snapshot, which overlaps I/O without relaxing recovery consistency. The other choices do not provide a valid persistent recovery protocol.",
+     "hint": "Think about: evaluate consistency models and two-phase commit protocols for distributed checkpointing.",
+     "type": "single",
+     "options": [
+      "It can reduce barrier waiting by letting workers progress within a bounded step window while retaining compatible shard versions or replay information to construct a consistent recovery cut.",
+      "It guarantees that all workers write their state at the exact same nanosecond without requiring any communication with a coordinator.",
+      "It eliminates the need for persistent storage by maintaining checkpoints entirely in L2 cache memory.",
+      "It ensures that lost computation after a hardware crash is always zero steps."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain the memory composition breakdown of checkpoint files for large language models trained with mixed-precision AdamW, detailing why optimizer states dominate storage requirements.",
+   "md": "In the chapter’s reference mixed-precision AdamW format, BF16/FP16 weights occupy 2 bytes per parameter, separate FP32 master weights occupy 4 bytes, and the two FP32 moment tensors occupy 8 bytes. Optimizer-side state therefore accounts for 12 of 14 bytes per parameter, about 86 percent, or 840 GB of a 980 GB checkpoint for a 70B model before metadata. Implementations with different state formats require their own payload calculation."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate whether a checkpoint policy satisfies stated recovery point and recovery time objectives.",
+    "You can now calculate the mathematical scaling of the Young-Daly optimal checkpoint interval as cluster size increases.",
+    "You can now compare sharded checkpointing with centralized checkpointing in terms of I/O parallelism and recovery complexity.",
+    "You can now analyze the composition of checkpoint storage payloads across model weights and optimizer states."
+   ]
+  }
+ ]
+}

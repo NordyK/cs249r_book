@@ -1,0 +1,76 @@
+{
+ "title": "Observation Loss Masking",
+ "summary": "Work through Observation Loss Masking.",
+ "source": {
+  "chapter": "v3-16",
+  "sections": [
+   "Observation Loss Masking",
+   "The masked objective",
+   "Causal label alignment",
+   "Selected targets and compute",
+   "Optional rationale as target or context",
+   "Termination and truncated responses"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Observation Loss Masking**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Trajectory Fine-Tuning, § Observation Loss Masking",
+   "md": "In `serialization_v1`, the token array for the repair trajectory still contains the prompt, the malformed proposal `e2`, the runtime refusal, the returned schema, and the check summary `e5` alongside the selected responses `e3`, `e4`, and `e6`. A loader that selects every assistant token trains the model on the malformed proposal `e2` alongside its correction `e4`, undoing curation, while a loader that computes loss across all tokens trains the policy to predict environment replies. Serialization turns the interaction into tokens; the loss mask decides which of those tokens drive gradient updates."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The masked objective\n- Causal label alignment\n- Selected targets and compute\n- Optional rationale as target or context\n- Termination and truncated responses"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Loss masking matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-16-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Observation Loss Masking** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed.",
+      "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained.",
+      "Packing is only a memory layout, so block-diagonal attention, per-example label shifts, and position handling must leave each packed example's logits equal to its unpacked logits, a property tested rather than assumed.",
+      "LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Loss masking**: Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Loss masking* selects response positions within *Proposal boundary*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Loss masking* selects response positions within *Delivered-prefix serialization*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Loss mask**: A supervised objective selects demonstrated policy outputs as targets while keeping observations and unselected actions as conditioning context."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Loss mask",
+   "def": "A supervised objective selects demonstrated policy outputs as targets while keeping observations and unselected actions as conditioning context."
+  }
+ ]
+}

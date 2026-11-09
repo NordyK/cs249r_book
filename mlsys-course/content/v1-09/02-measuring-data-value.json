@@ -1,0 +1,119 @@
+{
+ "title": "Measuring Data Value",
+ "summary": "Calculate the scaling behavior of the Information-Compute Ratio under the section's illustrative logarithmic-information model.",
+ "source": {
+  "chapter": "v1-09",
+  "sections": [
+   "Measuring Data Value",
+   "The information-compute ratio",
+   "Diminishing returns and the ICR frontier",
+   "The compute-optimal frontier",
+   "Core metrics",
+   "Validating a reduced dataset",
+   "The selection inequality"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate the scaling behavior of the Information-Compute Ratio under the section's illustrative logarithmic-information model\n- Compare data correctness with data value in the Information-Compute Ratio framework\n- Interpret a controlled compute-optimal-frontier sweep without over-inferring a unique bottleneck from a single operating point\n- Match the chapter's core metrics to the measurement goals they are designed to answer\n- Justify AULC as a data-efficiency metric by relating it to performance across dataset sizes rather than a single endpoint"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Selection, § Measuring Data Value",
+   "md": "A ResNet-50 trained on an aggressively filtered ImageNet subset can hold its aggregate accuracy while failing on rare classes that the filter discarded as low-density noise. A GPT-2 run on a filtered corpus can cost less per epoch while needing more epochs to reach the same loss. A measurement framework is therefore needed to show what a reduction actually saves."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The information-compute ratio\n- Diminishing returns and the ICR frontier\n- The compute-optimal frontier\n- Core metrics\n- Validating a reduced dataset\n- The selection inequality\n\nPay attention to: Information-compute ratio and its marginal decay; Data correctness versus data value; Compute-optimal diagnosis; PPD, AULC, and DCR."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why a dataset where \\$100\\% of the sample labels are verifiably correct can still exhibit a very low Information-Compute Ratio (ICR).",
+   "md": "Label correctness measures ground-truth accuracy, whereas ICR measures evaluation gain per unit of training compute over a stated interval. A dataset of completely correct examples will have near-zero ICR if the samples are redundant, easily classified by the current model state, or already mastered, because processing them consumes forward and backward FLOPs without producing a corresponding evaluation gain; parameter updates alone do not establish learning value."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-09-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Under the illustrative analytical model where dataset information content scales as $\\mathcal{I}(D) \\propto \\log D$ and training compute scales linearly as $O = O_{\\text{sample}} \\cdot D$, how does the marginal Information-Compute Ratio $\\mathrm{ICR}(D)$ scale with dataset size $D$?",
+     "explanation": "The correct answer is B. Under the chapter's illustrative model, $d\\mathcal{I}/dD \\propto 1/D$ and $dO/dD = O_{\\text{sample}}$, so their ratio is $\\mathrm{ICR}(D) \\approx 1/(O_{\\text{sample}}D)$. This captures diminishing marginal learning signal under the stated log-information and linear-compute assumptions. A constant or growing answer ignores the derivative of $\\log D$, while the exponential-decay choice introduces a memory-capacity mechanism that is not part of this model.",
+     "hint": "Think about: calculate the scaling behavior of the Information-Compute Ratio under the section's illustrative logarithmic-information model.",
+     "type": "single",
+     "options": [
+      "It remains constant at $\\mathcal{O}(1)$ because additional compute scales proportionally with dataset size",
+      "It decays as $\\mathcal{O}\\!\\left(\\frac{1}{O_{\\text{sample}}D}\\right)$, so under this illustrative model additional data eventually adds compute faster than marginal information",
+      "It grows logarithmically as $\\mathcal{O}(\\log D / O_{\\text{sample}})$ due to power-law parameter scaling",
+      "It decays exponentially as $\\mathcal{O}(\\exp(-D))$ once the training corpus exceeds accelerator memory capacity"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "An ML systems diagnostic plot maps normalized training compute on the horizontal axis against model performance on the vertical axis. A 10M-parameter run sits well below a fitted frontier under a fixed evaluation protocol and fixed total budget. A controlled sweep then shows that reallocating the same budget toward a larger model improves performance. What is the most defensible diagnosis of the original operating point?",
+     "explanation": "The correct answer is C. Under the chapter's measurement framework, a point below a fitted frontier does not identify a unique cause by itself. What the controlled sweep supports is that the original allocation of budget across model size and data was suboptimal for the tested regime. Calling it purely data-starved or purely capacity-limited would overclaim from one observation, and the other choices describe different bottlenecks entirely.",
+     "hint": "Think about: interpret a controlled compute-optimal-frontier sweep without over-inferring a unique bottleneck from a single operating point.",
+     "type": "single",
+     "options": [
+      "Data-starved regime",
+      "I/O bandwidth-saturated regime",
+      "The model/data allocation was suboptimal under the tested budget",
+      "Over-echoing regime"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A team wants one metric for how much smaller a selected dataset is at a target accuracy, and another for how much learning is gained per sample over a measured interval. Which pair of chapter metrics matches that need?",
+     "explanation": "The correct answer is B. Data Compression Ratio (DCR) asks how much the dataset can be reduced while still reaching a target accuracy, and Performance-Per-Data (PPD) measures accuracy gain per sample over a stated interval. The other choices introduce names the chapter does not use. AULC is another valid core metric, but it summarizes performance across dataset sizes rather than serving as the per-sample interval metric in the question.",
+     "hint": "Think about: match the chapter's core metrics to the measurement goals they are designed to answer.",
+     "type": "single",
+     "options": [
+      "Data Curation Rate and Accuracy Reduction Ratio",
+      "Data Compression Ratio and Performance-Per-Data",
+      "Dynamic Checkpoint Rate and Active Retention Rate",
+      "Data Convergence Ratio and Amortized Risk Ratio"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A training team reduces a dataset from \\$1{,}000{,}000$ to \\$100{,}000$ images. Full-data training takes 10 hours, subset training takes 1 hour, and scoring the full pool with the production model takes 12 hours. Which conclusion and next step best fit the selection inequality?",
+     "explanation": "The correct answer is C. The chapter's time-saving test is T_selection+T_train(D_subset)<T_train(D_total). Here, \\$12+1=13 hours, which is worse than the 10-hour baseline. Proxy models or cached embeddings are sensible candidate fixes, but they only restore training-time saving if measured scoring time falls below the 9-hour savings window and the selected subset still preserves target quality. A large reduction ratio alone does not prove success, and slower storage would move in the wrong direction.",
+     "hint": "Think about: apply the selection inequality to diagnose when scoring overhead erases subset-training savings and identify what must be re-measured after a proposed fix.",
+     "type": "single",
+     "options": [
+      "Yes, the inequality is satisfied because a \\$90\\% dataset reduction guarantees positive ROI",
+      "Yes, because the 9 hours saved in training outweigh the scoring cost; the team only needs more GPUs",
+      "No, because \\$12+1=13 hours exceeds the 10-hour baseline; a plausible fix is proxy scoring or cached embeddings, but the team must verify that scoring drops below 9 hours while target quality holds",
+      "No, because coreset training always increases memory-bandwidth consumption; the team should switch from NVMe SSDs to HDDs"
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Why is Area Under the Learning Curve (AULC) a more informative metric than single-point final validation accuracy when comparing data selection methods across dataset sizes?",
+   "md": "AULC integrates performance over dataset size $n$, so it rewards methods that achieve stronger accuracy earlier in the data-allocation range rather than judging them only at one endpoint. Under the same evaluation protocol and integration limits, a higher AULC means better aggregate performance over that same dataset-size range. The practical caveat is that this does not automatically imply the method is better at every dataset size, nor does it guarantee lower total FLOPs if per-sample cost differs across methods."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Training subset**: Selected examples retained for training, whose value must be checked against quality and coverage constraints.",
+    "**Model-data allocation**: Allocation of a fixed training compute budget between parameter count and training data within a fitted scaling regime."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Training subset",
+   "def": "Selected examples retained for training, whose value must be checked against quality and coverage constraints."
+  },
+  {
+   "term": "Model-data allocation",
+   "def": "Allocation of a fixed training compute budget between parameter count and training data within a fitted scaling regime."
+  }
+ ]
+}

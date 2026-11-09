@@ -1,0 +1,95 @@
+{
+ "title": "CNNs: Spatial Pattern Processing",
+ "summary": "Calculate how convolutional weight sharing changes parameter count, and distinguish per-detector comparisons from non-equivalent whole-output comparisons.",
+ "source": {
+  "chapter": "v1-06",
+  "sections": [
+   "CNNs: Spatial Pattern Processing",
+   "Pattern processing needs",
+   "Algorithmic structure",
+   "Computational mapping",
+   "System implications",
+   "Depthwise separable convolutions"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate how convolutional weight sharing changes parameter count, and distinguish per-detector comparisons from non-equivalent whole-output comparisons\n- Compare translation equivariance and invariance, and justify their respective roles in intermediate feature extraction versus final classification\n- Explain the operational sequence of the im2col transformation in lowering 2D convolutions to matrix multiplications\n- Evaluate the fallacy that FLOP count directly equals inference latency and explain why arithmetic intensity dictates hardware speedup\n- Explain depthwise separable convolution components and explain how factorizing spatial and channel mixing reduces arithmetic complexity"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Network Architectures, § CNNs: Spatial Pattern Processing",
+   "md": "The MLP's assumption that every input may interact directly with every output proves particularly costly for spatially structured data like images. Connecting every pixel of a high-resolution input to every hidden unit creates a parameter footprint that exhausts accelerator memory and drives arithmetic intensity so low that the layer becomes bandwidth bound. The earlier MNIST comparison showed the remedy at small scale. A shared filter needs … fewer weights per feature detector than a dense unit that treats every pixel independently."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Pattern processing needs\n- Algorithmic structure\n- Computational mapping\n- System implications\n- Depthwise separable convolutions\n\nPay attention to: Parameter sharing and local connectivity parameter reduction; Translation equivariance ($f(\\mathcal{T}(\\mathbf{x})) = \\mathcal{T}(f(\\mathbf{x}))$) vs translation invariance; Receptive field growth mechanics across stacked convolutional layers; im2col lowering transformation to GEMM and memory-duplication trade-off."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Distinguish between translation equivariance ($f(\\mathcal{T}(\\mathbf{x})) = \\mathcal{T}(f(\\mathbf{x}))$) and translation invariance ($f(\\mathcal{T}(\\mathbf{x})) = f(\\mathbf{x})$). Explain why intermediate convolutional layers must maintain equivariance for object detection while final classification layers often apply global average pooling to achieve invariance.",
+   "md": "Translation equivariance means that shifting the input shifts the output feature map by the exact same spatial offset, preserving precise positional and geometric relationships ('eye above nose'). Invariance means that transforming the input produces an identical, unchanging output, discarding spatial coordinates. Intermediate layers in object detection must remain equivariant so that downstream bounding box predictors can accurately localize object coordinates $(x, y, w, h)$. Final classification layers introduce invariance (via global average pooling) because the class label ('dog') must remain unchanged regardless of where the object appears in the frame."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-06-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A \\$3 × 3 convolutional layer with 64 input channels and 64 output channels processes a \\$224 × 224 feature map, producing 64 spatial output channels. How does its parameter count compare with a dense layer that maps the flattened \\$224 × 224 × 64 input to 64 scalar outputs, and why are the outputs not shape-equivalent?",
+     "explanation": "The correct answer is B. Convolution shares one \\$3 \\times 3$ detector per input-output channel pair across all spatial positions, so its parameter count depends on kernel size and channels, not image resolution. The dense comparison reaches about 205 million parameters only because it maps the flattened \\$224 \\times 224 \\times 64$ input to 64 scalar outputs, which is not the same output shape as 64 spatial feature maps. An answer claiming the counts are equal ignores weight sharing, while the 9-parameter answer forgets that channel mixing still needs separate weights.",
+     "hint": "Think about: calculate how convolutional weight sharing changes parameter count, and distinguish per-detector comparisons from non-equivalent whole-output comparisons.",
+     "type": "single",
+     "options": [
+      "The CNN requires \\$205\\text{ million}$ parameters, whereas the dense layer requires only \\$36{,}864$ parameters due to flattened matrix vectorization.",
+      "The CNN requires \\$3 × 3 × 64 × 64 = 36,864 parameters (~37K), whereas a dense layer mapping a \\$224^2 × 64 input to 64 scalar outputs requires \\$224^2 × 64 × 64 approx 205 million parameters; the output shapes are not equivalent.",
+      "Both architectures require exactly the same number of parameters because both perform 64-to-64 channel transformations.",
+      "The CNN requires 9 parameters because spatial weight sharing reduces all kernel weights across all channels to a single \\$3 × 3 matrix."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Because MobileNetV2 requires roughly 14× fewer FLOPs than ResNet-50 per \\$224 × 224 image, it is guaranteed to execute at least 10× faster on any data center GPU.",
+     "explanation": "False. FLOPs measure arithmetic work, not execution latency. MobileNetV2 uses depthwise separable convolutions that have low arithmetic intensity and small channel dimensions per kernel, which can fail to saturate dense matrix units (such as Tensor Cores) on server GPUs. Because memory access and operator launch overhead can dominate compute, MobileNetV2 may achieve less than proportional speedup or even run slower than ResNet-50 on high-end GPUs.",
+     "hint": "Think about: evaluate the fallacy that FLOP count directly equals inference latency and explain why arithmetic intensity dictates hardware speedup.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A depthwise separable convolution decomposes standard convolution into two sequential operations: a ____ convolution that applies spatial filters to each input channel independently, followed by a \\$1 × 1 pointwise convolution that projects and mixes channels across the depth dimension.",
+     "explanation": "depthwise. Depthwise separable convolution factorizes standard convolution into a depthwise convolution (spatial filtering per channel) and a pointwise convolution (\\$1 × 1 cross-channel linear combination).",
+     "hint": "Think about: explain depthwise separable convolution components and explain how factorizing spatial and channel mixing reduces arithmetic complexity.",
+     "type": "fill",
+     "answer": [
+      "depthwise"
+     ]
+    },
+    {
+     "q": "In a deep CNN using stacked \\$3 × 3 convolutional filters with stride 1 and padding, by how much does the receptive field side length increase with each additional layer, and what is the architectural implication for detecting large objects?",
+     "explanation": "The correct answer is C. Each successive \\$3 \\times 3$ stride-1 convolutional layer expands the receptive field side length by $K - 1 = 2$ pixels (layer 1 sees \\$3 \\times 3$, layer 2 sees \\$5 \\times 5$, layer 3 sees \\$7 \\times 7$). To detect large objects spanning 100+ pixels in a \\$224 \\times 224$ image, networks must either use deep stacks of layers, strided convolutions, or pooling operations. The claim of 9 pixels confuses kernel area with linear side growth. The claim of exponential doubling is incorrect for stride-1 layers. The claim that receptive field remains \\$3 \\times 3$ confuses single-layer kernel size with cumulative receptive field depth.",
+     "hint": "Think about: calculate receptive field growth across stacked convolutional layers and analyze the depth-versus-downsampling trade-off in network design.",
+     "type": "single",
+     "options": [
+      "Receptive field increases by 9 pixels per layer, allowing a 3-layer network to cover an entire \\$224 × 224 image.",
+      "Receptive field side length doubles with each layer, scaling exponentially as \\$3^L.",
+      "Receptive field side length grows linearly by 2 pixels per layer (a 3-layer stack sees a \\$7 \\times 7$ region), requiring deep stacks of layers or downsampling (pooling/striding) to detect objects spanning \\$100+$ pixels in high-resolution images.",
+      "Receptive field remains strictly fixed at \\$3 × 3 across all layers because convolutional filter weights are shared across positions."
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate how convolutional weight sharing changes parameter count, and distinguish per-detector comparisons from non-equivalent whole-output comparisons.",
+    "You can now compare translation equivariance and invariance, and justify their respective roles in intermediate feature extraction versus final classification.",
+    "You can now explain the operational sequence of the im2col transformation in lowering 2D convolutions to matrix multiplications.",
+    "You can now evaluate the fallacy that FLOP count directly equals inference latency and explain why arithmetic intensity dictates hardware speedup."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,315 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v4-12",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Safety Enforcement** (Vol IV). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Safety Enforcement, Purpose",
+   "md": "A trajectory can be feasible when it arrives and become unsafe while the machine follows it. The body lags its reference, a payload or a hot motor erodes braking authority, a person steps into the path, or the learned proposer stalls with its last command still in force."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Per-Tick Gatekeeper",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "The Tracker Handoff and Dynamic Referenc",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Stopping Envelopes",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Authority Exhaustion and Emergency Fallb",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Safe Sets as Conditional Permission",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Refusing Proposals and Enforcing State I",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "The Minimal Intervention Principle and O",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Stopping envelope**",
+     "The stopping envelope is the set of states from which the resident stop, after every worst-case delay, halts before the obstacle with localization, protective, and tracking margins intact, and its seven priced rows run as a per-tick speed governor."
+    ],
+    [
+     "**Kinetic barrier**",
+     "A control barrier function makes its safe set forward invariant only if every admitted input keeps hdot >= -alpha(h), and a barrier on raw distance has relative degree two in torque, so the barrier must carry the cost to stop."
+    ],
+    [
+     "**Minimal-intervention filter**",
+     "A least-change projection passes a safe proposal untouched and projects a violating one onto the barrier boundary, keeping learned competence, while a structurally invalid proposal is vetoed rather than corrected."
+    ],
+    [
+     "**Contact margins**",
+     "When contact is the task the kinetic barrier admits only zero speed, so an energy-tank passivity barrier and a separately qualified force channel replace clearance as the margin."
+    ],
+    [
+     "**Invariance premises and timing**",
+     "A barrier guarantee holds only under model fidelity, bounded disturbance, actuation within a qualified effort error and delay, solver completion inside its budget, and a sample period short enough for inter-sample drift, each watched at runtime."
+    ],
+    [
+     "**State-matched fallback ladder**",
+     "An arbiter selects directly among project, hold, controlled stop, and torque inhibit by the check that failed and the measured plant state, before the admissible set empties, so one trigger can select different rungs in motion and at standstill."
+    ],
+    [
+     "**Certified floor beneath an unrated layer**",
+     "The formal protective claim rests on certified drive, scanner, and arm safety functions beneath the permission path, which is an unrated performance layer, with only the lease and heartbeat watchdog selected for a rating."
+    ],
+    [
+     "**Enforcement record**",
+     "The enforcement record joins a signed enforcement contract (tracking bound, barrier coefficients, deadlines, effort-error bounds, routing) to a per-tick admitted command with its margin, detector, and rung."
+    ],
+    [
+     "**Recoverable set**",
+     "The stopping envelope is the machine's recoverable set, the states from which the resident stop still succeeds, and the viable set and barrier safe set are drawings of it."
+    ],
+    [
+     "**Tracking bound**",
+     "The feedback tracker guarantees a worst-case tracking tube only inside its qualified envelope, so the enforcer insets every clearance by it and watches the premises that keep it true."
+    ],
+    [
+     "**Net braking authority**",
+     "Available deceleration is net of gravity and bias in the worst direction, and integrator unwinding and saturation spend it before the stop begins."
+    ],
+    [
+     "**Speed and separation monitoring**",
+     "Speed and separation monitoring keeps a protective separation distance (the person's travel, the robot's reaction and stopping travel, intrusion distance, and position uncertainties) between a moving arm and a person as a certified function."
+    ],
+    [
+     "**Human separation distance**",
+     "The pedestrian intrusion distance v_h(tau + T_stop) sets how much clearance a walking person consumes during the stop, which bounds the walking-person speed ceiling."
+    ],
+    [
+     "**Functional-safety integrity grading**",
+     "Safety functions, not components, are graded by SIL or by a Performance Level that combines category, MTTFd, diagnostic coverage, and common-cause defenses; the standards set the required level for each function of this machine, and only the functions selected for a rating carry the formal claim."
+    ],
+    [
+     "**Passive-compliance stiffness**",
+     "A series compliance, whose stiffness falls below that of its softer element because compliances add, slows the force rise and bounds impact force passively when the enforcer cannot stop in time, so its stiffness is part of the contact margin."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v4-12-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Stopping envelope",
+     "back": "The stopping envelope is the set of states from which the resident stop, after every worst-case delay, halts before the obstacle with localization, protective, and tracking margins intact, and its seven priced rows run as a per-tick speed governor."
+    },
+    {
+     "front": "Kinetic barrier",
+     "back": "A control barrier function makes its safe set forward invariant only if every admitted input keeps hdot >= -alpha(h), and a barrier on raw distance has relative degree two in torque, so the barrier must carry the cost to stop."
+    },
+    {
+     "front": "Minimal-intervention filter",
+     "back": "A least-change projection passes a safe proposal untouched and projects a violating one onto the barrier boundary, keeping learned competence, while a structurally invalid proposal is vetoed rather than corrected."
+    },
+    {
+     "front": "Contact margins",
+     "back": "When contact is the task the kinetic barrier admits only zero speed, so an energy-tank passivity barrier and a separately qualified force channel replace clearance as the margin."
+    },
+    {
+     "front": "Invariance premises and timing",
+     "back": "A barrier guarantee holds only under model fidelity, bounded disturbance, actuation within a qualified effort error and delay, solver completion inside its budget, and a sample period short enough for inter-sample drift, each watched at runtime."
+    },
+    {
+     "front": "State-matched fallback ladder",
+     "back": "An arbiter selects directly among project, hold, controlled stop, and torque inhibit by the check that failed and the measured plant state, before the admissible set empties, so one trigger can select different rungs in motion and at standstill."
+    },
+    {
+     "front": "Certified floor beneath an unrated layer",
+     "back": "The formal protective claim rests on certified drive, scanner, and arm safety functions beneath the permission path, which is an unrated performance layer, with only the lease and heartbeat watchdog selected for a rating."
+    },
+    {
+     "front": "Enforcement record",
+     "back": "The enforcement record joins a signed enforcement contract (tracking bound, barrier coefficients, deadlines, effort-error bounds, routing) to a per-tick admitted command with its margin, detector, and rung."
+    },
+    {
+     "front": "Recoverable set",
+     "back": "The stopping envelope is the machine's recoverable set, the states from which the resident stop still succeeds, and the viable set and barrier safe set are drawings of it."
+    },
+    {
+     "front": "Tracking bound",
+     "back": "The feedback tracker guarantees a worst-case tracking tube only inside its qualified envelope, so the enforcer insets every clearance by it and watches the premises that keep it true."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v4-12-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Stopping envelope**?",
+     "options": [
+      "A control barrier function makes its safe set forward invariant only if every admitted input keeps hdot >= -alpha(h), and a barrier on raw distance has relative degree two in torque, so the barrier must carry the cost to stop.",
+      "The stopping envelope is the set of states from which the resident stop, after every worst-case delay, halts before the obstacle with localization, protective, and tracking margins intact, and its seven priced rows run as a per-tick speed governor.",
+      "Speed and separation monitoring keeps a protective separation distance (the person's travel, the robot's reaction and stopping travel, intrusion distance, and position uncertainties) between a moving arm and a person as a certified function.",
+      "The formal protective claim rests on certified drive, scanner, and arm safety functions beneath the permission path, which is an unrated performance layer, with only the lease and heartbeat watchdog selected for a rating."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Stopping envelope itself, not a neighbouring idea.",
+     "explanation": "**Stopping envelope:** The stopping envelope is the set of states from which the resident stop, after every worst-case delay, halts before the obstacle with localization, protective, and tracking margins intact, and its seven priced rows run as a per-tick speed governor."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Kinetic barrier**?",
+     "options": [
+      "A control barrier function makes its safe set forward invariant only if every admitted input keeps hdot >= -alpha(h), and a barrier on raw distance has relative degree two in torque, so the barrier must carry the cost to stop.",
+      "The pedestrian intrusion distance v_h(tau + T_stop) sets how much clearance a walking person consumes during the stop, which bounds the walking-person speed ceiling.",
+      "The formal protective claim rests on certified drive, scanner, and arm safety functions beneath the permission path, which is an unrated performance layer, with only the lease and heartbeat watchdog selected for a rating.",
+      "The feedback tracker guarantees a worst-case tracking tube only inside its qualified envelope, so the enforcer insets every clearance by it and watches the premises that keep it true."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Kinetic barrier itself, not a neighbouring idea.",
+     "explanation": "**Kinetic barrier:** A control barrier function makes its safe set forward invariant only if every admitted input keeps hdot >= -alpha(h), and a barrier on raw distance has relative degree two in torque, so the barrier must carry the cost to stop."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Minimal-intervention filter**?",
+     "options": [
+      "The stopping envelope is the machine's recoverable set, the states from which the resident stop still succeeds, and the viable set and barrier safe set are drawings of it.",
+      "A least-change projection passes a safe proposal untouched and projects a violating one onto the barrier boundary, keeping learned competence, while a structurally invalid proposal is vetoed rather than corrected.",
+      "The enforcement record joins a signed enforcement contract (tracking bound, barrier coefficients, deadlines, effort-error bounds, routing) to a per-tick admitted command with its margin, detector, and rung.",
+      "A series compliance, whose stiffness falls below that of its softer element because compliances add, slows the force rise and bounds impact force passively when the enforcer cannot stop in time, so its stiffness is part of the contact margin."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Minimal-intervention filter itself, not a neighbouring idea.",
+     "explanation": "**Minimal-intervention filter:** A least-change projection passes a safe proposal untouched and projects a violating one onto the barrier boundary, keeping learned competence, while a structurally invalid proposal is vetoed rather than corrected."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Contact margins**?",
+     "options": [
+      "A control barrier function makes its safe set forward invariant only if every admitted input keeps hdot >= -alpha(h), and a barrier on raw distance has relative degree two in torque, so the barrier must carry the cost to stop.",
+      "The formal protective claim rests on certified drive, scanner, and arm safety functions beneath the permission path, which is an unrated performance layer, with only the lease and heartbeat watchdog selected for a rating.",
+      "The stopping envelope is the set of states from which the resident stop, after every worst-case delay, halts before the obstacle with localization, protective, and tracking margins intact, and its seven priced rows run as a per-tick speed governor.",
+      "When contact is the task the kinetic barrier admits only zero speed, so an energy-tank passivity barrier and a separately qualified force channel replace clearance as the margin."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Contact margins itself, not a neighbouring idea.",
+     "explanation": "**Contact margins:** When contact is the task the kinetic barrier admits only zero speed, so an energy-tank passivity barrier and a separately qualified force channel replace clearance as the margin."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Invariance premises and timing**?",
+     "options": [
+      "A barrier guarantee holds only under model fidelity, bounded disturbance, actuation within a qualified effort error and delay, solver completion inside its budget, and a sample period short enough for inter-sample drift, each watched at runtime.",
+      "The feedback tracker guarantees a worst-case tracking tube only inside its qualified envelope, so the enforcer insets every clearance by it and watches the premises that keep it true.",
+      "An arbiter selects directly among project, hold, controlled stop, and torque inhibit by the check that failed and the measured plant state, before the admissible set empties, so one trigger can select different rungs in motion and at standstill.",
+      "The stopping envelope is the machine's recoverable set, the states from which the resident stop still succeeds, and the viable set and barrier safe set are drawings of it."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Invariance premises and timing itself, not a neighbouring idea.",
+     "explanation": "**Invariance premises and timing:** A barrier guarantee holds only under model fidelity, bounded disturbance, actuation within a qualified effort error and delay, solver completion inside its budget, and a sample period short enough for inter-sample drift, each watched at runtime."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Stopping envelope: The stopping envelope is the set of states from which the resident stop, after every worst-case delay, halts before the obstacle with localization, protective, and tracking margins intact, and its seven priced rows run as a per-tick speed governor.",
+    "Kinetic barrier: A control barrier function makes its safe set forward invariant only if every admitted input keeps hdot >= -alpha(h), and a barrier on raw distance has relative degree two in torque, so the barrier must carry the cost to stop.",
+    "Minimal-intervention filter: A least-change projection passes a safe proposal untouched and projects a violating one onto the barrier boundary, keeping learned competence, while a structurally invalid proposal is vetoed rather than corrected.",
+    "Contact margins: When contact is the task the kinetic barrier admits only zero speed, so an energy-tank passivity barrier and a separately qualified force channel replace clearance as the margin."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Stopping envelope",
+   "def": "The stopping envelope is the set of states from which the resident stop, after every worst-case delay, halts before the obstacle with localization, protective, and tracking margins intact, and its seven priced rows run as a per-tick speed governor."
+  },
+  {
+   "term": "Kinetic barrier",
+   "def": "A control barrier function makes its safe set forward invariant only if every admitted input keeps hdot >= -alpha(h), and a barrier on raw distance has relative degree two in torque, so the barrier must carry the cost to stop."
+  },
+  {
+   "term": "Minimal-intervention filter",
+   "def": "A least-change projection passes a safe proposal untouched and projects a violating one onto the barrier boundary, keeping learned competence, while a structurally invalid proposal is vetoed rather than corrected."
+  },
+  {
+   "term": "Contact margins",
+   "def": "When contact is the task the kinetic barrier admits only zero speed, so an energy-tank passivity barrier and a separately qualified force channel replace clearance as the margin."
+  },
+  {
+   "term": "Invariance premises and timing",
+   "def": "A barrier guarantee holds only under model fidelity, bounded disturbance, actuation within a qualified effort error and delay, solver completion inside its budget, and a sample period short enough for inter-sample drift, each watched at runtime."
+  },
+  {
+   "term": "State-matched fallback ladder",
+   "def": "An arbiter selects directly among project, hold, controlled stop, and torque inhibit by the check that failed and the measured plant state, before the admissible set empties, so one trigger can select different rungs in motion and at standstill."
+  },
+  {
+   "term": "Certified floor beneath an unrated layer",
+   "def": "The formal protective claim rests on certified drive, scanner, and arm safety functions beneath the permission path, which is an unrated performance layer, with only the lease and heartbeat watchdog selected for a rating."
+  },
+  {
+   "term": "Enforcement record",
+   "def": "The enforcement record joins a signed enforcement contract (tracking bound, barrier coefficients, deadlines, effort-error bounds, routing) to a per-tick admitted command with its margin, detector, and rung."
+  },
+  {
+   "term": "Recoverable set",
+   "def": "The stopping envelope is the machine's recoverable set, the states from which the resident stop still succeeds, and the viable set and barrier safe set are drawings of it."
+  },
+  {
+   "term": "Tracking bound",
+   "def": "The feedback tracker guarantees a worst-case tracking tube only inside its qualified envelope, so the enforcer insets every clearance by it and watches the premises that keep it true."
+  },
+  {
+   "term": "Net braking authority",
+   "def": "Available deceleration is net of gravity and bias in the worst direction, and integrator unwinding and saturation spend it before the stop begins."
+  },
+  {
+   "term": "Speed and separation monitoring",
+   "def": "Speed and separation monitoring keeps a protective separation distance (the person's travel, the robot's reaction and stopping travel, intrusion distance, and position uncertainties) between a moving arm and a person as a certified function."
+  },
+  {
+   "term": "Human separation distance",
+   "def": "The pedestrian intrusion distance v_h(tau + T_stop) sets how much clearance a walking person consumes during the stop, which bounds the walking-person speed ceiling."
+  },
+  {
+   "term": "Functional-safety integrity grading",
+   "def": "Safety functions, not components, are graded by SIL or by a Performance Level that combines category, MTTFd, diagnostic coverage, and common-cause defenses; the standards set the required level for each function of this machine, and only the functions selected for a rating carry the formal claim."
+  },
+  {
+   "term": "Passive-compliance stiffness",
+   "def": "A series compliance, whose stiffness falls below that of its softer element because compliances add, slows the force rise and bounds impact force passively when the enforcer cannot stop in time, so its stiffness is part of the contact margin."
+  }
+ ]
+}

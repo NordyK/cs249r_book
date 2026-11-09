@@ -1,0 +1,83 @@
+{
+ "title": "Iron Law of ML Systems",
+ "summary": "Apply the Iron Law of ML Systems to compare memory-bandwidth-bound and compute-bound workloads.",
+ "source": {
+  "chapter": "v1-01",
+  "sections": [
+   "Iron Law of ML Systems",
+   "Lighthouse models put the iron law into practice"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Apply the Iron Law of ML Systems to compare memory-bandwidth-bound and compute-bound workloads\n- Calculate the pipelined critical-path lower bound of the Iron Law under overlapped data movement and compute\n- Explain the physical basis of the data-movement energy tax and identify hardware/software techniques to reduce it\n- Calculate all iron-law terms and choose an intervention under sequential and ideal-overlap execution assumptions"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Introduction, § Iron Law of ML Systems",
+   "md": "Computational scale has a physical cost, and it shows up as two familiar failures. A training job stalls when storage cannot feed an accelerator; an inference path misses its deadline when model state moves too slowly through memory or across the network. Their symptoms differ, but both are governed by how the three D·A·M axes combine to consume wall-clock time."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Iron Law equation terms (Data, Compute, Latency); pipelined critical-path lower bound (max formulation); energy tax and data movement vs arithmetic ratio; Return on Compute (RoC) and Lighthouse Models."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Based on the energy cost model $E_{\\text{total}} \\approx D_{\\text{vol}} \\times E_{\\text{move}} + O \\times E_{\\text{compute}}$, explain why moving a byte from off-chip DRAM costs roughly 145 times more energy than an FP16 arithmetic operation, and state one system optimization that mitigates this energy tax.",
+   "md": "Data movement requires charging and discharging physical capacitive wires across millimeters of silicon and printed circuit board traces to off-chip DRAM, whereas arithmetic operations occur locally within microscopic on-chip arithmetic circuits. Optimizations that mitigate this tax include operator fusion, weight quantization (e.g., INT8/INT4 to reduce $D_{\\text{vol}}$), and tiling data to maximize reuse in local on-chip SRAM caches."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-01-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In the Iron Law of ML Systems, $T = \\frac{D_{\\text{vol}}}{\\text{BW}} + \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}} + L_{\\text{lat}}$, how do the terms differ when analyzing small-batch autoregressive LLM token decode versus large-batch ResNet-50 image inference?",
+     "explanation": "The correct answer is D. In small-batch autoregressive decode, a language model must stream its entire weight footprint and cached context from memory to produce each single token, resulting in low arithmetic intensity where memory bandwidth ($\\text{BW}$) limits execution time ($D_{\\text{vol}}/\\text{BW}$). In contrast, batched convolutional networks like ResNet-50 repeatedly reuse filter weights across pixels and batch elements, amortizing memory transfers and making arithmetic throughput ($\\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}}$) the limiting constraint. The other options misidentify the limiting physical terms or misattribute DLRM's embedding table capacity constraint to ResNet-50.",
+     "hint": "Think about: apply the Iron Law of ML Systems to compare memory-bandwidth-bound and compute-bound workloads.",
+     "type": "single",
+     "options": [
+      "LLM decode is dominated by the latency term $L_{\\text{lat}}$, while ResNet-50 is dominated by the data movement term $D_{\\text{vol}}/\\text{BW}$.",
+      "Both workloads are dominated strictly by the compute term $\\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}}$, making memory bandwidth irrelevant.",
+      "ResNet-50 is memory-capacity bound by embedding tables, while LLM decode is bound by network serialization overhead.",
+      "Small-batch LLM decode is bound by the data movement term ($D_{\\text{vol}}/\\text{BW}$) because billions of weights and cached context must be fetched from memory for every single token generated, whereas batched ResNet-50 reuses weight parameters across many inputs and spatial locations, making the compute term ($\\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}}$) dominant."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "When data transfers and arithmetic are overlapped in a pipelined ML runtime, so that the next block of data loads while the current block is computed, how is the sequential additive Iron Law modified, and what determines execution time?",
+     "explanation": "The correct answer is C. When data transfers and compute execute concurrently in an overlapped pipeline, the execution time is governed by the critical path: $T_{\\text{pipelined}} \\ge \\max\\left(\\frac{D_{\\text{vol}}}{\\text{BW}}, \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}}\\right) + L_{\\text{lat}}$. The slower stage bounds performance while completely or partially hiding the latency of the faster stage (assuming $L_{\\text{lat}}$ represents non-overlapped orchestration overhead). Multiplicative forms, min formulations, and adding bytes directly to FLOPs in the numerator violate physical laws and dimensional consistency.",
+     "hint": "Think about: calculate the pipelined critical-path lower bound of the Iron Law under overlapped data movement and compute.",
+     "type": "single",
+     "options": [
+      "$T_{\\text{pipelined}} = \\frac{D_{\\text{vol}}}{\\text{BW}} \\times \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}} \\times L_{\\text{lat}}$",
+      "$T_{\\text{pipelined}} = \\min\\left(\\frac{D_{\\text{vol}}}{\\text{BW}}, \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}}\\right) + L_{\\text{lat}}$",
+      "$T_{\\text{pipelined}} \\ge \\max\\left(\\frac{D_{\\text{vol}}}{\\text{BW}}, \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}}\\right) + L_{\\text{lat}}$, where the slower pipeline stage dictates the critical path while hiding the latency of the faster stage.",
+      "$T_{\\text{pipelined}} = \\frac{D_{\\text{vol}} + O}{\\text{BW} + R_{\\text{peak}}} + L_{\\text{lat}}$"
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A hypothetical sequential workload moves 1 GB at 100 GB/s, performs 2 GFLOPs at an effective rate of 100 GFLOP/s, and incurs 5 ms of fixed overhead. Calculate its execution time. Which single upgrade gives the larger reduction: doubling bandwidth or doubling the effective arithmetic rate? What is the ideal-overlap lower bound before either upgrade if overhead remains outside the overlapping phases?",
+   "md": "Movement takes 10 ms, computation takes 20 ms, and overhead adds 5 ms, giving 35 ms sequential time. Doubling bandwidth reduces movement to 5 ms and the total to 30 ms. Doubling effective arithmetic rate reduces computation to 10 ms and the total to 25 ms, so it gives the larger reduction. Ideal overlap yields a lower bound of max(10 ms, 20 ms) + 5 ms = 25 ms before either upgrade; equality requires the stated ideal overlap. The effective arithmetic rate already includes hardware efficiency."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Execution time**: Time spent moving data, performing arithmetic, and paying system overhead; the applicable overlap model depends on the execution boundary."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Execution time",
+   "def": "Time spent moving data, performing arithmetic, and paying system overhead; the applicable overlap model depends on the execution boundary."
+  }
+ ]
+}

@@ -1,0 +1,67 @@
+{
+ "title": "Distributed Trajectory Tracing",
+ "summary": "Work through Distributed Trajectory Tracing.",
+ "source": {
+  "chapter": "v3-14",
+  "sections": [
+   "Distributed Trajectory Tracing",
+   "Diagnostic capture and recovery history",
+   "Trace evidence fields",
+   "Span overlap and latency attribution"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Distributed Trajectory Tracing**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Operating Agents, § Distributed Trajectory Tracing",
+   "md": "When a trial of `candidate_v2` on the connection-pool repair fails or stalls, aggregate summary metrics record only the wall-clock total and the final verdict, blending remote inference stalls, blocked test containers, and malformed or truncated tool outputs into one undifferentiated number. A trace separates those possibilities by binding every interaction back to the specific evaluation trial, candidate revision, and runtime operation, replacing disjointed service logs with an end-to-end causal record."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Diagnostic capture and recovery history\n- Trace evidence fields\n- Span overlap and latency attribution"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Critical path matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: The longest chain of dependent operations recorded in the trace is measured from span timing, and only work on it can shorten the trajectory."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-14-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Distributed Trajectory Tracing** develops one of the chapter's claims. Which one?",
+     "options": [
+      "An agent incident is diagnosed by keeping findings separated by boundary and testing each with a controlled intervention on the recorded trajectory, not by naming one culprit.",
+      "Sampling may thin diagnostic detail but never the accounting record of admitted trials, verdicts, spend, and drops, and retention is chosen per verdict under storage and privacy budgets.",
+      "Spans bind every model call, mediated tool execution, and check to their trial and artifact, but a diagnostic trace may sample or drop and never replaces the durable recovery log or the verdict record.",
+      "The longest chain of dependent operations recorded in the trace is measured from span timing, and only work on it can shorten the trajectory."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Critical path**: The longest chain of dependent operations recorded in the trace is measured from span timing, and only work on it can shorten the trajectory."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Trajectory trace**: Correlated model, tool, state, authority, timing, and cost records support diagnosis of an end-to-end trajectory."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Trajectory trace",
+   "def": "Correlated model, tool, state, authority, timing, and cost records support diagnosis of an end-to-end trajectory."
+  }
+ ]
+}

@@ -1,0 +1,77 @@
+{
+ "title": "Distributed Debugging and Observability",
+ "summary": "Analyze the diagnostic challenges posed by Heisenbugs and timing perturbations in distributed collective libraries.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "Distributed Debugging and Observability",
+   "Diagnostic challenges in distributed ML systems",
+   "Observability pillars",
+   "ML-specific debugging",
+   "Serving failure patterns"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the diagnostic challenges posed by Heisenbugs and timing perturbations in distributed collective libraries\n- Analyze metrics, distributed traces, and structured logs to diagnose cascade failures in ML pipelines\n- Analyze numerical debugging techniques and loss scaling mechanisms in mixed-precision training\n- Evaluate the role of trace and span context propagation in distributed log correlation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, § Distributed Debugging and Observability",
+   "md": "At 2:00 AM, latency on the flagship generative API spikes from 200 ms to 5 seconds, but CPU, memory, and network metrics all look normal. The latency breach can justify immediate mitigation under a predefined policy; choosing a targeted repair requires locating the stalled work across hundreds of microservices. Distributed debugging and observability provide the diagnostic capability required to locate these invisible bottlenecks."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Diagnostic challenges in distributed ML systems\n- Observability pillars\n- ML-specific debugging\n- Serving failure patterns\n\nPay attention to: Why distributed ML systems are hard to debug: nondeterminism, Heisenbugs, scale, partial failures; Three pillars of observability: metrics (when/where), logs (event context), traces (request path); ML-specific debugging: NaN propagation, mixed-precision loss scaling, data validation; Serving failure patterns and cascade diagnosis."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why Heisenbugs are particularly pervasive and challenging to diagnose in distributed collective communication (e.g., NCCL AllReduce) libraries.",
+   "md": "Heisenbugs occur when the act of observing or instrumenting a software system alters its timing and masks the underlying defect. In distributed collective communication, inserting detailed logging, tracing hooks, or debug barriers alters packet transmission timing and synchronization barriers across ranks, inadvertently resolving the precise race condition, thread interleaving, or network jitter that triggered the deadlock or corruption in production."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-13-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In a production ML recommendation service, p99 latency suddenly jumps from 45 ms to 800 ms with a 15% error rate. How do the three pillars of observability (Metrics, Traces, Logs) work together to diagnose the root cause?",
+     "explanation": "The correct answer is B. Metrics identify the symptom's timing and scope; traces locate the excessive delay in the feature-service span; logs connect cache timeouts with increased direct database requests. Together they narrow the failure path and support containment through a circuit breaker and validated fallback. They do not yet distinguish a failed cache process from a network or resource problem, so targeted repair requires corroborating evidence. The other choices misstate the functions of observability or deny the shared identifiers that allow correlation.",
+     "hint": "Think about: analyze metrics, distributed traces, and structured logs to diagnose cascade failures in ML pipelines.",
+     "type": "single",
+     "options": [
+      "Metrics reveal that GPU utilization is 100%; Traces show that all requests are identical; Logs show that user passwords were typed incorrectly.",
+      "Metrics reveal the exact timing and scope of the latency spike; distributed Traces isolate the feature-service span consuming 700 ms (instead of normal 12 ms); structured Logs reveal repeated connection timeouts to the embedding cache followed by a database miss storm.",
+      "Traces generate automatic pull requests to fix the bug; Metrics execute the rollback; Logs alert the end users.",
+      "The three pillars cannot be correlated because each uses completely incompatible timestamp formats."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In distributed tracing systems utilizing OpenTelemetry, capturing execution time across microservices is sufficient for incident triage without recording structured trace and span correlation identifiers in service logs.",
+     "explanation": "False as a general sufficiency claim. Trace timing helps locate delayed spans, while trace and span identifiers in structured logs link those spans to local events and exceptions. Other evidence may still support initial triage without that linkage, but missing correlation makes exact request-level diagnosis harder.",
+     "hint": "Think about: evaluate the role of trace and span context propagation in distributed log correlation.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain the numerical mechanism of NaN propagation during backward gradient computation in FP16 mixed-precision training, and describe how loss scaling prevents gradient underflow.",
+   "md": "Invalid operations such as zero divided by zero can produce NaN, which propagates through most arithmetic into gradients and optimizer state. Overflow can first produce infinity and later cause NaN through an invalid combination. Loss scaling raises small FP16 gradients above the underflow range, then unscales them before the update. Dynamic scaling must also detect nonfinite gradients and skip invalid updates; scaling alone does not cure arbitrary NaNs."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the diagnostic challenges posed by Heisenbugs and timing perturbations in distributed collective libraries.",
+    "You can now analyze metrics, distributed traces, and structured logs to diagnose cascade failures in ML pipelines.",
+    "You can now analyze numerical debugging techniques and loss scaling mechanisms in mixed-precision training.",
+    "You can now evaluate the role of trace and span context propagation in distributed log correlation."
+   ]
+  }
+ ]
+}

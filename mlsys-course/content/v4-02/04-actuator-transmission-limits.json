@@ -1,0 +1,64 @@
+{
+ "title": "Actuator Transmission Limits",
+ "summary": "Work through Actuator Transmission Limits.",
+ "source": {
+  "chapter": "v4-02",
+  "sections": [
+   "Actuator Transmission Limits",
+   "Actuation mechanisms and the actuator contract",
+   "Electrical time constants, back-EMF, and current clamping",
+   "Reflected rotor inertia and optimal inertia matching",
+   "Transmission compliance, contact impedance, and tooth fracture",
+   "Actuation regimes and gear reduction trade-offs",
+   "Supporting drive and impedance models"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Actuator Transmission Limits**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, The Physical Body, § Actuator Transmission Limits",
+   "md": "When a policy writes a 50 N·m torque setpoint to a joint register or dispatches an emergency brake command over a Controller Area Network (CAN) bus or EtherCAT, the drive electronics may clamp the current at half that request while returning a clean acknowledgement packet in sub-millisecond time. In digital software, an execution target either accepts an instruction or raises a fault; in physical hardware, stator winding inductance, DC bus voltage headroom, magnetic saturation, and transmission elasticity bound what the joint actually delivers."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Actuation mechanisms and the actuator contract\n- Electrical time constants, back-EMF, and current clamping\n- Reflected rotor inertia and optimal inertia matching\n- Transmission compliance, contact impedance, and tooth fracture\n- Actuation regimes and gear reduction trade-offs\n- Supporting drive and impedance models"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Gear ratio trade matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A reduction N multiplies torque by N but reflects rotor inertia by N^2, so acceleration peaks at the inertia-matching ratio and, for a fixed motor and gear, holding heat times reflected inertia does not depend on N."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-02-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Actuator Transmission Limits** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Compute and drives share one DC bus whose impedance turns a coincident current step into droop toward converter lockout while a regenerative stop pumps energy back, so the permission rail is isolated and held up and every unpowered state is specified.",
+      "A reduction N multiplies torque by N but reflects rotor inertia by N^2, so acceleration peaks at the inertia-matching ratio and, for a fixed motor and gear, holding heat times reflected inertia does not depend on N.",
+      "Gear compliance and backlash put lost motion and limit cycles between motor and load, so measured motor position is not the load's position.",
+      "A torque command is a current that winding inductance and voltage headroom pace and the inverter current limit caps, and a drive can clamp current silently while acknowledging packets, so the safety path must read measured current."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Gear ratio trade**: A reduction N multiplies torque by N but reflects rotor inertia by N^2, so acceleration peaks at the inertia-matching ratio and, for a fixed motor and gear, holding heat times reflected inertia does not depend on N."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Actuator Transmission Limits."
+   ]
+  }
+ ]
+}

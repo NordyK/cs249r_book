@@ -1,0 +1,106 @@
+{
+ "title": "Test: Failure Recovery",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v3-12-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Trajectory Saga Pattern** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A trajectory saga durably registers each effectful step's cleanup template before dispatch, not after the step returns, so a crash never leaves an effect without its compensator.",
+      "A looping trajectory is hyperactive, not dead, so a watchdog compares a declared task projection, verifier results, and repeated action-outcome pairs over a bounded window, and its window sets detection latency.",
+      "Transport retry, fresh proposal, feedback repair, compensation, and hold or escalate are chosen by evidence class first, then admission, then expected cost.",
+      "An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Compensation**: An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Compensation**?",
+     "options": [
+      "Recovery order is a DAG of admitted cleanup operations rather than a reverse stack, and an unresolved node blocks only its transitive dependents.",
+      "An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past.",
+      "Scoped circuit breakers, a single retry owner, and bulkheads bound three different quantities when many trajectories share one dependency.",
+      "One bounded repair attempt beats immediate unwind-and-rebuild iff its measured success rate exceeds p* = C_repair / C_fallback, evaluated separately in time and dollars."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Compensation itself, not a neighbouring idea.",
+     "explanation": "**Compensation:** An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Compensation* is registered as recovery work by *Trajectory saga*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Compensation is registered as recovery work by Trajectory saga."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Repair break-even**?",
+     "options": [
+      "One bounded repair attempt beats immediate unwind-and-rebuild iff its measured success rate exceeds p* = C_repair / C_fallback, evaluated separately in time and dollars.",
+      "Recovery order is a DAG of admitted cleanup operations rather than a reverse stack, and an unresolved node blocks only its transitive dependents.",
+      "Reversibility is relative to a subsystem and a grant, so a plan is organized into compensable preparation, a single pivot, and owned follow-up duties, with every check that can precede the pivot hoisted ahead of it.",
+      "An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Repair break-even itself, not a neighbouring idea.",
+     "explanation": "**Repair break-even:** One bounded repair attempt beats immediate unwind-and-rebuild iff its measured success rate exceeds p* = C_repair / C_fallback, evaluated separately in time and dollars."
+    },
+    {
+     "type": "single",
+     "q": "The section **Forward Recovery** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Scoped circuit breakers, a single retry owner, and bulkheads bound three different quantities when many trajectories share one dependency.",
+      "A trajectory saga durably registers each effectful step's cleanup template before dispatch, not after the step returns, so a crash never leaves an effect without its compensator.",
+      "One bounded repair attempt beats immediate unwind-and-rebuild iff its measured success rate exceeds p* = C_repair / C_fallback, evaluated separately in time and dollars.",
+      "Transport retry, fresh proposal, feedback repair, compensation, and hold or escalate are chosen by evidence class first, then admission, then expected cost."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Repair break-even**: One bounded repair attempt beats immediate unwind-and-rebuild iff its measured success rate exceeds p* = C_repair / C_fallback, evaluated separately in time and dollars."
+    },
+    {
+     "type": "single",
+     "q": "The section **Incident Containment** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A trajectory saga durably registers each effectful step's cleanup template before dispatch, not after the step returns, so a crash never leaves an effect without its compensator.",
+      "A looping trajectory is hyperactive, not dead, so a watchdog compares a declared task projection, verifier results, and repeated action-outcome pairs over a bounded window, and its window sets detection latency.",
+      "Transport retry, fresh proposal, feedback repair, compensation, and hold or escalate are chosen by evidence class first, then admission, then expected cost.",
+      "On suspicion, fail-safe defaults hold the trajectory at every dispatch boundary without the agent's cooperation while preregistered cleanup runs under a separate narrow grant until residual obligations settle."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Incident containment**: On suspicion, fail-safe defaults hold the trajectory at every dispatch boundary without the agent's cooperation while preregistered cleanup runs under a separate narrow grant until residual obligations settle."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Compensation* is registered as recovery work by *Trajectory saga*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Compensation is registered as recovery work by Trajectory saga."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Recovery decision order**?",
+     "options": [
+      "A looping trajectory is hyperactive, not dead, so a watchdog compares a declared task projection, verifier results, and repeated action-outcome pairs over a bounded window, and its window sets detection latency.",
+      "One bounded repair attempt beats immediate unwind-and-rebuild iff its measured success rate exceeds p* = C_repair / C_fallback, evaluated separately in time and dollars.",
+      "An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past.",
+      "Transport retry, fresh proposal, feedback repair, compensation, and hold or escalate are chosen by evidence class first, then admission, then expected cost."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Recovery decision order itself, not a neighbouring idea.",
+     "explanation": "**Recovery decision order:** Transport retry, fresh proposal, feedback repair, compensation, and hold or escalate are chosen by evidence class first, then admission, then expected cost."
+    }
+   ]
+  }
+ ]
+}

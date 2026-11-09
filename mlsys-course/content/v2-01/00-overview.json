@@ -1,0 +1,313 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v2-01",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Introduction** (Vol II). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Introduction, Purpose",
+   "md": "Machine learning at scale has a physics of its own. On one node, performance is often governed by the memory wall: data must reach the accelerator fast enough to keep the math busy. Scaling laws explain why one node stops being enough, because model quality improves predictably but sublinearly with compute, data, and parameters, so each further gain demands a larger fleet. In a distributed cluster, the memory problem stretches across machines."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Scale Moment",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "From Single Node to Fleet",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "AI Scaling Laws",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Constraints of Scale",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "The C$^3$ Taxonomy and Foundations of Sc",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "The Fleet Stack and the Lighthouse Arche",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "The Structure of This Textbook",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Scale moment**",
+     "Leaving one machine is a discontinuity, not an extrapolation: the binding constraint moves from the local memory wall to the network and then the energy wall while component failure becomes routine, so the unit of engineering becomes the fleet."
+    ],
+    [
+     "**Synchronous tight coupling**",
+     "Synchronous training advances one shared model state through a barrier every step, so a persistent slowdown on one critical-path worker becomes a step penalty for all, and recovery must restore mutually consistent state across every participant rather than re-execute one task."
+    ],
+    [
+     "**Scaling laws as the demand curve**",
+     "Loss falls as a power law toward an irreducible floor, so each equal quality gain multiplies the resource by a fixed factor, a predictable but sublinear return that keeps organizations buying each further order of magnitude of fleet."
+    ],
+    [
+     "**Reliability gap**",
+     "A job that needs all N components at once has availability a^N, so 99.9 percent nodes give 37 percent all-up at 1,000 nodes, and one more nine only postpones the collapse, which makes resilience rather than prevention the objective."
+    ],
+    [
+     "**Communication intensity**",
+     "Bytes moved across the network per local operation is the fleet analog of arithmetic intensity: below the fabric balance point scaling is easy, above it bisection bandwidth binds, and byte-reducing methods change it while overlap only hides exposed time."
+    ],
+    [
+     "**C3 taxonomy**",
+     "Distributed execution time divides into Compute, Communication, and Coordination, each leaving different evidence (utilization and memory counters, link and collective timing, barrier waits and recovery records), and relieving one moves the bottleneck to another."
+    ],
+    [
+     "**Fleet Law**",
+     "Distributed step time is T_compute/N + T_comm(N) + T_sync(N) - T_overlap, so adding devices shrinks only the compute term while communication and synchronization persist, and scaling efficiency T_1/(N T_N) shows which term binds."
+    ],
+    [
+     "**Fleet stack**",
+     "The fleet is eight rows in four bands (infrastructure, distribution, serving, governance) in which capabilities fixed lower constrain choices above, so the stack locates where a decision belongs while C3 says what it costs in time."
+    ],
+    [
+     "**Compute-optimal allocation**",
+     "Training a dense transformer costs about C = 6ND FLOPs, so a fixed budget fixes the product of parameters and tokens, and the compute-optimal point grows both together (about 20 tokens per parameter); diagnosing whether a project is compute-limited or data-limited decides whether the next investment is accelerator-hours or data pipelines."
+    ],
+    [
+     "**Naming the efficiency measure**",
+     "Percent of peak, compute-time fraction, scaling efficiency, run-level goodput, and ML productivity goodput answer different questions over different windows, so every efficiency claim must name its measure and interval; the goodput factors are previewed here and defined where ML goodput is owned."
+    ],
+    [
+     "**Energy accounting boundary**",
+     "Fleet energy productivity, useful model FLOPs per joule of device, cooling, and network energy, compares designs only when every design is charged for the same set of energy consumers, and exposed communication costs joules as well as seconds."
+    ],
+    [
+     "**Governance as the fleet control plane**",
+     "At billions of users governance is the control plane that decides what the fleet may optimize and deploy, built from security, lineage-based auditability, and responsible-AI requirements held as operational invariants with owners and evidence."
+    ],
+    [
+     "**CAP choice under partition**",
+     "When a worker becomes unreachable, a distributed training system must either wait for it and keep one current shared state (synchronous training halts) or proceed without it on stale or divergent state (asynchronous and federated training), the training analog of the consistency-availability choice that the CAP theorem forces under a network partition."
+    ],
+    [
+     "**Warehouse-scale computer**",
+     "A tightly coupled data-center fleet is one computer, in which the network fabric acts as the system bus, distributed storage as the local disk, and the orchestrator as the operating system, so power, cooling, and bisection bandwidth become first-order design constraints."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$\\mathcal{L}(N) = A N^{-\\alpha} + B$$\n\n$$\\text{MTBF}_{\\text{system}} = \\frac{\\text{MTTF}_{\\text{component}}}{N}$$\n\n$$A_{\\text{job}} = (A_{\\text{component}})^N$$\n\n$$\\text{CI} = \\frac{\\text{Bytes Transferred (Network)}}{\\text{FLOPs Executed (Local)}}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v2-01-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Scale moment",
+     "back": "Leaving one machine is a discontinuity, not an extrapolation: the binding constraint moves from the local memory wall to the network and then the energy wall while component failure becomes routine, so the unit of engineering becomes the fleet."
+    },
+    {
+     "front": "Synchronous tight coupling",
+     "back": "Synchronous training advances one shared model state through a barrier every step, so a persistent slowdown on one critical-path worker becomes a step penalty for all, and recovery must restore mutually consistent state across every participant rather than re-execute one task."
+    },
+    {
+     "front": "Scaling laws as the demand curve",
+     "back": "Loss falls as a power law toward an irreducible floor, so each equal quality gain multiplies the resource by a fixed factor, a predictable but sublinear return that keeps organizations buying each further order of magnitude of fleet."
+    },
+    {
+     "front": "Reliability gap",
+     "back": "A job that needs all N components at once has availability a^N, so 99.9 percent nodes give 37 percent all-up at 1,000 nodes, and one more nine only postpones the collapse, which makes resilience rather than prevention the objective."
+    },
+    {
+     "front": "Communication intensity",
+     "back": "Bytes moved across the network per local operation is the fleet analog of arithmetic intensity: below the fabric balance point scaling is easy, above it bisection bandwidth binds, and byte-reducing methods change it while overlap only hides exposed time."
+    },
+    {
+     "front": "C3 taxonomy",
+     "back": "Distributed execution time divides into Compute, Communication, and Coordination, each leaving different evidence (utilization and memory counters, link and collective timing, barrier waits and recovery records), and relieving one moves the bottleneck to another."
+    },
+    {
+     "front": "Fleet Law",
+     "back": "Distributed step time is T_compute/N + T_comm(N) + T_sync(N) - T_overlap, so adding devices shrinks only the compute term while communication and synchronization persist, and scaling efficiency T_1/(N T_N) shows which term binds."
+    },
+    {
+     "front": "Fleet stack",
+     "back": "The fleet is eight rows in four bands (infrastructure, distribution, serving, governance) in which capabilities fixed lower constrain choices above, so the stack locates where a decision belongs while C3 says what it costs in time."
+    },
+    {
+     "front": "Compute-optimal allocation",
+     "back": "Training a dense transformer costs about C = 6ND FLOPs, so a fixed budget fixes the product of parameters and tokens, and the compute-optimal point grows both together (about 20 tokens per parameter); diagnosing whether a project is compute-limited or data-limited decides whether the next investment is accelerator-hours or data pipelines."
+    },
+    {
+     "front": "Naming the efficiency measure",
+     "back": "Percent of peak, compute-time fraction, scaling efficiency, run-level goodput, and ML productivity goodput answer different questions over different windows, so every efficiency claim must name its measure and interval; the goodput factors are previewed here and defined where ML goodput is owned."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v2-01-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Scale moment**?",
+     "options": [
+      "Bytes moved across the network per local operation is the fleet analog of arithmetic intensity: below the fabric balance point scaling is easy, above it bisection bandwidth binds, and byte-reducing methods change it while overlap only hides exposed time.",
+      "Leaving one machine is a discontinuity, not an extrapolation: the binding constraint moves from the local memory wall to the network and then the energy wall while component failure becomes routine, so the unit of engineering becomes the fleet.",
+      "Percent of peak, compute-time fraction, scaling efficiency, run-level goodput, and ML productivity goodput answer different questions over different windows, so every efficiency claim must name its measure and interval; the goodput factors are previewed here and defined where ML goodput is owned.",
+      "Loss falls as a power law toward an irreducible floor, so each equal quality gain multiplies the resource by a fixed factor, a predictable but sublinear return that keeps organizations buying each further order of magnitude of fleet."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Scale moment itself, not a neighbouring idea.",
+     "explanation": "**Scale moment:** Leaving one machine is a discontinuity, not an extrapolation: the binding constraint moves from the local memory wall to the network and then the energy wall while component failure becomes routine, so the unit of engineering becomes the fleet."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Synchronous tight coupling**?",
+     "options": [
+      "Fleet energy productivity, useful model FLOPs per joule of device, cooling, and network energy, compares designs only when every design is charged for the same set of energy consumers, and exposed communication costs joules as well as seconds.",
+      "At billions of users governance is the control plane that decides what the fleet may optimize and deploy, built from security, lineage-based auditability, and responsible-AI requirements held as operational invariants with owners and evidence.",
+      "Percent of peak, compute-time fraction, scaling efficiency, run-level goodput, and ML productivity goodput answer different questions over different windows, so every efficiency claim must name its measure and interval; the goodput factors are previewed here and defined where ML goodput is owned.",
+      "Synchronous training advances one shared model state through a barrier every step, so a persistent slowdown on one critical-path worker becomes a step penalty for all, and recovery must restore mutually consistent state across every participant rather than re-execute one task."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Synchronous tight coupling itself, not a neighbouring idea.",
+     "explanation": "**Synchronous tight coupling:** Synchronous training advances one shared model state through a barrier every step, so a persistent slowdown on one critical-path worker becomes a step penalty for all, and recovery must restore mutually consistent state across every participant rather than re-execute one task."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Scaling laws as the demand curve**?",
+     "options": [
+      "Loss falls as a power law toward an irreducible floor, so each equal quality gain multiplies the resource by a fixed factor, a predictable but sublinear return that keeps organizations buying each further order of magnitude of fleet.",
+      "Bytes moved across the network per local operation is the fleet analog of arithmetic intensity: below the fabric balance point scaling is easy, above it bisection bandwidth binds, and byte-reducing methods change it while overlap only hides exposed time.",
+      "When a worker becomes unreachable, a distributed training system must either wait for it and keep one current shared state (synchronous training halts) or proceed without it on stale or divergent state (asynchronous and federated training), the training analog of the consistency-availability choice that the CAP theorem forces under a network partition.",
+      "A job that needs all N components at once has availability a^N, so 99.9 percent nodes give 37 percent all-up at 1,000 nodes, and one more nine only postpones the collapse, which makes resilience rather than prevention the objective."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Scaling laws as the demand curve itself, not a neighbouring idea.",
+     "explanation": "**Scaling laws as the demand curve:** Loss falls as a power law toward an irreducible floor, so each equal quality gain multiplies the resource by a fixed factor, a predictable but sublinear return that keeps organizations buying each further order of magnitude of fleet."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Reliability gap**?",
+     "options": [
+      "A job that needs all N components at once has availability a^N, so 99.9 percent nodes give 37 percent all-up at 1,000 nodes, and one more nine only postpones the collapse, which makes resilience rather than prevention the objective.",
+      "The fleet is eight rows in four bands (infrastructure, distribution, serving, governance) in which capabilities fixed lower constrain choices above, so the stack locates where a decision belongs while C3 says what it costs in time.",
+      "At billions of users governance is the control plane that decides what the fleet may optimize and deploy, built from security, lineage-based auditability, and responsible-AI requirements held as operational invariants with owners and evidence.",
+      "Loss falls as a power law toward an irreducible floor, so each equal quality gain multiplies the resource by a fixed factor, a predictable but sublinear return that keeps organizations buying each further order of magnitude of fleet."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Reliability gap itself, not a neighbouring idea.",
+     "explanation": "**Reliability gap:** A job that needs all N components at once has availability a^N, so 99.9 percent nodes give 37 percent all-up at 1,000 nodes, and one more nine only postpones the collapse, which makes resilience rather than prevention the objective."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Communication intensity**?",
+     "options": [
+      "Bytes moved across the network per local operation is the fleet analog of arithmetic intensity: below the fabric balance point scaling is easy, above it bisection bandwidth binds, and byte-reducing methods change it while overlap only hides exposed time.",
+      "The fleet is eight rows in four bands (infrastructure, distribution, serving, governance) in which capabilities fixed lower constrain choices above, so the stack locates where a decision belongs while C3 says what it costs in time.",
+      "Distributed execution time divides into Compute, Communication, and Coordination, each leaving different evidence (utilization and memory counters, link and collective timing, barrier waits and recovery records), and relieving one moves the bottleneck to another.",
+      "Percent of peak, compute-time fraction, scaling efficiency, run-level goodput, and ML productivity goodput answer different questions over different windows, so every efficiency claim must name its measure and interval; the goodput factors are previewed here and defined where ML goodput is owned."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Communication intensity itself, not a neighbouring idea.",
+     "explanation": "**Communication intensity:** Bytes moved across the network per local operation is the fleet analog of arithmetic intensity: below the fabric balance point scaling is easy, above it bisection bandwidth binds, and byte-reducing methods change it while overlap only hides exposed time."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Scale moment: Leaving one machine is a discontinuity, not an extrapolation: the binding constraint moves from the local memory wall to the network and then the energy wall while component failure becomes routine, so the unit of engineering becomes the fleet.",
+    "Synchronous tight coupling: Synchronous training advances one shared model state through a barrier every step, so a persistent slowdown on one critical-path worker becomes a step penalty for all, and recovery must restore mutually consistent state across every participant rather than re-execute one task.",
+    "Scaling laws as the demand curve: Loss falls as a power law toward an irreducible floor, so each equal quality gain multiplies the resource by a fixed factor, a predictable but sublinear return that keeps organizations buying each further order of magnitude of fleet.",
+    "Reliability gap: A job that needs all N components at once has availability a^N, so 99.9 percent nodes give 37 percent all-up at 1,000 nodes, and one more nine only postpones the collapse, which makes resilience rather than prevention the objective."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Scale moment",
+   "def": "Leaving one machine is a discontinuity, not an extrapolation: the binding constraint moves from the local memory wall to the network and then the energy wall while component failure becomes routine, so the unit of engineering becomes the fleet."
+  },
+  {
+   "term": "Synchronous tight coupling",
+   "def": "Synchronous training advances one shared model state through a barrier every step, so a persistent slowdown on one critical-path worker becomes a step penalty for all, and recovery must restore mutually consistent state across every participant rather than re-execute one task."
+  },
+  {
+   "term": "Scaling laws as the demand curve",
+   "def": "Loss falls as a power law toward an irreducible floor, so each equal quality gain multiplies the resource by a fixed factor, a predictable but sublinear return that keeps organizations buying each further order of magnitude of fleet."
+  },
+  {
+   "term": "Reliability gap",
+   "def": "A job that needs all N components at once has availability a^N, so 99.9 percent nodes give 37 percent all-up at 1,000 nodes, and one more nine only postpones the collapse, which makes resilience rather than prevention the objective."
+  },
+  {
+   "term": "Communication intensity",
+   "def": "Bytes moved across the network per local operation is the fleet analog of arithmetic intensity: below the fabric balance point scaling is easy, above it bisection bandwidth binds, and byte-reducing methods change it while overlap only hides exposed time."
+  },
+  {
+   "term": "C3 taxonomy",
+   "def": "Distributed execution time divides into Compute, Communication, and Coordination, each leaving different evidence (utilization and memory counters, link and collective timing, barrier waits and recovery records), and relieving one moves the bottleneck to another."
+  },
+  {
+   "term": "Fleet Law",
+   "def": "Distributed step time is T_compute/N + T_comm(N) + T_sync(N) - T_overlap, so adding devices shrinks only the compute term while communication and synchronization persist, and scaling efficiency T_1/(N T_N) shows which term binds."
+  },
+  {
+   "term": "Fleet stack",
+   "def": "The fleet is eight rows in four bands (infrastructure, distribution, serving, governance) in which capabilities fixed lower constrain choices above, so the stack locates where a decision belongs while C3 says what it costs in time."
+  },
+  {
+   "term": "Compute-optimal allocation",
+   "def": "Training a dense transformer costs about C = 6ND FLOPs, so a fixed budget fixes the product of parameters and tokens, and the compute-optimal point grows both together (about 20 tokens per parameter); diagnosing whether a project is compute-limited or data-limited decides whether the next investment is accelerator-hours or data pipelines."
+  },
+  {
+   "term": "Naming the efficiency measure",
+   "def": "Percent of peak, compute-time fraction, scaling efficiency, run-level goodput, and ML productivity goodput answer different questions over different windows, so every efficiency claim must name its measure and interval; the goodput factors are previewed here and defined where ML goodput is owned."
+  },
+  {
+   "term": "Energy accounting boundary",
+   "def": "Fleet energy productivity, useful model FLOPs per joule of device, cooling, and network energy, compares designs only when every design is charged for the same set of energy consumers, and exposed communication costs joules as well as seconds."
+  },
+  {
+   "term": "Governance as the fleet control plane",
+   "def": "At billions of users governance is the control plane that decides what the fleet may optimize and deploy, built from security, lineage-based auditability, and responsible-AI requirements held as operational invariants with owners and evidence."
+  },
+  {
+   "term": "CAP choice under partition",
+   "def": "When a worker becomes unreachable, a distributed training system must either wait for it and keep one current shared state (synchronous training halts) or proceed without it on stale or divergent state (asynchronous and federated training), the training analog of the consistency-availability choice that the CAP theorem forces under a network partition."
+  },
+  {
+   "term": "Warehouse-scale computer",
+   "def": "A tightly coupled data-center fleet is one computer, in which the network fabric acts as the system bus, distributed storage as the local disk, and the orchestrator as the operating system, so power, cooling, and bisection bandwidth become first-order design constraints."
+  }
+ ]
+}

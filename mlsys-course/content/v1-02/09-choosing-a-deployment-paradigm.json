@@ -1,0 +1,88 @@
+{
+ "title": "Choosing a Deployment Paradigm",
+ "summary": "Apply the sequential screening logic of the four-layer deployment decision framework.",
+ "source": {
+  "chapter": "v1-02",
+  "sections": [
+   "Choosing a Deployment Paradigm",
+   "Weighing operational trade-offs across tiers",
+   "Four screening checks for choosing a tier"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Apply the sequential screening logic of the four-layer deployment decision framework\n- Calculate the physical displacement and safety consequences of network latency in autonomous vehicle braking systems\n- Evaluate the complexity tax of deploying machine learning systems compared to traditional software heuristics\n- Evaluate the critical pitfall of selecting deployment paradigms based on model accuracy alone\n- Evaluate how Total Cost of Ownership (TCO) analysis prevents misleading paradigm selection based on compute list prices alone"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, System Paradigms, § Choosing a Deployment Paradigm",
+   "md": "An architect choosing where to run an ML feature rarely optimizes one dimension. A privacy rule may forbid cloud processing, a latency budget may forbid remote inference, a memory footprint may exceed the mobile device, and a cost target may rule out always-on edge hardware. Cloud, edge, mobile, and TinyML are operating envelopes for those conflicts, so selecting among them requires a unified comparison framework and a structured decision process."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Weighing operational trade-offs across tiers\n- Four screening checks for choosing a tier\n\nPay attention to: Operational comparison of the four paradigms beyond their resource envelopes; Four-layer decision screening framework (Privacy -> Latency -> Compute -> Cost); The complexity tax of ML systems compared to simple heuristics."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: What is the **complexity tax** in ML systems engineering, and when is a simple heuristic (e.g., rule-based logic or regular expressions) superior to a deep learning pipeline?",
+   "md": "The complexity tax refers to the extensive hidden operational overhead that an ML system introduces beyond its core model code, including data validation pipelines, continuous monitoring, retraining infrastructure, GPU dependencies, and model drift management. An accuracy increase from 90% to 95% alongside a maintenance increase from 1 to 40 hours/month requires comparing the value of avoided errors with the additional operating costs and risks. Those ratios alone do not establish the better choice: a simple heuristic is preferable when the ML system's additional costs and risks outweigh the value of its improved predictions."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-02-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In the four-layer deployment screening decision framework, why is the **Privacy** layer evaluated first, followed by **Latency**, **Compute Demand**, and **Cost**?",
+     "explanation": "The correct answer is A. The decision framework sequences evaluation checks by their ability to disqualify candidates immediately: privacy and regulatory mandates can strictly prohibit sending raw data off-premises; physical latency constraints (e.g., speed of light) can make remote execution physically incapable of meeting real-time SLAs; compute/memory capacity determines whether candidate hardware can fit the workload; and finally, cost and operational complexity compare the feasible options. The option claiming privacy is a compiler flag trivializes regulatory compliance. The option alleging cloud GPU access requires upfront privacy agreements confuses commercial terms with architectural screening. The choice claiming alphabetical ordering is factually false.",
+     "hint": "Think about: apply the sequential screening logic of the four-layer deployment decision framework.",
+     "type": "single",
+     "options": [
+      "The layers are ordered by how rapidly a hard constraint can completely invalidate an architecture: legal/privacy rules may forbid remote transmission entirely, physical latency limits can make cloud offload impossible, compute demands eliminate undersized devices, and cost compares the remaining feasible survivors.",
+      "Privacy is the easiest parameter to optimize in software using compiler flags, whereas cost cannot be calculated until after deployment.",
+      "Cloud providers require privacy agreements before allowing access to GPU instances.",
+      "The framework is ordered purely alphabetically based on traditional software engineering conventions."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An autonomous vehicle travels at 100 km/h (~27.8 m/s). An emergency pedestrian detection system evaluates two architectures: (1) an automotive Edge ML accelerator with a 15 ms local detection latency, and (2) a Cloud ML server with 115 ms total latency (100 ms network RTT + 15 ms compute). How much additional distance does the vehicle travel before braking begins if the cloud architecture is used?",
+     "explanation": "The correct answer is B. At \\$100 km/h, the vehicle travels at frac1003.6 approx 27.78 m/s. The cloud architecture adds \\$100 ms = 0.1 s of network round-trip delay. The additional distance traveled during this delay is \\$27.78 m/s × 0.1 s approx 2.78 m (~2.8 meters). In safety-critical emergency braking, a 2.8-meter delay can be the difference between stopping safely and a catastrophic collision, demonstrating why the specified 115 ms remote path fails the chapter's 100 ms deadline. The 15 ms local detection time is only one component; the complete local response path still needs validation. The options calculating 0.28 m, 28 m, or 100 m represent arithmetic scaling errors.",
+     "hint": "Think about: calculate the physical displacement and safety consequences of network latency in autonomous vehicle braking systems.",
+     "type": "single",
+     "options": [
+      "0.28 meters",
+      "Approximately 2.8 meters",
+      "Approximately 28 meters",
+      "Exactly 100 meters"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In ML systems engineering, selecting a deployment paradigm based solely on benchmark model accuracy is a sound practice because hardware infrastructure can always be scaled to meet application constraints later.",
+     "explanation": "False. Selecting a deployment paradigm based solely on accuracy without evaluating physical constraints (latency floors, battery life, thermal ceilings, memory budgets, network availability) leads to deployment failures. A high-accuracy cloud model is useless if network delay violates an emergency response SLA, and an edge model that drains a mobile battery in minutes fails regardless of benchmark accuracy. Systems constraints must be co-designed upfront.",
+     "hint": "Think about: evaluate the critical pitfall of selecting deployment paradigms based on model accuracy alone.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: What is the Total Cost of Ownership (TCO) calculation, and why must ML architects evaluate TCO rather than hardware purchase price or cloud VM hourly rates alone when selecting a deployment paradigm?",
+   "md": "Total Cost of Ownership (TCO) encompasses all direct and indirect expenses over a system's multi-year operational lifetime, including hardware CapEx, recurring energy and cooling costs, network bandwidth/egress, reliability engineering, software maintenance, and DevOps labor. Focusing solely on hardware purchase price or cloud VM rental rates leads to false economies, because operational overhead and engineering labor can dominate the listed budget, as labor does in the chapter's edge-server scenario. A deployment ranking requires matching accounting boundaries, service capacity, availability, and time horizon."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the sequential screening logic of the four-layer deployment decision framework.",
+    "You can now calculate the physical displacement and safety consequences of network latency in autonomous vehicle braking systems.",
+    "You can now evaluate the complexity tax of deploying machine learning systems compared to traditional software heuristics.",
+    "You can now evaluate the critical pitfall of selecting deployment paradigms based on model accuracy alone."
+   ]
+  }
+ ]
+}

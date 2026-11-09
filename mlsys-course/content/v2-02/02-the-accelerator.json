@@ -1,0 +1,89 @@
+{
+ "title": "The Accelerator",
+ "summary": "Analyze why physical manufacturing constraints force the adoption of chiplet-based accelerator architectures and identify the resulting communication trade-off.",
+ "source": {
+  "chapter": "v2-02",
+  "sections": [
+   "The Accelerator",
+   "Wafer-scale engines",
+   "Chiplet-based accelerators",
+   "Evolution of GPU architectures",
+   "Evolution of TPU architectures",
+   "Matrix units"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze why physical manufacturing constraints force the adoption of chiplet-based accelerator architectures and identify the resulting communication trade-off\n- Compare the SIMT and systolic array execution models to justify when organizational flexibility outweighs dataflow efficiency\n- Evaluate the historical scaling relationship between peak accelerator throughput and power efficiency to identify the physical root of the power wall\n- Define the generality tax and explain how moving from CPUs to specialized ML accelerators reduces it\n- Order processor classes along the accelerator spectrum by their arithmetic die-area allocation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Compute Infrastructure, § The Accelerator",
+   "md": "The progression begins with the accelerator, because every wall above it is measured against the rates one device can compute, store, and draw. An accelerator purchase commits the fleet to a workload and software stack for longer than one experiment. A research group changing model operations frequently needs programmability; a service executing a stable computation at sustained volume can justify more specialization. The familiar trade-off between control flexibility and arithmetic efficiency matters here because an architectural mismatch is replicated across the fleet."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Wafer-scale engines\n- Chiplet-based accelerators\n- Evolution of GPU architectures\n- Evolution of TPU architectures\n- Matrix units\n\nPay attention to: Generality tax across CPU, GPU, TPU, and custom ASIC architectures; Execution models: SIMT warp divergence vs. systolic array dataflows; Physical manufacturing constraints: reticle limits, wafer-scale engines, and chiplet architectures; Historical divergence between peak accelerator throughput and power efficiency."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A research lab frequently experiments with novel, custom attention patterns and dynamic sparsity, while a production platform team trains a fixed standard Transformer at massive scale for months. Compare the systems trade-offs of choosing GPUs (CUDA) versus TPUs (XLA) for these two organizational teams.",
+   "md": "GPU kernel programming can support rapid experimentation with custom operations, while TPU execution requires an XLA mapping onto its specialized dataflow. The research team must check operator support and iteration cost on each platform; the production team can amortize compilation over stable runs and compare sustained useful throughput at matched precision and quality. Neither SIMT nor systolic execution alone establishes higher utilization or a universal platform winner."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-02-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A hardware vendor transitions their next-generation accelerator from a monolithic \\$800\\text{ mm}^2$ die to a dual-die chiplet architecture (such as the NVIDIA B200 with an equivalent area of about \\$1{,}700\\text{ mm}^2$) connected on a single package. What physical constraint is this transition primarily designed to bypass, and what trade-off does it introduce?",
+     "explanation": "The correct answer is B. The photolithographic reticle limit restricts monolithic single-exposure dies to approximately \\$26 × 33 mm = 858 mm^2, and manufacturing yield decreases exponentially with die area. Chiplet-based packaging bypasses this ceiling by integrating multiple smaller, higher-yielding dies on a common substrate (e.g., connected at 10 TB/s on the B200), though this package-level link is inherently slower than a continuous on-die mesh. The claim that chiplets eliminate off-package DRAM or cause warp divergence is false. The assertion that dies are placed in separate server chassis is incorrect because chiplets reside on a single package substrate presented as a single logical GPU. The choice mentioning optical waveguides misattributes optical signaling to standard silicon chiplet packaging.",
+     "hint": "Think about: analyze why physical manufacturing constraints force the adoption of chiplet-based accelerator architectures and identify the resulting communication trade-off.",
+     "type": "single",
+     "options": [
+      "It bypasses the memory wall by moving all memory on-chip, but introduces warp divergence because threads must synchronize across the die boundary.",
+      "It bypasses the photolithographic reticle limit ($\\approx 858\\text{ mm}^2$) and improves manufacturing yield, but introduces a die-to-die interconnect that is slower than a continuous on-die mesh.",
+      "It bypasses the maximum TDP limit of a single package by separating thermal loads into different server chassis, but requires developers to write separate CUDA kernels for each chiplet.",
+      "It bypasses the communication wall by replacing electrical copper signaling with optical waveguides, but increases the generality tax of control logic."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Comparing the V100 and B200 at dense FP16 separates peak throughput growth from growth in throughput per TDP watt. Which statement correctly captures that difference and its infrastructure consequence?",
+     "explanation": "The correct answer is C. Holding precision fixed, the registered V100-to-B200 comparison gives about 18 times the dense FP16 throughput but only 5.4 times the throughput per TDP watt. The gap reflects a higher device power allowance. Reversing the metrics misses this infrastructure cost; these specification ratios do not establish measured application energy efficiency or require one universal cooling design.",
+     "hint": "Think about: evaluate the historical scaling relationship between peak accelerator throughput and power efficiency to identify the physical root of the power wall.",
+     "type": "single",
+     "options": [
+      "Peak throughput per TDP watt grew faster than peak throughput, allowing higher-density clusters to ignore power delivery.",
+      "Both peak throughput and power efficiency scaled linearly at exactly the same rate, confirming that Dennard scaling remains fully active in modern 4nm nodes.",
+      "Peak dense FP16 throughput grew about 18 times while peak throughput per TDP watt grew about 5.4 times, so facilities must accommodate higher device power as well as greater arithmetic capacity.",
+      "Peak throughput plateaued after Volta (V100), meaning all recent performance gains stem exclusively from host CPU software optimizations."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Arrange the following processor architectures in ascending order of the approximate percentage of their die area devoted strictly to arithmetic units (from lowest arithmetic die allocation to highest):",
+     "explanation": "The correct sequence is: (3) General-purpose server CPU (approx 5--10\\%) rightarrow (4) NVIDIA GPU (with Tensor Cores, approx 50--60\\%) rightarrow (1) Google TPU (systolic array, approx 70--80\\%) rightarrow (2) Purpose-built custom ASIC (>90\\%). Moving along this accelerator spectrum progressively reclaims silicon area from general-purpose control logic (branch prediction, instruction decoders, reorder buffers) and caches to dedicate more transistors directly to matrix arithmetic units.",
+     "hint": "Think about: order processor classes along the accelerator spectrum by their arithmetic die-area allocation.",
+     "type": "order",
+     "items": [
+      "General-purpose server CPU",
+      "Purpose-built custom ASIC"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze why physical manufacturing constraints force the adoption of chiplet-based accelerator architectures and identify the resulting communication trade-off.",
+    "You can now compare the SIMT and systolic array execution models to justify when organizational flexibility outweighs dataflow efficiency.",
+    "You can now evaluate the historical scaling relationship between peak accelerator throughput and power efficiency to identify the physical root of the power wall.",
+    "You can now define the generality tax and explain how moving from CPUs to specialized ML accelerators reduces it."
+   ]
+  }
+ ]
+}

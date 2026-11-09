@@ -1,0 +1,88 @@
+{
+ "title": "Stage 6: Monitoring and Maintenance",
+ "summary": "Analyze the multi-timescale hierarchy of operational, proxy, and performance metrics in production ML monitoring.",
+ "source": {
+  "chapter": "v1-03",
+  "sections": [
+   "Stage 6: Monitoring and Maintenance",
+   "Production monitoring",
+   "Maintenance at scale"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the multi-timescale hierarchy of operational, proxy, and performance metrics in production ML monitoring\n- Explain why model rollback is a temporary mitigation rather than a complete system restore when live conditions have changed\n- Analyze silent model degradation caused by data drift and explain why traditional infrastructure monitoring fails to detect it\n- Evaluate the diagnostic scope of statistical drift tests (PSI, KS) and distinguish input distribution shifts from confirmed accuracy loss\n- Analyze the metadata links required in a data lineage audit trail and justify how lineage supports efficient, hypothesis-driven regression investigation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Lifecycle, § Stage 6: Monitoring and Maintenance",
+   "md": "Consider an illustrative case six months after a DR screening system launches. A clinic upgrades its fundus cameras, and the new equipment produces images with different color profiles. No code changed, yet the pixel distributions the model learned during training no longer match the images it receives, and in this scenario the model's sensitivity at that site drops."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Production monitoring\n- Maintenance at scale\n\nPay attention to: Silent degradation through distribution drift; Layered production monitoring hierarchy across timescales; Statistical drift detection tests (PSI, KS); Complexity of ML model rollback and regulatory data lineage."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why reverting an ML system to an older model checkpoint during a production degradation incident is only a mitigation tactic rather than a true system state restoration.",
+   "md": "Rolling back restores an earlier model artifact, but it does not restore the rest of the live environment to its old state. Conventional software rollbacks also may not recreate prior external state, and ML adds another problem: the current input distribution may have shifted away from what the older model was trained on. For example, if clinics changed camera hardware, the old weights may no longer match current images, so rollback buys time while the team evaluates current outcomes rather than guaranteeing a full return to the earlier system behavior."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-03-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why does production ML monitoring structure its telemetry into a four-tier hierarchy of operational, proxy, performance, and data stability metrics rather than relying on a single metric class?",
+     "explanation": "The correct answer is C. Different system failures surface on distinct timescales. Operational metrics (latency, error rate, queue depth) detect infrastructure crashes within seconds but reveal nothing about statistical prediction quality. Proxy metrics (confidence distributions, referral rates, image quality rejection rates) provide real-time indicators of data drift within hours without waiting for labels. Performance metrics (sensitivity, specificity) measure true accuracy but require adjudicated ground-truth labels that arrive with weeks of delay. Relying on any single tier creates blind spots: operational metrics miss silent drift, while performance metrics respond too slowly to active incidents.",
+     "hint": "Think about: analyze the multi-timescale hierarchy of operational, proxy, and performance metrics in production ML monitoring.",
+     "type": "single",
+     "options": [
+      "A. Because cloud monitoring vendors charge lower fees when metrics are divided into multiple dashboard tabs.",
+      "B. Because operational metrics like latency and CPU load are sufficient to detect model accuracy degradation in real time.",
+      "C. Because different failure modes emerge across different timescales: operational metrics catch service crashes in seconds, proxy metrics (confidence, referral rate) detect distribution shifts in hours without labels, and performance metrics (sensitivity, specificity) confirm diagnostic accuracy weeks later when ground truth arrives.",
+      "D. Because ground-truth diagnostic labels are instantly available in real time for every inference request in production."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Six months after launch, a clinic network upgrades its fundus cameras to a newer model with a distinct color profile. System latency and server error rates remain perfectly stable at 0.0%, but clinical sensitivity drops from 92% to 77%. What systems phenomenon does this scenario illustrate?",
+     "explanation": "The correct answer is D. This scenario illustrates silent degradation through covariate/data drift. The upgraded cameras alter the input image distribution (color spectrum, contrast, sensor noise), moving incoming data outside the envelope learned during training. Because the model executes without code errors, traditional software monitoring (uptime, latency, error codes) reports healthy green dashboards while clinical diagnostic performance degrades severely. It is not an infrastructure crash, not an adversarial attack, and not concept drift (the biological relationship between retina lesions and diabetes did not change; the imaging sensor distribution shifted).",
+     "hint": "Think about: analyze silent model degradation caused by data drift and explain why traditional infrastructure monitoring fails to detect it.",
+     "type": "single",
+     "options": [
+      "A. A deterministic crash in the GPU serving container caused by CUDA driver incompatibility.",
+      "B. An adversarial perturbation attack executed against the clinic edge devices.",
+      "C. Concept drift caused by a sudden biological mutation in the underlying disease pathology.",
+      "D. Silent degradation caused by covariate/data drift; input pixel distributions shifted beyond the training envelope while traditional infrastructure monitoring showed healthy green dashboards."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In production ML monitoring, lightweight statistical tests such as the Population Stability Index (PSI) and Kolmogorov-Smirnov (KS) test can detect shifts in input feature distributions, but an alert from these tests does not by itself prove that model classification accuracy has degraded until ground-truth outcome evidence is evaluated.",
+     "explanation": "True. PSI and KS tests detect distribution divergence mathcalD(P_t parallel P_0) between current inference traffic and baseline training data. An input shift indicates that incoming data has drifted, which raises the probability of accuracy loss and triggers investigation; however, it does not prove that accuracy has degraded (the model might be robust to the specific feature shift). Confirming accuracy degradation requires evaluating labeled outcomes or verified clinical feedback.",
+     "hint": "Think about: evaluate the diagnostic scope of statistical drift tests (PSI, KS) and distinguish input distribution shifts from confirmed accuracy loss.",
+     "type": "truefalse",
+     "answer": true
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Describe what metadata elements must be linked in an automated data lineage audit trail for medical ML systems, and explain how lineage reduces the engineering cost of investigating a site-specific accuracy regression.",
+   "md": "A lineage trail should connect production behavior to the relevant artifacts: model version, dataset version or training snapshot, preprocessing and inference code versions, environment details, and site-specific context such as clinic or hardware identifiers. That record does not instantly prove a single cause from one query or one example. Instead, it lets engineers trace which versions and site changes coincided with the regression, narrow the hypothesis set, and then run targeted comparisons or tests to determine whether the problem came from a camera change, a preprocessing update, or a model update."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the multi-timescale hierarchy of operational, proxy, and performance metrics in production ML monitoring.",
+    "You can now explain why model rollback is a temporary mitigation rather than a complete system restore when live conditions have changed.",
+    "You can now analyze silent model degradation caused by data drift and explain why traditional infrastructure monitoring fails to detect it.",
+    "You can now evaluate the diagnostic scope of statistical drift tests (PSI, KS) and distinguish input distribution shifts from confirmed accuracy loss."
+   ]
+  }
+ ]
+}

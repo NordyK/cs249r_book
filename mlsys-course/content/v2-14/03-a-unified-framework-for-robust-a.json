@@ -1,0 +1,90 @@
+{
+ "title": "A Unified Framework for Robust AI",
+ "summary": "Classify robustness organizational concerns using the Three Pillars Framework.",
+ "source": {
+  "chapter": "v2-14",
+  "sections": [
+   "A Unified Framework for Robust AI",
+   "Shared state and fault surfaces across the fleet",
+   "The three pillars of robust AI",
+   "Common robustness principles",
+   "Integration across the ML pipeline"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Classify robustness organizational concerns using the Three Pillars Framework\n- Calculate cluster-scale silent data corruption probabilities and evaluate their systems design implications\n- Analyze the trade-off between model quantization efficiency and geometric robustness margin\n- Choose evidence-dependent detection, degradation, and adaptation responses\n- Design a defense-in-depth strategy integrating robustness safeguards across the ML lifecycle"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Robust AI, § A Unified Framework for Robust AI",
+   "md": "As those incidents show, a low-level fault and an environmental change can produce the same silent degradation. One flipped exponent bit in accelerator memory scales the stored value by a power of two and can turn a trained weight of … into a finite value near … that passes every NaN check (a later section), while a gradual shift in user demographics erodes recommendation quality with latency and uptime flat. Production ML systems cannot treat these as isolated bugs."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Shared state and fault surfaces across the fleet\n- The three pillars of robust AI\n- Common robustness principles\n- Integration across the ML pipeline\n\nPay attention to: the three-pillar taxonomy and software faults originating in the system pillar while imitating other pillars; cluster-scale SDC probability via compounding formula Pr(>=1) = 1 - (1-p)^N; common robustness principles: detection, validated degradation, and evidence-dependent adaptation; efficiency techniques compressing the robustness margin."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A drift alert fires while measured prediction quality remains within tolerance. Explain the distinct roles of detection, graceful degradation, and adaptive response, and why the alert need not trigger all three in a fixed sequence.",
+   "md": "Detection surfaces a signal for investigation. Graceful degradation supplies a validated bounded service when the risk or resource conditions require it; adaptation changes the model or system when evidence supports that response. With stable quality, increased monitoring and investigation may be appropriate without immediate degradation or retraining. The mechanisms complement one another, but a fired alert does not establish a universal response sequence."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-14-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An engineering organization is structuring its reliability teams according to the chapter's Three Pillars Framework. Which team structure correctly maps to the taxonomy?",
+     "explanation": "The correct answer is B. The framework distinguishes environmental shifts, input-level attacks, and system-level faults by their evidence and response families. Software defects can appear within or amplify any category, so teams must correlate model symptoms with pipeline and infrastructure evidence. Lifecycle-only teams can fragment diagnosis, while throughput, privacy, and carbon categories do not describe these three robustness failure classes.",
+     "hint": "Think about: classify robustness organizational concerns using the Three Pillars Framework",
+     "type": "single",
+     "options": [
+      "Three separate teams dedicated respectively to training failures, validation failures, and serving failures.",
+      "Complementary teams address environmental shifts, input-level attacks, and system-level faults, with software diagnosis coordinated across all three categories.",
+      "Three teams organized around model throughput, GPU memory footprint, and floating-point quantization.",
+      "Two independent teams focused exclusively on user data privacy and carbon accounting."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Assuming independent devices over the same one-hour interval and an assumed residual silent data corruption probability of $p = 10^{-4}$ per device per hour, what is the probability $\\Pr(\\ge 1)$ of at least one SDC event occurring in a single hour across a 10,000-GPU training cluster, and what does this imply for systems design?",
+     "explanation": "The correct answer is C. $\\Pr \\approx 0.63$ (63 percent) per hour, meaning silent corruption is an expected operational event that requires automated verification and checksumming. Compounding per-device probability across $N$ independent devices follows $\\Pr(\\ge 1) = 1 - (1 - p)^N = 1 - (1 - 10^{-4})^{10000} \\approx 1 - e^{-1} \\approx 0.632$. This is a residual-error model, excluding raw bit flips already corrected by hardware. The scenario motivates checksumming and validation but does not prove either mechanism catches every corruption before it affects results. Assuming the cluster rate is \\$10^{-8}$ or \\$10^{-4}$ ignores binomial compounding across thousands of workers, while asserting exact deterministic certainty contradicts probabilistic compounding.",
+     "hint": "Think about: calculate cluster-scale silent data corruption probabilities and evaluate their systems design implications",
+     "type": "single",
+     "options": [
+      "$\\Pr \\approx 10^{-8}$ per hour, proving SDC is too rare to justify architectural defenses in distributed clusters.",
+      "$\\Pr = 10^{-4}$ per hour, because device-level failure rates do not compound across independent nodes.",
+      "$\\Pr \\approx 0.63$ (63 percent) per hour, meaning silent corruption is an expected operational event that requires automated verification and checksumming.",
+      "$\\Pr = 1.0$ (100 percent) per hour with deterministic certainty, guaranteeing every training step fails."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Preserving clean-set accuracy after FP32-to-INT8 quantization is sufficient evidence that the compressed model also preserves its robustness margin against input perturbations and numerical faults.",
+     "explanation": "False. Quantization changes the deployed computation, and clean-data accuracy does not establish behavior under perturbations or faults. The compressed model and any fallback must be evaluated under their stated operating conditions; the direction and magnitude of robustness changes depend on the model and quantization method.",
+     "hint": "Think about: analyze the trade-off between model quantization efficiency and geometric robustness margin",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain the defense-in-depth principle across the ML lifecycle by describing the distinct robustness functions performed at data ingestion, model training, deployment validation, and live serving.",
+   "md": "At ingestion, provenance and anomaly checks limit some malformed or poisoned contributions but do not prove that accepted data are clean. Training objectives target specified perturbations or reduce some outlier influence. Validation measures behavior on named shifts, threats, and consequential slices. Serving checks and monitors provide evidence for rejection, investigation, or validated fallback. Each layer needs coverage and cost evaluation; passing one layer does not establish end-to-end robustness."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify robustness organizational concerns using the Three Pillars Framework.",
+    "You can now calculate cluster-scale silent data corruption probabilities and evaluate their systems design implications.",
+    "You can now analyze the trade-off between model quantization efficiency and geometric robustness margin.",
+    "You can now choose evidence-dependent detection, degradation, and adaptation responses."
+   ]
+  }
+ ]
+}

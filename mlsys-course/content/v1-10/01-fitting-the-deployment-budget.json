@@ -1,0 +1,104 @@
+{
+ "title": "Fitting the Deployment Budget",
+ "summary": "Identify the three abstraction levels in the chapter's optimization framework from model representation down to hardware implementation.",
+ "source": {
+  "chapter": "v1-10",
+  "sections": [
+   "Fitting the Deployment Budget",
+   "Deployment budgets and the running cases"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Identify the three abstraction levels in the chapter's optimization framework from model representation down to hardware implementation\n- Apply capacity and bandwidth reasoning to evaluate when INT4 weight quantization is a strong candidate for edge LLM deployment\n- Distinguish execution optimizations that reduce intermediate traffic from techniques that reduce the dominant stored weight footprint\n- Define the deployment budget and name the three resources it bounds\n- Compare deployment contexts to identify where compression is most directly required for basic model feasibility"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Compression, § Fitting the Deployment Budget",
+   "md": "A trained model arrives with demands on memory capacity, latency, and energy that were set by the server accelerators it trained on, not by the device it must run on. The target device instead enforces a strict **deployment budget**: the memory, time, and energy it grants to each result the model produces."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: three-dimensional optimization stack (representation, precision, architectural); deployment budget and limiting constraints; bandwidth-bound quantization arithmetic on concrete model scales; orthogonal compounding across the optimization hierarchy."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A \\$7-billion-parameter language model in FP16 occupies \\$14 GB of weight memory alone. The target deployment platform is a smartphone with \\$8 GB of shared RAM. Explain how quantizing weights to INT4 addresses both the physical memory capacity ceiling and the memory-bandwidth bottleneck during autoregressive token generation.",
+   "md": "INT4 cuts the raw weight payload from about \\$14\\text{ GB}$ in FP16 to about \\$3.5\\text{ GB}$, which can make the model a candidate for an \\$8\\text{ GB}$ phone where memory is shared with the OS, runtime, KV cache, activations, and metadata. In low-batch autoregressive decoding, latency can be dominated by streaming dense weights, so reducing weight bytes by \\$4\\times$ can reduce that weight traffic by about \\$4\\times$. The practical consequence is that INT4 can relieve both fit and bandwidth pressure, but it does not guarantee full runtime fit or a \\$4\\times$ end-to-end throughput gain because other memory and kernel costs remain."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-10-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "The chapter's optimization framework organizes model compression along three abstraction levels. Which sequence matches the stack from most software-level to most hardware-level?",
+     "explanation": "The correct answer is C. The framework moves from changing the model graph itself, to changing how surviving values are represented, to changing how the resulting graph executes on hardware. An ordering that starts with hardware implementation confuses abstraction level with execution chronology: hardware constraints guide all three levels, but the figure presents a stack, not a compulsory workflow.",
+     "hint": "Think about: identify the three abstraction levels in the chapter's optimization framework from model representation down to hardware implementation",
+     "type": "single",
+     "options": [
+      "Efficient numerics representation → efficient model representation → efficient hardware implementation",
+      "Efficient hardware implementation → efficient model representation → efficient numerics representation",
+      "Efficient model representation → efficient numerics representation → efficient hardware implementation",
+      "Efficient hardware implementation → efficient numerics representation → efficient model representation"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "When a model cannot be deployed because its parameter footprint exceeds the device's physical RAM capacity, operator fusion is an effective direct substitute for pruning or quantization.",
+     "explanation": "False. Fusion primarily reduces intermediate-tensor traffic and launch overhead by keeping adjacent operations on chip. If the dominant problem is the raw weight footprint itself, fusion does not remove enough stored parameter bytes to substitute for pruning or quantization, though some parameter folding patterns such as batch normalization folding can slightly change stored parameters.",
+     "hint": "Think about: distinguish execution optimizations that reduce intermediate traffic from techniques that reduce the dominant stored weight footprint",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A ____ is the memory, time, and energy that a target device grants to each result a model produces, and model compression is the work of bringing a trained model's demands inside it.",
+     "explanation": "deployment budget. Memory capacity bounds the bytes of weights and activations that can stay resident, a frame rate or token rate bounds the milliseconds available for each result, and a battery or thermal envelope bounds the joules each result may consume. A trained model's demands were set by the accelerators it trained on, not by the device it must run on.",
+     "hint": "Think about: define the deployment budget and name the three resources it bounds.",
+     "type": "fill",
+     "answer": [
+      "deployment budget"
+     ]
+    },
+    {
+     "q": "Across the deployment contexts analyzed in the chapter, which platform most clearly makes model compression a feasibility requirement rather than mainly a throughput or cost optimization?",
+     "explanation": "The correct answer is A. TinyML devices can have only hundreds of kilobytes of SRAM plus separate flash or storage limits, so a model may simply not fit unless its weights and working set are reduced enough. Capacity limits also matter on mobile and cloud systems, but the chapter uses microcontrollers to illustrate the clearest hard feasibility boundary. Claims that only cloud has hard limits or that phone memory is effectively unconstrained contradict the section's deployment-budget comparison.",
+     "hint": "Think about: compare deployment contexts to identify where compression is most directly required for basic model feasibility",
+     "type": "single",
+     "options": [
+      "TinyML microcontrollers, where SRAM and storage budgets are so small that some models cannot be placed at all without compression or redesign",
+      "Cloud inference clusters, where only cloud systems face hard capacity limits and all smaller devices can compensate in software",
+      "Autonomous edge servers, where continuous thermal throttling is preferred over changing the model",
+      "Mobile smartphones, where unified memory architecture eliminates meaningful capacity constraints for large neural networks"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A mobile video-conferencing feature requires \\$30\\text{ FPS}$ background segmentation, but baseline FP32 MobileNetV2 runs at only \\$8\\text{ FPS}$. Applying INT8 quantization accelerates the model to \\$35\\text{ FPS}$ with a minor \\$0.4\\%$ drop in mIoU, satisfying the shipping requirement. Which region of the chapter's compression-accuracy Pareto frontier best describes this outcome?",
+     "explanation": "The correct answer is D. Region 2 (a moderate trade) represents the practical operational sweet spot where an engineer trades a small, tolerable accuracy concession for a massive efficiency gain (\\$8\\text{ FPS} \\to 35\\text{ FPS}$) that moves the application across a hard production requirement (\\$30\\text{ FPS}$). Placing it in region 1 (little or no quality loss) overlooks that INT8 rounding introduces real numerical quantization error, while placing it in region 3 (steep quality loss) confuses a successful deployment trade-off with catastrophic accuracy failure.",
+     "hint": "Think about: classify real-world deployment trade-offs into the three characteristic regions of the compression-accuracy Pareto frontier",
+     "type": "single",
+     "options": [
+      "Region 1 (little or no quality loss), because achieving 35 FPS proves that INT8 quantization incurs zero loss in segmentation boundary fidelity",
+      "Region 3 (steep quality loss), because any reduction in numerical precision destabilizes temporal consistency in video processing",
+      "An unfeasible operating point outside the Pareto frontier, because 35 FPS exceeds the maximum display refresh rate",
+      "Region 2 (a moderate trade), because a modest, acceptable drop in segmentation accuracy unlocks a 4.4× frame rate increase that satisfies the 30 FPS real-time shipping threshold"
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now identify the three abstraction levels in the chapter's optimization framework from model representation down to hardware implementation.",
+    "You can now apply capacity and bandwidth reasoning to evaluate when INT4 weight quantization is a strong candidate for edge LLM deployment.",
+    "You can now distinguish execution optimizations that reduce intermediate traffic from techniques that reduce the dominant stored weight footprint.",
+    "You can now define the deployment budget and name the three resources it bounds."
+   ]
+  }
+ ]
+}

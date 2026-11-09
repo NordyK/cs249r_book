@@ -1,0 +1,95 @@
+{
+ "title": "Benchmark Suites",
+ "summary": "Analyze why the transition from synthetic microbenchmarks to representative application suites was necessary to prevent compiler gaming.",
+ "source": {
+  "chapter": "v1-12",
+  "sections": [
+   "Benchmark Suites",
+   "From Whetstone to MLPerf",
+   "ML measurement challenges",
+   "System benchmarks",
+   "Community-driven standardization"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze why the transition from synthetic microbenchmarks to representative application suites was necessary to prevent compiler gaming\n- Compare the primary constraints and evaluation metrics across the MLPerf Training, Inference, Tiny, and Power variants\n- Evaluate how energy-efficiency benchmarks (SPECpower, Green500) integrated with existing performance rankings rather than replacing them\n- Explain why benchmark protocols use repeated runs and workload-appropriate warmup or cold-start measurement to characterize performance uncertainty\n- Compare how the MLPerf Closed and Open divisions trade off comparability against freedom to modify the model and execution stack"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Benchmarking, § Benchmark Suites",
+   "md": "Without that shared measurement protocol, a team evaluating five candidate system-on-chip (SoC) designs for the camera trap's next board faces incompatible claims. Vendor A reports 8 TOPS (trillion operations per second) at INT8; Vendor B reports 15 TOPS at INT4; Vendor C reports inference latency on a proprietary model; Vendor D cites MLPerf scores from two generations ago; Vendor E provides only peak throughput at maximum batch size. None of these figures can be directly compared because each vendor isolates a favorable metric under idiosyncratic conditions, obscuring true operating trade-offs."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- From Whetstone to MLPerf\n- ML measurement challenges\n- System benchmarks\n- Community-driven standardization\n\nPay attention to: Fallacy of peak performance; Roofline model and arithmetic intensity; Measurement challenges: CUDA launch overhead, non-determinism, temperature; MLPerf Closed vs Open divisions."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why a single benchmark run is insufficient to characterize ML system performance, identifying at least two distinct hardware or runtime sources of execution variance.",
+   "md": "A single run can reflect transient conditions rather than typical behavior. For example, boost clocks may inflate early throughput before steady-state thermal throttling appears, and runtime effects such as lazy memory allocation, background OS scheduling, or asynchronous launch timing can perturb results. For steady-state claims, benchmarks should include warmup and repeated runs that characterize variability with summary statistics or confidence intervals; if cold start is part of the claim, measure it separately instead of warming it away."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-12-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why did computing benchmark methodology historically transition away from synthetic instruction-mix microbenchmarks (such as Whetstone and Dhrystone) to representative application suites (such as SPEC CPU)?",
+     "explanation": "The correct answer is C. Synthetic benchmarks contained artificial, repetitive loops that optimizing compilers could easily recognize, unroll, or eliminate, inflating scores without providing real-world application speedups. SPEC CPU solved this by using complete, realistic application programs (like compilers, ray tracers, and fluid dynamics simulations) that exercised complex instruction flows, cache hierarchies, and memory subsystems. Memory bandwidth requirements were not the primary historical driver; representative application suites are substantially more complex to standardize and compile; hardware vendors actively published synthetic results until their lack of correlation with real software forced an industry transition.",
+     "hint": "Think about: analyze why the transition from synthetic microbenchmarks to representative application suites was necessary to prevent compiler gaming.",
+     "type": "single",
+     "options": [
+      "Synthetic microbenchmarks required too much memory bandwidth to execute on modern microprocessors",
+      "Representative application suites were easier to implement and did not require source code compilation",
+      "Synthetic benchmarks lacked realistic memory access patterns and branch behavior, allowing optimizing compilers to artificially game scores via dead-code elimination and loop unrolling",
+      "Hardware vendors refused to publish floating-point operations per second for synthetic loops"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "How do the constraints and primary evaluation metrics differ across the domain-specific variants of the MLPerf benchmark suite?",
+     "explanation": "The correct answer is D. MLPerf splits into variants because different deployment regimes have different constraints. Training centers on time-to-quality, not just raw device speed. Inference measures latency and throughput under named serving scenarios. Tiny targets embedded memory and energy limits on microcontrollers, and Power adds a cross-cutting efficiency measurement with an explicit system boundary. The other choices either collapse the suites into one metric or swap their purposes.",
+     "hint": "Think about: compare the primary constraints and evaluation metrics across the MLPerf Training, Inference, Tiny, and Power variants.",
+     "type": "single",
+     "options": [
+      "All MLPerf variants evaluate identical metrics (pure TFLOPS) across different hardware form factors",
+      "MLPerf Training focuses on latency SLAs, while MLPerf Inference evaluates multi-node interconnect bandwidth",
+      "MLPerf Tiny measures data center power consumption, while MLPerf Power evaluates floating-point peak throughput",
+      "MLPerf Training targets time-to-quality on fixed workloads, MLPerf Inference evaluates scenario-defined latency and throughput across server and edge settings, MLPerf Tiny targets embedded memory, latency, and energy constraints on microcontrollers, and MLPerf Power measures useful throughput per watt or useful work per joule within a stated measurement boundary"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "The introduction of energy-efficiency benchmarks like SPECpower and Green500 replaced raw throughput benchmarks, because computing systems are now evaluated solely on Joules per operation.",
+     "explanation": "False. Energy-efficiency benchmarks were established to complement raw performance rankings, not replace them. Modern evaluation frameworks employ multi-objective evaluation where performance (throughput/latency) and efficiency (performance-per-watt) are reported together, allowing practitioners to analyze trade-offs along an efficiency-performance Pareto frontier rather than collapsing evaluation to a single metric.",
+     "hint": "Think about: evaluate how energy-efficiency benchmarks (SPECpower, Green500) integrated with existing performance rankings rather than replacing them.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Compare the primary objectives and constraints of the MLPerf Closed Division versus the Open Division.",
+   "md": "The Closed Division is meant for more comparable system-level evaluation: submitters must preserve the reference task, model equivalence requirements, and quality targets, while only making changes allowed by that benchmark's rules, such as specified numerical formats, quantization paths, and implementation optimizations. The Open Division allows broader algorithmic and model changes, provided they are documented and reported with the achieved quality and performance. The practical consequence is that Closed results are better for like-for-like platform comparison, while Open results show what broader co-design can achieve."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain how community-driven benchmarking consortia discourage vendor gaming, help detect it, and establish commensurable evidence for hardware procurement.",
+   "md": "Community-driven consortia such as MLCommons reduce gaming by publishing reference code, run rules, and audit procedures that discourage undisclosed shortcuts and make suspicious results easier to detect. They also require common workload definitions, measurement boundaries, and reporting formats, so performance claims become more commensurable than vendor marketing numbers alone. The practical consequence is better procurement evidence, although benchmarks still need human interpretation to judge transfer to the target deployment."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze why the transition from synthetic microbenchmarks to representative application suites was necessary to prevent compiler gaming.",
+    "You can now compare the primary constraints and evaluation metrics across the MLPerf Training, Inference, Tiny, and Power variants.",
+    "You can now evaluate how energy-efficiency benchmarks (SPECpower, Green500) integrated with existing performance rankings rather than replacing them.",
+    "You can now explain why benchmark protocols use repeated runs and workload-appropriate warmup or cold-start measurement to characterize performance uncertainty."
+   ]
+  }
+ ]
+}

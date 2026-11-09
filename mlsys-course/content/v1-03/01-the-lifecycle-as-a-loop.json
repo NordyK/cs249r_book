@@ -1,0 +1,69 @@
+{
+ "title": "The Lifecycle as a Loop",
+ "summary": "Classify post-deployment engineering practices against the chapter's closed-loop lifecycle definition.",
+ "source": {
+  "chapter": "v1-03",
+  "sections": [
+   "The Lifecycle as a Loop",
+   "ML vs. traditional software",
+   "The running case: Diabetic retinopathy screening"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Classify post-deployment engineering practices against the chapter's closed-loop lifecycle definition\n- Explain how late discovery of deployment constraints invalidates isolated model development and forces backward propagation of physical limits\n- Compare how ML systems and traditional software differ in their sensitivity to changes in deployment data over time"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Lifecycle, § The Lifecycle as a Loop",
+   "md": "A model that runs comfortably on a cloud accelerator can be unusable on the low-power device in a rural clinic, and a later section showed that such a change of deployment target can alter the engineering of the same model by orders of magnitude. The deployment target is only one decision in a longer chain."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- ML vs. traditional software\n- The running case: Diabetic retinopathy screening\n\nPay attention to: ML lifecycle as a closed-loop engineering discipline; Breakdown of traditional software assumptions under ML workloads."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In the running case's day-153 failure scenario, a team spends five months developing a diagnostic model that reaches 94 percent sensitivity, only to have the entire project discarded on day 153. Explain the root cause of this failure from a workflow perspective and state the systems engineering rule that would have prevented it.",
+   "md": "The failure was a workflow breakdown caused by optimizing model accuracy in isolation while ignoring downstream physical constraints. The team discovered only after development that the clinic edge device, whose memory is shared with the operating system and camera pipeline, left the model a budget of about 500 MB, whereas the model required 4 GB. The systems engineering rule that prevents this is backward constraint propagation: physical deployment limits (memory, latency, power budgets) must be established at Problem Definition on day one and propagate backward to constrain feasible model architectures before development begins."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-03-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Team A ships a diabetic retinopathy (DR) screening model and freezes all development once the model clears validation in the lab, treating subsequent tasks as standard server operations. Team B treats the launch as the beginning of an ongoing feedback loop, monitoring operational telemetry and data distributions to guide investigation and evidence-based model updates. Which team's posture aligns with the ML lifecycle as defined in this chapter, and why?",
+     "explanation": "The correct answer is A. The chapter defines the ML lifecycle as an iterative, closed-loop engineering process where deployment is the start of the feedback loop rather than its conclusion. Production inputs, patient demographics, and equipment can shift even when code remains untouched, requiring continuous monitoring and evidence-based updates. The view that offline validation permanently freezes statistical behavior ignores real-world distribution drift. The claim that updates should be avoided due to regulatory risk misinterprets compliance frameworks, which mandate lifecycle management and change control. Furthermore, the lifecycle prescribes evidence-driven investigation and retraining when justified, not unconditional automatic daily retraining.",
+     "hint": "Think about: classify post-deployment engineering practices against the chapter's closed-loop lifecycle definition.",
+     "type": "single",
+     "options": [
+      "A. Team B, because the ML lifecycle is a closed loop where operational feedback, distribution drift, and real-world performance continuously reshape upstream data and model decisions.",
+      "B. Team A, because once a model meets its offline validation thresholds, its statistical properties remain fixed and require only standard infrastructure maintenance.",
+      "C. Team A, because changing a validated model in production introduces regulatory risk that outweighs the benefits of adapting to data drift.",
+      "D. Team B, because the ML lifecycle mandates automatic daily retraining of production models regardless of whether input distributions have drifted."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Traditional software workflows and ML lifecycles differ fundamentally because ML system behavior can degrade through data distribution drift over time even when application source code, execution environment, and hardware configuration remain completely untouched.",
+     "explanation": "True. Keeping code, environment, and hardware fixed does not guarantee correctness in either kind of system: conventional software can still fail because of bad inputs, external state, or changing dependencies outside that narrow boundary. The ML-specific risk is different: a deployed model learns a statistical relationship from training data, so shifts in real-world inputs can degrade accuracy even when those artifacts remain unchanged.",
+     "hint": "Think about: compare how ML systems and traditional software differ in their sensitivity to changes in deployment data over time.",
+     "type": "truefalse",
+     "answer": true
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify post-deployment engineering practices against the chapter's closed-loop lifecycle definition.",
+    "You can now explain how late discovery of deployment constraints invalidates isolated model development and forces backward propagation of physical limits.",
+    "You can now compare how ML systems and traditional software differ in their sensitivity to changes in deployment data over time."
+   ]
+  }
+ ]
+}

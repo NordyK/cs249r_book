@@ -1,0 +1,153 @@
+{
+ "title": "Implementation: Sparsity Measurement",
+ "summary": "TinyTorch compression: Implementation: Sparsity Measurement",
+ "source": {
+  "chapter": "tt-16",
+  "sections": [
+   "Implementation: Sparsity Measurement"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Sparsity Measurement\n\nSparsity quantifies the proportion of non-contributing (zero-valued) parameters within a network graph:\n\n\\$\\$\\text{Sparsity} = \\frac{N_{\\text{zeros}}}{N_{\\text{total}}} = \\frac{\\sum_{p \\in \\Theta} \\sum_{i} \\mathbf{1}(p_i = 0)}{\\sum_{p \\in \\Theta} \\text{size}(p)}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Matrix State",
+    "Active Non-Zero Elements",
+    "Memory Footprint (FP32)",
+    "Hardware Execution Behavior"
+   ],
+   "rows": [
+    [
+     "**Dense Matrix (\\$0\\%\\$ Sparsity)**",
+     "\\$M \\times N\\$ (\\$100\\%\\$ active)",
+     "\\$M \\times N \\times 4\\$ bytes",
+     "Peak memory bandwidth and dense GEMM throughput"
+    ],
+    [
+     "**Unstructured Sparse (\\$75\\%\\$ Sparsity)**",
+     "\\$0.25 \\times M \\times N\\$ active",
+     "\\$M \\times N \\times 4\\$ bytes (Dense) / \\$0.5 \\times M \\times N \\times 4\\$ bytes (COO)",
+     "No dense speedup without sparse library; memory access divergence"
+    ],
+    [
+     "**Structured Sparse (\\$50\\%\\$ Channels Zeroed)**",
+     "\\$0.50 \\times M \\times N\\$ active",
+     "\\$0.5 \\times M \\times N \\times 4\\$ bytes (after reshape)",
+     "Immediate \\$2\\times\\$ reduction in dense GEMM FLOPs and latency"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def measure_sparsity(model) -> float:\n    \"\"\"\n    Calculate the percentage of zero weights in a model.\n\n    TODO: Count zero weights and total weights across all layers\n\n    APPROACH:\n    1. Iterate through all model parameters\n    2. Count zeros using np.sum(weights == 0)\n    3. Count total parameters\n    4. Return percentage: zeros / total * 100\n\n    Args:\n        model: Model with .parameters() method\n\n    Returns:\n        Sparsity percentage (0.0-100.0)\n\n    EXAMPLE:\n    >>> # Create test model with explicit composition\n    >>> layer1 = Linear(10, 5)\n    >>> layer2 = Linear(5, 2)\n    >>> model = Sequential(layer1, layer2)\n    >>> sparsity = measure_sparsity(model)\n    >>> print(f\"Model sparsity: {sparsity:.1f}%\")\n    Model sparsity: 0.0%  # Before pruning\n\n    HINT: Use np.sum() to count zeros efficiently\n    \"\"\"\n    total_params = 0\n    zero_params = 0\n\n    for param in model.parameters():\n        # Only count weight matrices (2D), not biases (1D)\n        # Biases are often initialized to zero, which would skew sparsity\n        if len(param.shape) > 1:\n            total_params += param.size\n            zero_params += np.sum(param.data == 0)\n\n    if total_params == 0:\n        return 0.0\n\n    return (zero_params / total_params) * 100.0"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Sparsity Measurement\n\nThis test validates our sparsity measurement function works correctly.\n\n**What we're testing**: Zero weight counting and percentage calculation\n**Why it matters**: Accurate sparsity measurement is essential for compression evaluation\n**Expected**: Correct sparsity percentages for dense and sparse models"
+  },
+  {
+   "type": "text",
+   "md": "## 🏗️ Magnitude-Based Pruning: Ranking Every Weight Globally\n\nMagnitude pruning is the foundational weight-level compression technique. It operates on the hypothesis that weights with near-zero absolute values contribute minimally to downstream activation norms and gradient flow.\n\n### How Magnitude Pruning Works\n\nIn an unstructured setting, pruning computes an empirical magnitude threshold across tensor weights and masks values below it:\n\n\\$\\$\\tau = \\text{Quantile}\\left(\\{|W_{i, j}|\\}, \\, S\\right), \\quad \\Omega_{i, j} = \\mathbf{1}(|W_{i, j}| \\ge \\tau), \\quad W_{\\text{pruned}} = W \\odot \\Omega\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Pipeline Step",
+    "Operational Description",
+    "Concrete Example Values",
+    "State Transformation"
+   ],
+   "rows": [
+    [
+     "**1. Collect Weights**",
+     "Flatten all layer parameter tensors into a single array",
+     "\\$L_1: [2.1, 0.08, -1.8, 0.04, 3.2, \\dots]\\$, \\$L_2: [0.7, 2.4, -0.05, \\dots]\\$",
+     "20 FP32 parameters"
+    ],
+    [
+     "**2. Rank Magnitudes**",
+     "Compute absolute values \\$\\lvert W \\rvert\\$ and sort stably",
+     "\\$[0.01, 0.02, 0.03, 0.04, 0.05, \\dots, 2.4, 2.8, 3.2]\\$",
+     "Ranked magnitude list"
+    ],
+    [
+     "**3. Compute Threshold**",
+     "Find quantile cutoff corresponding to target sparsity \\$S\\$",
+     "For \\$S = 50\\%\\$, median value between 10th and 11th rank",
+     "Threshold \\$\\tau \\approx 0.40\\$"
+    ],
+    [
+     "**4. Apply Binary Mask**",
+     "Zero out elements where \\$\\lvert W_{i, j} \\rvert < \\tau\\$ in-place",
+     "\\$L_1: [2.1, 0.0, -1.8, 0.0, 3.2, \\dots]\\$, \\$L_2: [0.7, 2.4, 0.0, \\dots]\\$",
+     "\\$50\\%\\$ sparse weight matrix"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Memory Impact: Dense vs. Coordinate Sparse (COO) Formats"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Format",
+    "Storage Schema",
+    "Footprint at \\$0\\%\\$ Sparsity",
+    "Footprint at \\$50\\%\\$ Sparsity",
+    "Footprint at \\$90\\%\\$ Sparsity",
+    "Hardware Speedup"
+   ],
+   "rows": [
+    [
+     "**Dense Tensor**",
+     "Flat buffer \\$N \\times 4\\text{ B}\\$",
+     "\\$20 \\times 4 = 80\\text{ B}\\$",
+     "\\$20 \\times 4 = 80\\text{ B}\\$ (\\$0\\times\\$ saving)",
+     "\\$20 \\times 4 = 80\\text{ B}\\$ (\\$0\\times\\$ saving)",
+     "Baseline (\\$1.0\\times\\$)"
+    ],
+    [
+     "**Coordinate (COO)**",
+     "\\$(\\text{val}, \\text{idx}) \\to 4\\text{ B} + 4\\text{ B}\\$",
+     "\\$20 \\times 8 = 160\\text{ B}\\$ (\\$2\\times\\$ overhead)",
+     "\\$10 \\times 8 = 80\\text{ B}\\$ (\\$0\\times\\$ saving)",
+     "\\$2 \\times 8 = 16\\text{ B}\\$ (\\$80\\%\\$ saving)",
+     "Requires sparse BLAS; slower than dense below \\$85\\%\\$"
+    ],
+    [
+     "**Compressed Row (CSR)**",
+     "\\$\\text{val}[4\\text{B}] + \\text{col}[2\\text{B}] + \\text{ptr}\\$",
+     "\\$20 \\times 6 + 12 = 132\\text{ B}\\$",
+     "\\$10 \\times 6 + 12 = 72\\text{ B}\\$ (\\$10\\%\\$ saving)",
+     "\\$2 \\times 6 + 12 = 24\\text{ B}\\$ (\\$70\\%\\$ saving)",
+     "Speedup only at \\$\\ge 85\\%\\$ sparsity"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Global vs. Layer-Wise Pruning\n\nGlobal thresholding treats all parameters across the entire network as a unified distribution, selecting a single threshold \\$\\tau\\$ for the whole model:\n\n- **Preserved Network Capacity**: Layers with higher dynamic range and larger gradient impact automatically retain more parameters.\n- **Layer-Sensitivity Awareness**: Automatically allocates higher sparsity to redundant layers (e.g. wide intermediate feed-forward projections) while protecting sensitive bottleneck layers.\n- **Boundary Risk**: Extremely deep architectures can experience layer collapse if an entire layer's weights fall below \\$\\tau\\$; layer-wise guardrails or minimum density constraints are applied in production pipelines."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def magnitude_prune(model, sparsity: float = 0.9):\n    \"\"\"\n    Remove weights with smallest magnitudes to achieve target sparsity.\n\n    TODO: Implement global magnitude-based pruning\n\n    APPROACH:\n    1. Collect all weights from the model\n    2. Calculate absolute values to get magnitudes\n    3. Rank magnitudes and select floor(sparsity * weight_count) entries\n    4. Zero those entries in-place; stable ordering breaks magnitude ties\n\n    EXAMPLE:\n    >>> # Create model with explicit layer composition\n    >>> layer1 = Linear(100, 50)\n    >>> layer2 = Linear(50, 10)\n    >>> model = Sequential(layer1, layer2)\n    >>> original_params = sum(p.size for p in model.parameters())\n    >>> magnitude_prune(model, sparsity=0.8)\n    >>> final_sparsity = measure_sparsity(model)\n    >>> print(f\"Achieved {final_sparsity:.1f}% sparsity\")\n    Achieved 80.0% sparsity\n\n    HINTS:\n    - Use np.argsort(..., kind=\"stable\") to rank even equal magnitudes\n    - Modify model parameters in-place\n    - Consider only weight matrices, not biases\n    \"\"\"\n    if not np.isfinite(sparsity) or not 0 <= sparsity <= 1:\n        raise ValueError(\"sparsity must be between 0 and 1\")\n    weight_params = [p for p in model.parameters() if p.ndim > 1]\n    if not weight_params:\n        return model\n\n    # Rank globally, including existing zeros. Selecting by index also handles\n    # tied magnitudes and the endpoints 0% and 100% exactly.\n    magnitudes = np.concatenate([np.abs(p.data).ravel() for p in weight_params])\n    prune_count = int(sparsity * magnitudes.size)\n    prune_mask = np.zeros(magnitudes.size, dtype=bool)\n    prune_mask[np.argsort(magnitudes, kind=\"stable\")[:prune_count]] = True\n    offset = 0\n    for param in weight_params:\n        mask = prune_mask[offset:offset + param.size].reshape(param.shape)\n        param.data[mask] = 0\n        offset += param.size\n    return model"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Magnitude Pruning\n\nThis test validates magnitude-based pruning works correctly with threshold selection.\n\n**What we're testing**: Weight removal based on magnitude threshold\n**Why it matters**: Core technique for creating sparse neural networks\n**Expected**: Achieves target sparsity with smallest weights removed"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Implementation: Sparsity Measurement."
+   ]
+  }
+ ]
+}

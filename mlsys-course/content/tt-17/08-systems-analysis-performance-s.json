@@ -1,0 +1,119 @@
+{
+ "title": "Systems Analysis: Performance Scaling Patterns",
+ "summary": "TinyTorch acceleration: Systems Analysis: Performance Scaling Patterns",
+ "source": {
+  "chapter": "tt-17",
+  "sections": [
+   "Systems Analysis: Performance Scaling Patterns",
+   "Module Integration Test"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Performance Scaling Patterns\n\nLet's analyze how our acceleration techniques perform across different scenarios and understand their scaling characteristics."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_vectorization_scaling():\n    \"\"\"📊 Analyze vectorization performance across different tensor sizes.\"\"\"\n    print(\"📊 Analyzing vectorization scaling behavior...\")\n    print(\"AI and GB/s use idealized byte counts, not measured memory traffic.\")\n\n    # Test sizes spanning different cache regimes\n    sizes = [64, 128, 256, 512, 1024, 2048]\n\n    print(\"\\n🔍 Vectorization Scaling Analysis:\")\n    print(\"┌─────────┬─────────────┬─────────────┬─────────────┬─────────────┐\")\n    print(\"│  Size   │ Time (ms)   │ GFLOPS      │ Bandwidth   │ Arith. Int. │\")\n    print(\"│         │             │             │ (GB/s)      │ (FLOP/byte) │\")\n    print(\"├─────────┼─────────────┼─────────────┼─────────────┼─────────────┤\")\n\n    for size in sizes:\n        # Create test matrices\n        a = Tensor(rng.standard_normal((size, size)).astype(np.float32))\n        b = Tensor(rng.standard_normal((size, size)).astype(np.float32))\n\n        # Warm up\n        for _ in range(2):\n            _ = vectorized_matmul(a, b)\n\n        # Time vectorized implementation\n        iterations = max(1, 100 // (size // 64))  # Fewer iterations for larger sizes\n        start = time.perf_counter()\n        for _ in range(iterations):\n            result = vectorized_matmul(a, b)\n        elapsed = (time.perf_counter() - start) / iterations\n\n        # Calculate performance metrics\n        flops = 2 * size**3  # 2N³ FLOPs for matrix multiplication\n        gflops = flops / (elapsed * 1e9)\n\n        bytes_accessed = 3 * size * size * 4  # 3 matrices × size² × 4 bytes\n        bandwidth = bytes_accessed / (elapsed * 1e9)\n\n        # Arithmetic intensity grows with N (2N³ FLOPs over 12N² bytes = N/6):\n        # bigger matmuls do more work per byte moved, so they become compute-bound\n        intensity = flops / bytes_accessed\n\n        print(f\"│ {size:6d}  │ {elapsed*1000:9.2f}   │ {gflops:9.1f}   │ {bandwidth:9.1f}   │ {intensity:9.1f}   │\")\n\n    print(\"└─────────┴─────────────┴─────────────┴─────────────┴─────────────┘\")\n\n    print(f\"\\n💡 Vectorization insights:\")\n    print(f\"   • Small matrices: Limited by overhead and cache effects\")\n    print(f\"   • Medium matrices: Sweet spot for cache reuse\")\n    print(f\"   • Large matrices: Cache reuse and compute throughput both matter\")\n    print(f\"   • BLAS libraries automatically optimize for each size regime\")\n    print(\"🚀 Vectorization effectiveness depends on problem size and hardware\")\n\nif __name__ == \"__main__\":\n    analyze_vectorization_scaling()"
+  },
+  {
+   "type": "text",
+   "md": "### Does Our Tiling Actually Help?\n\nThe L1 residency derivation earlier in this module said three `t × t` float32\nblocks fit a 32 KB L1 when `t ≤ 52`, which points at `t = 32`, and `tiled_matmul`\nnonetheless defaults to 64.\nRather than trust either number, sweep the tile size against one `np.matmul`\ncall on the same matrices and read the answer off the table."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_tiling_effectiveness():\n    \"\"\"📊 Sweep tile size for tiled_matmul and compare against one BLAS call.\"\"\"\n    print(\"📊 Analyzing tile size against a single BLAS call...\")\n\n    sizes = [256, 512, 1024]\n    tile_sizes = [32, 64, 128, 256]\n\n    print(\"\\n🔍 tiled_matmul vs np.matmul (time, and slowdown versus BLAS):\")\n    cell = \"─\" * 18\n    print(\"┌───────┬───────────┬\" + \"┬\".join(cell for _ in tile_sizes) + \"┐\")\n    print(\"│   N   │ BLAS (ms) │\" + \"│\".join(f\"{f'tile={t} (ms)':^18}\" for t in tile_sizes) + \"│\")\n    print(\"├───────┼───────────┼\" + \"┼\".join(cell for _ in tile_sizes) + \"┤\")\n\n    for size in sizes:\n        a = Tensor(rng.standard_normal((size, size)).astype(np.float32))\n        b = Tensor(rng.standard_normal((size, size)).astype(np.float32))\n\n        for _ in range(DEFAULT_WARMUP_ITERATIONS):\n            _ = vectorized_matmul(a, b)\n        start = time.perf_counter()\n        for _ in range(DEFAULT_TIMING_ITERATIONS):\n            _ = vectorized_matmul(a, b)\n        blas_time = (time.perf_counter() - start) / DEFAULT_TIMING_ITERATIONS\n\n        cells = []\n        for tile in tile_sizes:\n            _ = tiled_matmul(a, b, tile_size=tile)  # warmup\n            start = time.perf_counter()\n            tiled = tiled_matmul(a, b, tile_size=tile)\n            tile_time = time.perf_counter() - start\n            assert np.allclose(tiled.data, (ref := vectorized_matmul(a, b).data), rtol=1e-5, atol=1e-5 * np.abs(ref).max()), \\\n                f\"Tiled result diverged at tile_size={tile}\"\n            cells.append(f\" {tile_time*1000:8.2f} ({tile_time/blas_time:5.1f}×)\")\n\n        print(f\"│ {size:5d} │ {blas_time*1000:9.3f} │\" + \"│\".join(cells) + \"│\")\n\n    print(\"└───────┴───────────┴\" + \"┴\".join(cell for _ in tile_sizes) + \"┘\")\n\n    print(\"\\n💡 What the sweep shows (the parenthesized factor is slowdown vs BLAS):\")\n    print(\"   • Every tile size loses to one np.matmul call, by a few times at best\")\n    print(\"     and by well over an order of magnitude at the small tile sizes.\")\n    print(\"     OpenBLAS already blocks for L1 and L2, in assembly, and our tile\")\n    print(\"     loop pays Python overhead on top of that\")\n    print(\"   • Time falls as the tile GROWS, the opposite of what the 32 KB L1\")\n    print(\"     derivation predicts, because fewer, larger block products mean\")\n    print(\"     fewer Python iterations and more work per BLAS call\")\n    print(\"   • So t ≤ 52 answers the wrong question for this implementation. The\")\n    print(\"     binding constraint is interpreter overhead, not L1 capacity, which\")\n    print(\"     is also why the function defaults to 64 rather than to 32\")\n    print(\"🚀 Tiling is how a GEMM kernel is built, not how you beat one from Python\")\n\nif __name__ == \"__main__\":\n    analyze_tiling_effectiveness()"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 93 lines of code (starting with `def analyze_arithmetic_intensity():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Memory Efficiency Analysis\n\nUnderstanding memory allocation patterns is crucial for performance.\nLet's measure how different implementations use memory."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_memory_efficiency():\n    \"\"\"📊 Analyze memory allocation patterns for different operations.\"\"\"\n    print(\"📊 Analyzing memory efficiency patterns...\")\n\n    import tracemalloc\n\n    sizes = [100, 500, 1000]\n\n    print(\"\\n🔍 Memory Allocation Analysis:\")\n    print(\"┌─────────┬──────────────┬──────────────┬──────────────┐\")\n    print(\"│  Size   │ Vectorized   │ Unfused GELU │ Fused GELU   │\")\n    print(\"│         │ Matmul (MB)  │ (MB)         │ (MB)         │\")\n    print(\"├─────────┼──────────────┼──────────────┼──────────────┤\")\n\n    for size in sizes:\n        x = Tensor(rng.standard_normal((size, size)).astype(np.float32))\n        y = Tensor(rng.standard_normal((size, size)).astype(np.float32))\n\n        # Measure vectorized matmul\n        tracemalloc.start()\n        _ = vectorized_matmul(x, y)\n        _, matmul_peak = tracemalloc.get_traced_memory()\n        tracemalloc.stop()\n\n        # Measure unfused GELU\n        tracemalloc.start()\n        _ = unfused_gelu(x)\n        _, unfused_peak = tracemalloc.get_traced_memory()\n        tracemalloc.stop()\n\n        # Measure fused GELU\n        tracemalloc.start()\n        _ = fused_gelu(x)\n        _, fused_peak = tracemalloc.get_traced_memory()\n        tracemalloc.stop()\n\n        print(f\"│ {size:6d}  │ {matmul_peak/1e6:10.2f}   │ {unfused_peak/1e6:10.2f}   │ {fused_peak/1e6:10.2f}   │\")\n\n    print(\"└─────────┴──────────────┴──────────────┴──────────────┘\")\n\n    print(\"\\n💡 Key insights:\")\n    print(\"   • Inputs were allocated before tracing and are excluded from these peaks\")\n    print(\"   • Unfused GELU retains intermediate Tensor copies\")\n    print(\"   • Compact GELU still allocates NumPy temporaries\")\n    print(\"   • Allocation peaks are not memory bandwidth measurements\")\n    print(\"🚀 Memory efficiency critical for large batch sizes and limited GPU memory\")\n\nif __name__ == \"__main__\":\n    analyze_memory_efficiency()"
+  },
+  {
+   "type": "text",
+   "md": "### Convolution Lowering Analysis\n\nim2col makes two claims: the matrix multiply is much faster than Module 09's\nloops, and the patch matrix costs about `k × k` times the input's memory. Measure\nboth on layers shaped like the CNN milestones, kept small enough that the loop\nversion finishes in a few seconds, first for the forward pass alone and then for\na full training step through `Im2colConv2dFunction`."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 94 lines of code (starting with `def analyze_im2col_tradeoff():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Optimization Insights: Production Acceleration Strategy\n\nThe measurements above cover what this module built. Choosing between techniques\non a real project is a judgment call rather than a measurement, so it belongs in\nprose, and the table below is engineering opinion, not output."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Workload",
+    "Vectorize",
+    "Fuse kernels",
+    "Graph optimization"
+   ],
+   "rows": [
+    [
+     "**Research training**",
+     "✅ Always",
+     "⚡ If activations dominate memory",
+     "❌ Compile times cost more than they save"
+    ],
+    [
+     "**Production training**",
+     "✅ Always",
+     "✅ Memory pressure is the binding constraint",
+     "⚡ Worth it once the model stops changing"
+    ],
+    [
+     "**Real-time inference**",
+     "✅ Always",
+     "✅ Removes per-layer launch and traffic overhead",
+     "✅ Latency is the product"
+    ],
+    [
+     "**Edge deployment**",
+     "✅ Always",
+     "✅ Smaller peak memory on a shared bus",
+     "❌ Too tied to one target's silicon"
+    ],
+    [
+     "**Batch inference**",
+     "✅ Always",
+     "⚡ Throughput hides some latency",
+     "⚡ Only for a stable, high-volume model"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Two things that table does not capture. First, kernel fusion means a *compiled*\nfused kernel; rewriting a NumPy expression more compactly, as this module's 📊\nmeasurement shows, buys allocation peak and not time. Second, \"graph\noptimization\" is the one row whose value swings hardest on hardware, which is\nexactly why it is the wrong first move on a device you do not control.\n\n### Implementation Priority Framework\n\n- **Phase 1, always: vectorization.** Low risk, large reward, works on any\n  hardware, and the foundation every later optimization assumes.\n- **Phase 2, when memory constrained: kernel fusion.** Targets memory-bound\n  element-wise chains. Moderate complexity, and the wins are real once a compiler\n  is doing the fusing.\n- **Phase 3, at scale: mixed precision and batching.** Essential for large model\n  training, needs careful numerical validation, and the benefit depends on whether\n  the hardware has a faster roof at the lower precision.\n- **Phase 4, in production: graph optimization.** Maximum performance extraction,\n  highest implementation cost, tuned per deployment target."
+  },
+  {
+   "type": "text",
+   "md": "The ordering is the point. Start simple, add complexity only when a measurement\nsays the simple thing has run out, and profile before and after every step."
+  },
+  {
+   "type": "text",
+   "md": "## 🧪 Module Integration Test\n\nFinal validation that all acceleration components work together correctly."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Systems Analysis: Performance Scaling Patterns, Module Integration Test."
+   ]
+  }
+ ]
+}

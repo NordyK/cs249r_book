@@ -1,0 +1,76 @@
+{
+ "title": "Choosing an Accelerator",
+ "summary": "Match each lighthouse workload to the accelerator resource it exhausts first.",
+ "source": {
+  "chapter": "v1-11",
+  "sections": [
+   "Choosing an Accelerator",
+   "Processor configurations across deployment targets",
+   "Cost-performance analysis",
+   "Energy per request"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Match each lighthouse workload to the accelerator resource it exhausts first\n- Compare embodied carbon and operational carbon in AI hardware lifecycle analysis\n- Explain how higher useful utilization can lower embodied carbon per result without guaranteeing lower total emissions"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Hardware Acceleration, § Choosing an Accelerator",
+   "md": "Every section of this chapter ends in the same question asked at a different level: which machine should run a given workload. The question cannot be answered from a datasheet, because the limiting resource belongs to the workload on a particular machine rather than to the machine alone. The book's five lighthouses make the point on a single reference machine. Their bytes and operations differ by orders of magnitude, and each one exhausts a different resource of an H100 first (a later section)."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Processor configurations across deployment targets\n- Cost-performance analysis\n- Energy per request\n\nPay attention to: Embodied carbon vs operational carbon in semiconductor manufacturing; Performance per watt (TFLOPs/W, TOPS/W) as a sustainability metric; Datacenter Power Usage Effectiveness (PUE) and cooling efficiency; Hardware utilization and amortizing manufacturing emissions."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why maximizing useful accelerator utilization can reduce the amortized carbon footprint per completed AI workload, while not automatically reducing total carbon emissions.",
+   "md": "When a device spends more of its lifetime doing useful completed work, the embodied impact of manufacturing that hardware is spread across more results, so the allocated embodied carbon per trained model or served workload can fall. For example, if the same accelerator fleet completes more validated training runs or inferences over its service life, each result carries a smaller share of the hardware's fixed manufacturing burden. The practical implication is that higher useful utilization can improve carbon efficiency per result, but it does not automatically lower total emissions because total power draw, workload quality, and the amount of work done can all rise at the same time."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-11-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "On a single H100, which pairing of lighthouse workload and the resource it exhausts first matches the chapter's lighthouse memory-and-compute comparison?",
+     "explanation": "The correct answer is B. Batched ResNet-50 reuses each weight across many images and positions, so arithmetic throughput sets the limit once weights are amortized. Batch-one GPT-2 XL decode rereads every weight for each generated token at about one operation per byte, so HBM bandwidth is the bottleneck. DLRM's embedding tables exceed one device's memory, so capacity runs out before either arithmetic or bandwidth. The other options assign each lighthouse a resource it does not exhaust first, and the last ignores that the limiting resource belongs to the workload on the machine rather than to the machine alone.",
+     "hint": "Think about: match each lighthouse workload to the accelerator resource it exhausts first.",
+     "type": "single",
+     "options": [
+      "ResNet-50: memory capacity; GPT-2 XL decode: arithmetic throughput; DLRM: memory bandwidth",
+      "ResNet-50: arithmetic throughput once batching amortizes its weights; GPT-2 XL decode: HBM bandwidth; DLRM: memory capacity",
+      "ResNet-50: HBM bandwidth; GPT-2 XL decode: memory capacity; DLRM: arithmetic throughput",
+      "All three are limited by arithmetic throughput, because the H100's tensor peak is the limiting resource for every workload"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In the lifecycle carbon assessment of advanced deep learning accelerators, what constitutes 'embodied carbon'?",
+     "explanation": "The correct answer is D. Embodied carbon refers to the total greenhouse gas emissions generated throughout the supply chain and manufacturing lifecycle of the hardware before it ever runs a workload, including silicon ingot purification, advanced extreme ultraviolet (EUV) lithography, cleanroom fabrication, multi-chip packaging, assembly, and transportation. Operational carbon refers to emissions resulting from electricity consumed during active operation and cooling of the hardware. Carbon credits are financial offsets, not physical emissions.",
+     "hint": "Think about: compare embodied carbon and operational carbon in AI hardware lifecycle analysis.",
+     "type": "single",
+     "options": [
+      "The electrical energy consumed by the GPU during model forward and backward passes",
+      "The carbon emitted by datacenter air conditioning units during peak summer load",
+      "The carbon credits purchased by cloud providers to offset datacenter energy usage",
+      "The greenhouse gas emissions generated during raw material extraction, semiconductor silicon manufacturing, packaging, and hardware transportation"
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now match each lighthouse workload to the accelerator resource it exhausts first.",
+    "You can now compare embodied carbon and operational carbon in AI hardware lifecycle analysis.",
+    "You can now explain how higher useful utilization can lower embodied carbon per result without guaranteeing lower total emissions."
+   ]
+  }
+ ]
+}

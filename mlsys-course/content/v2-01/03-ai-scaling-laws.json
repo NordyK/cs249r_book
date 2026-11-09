@@ -1,0 +1,104 @@
+{
+ "title": "AI Scaling Laws",
+ "summary": "Interpret power-law scaling equations to predict diminishing returns on loss reduction as compute budgets expand.",
+ "source": {
+  "chapter": "v2-01",
+  "sections": [
+   "AI Scaling Laws",
+   "Empirical evidence for scaling laws",
+   "Compute-optimal resource allocation",
+   "Power-law scaling and operational regimes",
+   "Sustainability and cost implications",
+   "When scaling laws break down",
+   "Combining efficiency with scaling"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Interpret power-law scaling equations to predict diminishing returns on loss reduction as compute budgets expand\n- Formulate a training strategy for the data-limited scaling regime by trading model capacity against token repetition\n- Critique the misconception that compute budget alone guarantees optimal loss irrespective of the token-to-parameter allocation ratio\n- Calculate compute-optimal token-to-parameter allocations using the Chinchilla ratio and diagnose historical undertraining\n- Identify the Chinchilla token-to-parameter ratio for compute-optimal language model pretraining"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Introduction, § AI Scaling Laws",
+   "md": "The seven to eight orders of magnitude of training compute traced at the scale moment, from AlexNet to GPT-4-class estimates near … FLOPs, were not an accident of ambition. Each order-of-magnitude increase in compute demanded a further expansion of the machine learning fleet, and organizations paid for those expansions because the return on them had become predictable. Predictable is not the same as free."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Empirical evidence for scaling laws\n- Compute-optimal resource allocation\n- Power-law scaling and operational regimes\n- Sustainability and cost implications\n- When scaling laws break down\n- Combining efficiency with scaling\n\nPay attention to: Power-law scaling formulation (L(X) proportional to X^(-alpha)) and diminishing marginal returns; Chinchilla compute-optimal allocation (proportional co-scaling of parameters and tokens at ~20 tokens/param); Resource-constrained regimes (compute-limited vs data-limited optimization strategies); Scaling law breakdown conditions and naive linear extrapolation pitfalls."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: An organization has a 512-GPU cluster for two weeks and a domain corpus of 5 billion tokens. What evidence is needed to choose between a larger model trained for fewer steps and a smaller model trained over repeated epochs?",
+   "md": "The data budget alone does not determine the better allocation. Compare training and held-out validation curves across feasible model sizes and token-repetition schedules under the same compute budget. Additional capacity helps only if validation performance improves; repeated epochs may also remain useful but can show diminishing gains or memorization. Choose the allocation supported by those measurements and check that its measured execution cost fits the two-week window."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-01-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A project team observes a validation loss decrease after doubling its training compute budget. Under the fitted power law ScalingLawLoss(ScaledResource) = ScaleCoefficient ScaledResource^-ScalingExponent + IrreducibleLoss, with positive amplitude and exponent, what follows for another doubling within the same regime?",
+     "explanation": "The correct answer is B. Each doubling multiplies loss above the floor by the same factor, so the absolute decrease shrinks. With a zero floor, the percentage decrease remains constant; a positive floor makes the percentage decrease shrink too. Constant absolute improvements would imply a different relationship.",
+     "hint": "Think about: interpret power-law scaling equations to predict diminishing returns on loss reduction as compute budgets expand.",
+     "type": "single",
+     "options": [
+      "The next doubling must yield the same absolute loss decrease because scaling is linear in arithmetic space.",
+      "The next doubling yields a smaller absolute loss decrease; a smaller percentage decrease additionally depends on the loss floor.",
+      "The next doubling immediately prevents any measurable loss reduction.",
+      "The next doubling yields twice the absolute loss decrease because the scaling exponent compounds."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Empirical scaling laws show that model loss is determined solely by the total raw FLOP budget expended during training, regardless of whether those FLOPs are allocated to model parameter count or training token volume.",
+     "explanation": "False. Chinchilla compute-optimal scaling (Hoffmann et al., 2022) found within its studied regime that model loss depends critically on balanced co-scaling of parameters and tokens (DatasetSize approx 20 Parameters). Allocating a fixed FLOP budget to an excessively large model on too few tokens (as in GPT-3) or an undersized model on too many tokens results in suboptimal validation loss compared to the compute-optimal balance point on the IsoFLOP frontier.",
+     "hint": "Think about: critique the misconception that compute budget alone guarantees optimal loss irrespective of the token-to-parameter allocation ratio.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "According to the Chinchilla compute-optimal scaling laws (Hoffmann et al., 2022), training tokens and model parameters should scale approximately proportionally at a ratio of roughly 20 tokens per parameter. If a team designs a compute-optimal 70-billion-parameter model, what training dataset size is required, and what was the historical scaling imbalance of earlier models such as GPT-3 (175B parameters on 300B tokens)?",
+     "explanation": "The correct answer is D. Chinchilla compute-optimal scaling establishes that dataset size DatasetSize and parameter count Parameters should satisfy DatasetSize approx 20 × Parameters. For a 70B parameter model, the optimal dataset size is \\$70 × 10^9 × 20 = 1.4 × 10^12 tokens (1.4 trillion tokens). Earlier models like GPT-3 (175B parameters on 300B tokens, a ratio of ~1.7:1) were substantially undertrained; allocating that same compute budget to a smaller model trained on more tokens would have achieved superior loss with lower inference serving costs. Proposing 350B tokens uses an incorrect 5:1 ratio, 70B tokens assumes a 1:1 ratio, and 14T tokens overstates the requirement by an order of magnitude.",
+     "hint": "Think about: calculate compute-optimal token-to-parameter allocations using the Chinchilla ratio and diagnose historical undertraining.",
+     "type": "single",
+     "options": [
+      "350 billion tokens; earlier models like GPT-3 were overtrained because token counts exceeded parameter counts.",
+      "70 billion tokens; earlier models like GPT-3 were compute-optimal but lacked sufficient inference context length.",
+      "14 trillion tokens; earlier models like GPT-3 were severely data-saturated and suffered from parameter memorization.",
+      "1.4 trillion tokens; earlier models like GPT-3 were undertrained relative to their parameter size due to training on only ~1.7 tokens per parameter."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In compute-optimal language model training, the Chinchilla scaling law establishes that for a balanced allocation of compute, the training dataset size in tokens and the model parameter count should scale proportionally, targeting a ratio of approximately ____ training tokens per parameter.",
+     "explanation": "20. Hoffmann et al. (2022) demonstrated that optimal training loss for a given compute budget requires roughly 20 tokens per parameter, showing that models like GPT-3 were significantly undertrained.",
+     "hint": "Think about: identify the Chinchilla token-to-parameter ratio for compute-optimal language model pretraining.",
+     "type": "fill",
+     "answer": [
+      "20"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain why extrapolating training progress from a 10B-parameter single-node run to a 100B-parameter distributed run using a simple log-log power-law curve can result in multi-million-dollar budget overruns. What systems factor does naive scaling-law extrapolation omit?",
+   "md": "A loss scaling law relates useful training work to model quality; it does not predict how peak hardware throughput becomes wall-clock progress. Communication, synchronization, memory limits, and overlap can change effective utilization when the workload is distributed. A plan must measure these costs on the intended partition and fabric. Otherwise, dividing a useful-FLOP estimate by advertised throughput can substantially underestimate the hardware time and budget needed to reach the target loss."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Empirical scaling laws**: Empirical relationships between model loss and training resources within a fitted regime."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Empirical scaling laws",
+   "def": "Empirical relationships between model loss and training resources within a fitted regime."
+  }
+ ]
+}

@@ -1,0 +1,95 @@
+{
+ "title": "Serving Fault Tolerance",
+ "summary": "Calculate redundant replica availability and identify factors that violate component independence.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "Serving Fault Tolerance",
+   "Stateless vs. stateful serving",
+   "Redundancy and replication",
+   "Failover mechanisms",
+   "Model-specific serving fault tolerance"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate redundant replica availability and identify factors that violate component independence\n- Analyze the latency and state preservation challenges of transformer KV caches in stateful inference serving\n- Compare active-active and active-passive replication strategies for model inference workloads\n- Compare request failover mechanisms between stateless and stateful model serving systems\n- Analyze the automated health detection and traffic rerouting stages during inference replica failover"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, § Serving Fault Tolerance",
+   "md": "When users ask a voice assistant to turn off the lights, they will not tolerate a five-minute pause while the inference server reloads from a checkpoint. Serving presents a different challenge, because users expect millisecond-level responsiveness even when backend GPUs crash. The C³ budget for fault tolerance shifts accordingly. Training pays for coordination in synchronization time so that a failure does not erase completed compute, while serving pays in standing redundant compute and in routing coordination so that a failure does not break a latency contract."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Stateless vs. stateful serving\n- Redundancy and replication\n- Failover mechanisms\n- Model-specific serving fault tolerance\n\nPay attention to: Stateless vs stateful serving: request routing, failure impact, and state reconstruction; Redundancy math: $A_{\\text{system}} = 1 - (1 - A_{\\text{single}})^k$ and failure domain independence; Active-Active vs Active-Passive replication trade-offs; Failover mechanisms: health checking (liveness, readiness, inference probes), load balancing, session affinity."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why losing the key-value (KV) cache of an active 128K-token conversation during a GPU failure in stateful LLM serving severely degrades user latency, and describe how prefix caching mitigates this impact.",
+   "md": "The replacement replica must reconstruct any lost per-session KV state before continuing generation, adding prefill latency. A surviving replica with a matching cached prefix can avoid recomputing that prefix, but the uncached conversation suffix still needs processing. Prefix caching helps only when reusable state remains available; it does not automatically replicate every session cache or eliminate failover latency."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A single inference serving replica provides an availability of \\$99\\% (A_single = 0.99, corresponding to 3.65 days of downtime per year). What is the theoretical annual downtime when deploying 3 independent replicas in an active-active parallel configuration (A_system = 1 - (1 - A_single)^3), and why is real-world availability typically lower?",
+     "explanation": "The correct answer is D. The formula for $k=3$ independent replicas yields $A_{\\text{system}} = 1 - (1 - 0.99)^3 = 1 - (0.01)^3 = 1 - 10^{-6} = 0.999999$ (\\$99.9999\\%$ availability, or \\$365 \\times 24 \\times 3600 \\times 10^{-6} \\approx 31.5$ seconds downtime/year). In practice, shared failure domains (such as common top-of-rack switches, power feeds, shared feature stores, or buggy model code deployed across all replicas) introduce correlation that prevents achieving six-nines availability. Two independent 99-percent replicas yield about 52.6 minutes of annual downtime, whereas three yield about 31.5 seconds. The 3.65-day option ignores redundancy entirely. Absolute zero downtime is physically impossible. This idealized formula also assumes reliable routing and enough ready capacity on the surviving replicas to serve demand; independence alone does not establish request-level availability.",
+     "hint": "Think about: calculate redundant replica availability and identify factors that violate component independence.",
+     "type": "single",
+     "options": [
+      "Annual downtime is 52.6 minutes; real-world availability is lower because load balancers introduce \\$10\\% packet loss.",
+      "Annual downtime is 3.65 days; real-world availability is unchanged because adding replicas does not change individual failure rates.",
+      "Annual downtime is 0 seconds; three replicas provide mathematically absolute fault tolerance under all operating conditions.",
+      "Annual downtime drops to approximately 31.5 seconds (\\$99.9999\\% availability); real-world availability is lower because correlated failures (shared power, top-of-rack switches, DNS, software bugs) violate the independence assumption."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "What is the primary operational trade-off between Active-Active and Active-Passive replication strategies in ML inference serving clusters?",
+     "explanation": "The correct answer is B. In Active-Active serving, all replicas actively process incoming requests, maximizing infrastructure efficiency, but the cluster must operate below peak capacity (with headroom) so surviving replicas are not overwhelmed when one fails. In Active-Passive serving, dedicated standby replicas remain idle while tracking state or heartbeats, ensuring clean failover capacity at the cost of paying for idle hardware. The other choices mischaracterize automation, hardware support, and network partition physics.",
+     "hint": "Think about: compare active-active and active-passive replication strategies for model inference workloads.",
+     "type": "single",
+     "options": [
+      "Active-Active replication requires \\$100\\% manual failover by human operators, whereas Active-Passive replication is fully automated.",
+      "Active-Active distributes traffic across all live replicas to maximize resource utilization but requires reserve headroom to absorb traffic when a replica fails; Active-Passive maintains synchronized standby replicas that sit idle during normal operation, simplifying failover at higher resource cost.",
+      "Active-Active replication can only be deployed on CPU clusters, whereas Active-Passive replication is exclusive to GPUs.",
+      "Active-Active replication guarantees zero latency during network partitions, whereas Active-Passive replication triples inference compute requirements."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In stateless model serving (such as single-image classification), a crashed GPU replica requires complex distributed state synchronization and session rollback before a client's request can be retried on another node.",
+     "explanation": "False. A stateless request supplies the input needed by another compatible, ready replica, so no session-state restoration is required. A retry still needs surviving capacity, safe operation semantics, the original deadline and a bounded retry budget. Routing or detection delays can remain; statelessness does not guarantee immediate successful completion.",
+     "hint": "Think about: compare request failover mechanisms between stateless and stateful model serving systems.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: After a serving replica suffers a GPU fault, what dependencies must hold before requests can safely use alternate replicas, and which recovery work can proceed concurrently?",
+   "md": "Health evidence must remove the failed replica from routing. Alternate replicas must be ready and have capacity; stateful requests also need their required context restored or reconstructed. Retried work must be safe, remain within its original deadline and retry budget, and pass admission control. Provisioning a replacement can proceed concurrently with rerouting to existing ready replicas. Detection, routing propagation and state recovery can add delay; failover is not necessarily seamless."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Compare session affinity with external distributed state stores (such as Redis) for managing stateful conversational inference sessions in terms of failover speed and infrastructure complexity.",
+   "md": "Session affinity keeps a conversation on the replica holding its KV cache, avoiding remote state access but exposing that session to cache loss when the replica fails. An external store can preserve conversation context so another replica can recover it. Unless KV state was also preserved, the replacement still recomputes the cache. The trade-off includes state-transfer latency and another storage dependency."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate redundant replica availability and identify factors that violate component independence.",
+    "You can now analyze the latency and state preservation challenges of transformer KV caches in stateful inference serving.",
+    "You can now compare active-active and active-passive replication strategies for model inference workloads.",
+    "You can now compare request failover mechanisms between stateless and stateful model serving systems."
+   ]
+  }
+ ]
+}

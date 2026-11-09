@@ -1,0 +1,107 @@
+{
+ "title": "From Single Node to Fleet",
+ "summary": "Locate physical, distributed-execution, serving, and governance responsibilities in the fleet stack without treating its bands as replacements for frameworks and applications.",
+ "source": {
+  "chapter": "v2-01",
+  "sections": [
+   "From Single Node to Fleet",
+   "Independent tasks vs. synchronous training steps",
+   "The shift to the warehouse-scale computer",
+   "Communication dominance and the network wall",
+   "Communication intensity (the CI ratio)"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Locate physical, distributed-execution, serving, and governance responsibilities in the fleet stack without treating its bands as replacements for frameworks and applications\n- Analyze how synchronous barrier coupling makes fleet-scale ML training hypersensitive to tail worker latency compared to independent-task distributed systems\n- Explain why independent-task fault tolerance strategies cannot directly apply to barrier-synchronized ML fleets\n- Infer the WSC system-bus architectural analogy for datacenter network fabrics in ML fleets\n- Identify emergent failure modes in ML fleets that arise from distributed coordination and network coupling rather than local kernel execution"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Introduction, § From Single Node to Fleet",
+   "md": "Inside one H100 server, NVLink moves tensors between accelerators at … in each direction per accelerator. Once a training job spans racks, the same tensors leave through an InfiniBand NDR port at … (…) in each direction, a bandwidth step down of roughly … for an accelerator served by one such port. That step illustrates a general pattern. The layered structure of an ML system persists across scale, while the physics at each layer changes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Independent tasks vs. synchronous training steps\n- The shift to the warehouse-scale computer\n- Communication dominance and the network wall\n- Communication intensity (the CI ratio)\n\nPay attention to: Eight-row fleet stack grouped into four bands (Infrastructure, Distribution, Serving, Governance); Traditional vs ML fleet dynamics (MapReduce independent tasks vs synchronous tight coupling); Warehouse-Scale Computer (WSC) perspective: network as system bus, storage as disk, orchestrator as OS; Emergent distributed failure modes under tight barrier synchronization."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Contrast the impact of a 10% performance slowdown (straggler) on a single worker node in a 1,000-worker MapReduce job versus a 1,000-accelerator synchronous ML training job. Explain why the two architectures respond so differently.",
+   "md": "A slow MapReduce task can delay downstream reduction and overall job completion; its effect is not its slowdown divided by the worker count. Other independent tasks can nevertheless finish, and slow work can be retried or replicated. In synchronous training, a persistent slow worker can delay every shared update. If that worker determines each step's critical path, its 10% slowdown can approach a 10% step-time penalty across the job."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-01-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Which responsibility assignment matches the fleet stack described in this section, while retaining ML frameworks and applications as parts of the system?",
+     "explanation": "The correct answer is C. The fleet stack groups eight rows into four bands. Infrastructure supplies the physical substrate; Distribution includes distributed execution and Reliability & Control, where training-job scheduling and recovery live; Serving adds request handling and deployment pipelines; Governance sets assurance and responsible-operation requirements. ML frameworks still execute models and applications still use them. The upper bands add responsibilities rather than replace frameworks or applications. The other assignments confuse physical resources, distributed control, request serving, and policy.",
+     "hint": "Think about: locate physical, distributed-execution, serving, and governance responsibilities in the fleet stack without treating its bands as replacements for frameworks and applications.",
+     "type": "single",
+     "options": [
+      "Infrastructure handles request admission; Distribution sets fairness policy; Serving supplies network links; Governance runs gradient collectives.",
+      "Infrastructure places training jobs; Distribution cools accelerators; Serving defines privacy requirements; Governance answers inference requests.",
+      "Infrastructure supplies accelerators and fabrics; Distribution handles collectives, job placement, and recovery; Serving handles requests and deployment; Governance sets security and responsible-operation requirements.",
+      "Infrastructure supplies accelerators and fabrics; Distribution handles collectives; Serving owns training-job scheduling and recovery; Governance replaces applications."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Because MapReduce and synchronous distributed ML both distribute data across thousands of nodes, an ML training cluster can adopt MapReduce's straggler-mitigation technique of simply re-executing lagging tasks in parallel on spare nodes without pausing other workers.",
+     "explanation": "False. MapReduce workers execute stateless, independent partitions that produce final outputs independently. Synchronous ML training maintains shared state (model weights) updated synchronously across all ranks via an AllReduce barrier every step. Re-executing an iteration on a spare node while other workers continue would violate synchronization invariants, causing model weights to diverge or forcing all workers to stall until the replacement finishes the collective exchange.",
+     "hint": "Think about: explain why independent-task fault tolerance strategies cannot directly apply to barrier-synchronized ML fleets.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Under the Warehouse-Scale Computer (WSC) perspective required for the ML fleet, the data center is treated as the computer: the orchestrator acts as the operating system, distributed storage acts as the local disk, and the network fabric acts as the ____.",
+     "explanation": "system bus. In a warehouse-scale computer, high-bandwidth interconnect fabrics (such as InfiniBand or NVLink networks) replace the local motherboard bus, transporting gradient and activation tensors between distributed compute units.",
+     "hint": "Think about: infer the WSC system-bus architectural analogy for datacenter network fabrics in ML fleets.",
+     "type": "fill",
+     "answer": [
+      "system bus"
+     ]
+    },
+    {
+     "q": "When scaling an autoregressive model from a single GPU to a 10,000-accelerator cluster, an engineer observes that the local CUDA arithmetic kernels execute without modification. Why does distributed execution nonetheless introduce failure modes that never occur on a single machine?",
+     "explanation": "The correct answer is D. Distributed coupling introduces unreachable peers, stragglers, and mismatched participation in collective operations. These can stall progress or require coordinated recovery even when local arithmetic is healthy. Packet loss alone need not deadlock a reliable transport, and a partition does not automatically cause divergent updates in a system that halts safely. The other choices invent changes to local arithmetic or PCIe behavior.",
+     "hint": "Think about: identify emergent failure modes in ML fleets that arise from distributed coordination and network coupling rather than local kernel execution.",
+     "type": "single",
+     "options": [
+      "Accelerators in large clusters automatically switch to lower-clock power states that disable floating-point exception traps.",
+      "Operating systems disable host-to-device PCIe DMA on multi-node clusters, forcing all memory through unbuffered network sockets.",
+      "Multi-GPU compilers alter the underlying mathematical definitions of GEMM operations to save bisection bandwidth.",
+      "Distributed coupling introduces network partitions that cause state divergence, stragglers that stall global synchronization barriers, and collective communication deadlocks."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A performance engineer profiles two distributed training jobs running on the same 1,024-GPU cluster connected by 200 Gb/s InfiniBand. Workload Alpha transfers 10 MB of gradient data per step while executing \\$10^14 FLOPs locally per GPU. Workload Beta transfers 1 GB of gradient data per step while executing \\$10^13 FLOPs locally per GPU. Using the communication intensity (CommunicationIntensity) ratio, how will these workloads respond as additional GPU nodes are added to the cluster?",
+     "explanation": "The correct answer is B. Alpha's communication intensity is \\$10^{-7}$ bytes/FLOP and Beta's is \\$10^{-4}$ bytes/FLOP. Beta therefore imposes 1,000 times more network demand per unit of local work. This indicates greater exposure to communication costs, not a guaranteed saturation point: compute throughput, effective bandwidth, partitioning, and overlap determine the boundary. CI concerns network traffic, not local memory traffic.",
+     "hint": "Think about: calculate and compare communication intensity (CommunicationIntensity) ratios to predict whether distributed workloads will scale or hit network bandwidth limits.",
+     "type": "single",
+     "options": [
+      "Workload Alpha will scale poorly because its low CI indicates the GPU compute units are starving for network data.",
+      "Workload Beta has 1,000 times higher network bytes per local FLOP and is more exposed to communication limits; actual scaling also depends on effective bandwidth and partitioning.",
+      "Both workloads will achieve identical linear scaling because CI measures single-device memory bandwidth rather than inter-node network traffic.",
+      "Workload Beta will scale more efficiently because higher network byte volume improves the link utilization of optical InfiniBand transceivers."
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now locate physical, distributed-execution, serving, and governance responsibilities in the fleet stack without treating its bands as replacements for frameworks and applications.",
+    "You can now analyze how synchronous barrier coupling makes fleet-scale ML training hypersensitive to tail worker latency compared to independent-task distributed systems.",
+    "You can now explain why independent-task fault tolerance strategies cannot directly apply to barrier-synchronized ML fleets.",
+    "You can now infer the WSC system-bus architectural analogy for datacenter network fabrics in ML fleets."
+   ]
+  }
+ ]
+}

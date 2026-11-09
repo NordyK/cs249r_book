@@ -1,0 +1,75 @@
+{
+ "title": "Trajectory States",
+ "summary": "Work through Trajectory States.",
+ "source": {
+  "chapter": "v3-10",
+  "sections": [
+   "Trajectory States",
+   "Transition guards and the admission check",
+   "Late results and observation eligibility",
+   "Pause entry and outstanding work",
+   "Finalization and remaining duties"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Trajectory States**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Agent Harness, § Trajectory States",
+   "md": "Keeping the trajectory record consistent across asynchronous callbacks and timeouts becomes critical when a tool result arrives after the turn that requested it has already moved on. Suppose the wait deadline for candidate `r18`'s test suite elapses before a result arrives, so the harness records the outcome as unknown and proceeds; one minute later, the test service returns a success report. Both statements reflect reality: the outcome was indeed unknown when the deadline expired, and the tests ultimately passed."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Transition guards and the admission check\n- Late results and observation eligibility\n- Pause entry and outstanding work\n- Finalization and remaining duties"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Trajectory record matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-10-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Trajectory States** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Cancelling a stream removes the dependence of control latency on output length, and partial or canceled output is quarantined and never dispatched.",
+      "Operator control takes effect at turn boundaries, so a harness that checks only when a reply ends lets one call postpone a pause by K_max x t_dec, and pause, interrupt, cancel, kill, and budget stop change admission differently.",
+      "Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan.",
+      "An asynchronous wait frees the worker thread but not the workspace lease, KV residency, reservations, or deadline, and a wait deadline ends the harness's wait, never the remote operation."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Trajectory record**: Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Trajectory record* is controlled by *Harness owns continuation*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Trajectory record is controlled by Harness owns continuation."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Transition guard**: Runtime-owned predicates determine whether a trajectory may advance, wait, dispatch work, or finalize under current conditions."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Transition guard",
+   "def": "Runtime-owned predicates determine whether a trajectory may advance, wait, dispatch work, or finalize under current conditions."
+  }
+ ]
+}

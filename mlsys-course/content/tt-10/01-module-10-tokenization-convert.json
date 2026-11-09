@@ -1,0 +1,103 @@
+{
+ "title": "Module 10: Tokenization - Converting Text to Numbers",
+ "summary": "TinyTorch tokenization: Module 10: Tokenization - Converting Text to Numbers",
+ "source": {
+  "chapter": "tt-10",
+  "sections": [
+   "Module 10: Tokenization - Converting Text to Numbers"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 10: Tokenization - Converting Text to Numbers\n\nWelcome to Module 10! You're about to build tokenization, the critical bridge that converts unstructured human text into discrete numerical sequences that machine learning models and neural networks can process.\n\n## 🔗 Prerequisites & Progress\n**You've Built**: Complete training pipeline with neural networks, optimizers, data loaders, and 2D spatial convolutions (`Tensor`, `Autograd`, `Linear`, `Conv2d`, `Trainer`)\n**You'll Build**: Text tokenization engines, namely `Tokenizer` (interface contract), `CharTokenizer`, and `BPETokenizer` (Byte Pair Encoding)\n**You'll Enable**: Subword representation learning that powers language modeling in Transformers\n\n### Architectural Roadmap"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Stage",
+    "Subsystem",
+    "Primitives & Capabilities",
+    "Status"
+   ],
+   "rows": [
+    [
+     "**Modules 01–09**",
+     "Foundation & Vision",
+     "`Tensor`, `Autograd`, `Linear`, `Conv2d`, `BatchNorm2d`, `Trainer`",
+     "Completed"
+    ],
+    [
+     "**Module 10**",
+     "**Subword Tokenization**",
+     "`Tokenizer`, `CharTokenizer`, `BPETokenizer`, BPE pair merges",
+     "**Active Subsystem**"
+    ],
+    [
+     "**Modules 11–13**",
+     "Language & Attention",
+     "`Embedding`, `MultiHeadAttention`, `TransformerBlock`",
+     "Downstream Consumers"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 🎯 Learning Objectives\nBy the end of this module, you will:\n1. Implement character-based tokenization for deterministic baseline text processing\n2. Build a BPE (Byte Pair Encoding) tokenizer that iteratively merges frequent subword pairs\n3. Understand vocabulary data structures, ordered merge replay, and unknown token handling\n4. Quantify the fundamental systems trade-off between vocabulary size (\\$V\\$) and sequence length (\\$T\\$)\n\nLet's get started!\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/10_tokenization/tokenization.ipynb`\n**Building Side:** Code exports to `tinytorch.core.tokenization`\n\n```python\n# Final package structure:\nfrom tinytorch.core.tokenization import Tokenizer, CharTokenizer, BPETokenizer\n```\n\n**Why this matters:**\n- **Learning:** Complete tokenization system in one focused module for deep mechanical understanding\n- **Production:** Proper modular structure like Hugging Face's `tokenizers`, isolating text preprocessing from tensor compute\n- **Consistency:** Unified `encode()` and `decode()` contract across all tokenization strategies\n- **Integration:** Directly feeds token IDs into the embedding tables in Module 11"
+  },
+  {
+   "type": "text",
+   "md": "## 📋 Module Dependencies\n\n**Prerequisites**: Module 10 is self-contained, operating directly on strings, lists, and integer mappings.\n\n**External Dependencies**:\n- `numpy` (for numerical arrays and statistical analysis)\n- `collections.Counter` (for frequency counting of adjacent token pairs)\n- `typing` (for type hints)\n- `time`, `tracemalloc`, and `string` (used only inside the analysis cells)\n\n**TinyTorch Dependencies**: NONE\n\nThis module imports nothing from TinyTorch. Its output is a plain `list[int]`;\nModule 11 will be the first to wrap token IDs in a `Tensor` for model ingestion.\n\n**Dependency Flow**: the ingestion and transformation pipeline"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Stage",
+    "Data Representation",
+    "Type & Shape",
+    "Systems Operation"
+   ],
+   "rows": [
+    [
+     "**Raw Input**",
+     "Natural Language Text",
+     "`str` (arbitrary length)",
+     "UTF-8 byte stream ingestion"
+    ],
+    [
+     "**Module 10: Tokenization**",
+     "Discrete Token IDs",
+     "`list[int]` of length \\$T\\$",
+     "BPE subword segmentation & vocab ID mapping"
+    ],
+    [
+     "**Module 11: Embeddings**",
+     "Dense Activation Vectors",
+     "`Tensor(B, T, D)`",
+     "Row lookup in weight matrix \\$\\mathbf{W} \\in \\mathbb{R}^{V \\times D}\\$"
+    ],
+    [
+     "**Module 12: Attention**",
+     "Contextual Representations",
+     "`Tensor(B, T, D)`",
+     "Scaled dot-product attention (\\$\\mathcal{O}(T^2)\\$ compute)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Students completing this module establish the text ingestion bridge that powers all natural language processing in TinyTorch."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "from collections import Counter\nfrom typing import Dict, List, Optional, Set, Tuple, Union\n\nimport numpy as np"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 10: Tokenization - Converting Text to Numbers."
+   ]
+  }
+ ]
+}

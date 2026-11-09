@@ -1,0 +1,67 @@
+{
+ "title": "The Simulator as a System Component",
+ "summary": "Work through The Simulator as a System Component.",
+ "source": {
+  "chapter": "v4-06",
+  "sections": [
+   "The Simulator as a System Component",
+   "Massively parallel simulation and on-policy learning",
+   "The sim-to-real contact exploit",
+   "Learned world models as simulators"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **The Simulator as a System Component**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Policy Training, § The Simulator as a System Component",
+   "md": "A reinforcement learning policy trained on door latching learned an aggressive, unbraked plunge because its simulated strike plate yielded far more than the physical mechanism. Stripping away the simulator during physical deployment does nothing to unlearn that behavior. The physics simulator is not an external sandbox; it is an active component of the training pipeline whose equations, contact approximations, and timing assumptions dictate the exact experience supplied to the optimizer. Accepting simulated task success as evidence of hardware readiness requires measurable, verifiable error bounds on every one of those assumptions."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Massively parallel simulation and on-policy learning\n- The sim-to-real contact exploit\n- Learned world models as simulators"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Simulator contact exploit matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A simulator's contact model decides what the optimizer learns, and a soft penalty spring lets a policy pass through contacts the real plate would resist."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-06-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Simulator as a System Component** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A decoder chosen for multimodality must fit the proposal deadline, since latency is encoding plus every dependent decoder evaluation, so the head and evaluation count that training picks decide schedulability.",
+      "A simulator's contact model decides what the optimizer learns, and a soft penalty spring lets a policy pass through contacts the real plate would resist.",
+      "A policy's weights keep what its experience rewarded but not which experience it was, so each regime (demonstrations, logged rewards, simulation, trial on the machine, a pretrained base) leaves a characteristic dependency no training score shows.",
+      "State value, action value, advantage, and the Bellman relation express value as negated cost-to-go, with LQR as the closed-form linear-quadratic case."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Simulator contact exploit**: A simulator's contact model decides what the optimizer learns, and a soft penalty spring lets a policy pass through contacts the real plate would resist."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Reality gap**: Mismatch between training simulation and the physical plant, including contact, sensing, timing, and actuation."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Reality gap",
+   "def": "Mismatch between training simulation and the physical plant, including contact, sensing, timing, and actuation."
+  }
+ ]
+}

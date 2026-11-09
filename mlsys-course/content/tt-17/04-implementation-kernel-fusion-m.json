@@ -1,0 +1,121 @@
+{
+ "title": "Implementation: Kernel Fusion & Memory Traffic Elimination",
+ "summary": "TinyTorch acceleration: Implementation: Kernel Fusion & Memory Traffic Elimination",
+ "source": {
+  "chapter": "tt-17",
+  "sections": [
+   "Implementation: Kernel Fusion & Memory Traffic Elimination"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Kernel Fusion & Memory Traffic Elimination\n\nIn modern transformer architectures, memory-bound activation layers (GELU, SwiGLU, LayerNorm) create severe memory bus saturation when executed as separate unfused kernels.\n\n### The Memory Bandwidth Crisis: Unfused vs. Fused Execution\n\nConsider the linear-activation pipeline \\$y = \\text{GELU}(x \\cdot W + b)\\$. Take the activation batch \\$x\\$ and the weight matrix \\$W\\$ to be \\$4\\text{ GB}\\$ buffers, with the product and every intermediate the same \\$4\\text{ GB}\\$ size. The bias \\$b\\$ is a single length-\\$C_{\\text{out}}\\$ vector, kilobytes at most, and it is broadcast across every row, so its read is negligible against the others and we can set it aside in the byte count."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Execution Paradigm",
+    "Operational Sequence",
+    "DRAM Reads",
+    "DRAM Writes",
+    "Total Memory Traffic",
+    "Speedup Driver"
+   ],
+   "rows": [
+    [
+     "**Unfused (PyTorch/NumPy Default)**",
+     "1. \\$t_1 = x \\cdot W\\$<br>2. \\$t_2 = t_1 + b\\$<br>3. \\$y = \\text{GELU}(t_2)\\$",
+     "Read \\$x\\$ (\\$4\\text{ GB}\\$), \\$W\\$ (\\$4\\text{ GB}\\$)<br>Read \\$t_1\\$ (\\$4\\text{ GB}\\$), \\$b\\$ (\\$\\approx 0\\$)<br>Read \\$t_2\\$ (\\$4\\text{ GB}\\$)",
+     "Write \\$t_1\\$ (\\$4\\text{ GB}\\$)<br>Write \\$t_2\\$ (\\$4\\text{ GB}\\$)<br>Write \\$y\\$ (\\$4\\text{ GB}\\$)",
+     "**\\$28\\text{ GB}\\$** DRAM Traffic",
+     "Baseline (\\$1.0\\times\\$)"
+    ],
+    [
+     "**Fused Kernel (Triton / CUDA / C++)**",
+     "Single composite kernel:<br>\\$y = \\text{GELU}(x \\cdot W + b)\\$ in registers",
+     "Read \\$x\\$ (\\$4\\text{ GB}\\$), \\$W\\$ (\\$4\\text{ GB}\\$), \\$b\\$ (\\$\\approx 0\\$)",
+     "Write \\$y\\$ (\\$4\\text{ GB}\\$) directly",
+     "**\\$12\\text{ GB}\\$** DRAM Traffic",
+     "**\\$57\\%\\$ reduction** in DRAM traffic; eliminates 2 intermediate round-trips (\\$16\\text{ GB}\\$)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Understanding GELU: The Smooth Non-Linearity\n\nGELU (Gaussian Error Linear Unit) scales inputs by their probability under a standard Gaussian distribution:\n\n\\$\\$\\text{GELU}(x) = x \\cdot \\Phi(x) = x \\cdot P(X \\le x), \\quad X \\sim \\mathcal{N}(0, 1)\\$\\$\n\n\\$\\$\\text{Fast Approximation: } \\quad \\text{GELU}(x) \\approx 0.5 x \\left( 1 + \\tanh\\left( \\sqrt{\\frac{2}{\\pi}} \\left( x + 0.044715 x^3 \\right) \\right) \\right)\\$\\$\n\n### Activation Functions Comparison"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Function",
+    "Formulation",
+    "Derivative Properties",
+    "Zero-Crossing Behavior",
+    "Hardware Implementation"
+   ],
+   "rows": [
+    [
+     "**ReLU**",
+     "\\$\\max(0, x)\\$",
+     "Piecewise constant: \\$f'(x) \\in \\{0, 1\\}\\$",
+     "Non-differentiable kink at \\$x = 0\\$; dying neuron vulnerability",
+     "Single compare-and-select instruction (`vmaxps`)"
+    ],
+    [
+     "**GELU**",
+     "\\$x \\cdot \\Phi(x)\\$",
+     "Smooth everywhere; non-monotonic dip near \\$-0.17\\$",
+     "Smooth curvature around origin; allows negative gradient flow",
+     "High transcendental cost; requires polynomial or tanh approximation"
+    ],
+    [
+     "**Sigmoid**",
+     "\\$\\frac{1}{1 + e^{-x}}\\$",
+     "\\$f'(x) = f(x)(1 - f(x))\\$",
+     "Inflection point at \\$x = 0\\$; flat saturation for \\$\\lvert x \\rvert > 4\\$",
+     "Exponential lookup / Taylor expansion"
+    ],
+    [
+     "**Swish / SiLU**",
+     "\\$x \\cdot \\sigma(\\beta x)\\$",
+     "\\$f'(x) = \\sigma(x) + x \\sigma(x)(1 - \\sigma(x))\\$",
+     "Self-gated smooth activation; widely adopted in LLaMA",
+     "Highly fusible with linear gate projections (SwiGLU)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Kernel Fusion Strategy: Array Allocations vs. Register Stacking\n\nWhen executing `fused_gelu` in pure NumPy, Python evaluates sub-expressions sequentially, allocating temporary memory buffers for \\$x^3\\$, \\$x^3 \\times 0.044715\\$, etc. In production compilers (such as OpenAI Triton or TorchInductor), all 8 operations are fused into a single loop body where elements remain inside fast CPU vector registers or GPU thread registers (\\$R_0 \\dots R_7\\$), writing only the final tensor to DRAM."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def fused_gelu(x: Tensor) -> Tensor:\n    \"\"\"\n    Compact GELU expression that avoids retaining intermediate Tensor copies.\n\n    GELU combines the benefits of ReLU and sigmoid:\n    - Smooth everywhere (ReLU is continuous but not differentiable at 0)\n    - Non-saturating for positive values (unlike sigmoid)\n    - Probabilistic interpretation: x * P(X ≤ x) where X ~ N(0,1)\n\n    Mathematical Definition:\n    GELU(x) = x * Φ(x) where Φ(x) is the standard normal CDF\n\n    Fast Approximation (used here):\n    GELU(x) ≈ 0.5 * x * (1 + tanh(√(2/π) * (x + 0.044715 * x³)))\n\n    TODO: Compute GELU without retaining intermediate Tensor objects\n\n    APPROACH:\n    1. Compute all intermediate values in a single expression\n    2. Avoid retaining intermediate Tensor wrappers (NumPy still allocates arrays)\n    3. Let NumPy's broadcasting handle vectorization\n\n    Args:\n        x: Input tensor to apply GELU activation\n\n    Returns:\n        GELU-activated tensor (same shape as input)\n\n    EXAMPLE:\n    >>> x = Tensor([-2, -1, 0, 1, 2])\n    >>> result = fused_gelu(x)\n    >>> print(result.data)\n    [-0.04540231 -0.15880801  0.          0.84119199  1.95459769]\n    # Notice: smooth transition through 0, positive bias\n\n    MEMORY EFFICIENCY:\n    - Unfused: 7 temporary arrays × input_size × 4 bytes, each kept alive as a Tensor\n    - Compact: one NumPy expression, which still creates temporary arrays\n    - A compiled fused kernel can read the input once and write the output once\n\n    HINTS:\n    - Use np.sqrt(2.0 / np.pi) for the constant\n    - NumPy evaluates each array operation separately; it does not fuse this expression\n    - These raw NumPy helpers are inference examples and do not record autograd\n    \"\"\"\n    # Mathematical constant for GELU approximation\n    sqrt_2_over_pi = np.sqrt(2.0 / np.pi)\n\n    # Fused GELU computation - all operations in single expression\n    # By computing the full expression in a single line, we avoid creating intermediate\n    # Tensor objects. NumPy still allocates temporary arrays internally, so real\n    # kernel fusion requires compiled frameworks like XLA or torch.compile.\n    result_data = 0.5 * x.data * (\n        1.0 + np.tanh(sqrt_2_over_pi * (x.data + 0.044715 * x.data**3))\n    )\n\n    return Tensor(result_data)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Fused GELU\n\nThis test validates the fused GELU activation against the mathematical\nproperties GELU must satisfy.\n\n**What we're testing**: GELU(0) = 0, increasing nonnegative outputs, and the negative dip\n**Why it matters**: Reducing retained Tensor copies must preserve the activation;\nour NumPy expression still executes multiple array operations\n**Expected**: Exact zero at the origin, a nonmonotonic negative region, correct tails"
+  },
+  {
+   "type": "text",
+   "md": "### Unfused GELU: One Tensor per Step\n\nNow build the deliberately unfused counterpart. Write the same GELU as eight\nseparate steps, wrapping each intermediate in its own `Tensor` so every stage\nstays alive until the function returns. That gives us something to compare the\ncompact expression against, both for allocation peak and for wall-clock time."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def unfused_gelu(x: Tensor) -> Tensor:\n    \"\"\"\n    Deliberately unfused GELU implementation for performance comparison.\n\n    This version creates multiple intermediate tensors to simulate\n    the memory bandwidth overhead of unfused operations.\n\n    TODO: Implement GELU with explicit intermediate steps\n\n    APPROACH:\n    1. Break computation into individual steps\n    2. Create temporary Tensor objects for each step\n    3. This simulates real memory allocation overhead\n\n    Args:\n        x: Input tensor\n\n    Returns:\n        GELU-activated tensor (same shape as input)\n\n    EXAMPLE:\n    >>> x = Tensor([0.5, 1.0, -0.5])\n    >>> result = unfused_gelu(x)\n    >>> print(result.shape)\n    (3,)  # Same as input\n\n    ALLOCATION IMPACT:\n    - Holds 7 temporary arrays alive at once, each wrapped in a Tensor\n    - The compact expression lets each temporary be freed as soon as the next\n      operation consumes it, so its allocation peak is lower\n    - Measured peak at 1000x1000 float32 with tracemalloc: 36 MB retained here\n      versus 20 MB for the compact expression (the 📊 cell below reproduces it)\n    - This is an allocation-peak difference, not a DRAM-traffic difference. Both\n      versions execute the same eight NumPy array operations, so the wall clock\n      is close either way and the direction is not guaranteed. On the machine\n      this was written on, the compact version is about 15% SLOWER at 2000x2000,\n      which is why the test below reports the direction it measures\n\n    HINTS:\n    - Create each step as: temp = Tensor(operation)\n    - This forces memory allocation for educational comparison\n    \"\"\"\n    # Unfused version - creates many intermediate arrays\n    sqrt_2_over_pi = np.sqrt(2.0 / np.pi)\n\n    # Each operation creates a temporary array (simulating kernel launches)\n    temp1 = Tensor(x.data**3)  # x³\n    temp2 = Tensor(0.044715 * temp1.data)  # 0.044715 * x³\n    temp3 = Tensor(x.data + temp2.data)  # x + 0.044715 * x³\n    temp4 = Tensor(sqrt_2_over_pi * temp3.data)  # √(2/π) * (...)\n    temp5 = Tensor(np.tanh(temp4.data))  # tanh(...)\n    temp6 = Tensor(1.0 + temp5.data)  # 1 + tanh(...)\n    temp7 = Tensor(x.data * temp6.data)  # x * (1 + tanh(...))\n    result = Tensor(0.5 * temp7.data)  # 0.5 * x * (...)\n\n    return result"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Kernel Fusion Performance Impact\n\nThis test compares the compact NumPy expression with retained Tensor intermediates.\n\n**What we're testing**: That both implementations produce equivalent values, plus\na timed comparison after warmup\n**Why it matters**: An optimization has to preserve the answer before its timing\nmatters. Fewer retained Tensor copies lower the allocation peak, but NumPy does\nnot compile this expression into one kernel, so the wall clock can go either way\n**Expected**: Numerically equivalent results; the timing direction is reported as\nmeasured, never assumed, and never graded"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Implementation: Kernel Fusion & Memory Traffic Elimination."
+   ]
+  }
+ ]
+}

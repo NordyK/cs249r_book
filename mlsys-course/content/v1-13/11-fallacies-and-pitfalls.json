@@ -1,0 +1,88 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Evaluate why operating a serving queue near saturation creates tail-latency risk even when average utilization looks cost-efficient.",
+ "source": {
+  "chapter": "v1-13",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Evaluate why operating a serving queue near saturation creates tail-latency risk even when average utilization looks cost-efficient\n- Justify why tail-latency metrics (p99/p99.9) must be used over mean latency for evaluating online serving systems\n- Analyze how cold-start delays amplify tail latency during autoscaling events by withholding new capacity during bursts\n- Evaluate how batch-formation delay can turn an offline throughput win into an online p99 latency regression\n- Explain how unrepresentative calibration and evaluation data can hide quantization-induced production accuracy failures"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Serving, § Fallacies and Pitfalls",
+   "md": "Serving inverts training priorities in ways that violate intuitions from batch processing. The nonlinear relationship between utilization and latency, the hidden costs of preprocessing, and the silent failure modes of training-serving skew cause violated SLOs, wasted optimization effort, and accuracy degradation invisible to standard monitoring."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Pitfall: Running serving infrastructure at high utilization to maximize cost efficiency; Pitfall: Using average latency to evaluate serving system performance; Fallacy: Cold start latency only matters for the first request; Fallacy: Larger serving batches always improve throughput without affecting latency SLOs."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why is the assumption that 'cold-start latency only affects the very first request' a critical fallacy in autoscaling serverless or Kubernetes-based serving environments with bursty traffic?",
+   "md": "During a burst, new replicas may spend time loading weights, initializing runtimes, or warming caches before they can accept traffic, so cold start reduces usable capacity exactly when demand is rising. Requests usually are not sent to replicas that are still unready, but they still suffer indirectly by waiting longer on the already-live replicas or in upstream queues. For example, if traffic doubles before new GPU pods finish becoming ready, p99 latency can spike across many users even though no request is intentionally routed to an uninitialized instance. The practical consequence is that cold start is a fleet-level capacity problem, not just a first-request problem."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-13-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team attempts to maximize hardware cost efficiency by targeting 95% steady-state utilization $\\rho$ across their production serving queue. Why is this strategy a dangerous engineering pitfall?",
+     "explanation": "The correct answer is B. Here $\\rho$ means arrival rate divided by service capacity in the serving queue, not a coarse GPU busy counter. In queueing models, waiting time grows sharply as $\\rho$ approaches 1, so a system run near 95% has very little headroom for burstiness or service-time variation. That makes p99 latency fragile even if average load looks efficient. The other answers invent hardware or OS behaviors unrelated to the chapter's queueing argument.",
+     "hint": "Think about: evaluate why operating a serving queue near saturation creates tail-latency risk even when average utilization looks cost-efficient.",
+     "type": "single",
+     "options": [
+      "High utilization permanently erases model weights from GPU memory registers.",
+      "In stochastic serving systems, queue waiting times grow asymptotically toward infinity as utilization approaches 100%, causing minor traffic fluctuations to trigger massive tail-latency spikes and widespread SLO breaches.",
+      "Running above 90% utilization forces the operating system to switch from 64-bit to 32-bit execution mode.",
+      "Modern GPUs automatically shut down power when utilization exceeds 80% for more than 10 seconds."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Evaluating an online serving system using mean (average) latency is sufficient for capacity planning, because if the average latency is well below the SLA target, user-facing requests are guaranteed to experience good performance.",
+     "explanation": "False. Average latency conceals extreme tail outliers (p95, p99, p99.9) where requests experience severe queueing delays. In modern microservice architectures where a user query fans out to dozens of downstream models in parallel, the slowest component determines overall user latency, meaning a low average latency can co-exist with a large fraction of users experiencing SLA violations.",
+     "hint": "Think about: justify why tail-latency metrics (p99/p99.9) must be used over mean latency for evaluating online serving systems.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An engineering team increases the dynamic batch size on their vision model serving nodes from 8 to 64. Offline peak throughput doubles, and production traces show batch-formation wait time grew sharply after the change. User-facing p99 latency violations then increase by 40%. What fallacy explains this outcome?",
+     "explanation": "The correct answer is D. The added trace detail matters: if batch-formation wait rose sharply, the doubled offline throughput did not come for free in the online path. Larger batches can improve hardware efficiency, but they also make early arrivals wait longer before execution, and that extra waiting can dominate p99 latency even when the per-batch compute is efficient. The corruption, universal Tensor Core cutoff, and reduced-arithmetic-intensity explanations do not match the serving mechanism described here.",
+     "hint": "Think about: evaluate how batch-formation delay can turn an offline throughput win into an online p99 latency regression.",
+     "type": "single",
+     "options": [
+      "Model weights become corrupted when executed with batch sizes greater than 16.",
+      "GPU Tensor Cores disable INT8 acceleration when batch size exceeds 32.",
+      "High batch sizes reduce arithmetic intensity on the GPU Roofline model.",
+      "The fallacy that larger serving batches always improve throughput without affecting latency; early-arriving requests can spend too much of the latency budget waiting in the batcher before execution."
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Describe the pitfall of 'Calibrating quantization ranges with unrepresentative data,' and explain how it can lead to silent production failure despite passing offline validation checks.",
+   "md": "PTQ calibration chooses quantization ranges from the activation statistics seen in the calibration set. If that data is cleaner or from a different domain than production traffic, the resulting scales may clip important live activations or represent them too coarsely, degrading prediction quality without causing crashes or latency alarms. The failure can stay hidden if offline validation used similarly unrepresentative data, because both calibration and evaluation would miss the same production patterns. The practical consequence is that quantized models need calibration and quality checks on data that matches the real serving distribution as closely as possible."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate why operating a serving queue near saturation creates tail-latency risk even when average utilization looks cost-efficient.",
+    "You can now justify why tail-latency metrics (p99/p99.9) must be used over mean latency for evaluating online serving systems.",
+    "You can now analyze how cold-start delays amplify tail latency during autoscaling events by withholding new capacity during bursts.",
+    "You can now evaluate how batch-formation delay can turn an offline throughput win into an online p99 latency regression."
+   ]
+  }
+ ]
+}

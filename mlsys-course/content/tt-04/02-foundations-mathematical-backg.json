@@ -1,0 +1,465 @@
+{
+ "title": "Foundations: Mathematical Background",
+ "summary": "TinyTorch losses: Foundations: Mathematical Background",
+ "source": {
+  "chapter": "tt-04",
+  "sections": [
+   "Foundations: Mathematical Background"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: Mathematical Background\n\n### Mean Squared Error (MSE)\nThe foundation of regression, MSE measures the average squared distance between predictions and targets across all \\$N\\$ elements:\n\n\\$\\$\\mathcal{L}_{\\text{MSE}}(\\mathbf{\\hat{y}}, \\mathbf{y}) = \\frac{1}{N} \\sum_{i=1}^{N} (\\hat{y}_i - y_i)^2\\$\\$\n\n**Why square the differences?**\n- Makes all errors strictly positive (no cancellation between positive and negative residuals)\n- Heavily penalizes large errors (error of 2 produces penalty of 4; error of 10 produces penalty of 100)\n- Yields a linear, smooth gradient \\$\\nabla_{\\hat{y}} \\mathcal{L} = \\frac{2}{N}(\\mathbf{\\hat{y}} - \\mathbf{y})\\$ ideal for gradient descent\n\n### Cross-Entropy Loss\nFor multi-class classification over \\$C\\$ mutually exclusive classes, we measure the negative log-likelihood of the true target class \\$y^* \\in \\{0, \\dots, C-1\\}\\$:\n\n\\$\\$\\mathcal{L}_{\\text{CE}}(\\mathbf{z}, y^*) = -\\log\\left(\\frac{e^{z_{y^*}}}{\\sum_{j=0}^{C-1} e^{z_j}}\\right) = -z_{y^*} + \\log\\left(\\sum_{j=0}^{C-1} e^{z_j}\\right)\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "**The Log-Sum-Exp Trick**:\nDirect computation of softmax risks immediate IEEE 754 float32 overflow when \\$z_j > 88.72\\$. Factoring out the maximum logit \\$c = \\max_k z_k\\$ guarantees numerical stability:\n\n\\$\\$\\log \\sum_{j=0}^{C-1} e^{z_j} = \\log \\sum_{j=0}^{C-1} e^{z_j - c} \\cdot e^c = c + \\log \\left(\\sum_{j=0}^{C-1} e^{z_j - c}\\right)\\$\\$\n\n\\$\\$\\operatorname{log\\_softmax}(\\mathbf{z})_i = (z_i - c) - \\log \\left(\\sum_{j=0}^{C-1} e^{z_j - c}\\right)\\$\\$\n\nBecause \\$z_j - c \\le 0\\$ for all \\$j\\$, every exponent \\$e^{z_j - c} \\in (0, 1]\\$, completely eliminating the possibility of overflow.\n\n### Binary Cross-Entropy\nA specialized formulation where targets are binary labels \\$y \\in \\{0, 1\\}\\$ and predictions are probabilities \\$\\hat{y} \\in [0, 1]\\$:\n\n\\$\\$\\mathcal{L}_{\\text{BCE}}(\\hat{y}, y) = -\\big[y \\ln(\\hat{y}) + (1 - y) \\ln(1 - \\hat{y})\\big]\\$\\$\n\nThe mathematics naturally handles both positive and negative cases in a single unified equation."
+  },
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: Building Loss Functions\n\nLet's implement our loss functions with proper numerical stability and clear educational structure.\n\n### Log-Softmax: The Numerically Stable Foundation\n\nBefore implementing loss functions, we need a reliable way to compute log-softmax. This function is the numerically stable backbone of classification losses.\n\n### Why Log-Softmax Matters\n\nNaive softmax exponentiates raw logits directly, causing catastrophic float32 overflow:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Metric / Stage",
+    "Naive Direct Exponentiation",
+    "Numerically Stable Log-Sum-Exp"
+   ],
+   "rows": [
+    [
+     "**Input Logits \\$\\mathbf{z}\\$**",
+     "\\$[100, 200, 300]\\$",
+     "\\$[100, 200, 300]\\$"
+    ],
+    [
+     "**Maximum \\$c = \\max(\\mathbf{z})\\$**",
+     "*(Unused)*",
+     "\\$c = 300\\$"
+    ],
+    [
+     "**Shifted Logits \\$\\mathbf{z} - c\\$**",
+     "*(Unused)*",
+     "\\$[-200, -100, 0]\\$"
+    ],
+    [
+     "**Exponentials \\$e^{\\mathbf{z}}\\$**",
+     "\\$[e^{100}, e^{200}, e^{300}] \\to [\\infty, \\infty, \\infty]\\$",
+     "\\$[e^{-200}, e^{-100}, e^0] \\to [0, 0, 1.0]\\$"
+    ],
+    [
+     "**Sum of Exponentials**",
+     "\\$\\sum = \\infty\\$",
+     "\\$\\sum \\approx 1.0\\$"
+    ],
+    [
+     "**Normalization / Log**",
+     "\\$\\infty / \\infty \\to \\mathbf{\\text{NaN}}\\$ ❌",
+     "\\$0 - \\ln(1.0) = 0\\$ ✅"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Both yield mathematically identical results in exact arithmetic, but the stabilized version never encounters exponential overflow!"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class LogSoftmax(Function):\n    \"\"\"\n    The log-softmax operation along an axis. forward() works on NumPy arrays; Module 06 adds backward().\n    \"\"\"\n    dim = -1\n\n    def forward(self, x):\n        \"\"\"\n        Compute log-softmax with numerical stability.\n\n        TODO: Implement numerically stable log-softmax using the log-sum-exp trick\n\n        APPROACH:\n        1. Find maximum along dimension (for stability)\n        2. Subtract max from input (prevents overflow)\n        3. Compute log(sum(exp(shifted_input)))\n        4. Return input - max - log_sum_exp\n\n        EXAMPLE:\n        >>> logits = Tensor([[1.0, 2.0, 3.0], [0.1, 0.2, 0.9]])\n        >>> result = log_softmax(logits, dim=-1)\n        >>> print(result.shape)\n        (2, 3)\n\n        HINT: Use np.max(x, axis=dim, keepdims=True) to preserve dimensions\n        \"\"\"\n        # Step 1: Find max along dimension for numerical stability\n        max_vals = np.max(x, axis=self.dim, keepdims=True)\n\n        # Step 2: Subtract max to prevent overflow\n        shifted = x - max_vals\n\n        # Step 3: Compute log(sum(exp(shifted)))\n        log_sum_exp = np.log(np.sum(np.exp(shifted), axis=self.dim, keepdims=True))\n\n        # Step 4: Return log_softmax = input - max - log_sum_exp\n        result = x - max_vals - log_sum_exp\n\n        return result\n\n\ndef log_softmax(x: Tensor, dim: int = -1) -> Tensor:\n    \"\"\"Compute log-softmax of a Tensor along dim (see LogSoftmax).\"\"\"\n    return LogSoftmax.apply(x, dim=dim)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Log-Softmax\n\nThis test validates our log_softmax function works correctly with numerical stability.\n\n**What we're testing**: Numerical stability and correctness of log-softmax computation\n**Why it matters**: Foundation for cross-entropy loss - must handle large values without overflow\n**Expected**: Stable results even with extreme inputs, softmax sums to 1"
+  },
+  {
+   "type": "text",
+   "md": "### MSELoss: Measuring Continuous Prediction Quality\n\nMean Squared Error is the workhorse of regression problems. It measures how far your continuous predictions are from the true values.\n\n### When to Use MSE\n\n**Perfect for:**\n- House price prediction (200k vs 195k USD)\n- Temperature forecasting (25°C vs 23°C)\n- Stock price prediction (150 vs 148 USD)\n- Any continuous value where \"distance\" matters\n\n### How MSE Shapes Learning\n\n\\$\\$\\mathcal{L}_{\\text{MSE}}(\\hat{y}, y^*) = (\\hat{y} - y^*)^2 \\quad \\text{with target } y^* = 100\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Candidate Prediction \\$\\hat{y}\\$",
+    "\\$80\\$",
+    "\\$90\\$",
+    "\\$95\\$",
+    "\\$100\\$",
+    "\\$105\\$",
+    "\\$110\\$",
+    "\\$120\\$"
+   ],
+   "rows": [
+    [
+     "**Residual Error (\\$e = \\hat{y} - y^*\\$)**",
+     "\\$-20\\$",
+     "\\$-10\\$",
+     "\\$-5\\$",
+     "\\$0\\$",
+     "\\$+5\\$",
+     "\\$+10\\$",
+     "\\$+20\\$"
+    ],
+    [
+     "**Squared Loss (\\$e^2\\$)**",
+     "\\$400\\$",
+     "\\$100\\$",
+     "\\$25\\$",
+     "\\$0\\$",
+     "\\$25\\$",
+     "\\$100\\$",
+     "\\$400\\$"
+    ],
+    [
+     "**Gradient Magnitude (\\$\\lvert 2e \\rvert\\$)**",
+     "\\$40\\$",
+     "\\$20\\$",
+     "\\$10\\$",
+     "\\$0\\$",
+     "\\$10\\$",
+     "\\$20\\$",
+     "\\$40\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "*Quadratic penalty: Large errors are punished quadratically harder than small errors, providing strong restoring forces during gradient descent.*\n\n### Why Square the Errors?\n\n1. **Positive penalties**: \\$(-10)^2 = 100\\$, strictly identical to \\$(+10)^2 = 100\\$\n2. **Heavy punishment for large errors**: Error of \\$20 \\to\\$ penalty of \\$400\\$\n3. **Smooth gradients**: Quadratic function \\$\\nabla_e (e^2) = 2e\\$ is everywhere differentiable and continuous\n4. **Statistical foundation**: Corresponds to maximum likelihood estimation under Gaussian noise \\$\\mathcal{N}(0, \\sigma^2)\\$\n\n### MSE vs Other Regression Losses"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Loss Function",
+    "Mathematical Formulation",
+    "\\$e = \\pm 1\\$",
+    "\\$e = \\pm 5\\$",
+    "\\$e = \\pm 10\\$",
+    "Outlier Robustness"
+   ],
+   "rows": [
+    [
+     "**Mean Squared Error (MSE)**",
+     "\\$\\mathcal{L}(e) = e^2\\$",
+     "\\$1.0\\$",
+     "\\$25.0\\$",
+     "\\$100.0\\$",
+     "Low (strongly influenced by outliers)"
+    ],
+    [
+     "**Mean Absolute Error (MAE)**",
+     "\\$\\mathcal{L}(e) = \\lvert e \\rvert\\$",
+     "\\$1.0\\$",
+     "\\$5.0\\$",
+     "\\$10.0\\$",
+     "High (constant gradient magnitude \\$\\pm 1\\$)"
+    ],
+    [
+     "**Huber Loss (\\$\\delta = 1.0\\$)**",
+     "\\$\\frac{1}{2}e^2 \\text{ if } \\lvert e \\rvert \\le 1 \\text{ else } \\lvert e \\rvert - \\frac{1}{2}\\$",
+     "\\$0.5\\$",
+     "\\$4.5\\$",
+     "\\$9.5\\$",
+     "Balanced (quadratic near 0, linear tails)"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class MSEFunction(Function):\n    \"\"\"\n    The MSELoss operation. forward() works on NumPy arrays; Module 06 adds backward().\n    \"\"\"\n\n    def forward(self, predictions, targets):\n        \"\"\"\n        Compute mean squared error between predictions and targets.\n\n        TODO: Implement MSE loss calculation\n\n        APPROACH:\n        1. Require matching, nonempty shapes: each prediction has one target\n        2. Compute difference: predictions - targets\n        3. Square the differences: diff²\n        4. Take mean across all elements\n\n        EXAMPLE:\n        >>> loss_fn = MSELoss()\n        >>> predictions = Tensor([1.0, 2.0, 3.0])\n        >>> targets = Tensor([1.5, 2.5, 2.8])\n        >>> loss = loss_fn(predictions, targets)\n        >>> print(f\"MSE Loss: {loss.data:.4f}\")\n        MSE Loss: 0.1800\n\n        HINTS:\n        - Use (predictions - targets) for element-wise difference\n        - Square with **2 or np.power(diff, 2)\n        - Use np.mean() to average over all elements\n        \"\"\"\n        if predictions.shape != targets.shape or predictions.size == 0:\n            raise ValueError(\"MSELoss requires matching, nonempty prediction and target shapes\")\n\n        # Step 1: Compute element-wise difference\n        diff = predictions - targets\n\n        # Step 2: Square the differences\n        squared_diff = diff ** 2\n\n        # Step 3: Take mean across all elements\n        mse = np.mean(squared_diff)\n\n        return mse\n\n\nclass MSELoss:\n    \"\"\"Mean Squared Error loss for regression tasks.\"\"\"\n\n    def __init__(self):\n        \"\"\"Initialize the loss function.\"\"\"\n        pass\n\n    def forward(self, predictions: Tensor, targets: Tensor) -> Tensor:\n        \"\"\"Compute the loss through its operation, so Module 06 will be able to record it for gradients.\"\"\"\n        return MSEFunction.apply(predictions, targets)\n\n    def __call__(self, predictions: Tensor, targets: Tensor) -> Tensor:\n        \"\"\"Allows the loss function to be called like a function.\"\"\"\n        return self.forward(predictions, targets)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: MSE Loss\n\nThis test validates our MSELoss implementation with various prediction scenarios.\n\n**What we're testing**: Mean squared error calculation with perfect and imperfect predictions\n**Why it matters**: MSE is the foundation for regression - must be mathematically correct\n**Expected**: Zero loss for perfect predictions, positive loss for errors, non-negative always"
+  },
+  {
+   "type": "text",
+   "md": "### CrossEntropyLoss: Measuring Classification Confidence\n\nCross-entropy loss is the gold standard for multi-class classification. It measures how wrong your probability predictions are and heavily penalizes confident mistakes.\n\n### When to Use Cross-Entropy\n\n**Perfect for:**\n- Image classification (cat, dog, bird)\n- Text classification (spam, ham, promotion)\n- Language modeling (next word prediction)\n- Any problem with mutually exclusive classes\n\n### Understanding Cross-Entropy Through Examples\n\nConsider a 3-class vision task across classes: \\$\\text{Class } 0 \\to \\text{Cat}\\$, \\$\\text{Class } 1 \\to \\text{Dog}\\$, \\$\\text{Class } 2 \\to \\text{Bird}\\$, where the true target is \\$y^* = 0\\$ (Cat):"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Scenario Case",
+    "Logits \\$\\mathbf{z}\\$",
+    "Softmax \\$\\mathbf{p} = \\sigma(\\mathbf{z})\\$",
+    "True Label \\$y^*\\$",
+    "Cross-Entropy Loss \\$-\\ln(p_0)\\$",
+    "Learning Consequence"
+   ],
+   "rows": [
+    [
+     "**Case 1: Correct & Confident**",
+     "\\$[5.0, 1.0, 0.1]\\$",
+     "\\$[0.975, 0.018, 0.007]\\$",
+     "Cat (0)",
+     "\\$\\mathbf{0.025}\\$ ✅",
+     "Negligible error signal; weights remain intact"
+    ],
+    [
+     "**Case 2: Correct but Uncertain**",
+     "\\$[1.1, 1.0, 0.9]\\$",
+     "\\$[0.367, 0.332, 0.301]\\$",
+     "Cat (0)",
+     "\\$\\mathbf{1.002}\\$ ⚠️",
+     "Significant push (\\$p_0 - 1 \\approx -0.633\\$) to increase confidence"
+    ],
+    [
+     "**Case 3: Wrong & Confident**",
+     "\\$[0.1, 5.0, 1.0]\\$",
+     "\\$[0.007, 0.975, 0.018]\\$",
+     "Cat (0)",
+     "\\$\\mathbf{4.925}\\$ ❌",
+     "Massive error signal (\\$p_0 - 1 \\approx -0.993\\$) driving rapid correction"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "*Every loss above is computed from the exact softmax, not from the rounded probability column. Case 3's \\$p_0\\$ is \\$0.0072596\\$, so \\$-\\ln p_0 = 4.925\\$; rounding to \\$0.007\\$ first would report \\$4.962\\$. Round for display, never before the arithmetic.*\n\n### Cross-Entropy's Learning Signal\n\n\\$\\$\\frac{\\partial \\mathcal{L}_{\\text{CE}}}{\\partial z_i} = p_i - y_i \\quad \\text{where } y_i = \\mathbf{1}[i = y^*]\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Prediction State",
+    "True Class Alignment",
+    "Gradient Push \\$(p_i - y_i)\\$",
+    "Learning Signal Directive"
+   ],
+   "rows": [
+    [
+     "**Confident High Probability**",
+     "Correct (\\$y_i = 1, p_i \\approx 1\\$)",
+     "\\$\\approx 0\\$",
+     "\"Converged, preserve current weights\""
+    ],
+    [
+     "**Uncertain Probability**",
+     "Correct (\\$y_i = 1, p_i \\approx 0.33\\$)",
+     "\\$\\approx -0.67\\$",
+     "\"Step aggressively toward higher confidence\""
+    ],
+    [
+     "**Confident High Probability**",
+     "Wrong (\\$y_i = 0, p_i \\approx 1\\$)",
+     "\\$\\approx +1.0\\$",
+     "\"Maximum emergency suppression of this logit\""
+    ],
+    [
+     "**Uncertain Probability**",
+     "Wrong (\\$y_i = 0, p_i \\approx 0.33\\$)",
+     "\\$\\approx +0.33\\$",
+     "\"Gradually suppress probability\""
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Why Cross-Entropy Works So Well\n\n1. **Probabilistic interpretation**: Directly measures negative log-likelihood under multinomial distribution\n2. **Linear gradient in logit space**: Softmax and log-likelihood cancel elegantly: \\$\\nabla_{\\mathbf{z}} \\mathcal{L} = \\mathbf{p} - \\mathbf{y}\\$ (no vanishing gradient near saturation!)\n3. **Smooth convex optimization**: Log-sum-exp is globally convex in logit space\n4. **Information theory**: Minimizes the Kullback-Leibler divergence \\$D_{\\text{KL}}(p_{\\text{data}} \\parallel p_{\\text{model}})\\$\n\n### Multi-Class vs Binary Classification"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Architectural Property",
+    "Multi-Class Classification (\\$C \\ge 3\\$)",
+    "Binary Classification (\\$C = 2\\$)"
+   ],
+   "rows": [
+    [
+     "**Target Representation**",
+     "Class index \\$y^* \\in \\{0, \\dots, C-1\\}\\$ (int64)",
+     "Binary indicator \\$y \\in \\{0.0, 1.0\\}\\$ (float32)"
+    ],
+    [
+     "**Model Output Shape**",
+     "\\$(B, C)\\$ unnormalized logits",
+     "\\$(B,)\\$ or \\$(B, 1)\\$ probability"
+    ],
+    [
+     "**Activation Function**",
+     "\\$\\operatorname{Softmax}(\\mathbf{z})_i = \\frac{e^{z_i}}{\\sum_j e^{z_j}}\\$",
+     "\\$\\operatorname{Sigmoid}(z) = \\frac{1}{1 + e^{-z}}\\$"
+    ],
+    [
+     "**Normalization Constraint**",
+     "\\$\\sum_{c=1}^C p_c = 1.0\\$",
+     "\\$p + (1 - p) = 1.0\\$"
+    ],
+    [
+     "**TinyTorch Module Class**",
+     "`CrossEntropyLoss`",
+     "`BinaryCrossEntropyLoss`"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 82 lines of code (starting with `class CrossEntropyFunction(Function):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Cross-Entropy Loss\n\nThis test validates our CrossEntropyLoss implementation with various confidence levels.\n\n**What we're testing**: Cross-entropy loss with confident correct, uncertain, and confident wrong predictions\n**Why it matters**: CrossEntropy is the gold standard for classification - must handle all confidence levels\n**Expected**: Low loss for confident correct, high loss for confident wrong, numerical stability"
+  },
+  {
+   "type": "text",
+   "md": "### BinaryCrossEntropyLoss: Measuring Yes/No Decision Quality\n\nBinary Cross-Entropy is specialized for yes/no decisions. It's like regular cross-entropy but optimized for the special case of exactly two classes.\n\n### When to Use Binary Cross-Entropy\n\n**Perfect for:**\n- Spam detection (spam vs not spam)\n- Medical diagnosis (disease vs healthy)\n- Fraud detection (fraud vs legitimate)\n- Content moderation (toxic vs safe)\n- Any two-class decision problem\n\n### Understanding Binary Cross-Entropy\n\n\\$\\$\\mathcal{L}_{\\text{BCE}}(\\hat{y}, y) = - \\big[ y \\ln(\\hat{y}) + (1 - y) \\ln(1 - \\hat{y}) \\big]\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Prediction (\\$\\hat{y}\\$)",
+    "True Target \\$y = 1\\$ (Positive Class)",
+    "True Target \\$y = 0\\$ (Negative Class)"
+   ],
+   "rows": [
+    [
+     "**Model predicts \\$\\hat{y} \\to 1.0\\$ (\"Yes\")**",
+     "**True Positive (TP)**: \\$\\mathcal{L} = -\\ln(1.0) = 0\\$ (Reward)",
+     "**False Positive (FP)**: \\$\\mathcal{L} = -\\ln(0) \\to +\\infty\\$ (Severe Penalty)"
+    ],
+    [
+     "**Model predicts \\$\\hat{y} \\to 0.0\\$ (\"No\")**",
+     "**False Negative (FN)**: \\$\\mathcal{L} = -\\ln(0) \\to +\\infty\\$ (Severe Penalty)",
+     "**True Negative (TN)**: \\$\\mathcal{L} = -\\ln(1.0) = 0\\$ (Reward)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Binary Cross-Entropy Behavior Examples\n\nConsider email spam detection where label \\$y = 1\\$ denotes spam and \\$y = 0\\$ denotes legitimate ham:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Email Prediction Scenario",
+    "Predicted \\$\\hat{y}\\$",
+    "True Label \\$y\\$",
+    "Evaluated BCE Loss",
+    "Optimization Feedback"
+   ],
+   "rows": [
+    [
+     "**Case 1: Confident Spam Detection**",
+     "\\$0.99\\$",
+     "\\$1\\$ (Spam)",
+     "\\$-\\ln(0.99) \\approx \\mathbf{0.010}\\$ ✅",
+     "Negligible error signal; spam filter verified"
+    ],
+    [
+     "**Case 2: Uncertain Classification**",
+     "\\$0.51\\$",
+     "\\$0\\$ (Ham)",
+     "\\$-\\ln(1 - 0.51) \\approx \\mathbf{0.713}\\$ ⚠️",
+     "Substantial gradient push to classify email as ham"
+    ],
+    [
+     "**Case 3: Catastrophic False Alarm**",
+     "\\$0.95\\$",
+     "\\$0\\$ (Ham)",
+     "\\$-\\ln(1 - 0.95) \\approx \\mathbf{2.996}\\$ ❌",
+     "Massive error signal; urgent suppression of spam logit"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Binary vs Multi-Class Cross-Entropy"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Property",
+    "Binary Cross-Entropy (`BCE`)",
+    "Multi-Class Cross-Entropy (`CE`)"
+   ],
+   "rows": [
+    [
+     "**Output Dimension**",
+     "Single probability scalar \\$\\hat{y} \\in [0, 1]\\$",
+     "Vector of probabilities \\$\\mathbf{p} \\in [0, 1]^C\\$"
+    ],
+    [
+     "**Mathematical Formula**",
+     "\\$-\\big[y \\ln(\\hat{y}) + (1-y)\\ln(1-\\hat{y})\\big]\\$",
+     "\\$-\\sum_{c=1}^C y_c \\ln(p_c) = -\\ln(p_{y^*})\\$"
+    ],
+    [
+     "**Class Topology**",
+     "Independent binary Bernoulli trials",
+     "Mutually exclusive Multinomial distribution"
+    ],
+    [
+     "**Activation Pairing**",
+     "Logistic Sigmoid \\$\\sigma(z) = \\frac{1}{1 + e^{-z}}\\$",
+     "Softmax \\$\\sigma(\\mathbf{z})_i = \\frac{e^{z_i}}{\\sum_j e^{z_j}}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Loss Landscape and Epsilon Boundary Clamping\n\nTo prevent \\$\\ln(0) \\to -\\infty\\$ and floating-point `NaN` values, our implementation clamps predicted probabilities to the safe range \\$[\\varepsilon, 1 - \\varepsilon]\\$ where \\$\\varepsilon = 10^{-7}\\$:\n\n\\$\\$\\hat{y}_{\\text{clamped}} = \\operatorname{clip}(\\hat{y}, \\, \\varepsilon, \\, 1 - \\varepsilon)\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Unclamped Prediction \\$\\hat{y}\\$",
+    "Target \\$y = 1\\$ Clamped Loss",
+    "Target \\$y = 0\\$ Clamped Loss",
+    "Float Status"
+   ],
+   "rows": [
+    [
+     "\\$1.0000\\$",
+     "\\$-\\ln(1 - 10^{-7}) \\approx 10^{-7}\\$",
+     "\\$-\\ln(1.192 \\times 10^{-7}) \\approx 15.942\\$",
+     "Finite IEEE 754 float32 ✅"
+    ],
+    [
+     "\\$0.9000\\$",
+     "\\$-\\ln(0.9) \\approx 0.105\\$",
+     "\\$-\\ln(0.1) \\approx 2.303\\$",
+     "Finite IEEE 754 float32 ✅"
+    ],
+    [
+     "\\$0.5000\\$",
+     "\\$-\\ln(0.5) \\approx 0.693\\$",
+     "\\$-\\ln(0.5) \\approx 0.693\\$",
+     "Finite IEEE 754 float32 ✅"
+    ],
+    [
+     "\\$0.1000\\$",
+     "\\$-\\ln(0.1) \\approx 2.303\\$",
+     "\\$-\\ln(0.9) \\approx 0.105\\$",
+     "Finite IEEE 754 float32 ✅"
+    ],
+    [
+     "\\$0.0000\\$",
+     "\\$-\\ln(10^{-7}) \\approx 16.118\\$",
+     "\\$-\\ln(1 - 10^{-7}) \\approx 10^{-7}\\$",
+     "Finite IEEE 754 float32 ✅"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The first and last rows look like mirror images but are not. Tensor stores float32, whose\nspacing just below \\$1.0\\$ is about \\$6 \\times 10^{-8}\\$, so the upper clamp \\$1 - \\varepsilon\\$\nrounds to \\$0.9999999\\$ and its complement comes back as \\$1.192 \\times 10^{-7}\\$ rather than\n\\$10^{-7}\\$. The maximum loss is therefore \\$15.942\\$ against \\$y = 0\\$ and \\$16.118\\$ against\n\\$y = 1\\$. The clamp bounds the loss in both directions, which is the point, but the bound\nyou get is set by the format, not by the \\$\\varepsilon\\$ you wrote down."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 69 lines of code (starting with `class BinaryCrossEntropyFunction(Function):`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Binary Cross-Entropy Loss\n\nThis test validates our BinaryCrossEntropyLoss implementation with binary classification scenarios.\n\n**What we're testing**: Binary cross-entropy with perfect, worst, and boundary predictions\n**Why it matters**: BCE is essential for binary classification - must handle edge cases\n**Expected**: Low loss for correct predictions, high loss for wrong predictions, numerical stability at boundaries"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Foundations: Mathematical Background."
+   ]
+  }
+ ]
+}

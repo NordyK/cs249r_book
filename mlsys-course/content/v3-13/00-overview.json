@@ -1,0 +1,275 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v3-13",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Agent Evaluation** (Vol III). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Agent Evaluation, Purpose",
+   "md": "Evaluating an autonomous agent on final pass rates or aggregate benchmark scores conceals the failure modes that govern production reliability. A task may pass by serendipity while taking hazardous intermediate actions, or fail narrowly after executing dozens of sound steps, and a scalar score distinguishes neither outcome. The agent's own report that it finished is the weakest evidence available, and tests that run inside its workspace sit within reach of its edits."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Evaluation Problem",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "The Task Acceptance Contract",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Hermetic Evaluation Gyms",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Grading Trajectories",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Statistical Evaluation Rigor",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Fallacies and Pitfalls",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Exercises",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Task acceptance contract**",
+     "A trial is credited as an accepted task only when evidence on the exact candidate bytes satisfies its declared outcome, process, resource, and residual-duty criteria, and every verdict is pass, fail, pending, or unknown, with no default to pass."
+    ],
+    [
+     "**Hermetic evaluation gym**",
+     "Comparable trials need a hermetic boundary that declares which dependencies are provisioned, simulated, or blocked, a versioned task fixture, and a reset that leaves no state for the next trial."
+    ],
+    [
+     "**Grader isolation**",
+     "Sealed tests protect evidence only if a trusted controller outside both the live agent's reach and the submitted artifact's execution keeps the reference solutions, hidden tests, and score store and binds each verdict to the artifact hash."
+    ],
+    [
+     "**Grader calibration**",
+     "A grader is characterized only against an independent reference assessment, and its false-acceptance rate and the failure share among accepted results answer different questions."
+    ],
+    [
+     "**Task sampling and score intervals**",
+     "Repeats shrink only the run-variance term while new tasks shrink both, so evaluation samples tasks rather than runs and reports score intervals instead of point estimates."
+    ],
+    [
+     "**Paired comparison**",
+     "Configurations are compared on the same sampled tasks with outcome pairs kept together, which cuts the variance of the difference, and noninferiority margins are planned before data."
+    ],
+    [
+     "**Matched-budget evaluation**",
+     "Policies are compared on a fixed task distribution, criteria, and resource envelope, and budgeted acceptance and observed cost per accepted task charge every initiated trial."
+    ],
+    [
+     "**Contamination**",
+     "Benchmark tasks or solutions that appeared in pretraining corpora or retrieval indices before the trial invalidate the claim the benchmark supports, and no similarity threshold proves independence."
+    ],
+    [
+     "**Repeated-run consistency**",
+     "pass@k measures candidate availability while pass^k = E[p_i^k] measures whether all k runs pass, and the two diverge as k grows."
+    ],
+    [
+     "**Coverage rule**",
+     "A check certifies only the behavior its assertions exercise, so acceptance criteria name what each check covers and what it leaves unverified."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v3-13-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Task acceptance contract",
+     "back": "A trial is credited as an accepted task only when evidence on the exact candidate bytes satisfies its declared outcome, process, resource, and residual-duty criteria, and every verdict is pass, fail, pending, or unknown, with no default to pass."
+    },
+    {
+     "front": "Hermetic evaluation gym",
+     "back": "Comparable trials need a hermetic boundary that declares which dependencies are provisioned, simulated, or blocked, a versioned task fixture, and a reset that leaves no state for the next trial."
+    },
+    {
+     "front": "Grader isolation",
+     "back": "Sealed tests protect evidence only if a trusted controller outside both the live agent's reach and the submitted artifact's execution keeps the reference solutions, hidden tests, and score store and binds each verdict to the artifact hash."
+    },
+    {
+     "front": "Grader calibration",
+     "back": "A grader is characterized only against an independent reference assessment, and its false-acceptance rate and the failure share among accepted results answer different questions."
+    },
+    {
+     "front": "Task sampling and score intervals",
+     "back": "Repeats shrink only the run-variance term while new tasks shrink both, so evaluation samples tasks rather than runs and reports score intervals instead of point estimates."
+    },
+    {
+     "front": "Paired comparison",
+     "back": "Configurations are compared on the same sampled tasks with outcome pairs kept together, which cuts the variance of the difference, and noninferiority margins are planned before data."
+    },
+    {
+     "front": "Matched-budget evaluation",
+     "back": "Policies are compared on a fixed task distribution, criteria, and resource envelope, and budgeted acceptance and observed cost per accepted task charge every initiated trial."
+    },
+    {
+     "front": "Contamination",
+     "back": "Benchmark tasks or solutions that appeared in pretraining corpora or retrieval indices before the trial invalidate the claim the benchmark supports, and no similarity threshold proves independence."
+    },
+    {
+     "front": "Repeated-run consistency",
+     "back": "pass@k measures candidate availability while pass^k = E[p_i^k] measures whether all k runs pass, and the two diverge as k grows."
+    },
+    {
+     "front": "Coverage rule",
+     "back": "A check certifies only the behavior its assertions exercise, so acceptance criteria name what each check covers and what it leaves unverified."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v3-13-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Task acceptance contract**?",
+     "options": [
+      "pass@k measures candidate availability while pass^k = E[p_i^k] measures whether all k runs pass, and the two diverge as k grows.",
+      "Sealed tests protect evidence only if a trusted controller outside both the live agent's reach and the submitted artifact's execution keeps the reference solutions, hidden tests, and score store and binds each verdict to the artifact hash.",
+      "A trial is credited as an accepted task only when evidence on the exact candidate bytes satisfies its declared outcome, process, resource, and residual-duty criteria, and every verdict is pass, fail, pending, or unknown, with no default to pass.",
+      "Configurations are compared on the same sampled tasks with outcome pairs kept together, which cuts the variance of the difference, and noninferiority margins are planned before data."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Task acceptance contract itself, not a neighbouring idea.",
+     "explanation": "**Task acceptance contract:** A trial is credited as an accepted task only when evidence on the exact candidate bytes satisfies its declared outcome, process, resource, and residual-duty criteria, and every verdict is pass, fail, pending, or unknown, with no default to pass."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Hermetic evaluation gym**?",
+     "options": [
+      "A check certifies only the behavior its assertions exercise, so acceptance criteria name what each check covers and what it leaves unverified.",
+      "Benchmark tasks or solutions that appeared in pretraining corpora or retrieval indices before the trial invalidate the claim the benchmark supports, and no similarity threshold proves independence.",
+      "Comparable trials need a hermetic boundary that declares which dependencies are provisioned, simulated, or blocked, a versioned task fixture, and a reset that leaves no state for the next trial.",
+      "Repeats shrink only the run-variance term while new tasks shrink both, so evaluation samples tasks rather than runs and reports score intervals instead of point estimates."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Hermetic evaluation gym itself, not a neighbouring idea.",
+     "explanation": "**Hermetic evaluation gym:** Comparable trials need a hermetic boundary that declares which dependencies are provisioned, simulated, or blocked, a versioned task fixture, and a reset that leaves no state for the next trial."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Grader isolation**?",
+     "options": [
+      "A trial is credited as an accepted task only when evidence on the exact candidate bytes satisfies its declared outcome, process, resource, and residual-duty criteria, and every verdict is pass, fail, pending, or unknown, with no default to pass.",
+      "Policies are compared on a fixed task distribution, criteria, and resource envelope, and budgeted acceptance and observed cost per accepted task charge every initiated trial.",
+      "Sealed tests protect evidence only if a trusted controller outside both the live agent's reach and the submitted artifact's execution keeps the reference solutions, hidden tests, and score store and binds each verdict to the artifact hash.",
+      "Comparable trials need a hermetic boundary that declares which dependencies are provisioned, simulated, or blocked, a versioned task fixture, and a reset that leaves no state for the next trial."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Grader isolation itself, not a neighbouring idea.",
+     "explanation": "**Grader isolation:** Sealed tests protect evidence only if a trusted controller outside both the live agent's reach and the submitted artifact's execution keeps the reference solutions, hidden tests, and score store and binds each verdict to the artifact hash."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Grader calibration**?",
+     "options": [
+      "A check certifies only the behavior its assertions exercise, so acceptance criteria name what each check covers and what it leaves unverified.",
+      "A trial is credited as an accepted task only when evidence on the exact candidate bytes satisfies its declared outcome, process, resource, and residual-duty criteria, and every verdict is pass, fail, pending, or unknown, with no default to pass.",
+      "Policies are compared on a fixed task distribution, criteria, and resource envelope, and budgeted acceptance and observed cost per accepted task charge every initiated trial.",
+      "A grader is characterized only against an independent reference assessment, and its false-acceptance rate and the failure share among accepted results answer different questions."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Grader calibration itself, not a neighbouring idea.",
+     "explanation": "**Grader calibration:** A grader is characterized only against an independent reference assessment, and its false-acceptance rate and the failure share among accepted results answer different questions."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Task sampling and score intervals**?",
+     "options": [
+      "Configurations are compared on the same sampled tasks with outcome pairs kept together, which cuts the variance of the difference, and noninferiority margins are planned before data.",
+      "A trial is credited as an accepted task only when evidence on the exact candidate bytes satisfies its declared outcome, process, resource, and residual-duty criteria, and every verdict is pass, fail, pending, or unknown, with no default to pass.",
+      "A check certifies only the behavior its assertions exercise, so acceptance criteria name what each check covers and what it leaves unverified.",
+      "Repeats shrink only the run-variance term while new tasks shrink both, so evaluation samples tasks rather than runs and reports score intervals instead of point estimates."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Task sampling and score intervals itself, not a neighbouring idea.",
+     "explanation": "**Task sampling and score intervals:** Repeats shrink only the run-variance term while new tasks shrink both, so evaluation samples tasks rather than runs and reports score intervals instead of point estimates."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Task acceptance contract: A trial is credited as an accepted task only when evidence on the exact candidate bytes satisfies its declared outcome, process, resource, and residual-duty criteria, and every verdict is pass, fail, pending, or unknown, with no default to pass.",
+    "Hermetic evaluation gym: Comparable trials need a hermetic boundary that declares which dependencies are provisioned, simulated, or blocked, a versioned task fixture, and a reset that leaves no state for the next trial.",
+    "Grader isolation: Sealed tests protect evidence only if a trusted controller outside both the live agent's reach and the submitted artifact's execution keeps the reference solutions, hidden tests, and score store and binds each verdict to the artifact hash.",
+    "Grader calibration: A grader is characterized only against an independent reference assessment, and its false-acceptance rate and the failure share among accepted results answer different questions."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Task acceptance contract",
+   "def": "A trial is credited as an accepted task only when evidence on the exact candidate bytes satisfies its declared outcome, process, resource, and residual-duty criteria, and every verdict is pass, fail, pending, or unknown, with no default to pass."
+  },
+  {
+   "term": "Hermetic evaluation gym",
+   "def": "Comparable trials need a hermetic boundary that declares which dependencies are provisioned, simulated, or blocked, a versioned task fixture, and a reset that leaves no state for the next trial."
+  },
+  {
+   "term": "Grader isolation",
+   "def": "Sealed tests protect evidence only if a trusted controller outside both the live agent's reach and the submitted artifact's execution keeps the reference solutions, hidden tests, and score store and binds each verdict to the artifact hash."
+  },
+  {
+   "term": "Grader calibration",
+   "def": "A grader is characterized only against an independent reference assessment, and its false-acceptance rate and the failure share among accepted results answer different questions."
+  },
+  {
+   "term": "Task sampling and score intervals",
+   "def": "Repeats shrink only the run-variance term while new tasks shrink both, so evaluation samples tasks rather than runs and reports score intervals instead of point estimates."
+  },
+  {
+   "term": "Paired comparison",
+   "def": "Configurations are compared on the same sampled tasks with outcome pairs kept together, which cuts the variance of the difference, and noninferiority margins are planned before data."
+  },
+  {
+   "term": "Matched-budget evaluation",
+   "def": "Policies are compared on a fixed task distribution, criteria, and resource envelope, and budgeted acceptance and observed cost per accepted task charge every initiated trial."
+  },
+  {
+   "term": "Contamination",
+   "def": "Benchmark tasks or solutions that appeared in pretraining corpora or retrieval indices before the trial invalidate the claim the benchmark supports, and no similarity threshold proves independence."
+  },
+  {
+   "term": "Repeated-run consistency",
+   "def": "pass@k measures candidate availability while pass^k = E[p_i^k] measures whether all k runs pass, and the two diverge as k grows."
+  },
+  {
+   "term": "Coverage rule",
+   "def": "A check certifies only the behavior its assertions exercise, so acceptance criteria name what each check covers and what it leaves unverified."
+  }
+ ]
+}

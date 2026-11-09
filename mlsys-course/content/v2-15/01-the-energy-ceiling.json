@@ -1,0 +1,73 @@
+{
+ "title": "The Energy Ceiling",
+ "summary": "Classify energy and power delivery as physical system constraints rather than financial or reporting concerns.",
+ "source": {
+  "chapter": "v2-15",
+  "sections": [
+   "The Energy Ceiling"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Classify energy and power delivery as physical system constraints rather than financial or reporting concerns\n- Calculate scenario emissions and compare feasible placement and algorithmic interventions under a declared accounting boundary\n- Evaluate the claim that hardware efficiency scaling alone can offset exponential growth in AI compute demand\n- Explain how energy storage buffers synchronized training load changes and identify the measurements needed to size it"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Sustainable AI, § The Energy Ceiling",
+   "md": "A model can be secure against adversaries and robust under distribution shift yet still fail if the available grid cannot power its accelerators or the facility cannot cool them. **Sustainability** begins at that boundary, where accuracy, latency, and reliability are no longer enough because the system must also fit within power, cooling, water, carbon, and hardware lifetime budgets. Every operation a model performs is paid for in energy, and power density sets the ceiling on data-center computational capacity."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: sustainability as a physical ceiling rather than a reporting concern; geographic carbon intensity arithmetic; hardware efficiency gains versus compute growth gap; grid transient dynamics during synchronized distributed training."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A research team plans a 10,000 MWh training run, measured as facility electricity. Quebec and Poland both meet its capacity, data-access, quality, and deadline requirements, and transfer overhead is negligible. The stated grid factors are approximately 20 and 820 grams of CO2 per kWh, respectively, on a common boundary. An algorithmic change would reduce facility energy in Poland by 15 percent at unchanged quality. Calculate the emissions under these alternatives and justify which offers the larger reduction in this scenario.",
+   "md": "At the supplied factors, Quebec emits 200 tonnes of CO2 and Poland emits 8,200 tonnes. The algorithmic change in Poland lowers that result to 6,970 tonnes, so Quebec offers the larger reduction among these alternatives. This conclusion depends on the stated equal-energy baseline and feasible placements; a regional intensity ratio alone does not rank unmeasured interventions or establish the effect of shifting actual grid demand."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-15-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A hyperscaler plans a 500 MW campus for a new foundation model cluster, but the local utility interconnect approval is capped at 320 MW for the next three years. The organization's capital reserves could cover the electricity cost multiple times over. Which framing best captures why sustainable AI treats energy as a first-class engineering constraint rather than a financial or reporting concern?",
+     "explanation": "The correct answer is D. Power delivery and grid interconnect capacity impose a hard physical ceiling that capital cannot bypass on deployment timescales, making power an operational constraint that model architectures and cluster sizing must fit within. The chapter's central thesis is that sustainability is a physical capacity ceiling, not a financial or reporting line item: a 500 MW cluster facing a 320 MW interconnect cannot operate at planned scale regardless of capital expenditure. An administrative-reporting framing mistakes accounting disclosures for physical bounds; a financial-hedging framing treats capacity as a price risk rather than a physical limit; and a voluntary-offset framing ignores physical grid interconnect constraints.",
+     "hint": "Think about: classify energy and power delivery as physical system constraints rather than financial or reporting concerns",
+     "type": "single",
+     "options": [
+      "Carbon accounting frameworks mandate disclosing total planned capacity upfront, creating an administrative filing hurdle before training begins.",
+      "Electricity price fluctuations create budget volatility, so the primary engineering intervention is financial hedging.",
+      "Corporate sustainability reporting requires purchasing voluntary offsets for unapproved megawatts, adding financial cost without altering physical infrastructure.",
+      "Power delivery and grid interconnect capacity impose a hard physical ceiling that capital cannot bypass on deployment timescales, making power an operational constraint that model architectures and cluster sizing must fit within."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Because successive generations of specialized AI accelerators deliver substantial improvements in energy efficiency (FLOP/s per watt), organizations can rely on hardware innovation alone to keep total data center power consumption flat while scaling model parameters.",
+     "explanation": "False. Hardware improvements alone do not guarantee flat fleet power. Total energy depends on workload volume and realized work per joule at a consistent boundary; power also depends on the execution schedule. A historical compute-growth curve does not determine either quantity without those measurements.",
+     "hint": "Think about: evaluate the claim that hardware efficiency scaling alone can offset exponential growth in AI compute demand",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Thousands of GPUs alternate between dense computation and collective communication, producing correlated changes in device power. Explain how bidirectional energy storage can buffer the change at a protected electrical boundary, and what measurements determine its timing and capacity.",
+   "md": "When load falls, storage can absorb surplus input; when load rises, it can discharge to cover the deficit while upstream supply responds. The controller must follow the measured load and supply response at the protected boundary, including losses, state of charge, and power limits. Device-side changes need not propagate unchanged to the grid, and buffering can act during a transition rather than only after it."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify energy and power delivery as physical system constraints rather than financial or reporting concerns.",
+    "You can now calculate scenario emissions and compare feasible placement and algorithmic interventions under a declared accounting boundary.",
+    "You can now evaluate the claim that hardware efficiency scaling alone can offset exponential growth in AI compute demand.",
+    "You can now explain how energy storage buffers synchronized training load changes and identify the measurements needed to size it."
+   ]
+  }
+ ]
+}

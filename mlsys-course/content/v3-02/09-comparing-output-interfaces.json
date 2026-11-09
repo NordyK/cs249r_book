@@ -1,0 +1,61 @@
+{
+ "title": "Comparing Output Interfaces",
+ "summary": "Work through Comparing Output Interfaces.",
+ "source": {
+  "chapter": "v3-02",
+  "sections": [
+   "Comparing Output Interfaces",
+   "Three choices in an output interface",
+   "Matched-budget comparison",
+   "Choosing an edit format under a deadline"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Comparing Output Interfaces**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Foundation Model, § Comparing Output Interfaces",
+   "md": "When the repair agent proposes a fix to the connection-pool locking logic in `src/pool.py`, its output payload does not need to repeat the entire source file. The model could emit a fully rewritten file, or it could target a specific code block and emit only the replacement text. Emitting a localized edit consumes far fewer generation tokens by omitting unchanged code, but it creates an operational dependency: the execution runtime must locate the exact target coordinates in the target file."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Three choices in an output interface\n- Matched-budget comparison\n- Choosing an edit format under a deadline"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Output-bound call latency matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-02-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Comparing Output Interfaces** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Reduction order and serving-path changes flip contested argmax choices even at temperature zero, so the runtime logs model revision, serving configuration, and sampling settings with every call and replays recorded responses when behavior must be reproduced.",
+      "Model output is a proposal with zero ambient authority: the runtime validates, authorizes, executes, and returns the observation, so a tool request is never an effect and a model claim is never an observation.",
+      "Representation granularity, serialization, and constraint mechanism are independent interface axes judged on accepted outcomes under matched budgets, with a deadline acting as an admission filter and every initiated trial kept in the denominator.",
+      "Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Output-bound call latency**: Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Comparing Output Interfaces."
+   ]
+  }
+ ]
+}

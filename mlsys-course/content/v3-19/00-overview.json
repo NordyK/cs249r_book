@@ -1,0 +1,283 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v3-19",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Agent Economics** (Vol III). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Agent Economics, Purpose",
+   "md": "A model whose tokens cost a tenth as much looks like a large saving on the provider's invoice and can still raise the price of every task the agent finishes. Token charges are only part of the account. An attempt also holds a sandbox open while its tools run, invokes tests and external services, waits for shared capacity, and may end in human review, and an attempt that fails pays for all of it without producing anything that ships."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Bill Behind an Accepted Repair",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Cost per Accepted Task",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Context Reuse and Retry Budgets",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Critical-Path Latency",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Model Cascades and Routing",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Capacity for Trajectories",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Spending Governance",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Cohort cost per accepted task**",
+     "Measured cost per accepted task is the sum of every initiated task's account, each charge in exactly one category, divided by the distinct tasks accepted under one declared contract."
+    ],
+    [
+     "**Prefix-cache pricing and compaction payback**",
+     "Ideal prefix reuse bills the quadratic re-send at the cached rate, which lowers its coefficient without removing it, so a compaction pays back only after enough turns to recover its rewrite and lost cache."
+    ],
+    [
+     "**Critical-path acceleration ceiling**",
+     "A speedup g applied to a fraction f of the measured critical path gives T' = T[(1-f) + f/g] and a ceiling of 1/(1-f), which a baseline profile reveals before anything is bought."
+    ],
+    [
+     "**Cascade and routing pricing**",
+     "A cascade's cost and acceptance are reach-weighted sums, so savings come from the early-exit rate, every reached gate charges whether or not its candidate passes, and fail-through harm is priced in."
+    ],
+    [
+     "**Trajectory goodput**",
+     "Accepted tasks per unit time is the platform's deliverable, so sustaining goodput G at acceptance alpha requires admitting G/alpha trajectories and any change that lowers acceptance raises offered load."
+    ],
+    [
+     "**Queueing cost of utilization**",
+     "Near saturation queueing wait grows like rho/(1-rho), so a modest throughput gain from higher utilization costs a multiple in wait that compounds across every serial step of a trajectory."
+    ],
+    [
+     "**Budget conservation**",
+     "Every budget account in the tree keeps budget = settled + reserved + free under atomic, logged transitions, so a delegation tree conserves spending and a stopped child keeps its reservation until its late bills settle."
+    ],
+    [
+     "**Architecture pricing with human fallback**",
+     "Deterministic code, a fixed workflow, a bounded loop, and delegation are compared under one acceptance contract by cost per resolved task including human fallback, not by automated cost per automated acceptance."
+    ],
+    [
+     "**Dedicated capacity break-even**",
+     "Owning capacity beats an API at a delivered utilization u* = F / (3600 R (P_eff - v)), not at a token price."
+    ],
+    [
+     "**Speculative decoding profitability**",
+     "Speculative decoding pays only when the accepted-draft rate shortens the output-bound critical path by more than draft and verification work add to the bill."
+    ],
+    [
+     "**Adaptation payback**",
+     "A one-time adaptation investment recovers its cost after N* = C_adapt / (C_base - C_adapted) tasks, never if the per-task saving is nonpositive, and only while acceptance stays equal."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v3-19-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Cohort cost per accepted task",
+     "back": "Measured cost per accepted task is the sum of every initiated task's account, each charge in exactly one category, divided by the distinct tasks accepted under one declared contract."
+    },
+    {
+     "front": "Prefix-cache pricing and compaction payback",
+     "back": "Ideal prefix reuse bills the quadratic re-send at the cached rate, which lowers its coefficient without removing it, so a compaction pays back only after enough turns to recover its rewrite and lost cache."
+    },
+    {
+     "front": "Critical-path acceleration ceiling",
+     "back": "A speedup g applied to a fraction f of the measured critical path gives T' = T[(1-f) + f/g] and a ceiling of 1/(1-f), which a baseline profile reveals before anything is bought."
+    },
+    {
+     "front": "Cascade and routing pricing",
+     "back": "A cascade's cost and acceptance are reach-weighted sums, so savings come from the early-exit rate, every reached gate charges whether or not its candidate passes, and fail-through harm is priced in."
+    },
+    {
+     "front": "Trajectory goodput",
+     "back": "Accepted tasks per unit time is the platform's deliverable, so sustaining goodput G at acceptance alpha requires admitting G/alpha trajectories and any change that lowers acceptance raises offered load."
+    },
+    {
+     "front": "Queueing cost of utilization",
+     "back": "Near saturation queueing wait grows like rho/(1-rho), so a modest throughput gain from higher utilization costs a multiple in wait that compounds across every serial step of a trajectory."
+    },
+    {
+     "front": "Budget conservation",
+     "back": "Every budget account in the tree keeps budget = settled + reserved + free under atomic, logged transitions, so a delegation tree conserves spending and a stopped child keeps its reservation until its late bills settle."
+    },
+    {
+     "front": "Architecture pricing with human fallback",
+     "back": "Deterministic code, a fixed workflow, a bounded loop, and delegation are compared under one acceptance contract by cost per resolved task including human fallback, not by automated cost per automated acceptance."
+    },
+    {
+     "front": "Dedicated capacity break-even",
+     "back": "Owning capacity beats an API at a delivered utilization u* = F / (3600 R (P_eff - v)), not at a token price."
+    },
+    {
+     "front": "Speculative decoding profitability",
+     "back": "Speculative decoding pays only when the accepted-draft rate shortens the output-bound critical path by more than draft and verification work add to the bill."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v3-19-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Cohort cost per accepted task**?",
+     "options": [
+      "Measured cost per accepted task is the sum of every initiated task's account, each charge in exactly one category, divided by the distinct tasks accepted under one declared contract.",
+      "Owning capacity beats an API at a delivered utilization u* = F / (3600 R (P_eff - v)), not at a token price.",
+      "Deterministic code, a fixed workflow, a bounded loop, and delegation are compared under one acceptance contract by cost per resolved task including human fallback, not by automated cost per automated acceptance.",
+      "Accepted tasks per unit time is the platform's deliverable, so sustaining goodput G at acceptance alpha requires admitting G/alpha trajectories and any change that lowers acceptance raises offered load."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Cohort cost per accepted task itself, not a neighbouring idea.",
+     "explanation": "**Cohort cost per accepted task:** Measured cost per accepted task is the sum of every initiated task's account, each charge in exactly one category, divided by the distinct tasks accepted under one declared contract."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Prefix-cache pricing and compaction payback**?",
+     "options": [
+      "Every budget account in the tree keeps budget = settled + reserved + free under atomic, logged transitions, so a delegation tree conserves spending and a stopped child keeps its reservation until its late bills settle.",
+      "Accepted tasks per unit time is the platform's deliverable, so sustaining goodput G at acceptance alpha requires admitting G/alpha trajectories and any change that lowers acceptance raises offered load.",
+      "Measured cost per accepted task is the sum of every initiated task's account, each charge in exactly one category, divided by the distinct tasks accepted under one declared contract.",
+      "Ideal prefix reuse bills the quadratic re-send at the cached rate, which lowers its coefficient without removing it, so a compaction pays back only after enough turns to recover its rewrite and lost cache."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Prefix-cache pricing and compaction payback itself, not a neighbouring idea.",
+     "explanation": "**Prefix-cache pricing and compaction payback:** Ideal prefix reuse bills the quadratic re-send at the cached rate, which lowers its coefficient without removing it, so a compaction pays back only after enough turns to recover its rewrite and lost cache."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Critical-path acceleration ceiling**?",
+     "options": [
+      "Owning capacity beats an API at a delivered utilization u* = F / (3600 R (P_eff - v)), not at a token price.",
+      "Measured cost per accepted task is the sum of every initiated task's account, each charge in exactly one category, divided by the distinct tasks accepted under one declared contract.",
+      "Accepted tasks per unit time is the platform's deliverable, so sustaining goodput G at acceptance alpha requires admitting G/alpha trajectories and any change that lowers acceptance raises offered load.",
+      "A speedup g applied to a fraction f of the measured critical path gives T' = T[(1-f) + f/g] and a ceiling of 1/(1-f), which a baseline profile reveals before anything is bought."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Critical-path acceleration ceiling itself, not a neighbouring idea.",
+     "explanation": "**Critical-path acceleration ceiling:** A speedup g applied to a fraction f of the measured critical path gives T' = T[(1-f) + f/g] and a ceiling of 1/(1-f), which a baseline profile reveals before anything is bought."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Cascade and routing pricing**?",
+     "options": [
+      "Deterministic code, a fixed workflow, a bounded loop, and delegation are compared under one acceptance contract by cost per resolved task including human fallback, not by automated cost per automated acceptance.",
+      "A speedup g applied to a fraction f of the measured critical path gives T' = T[(1-f) + f/g] and a ceiling of 1/(1-f), which a baseline profile reveals before anything is bought.",
+      "A cascade's cost and acceptance are reach-weighted sums, so savings come from the early-exit rate, every reached gate charges whether or not its candidate passes, and fail-through harm is priced in.",
+      "A one-time adaptation investment recovers its cost after N* = C_adapt / (C_base - C_adapted) tasks, never if the per-task saving is nonpositive, and only while acceptance stays equal."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Cascade and routing pricing itself, not a neighbouring idea.",
+     "explanation": "**Cascade and routing pricing:** A cascade's cost and acceptance are reach-weighted sums, so savings come from the early-exit rate, every reached gate charges whether or not its candidate passes, and fail-through harm is priced in."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Trajectory goodput**?",
+     "options": [
+      "A speedup g applied to a fraction f of the measured critical path gives T' = T[(1-f) + f/g] and a ceiling of 1/(1-f), which a baseline profile reveals before anything is bought.",
+      "Every budget account in the tree keeps budget = settled + reserved + free under atomic, logged transitions, so a delegation tree conserves spending and a stopped child keeps its reservation until its late bills settle.",
+      "Accepted tasks per unit time is the platform's deliverable, so sustaining goodput G at acceptance alpha requires admitting G/alpha trajectories and any change that lowers acceptance raises offered load.",
+      "Deterministic code, a fixed workflow, a bounded loop, and delegation are compared under one acceptance contract by cost per resolved task including human fallback, not by automated cost per automated acceptance."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Trajectory goodput itself, not a neighbouring idea.",
+     "explanation": "**Trajectory goodput:** Accepted tasks per unit time is the platform's deliverable, so sustaining goodput G at acceptance alpha requires admitting G/alpha trajectories and any change that lowers acceptance raises offered load."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Cohort cost per accepted task: Measured cost per accepted task is the sum of every initiated task's account, each charge in exactly one category, divided by the distinct tasks accepted under one declared contract.",
+    "Prefix-cache pricing and compaction payback: Ideal prefix reuse bills the quadratic re-send at the cached rate, which lowers its coefficient without removing it, so a compaction pays back only after enough turns to recover its rewrite and lost cache.",
+    "Critical-path acceleration ceiling: A speedup g applied to a fraction f of the measured critical path gives T' = T[(1-f) + f/g] and a ceiling of 1/(1-f), which a baseline profile reveals before anything is bought.",
+    "Cascade and routing pricing: A cascade's cost and acceptance are reach-weighted sums, so savings come from the early-exit rate, every reached gate charges whether or not its candidate passes, and fail-through harm is priced in."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Cohort cost per accepted task",
+   "def": "Measured cost per accepted task is the sum of every initiated task's account, each charge in exactly one category, divided by the distinct tasks accepted under one declared contract."
+  },
+  {
+   "term": "Prefix-cache pricing and compaction payback",
+   "def": "Ideal prefix reuse bills the quadratic re-send at the cached rate, which lowers its coefficient without removing it, so a compaction pays back only after enough turns to recover its rewrite and lost cache."
+  },
+  {
+   "term": "Critical-path acceleration ceiling",
+   "def": "A speedup g applied to a fraction f of the measured critical path gives T' = T[(1-f) + f/g] and a ceiling of 1/(1-f), which a baseline profile reveals before anything is bought."
+  },
+  {
+   "term": "Cascade and routing pricing",
+   "def": "A cascade's cost and acceptance are reach-weighted sums, so savings come from the early-exit rate, every reached gate charges whether or not its candidate passes, and fail-through harm is priced in."
+  },
+  {
+   "term": "Trajectory goodput",
+   "def": "Accepted tasks per unit time is the platform's deliverable, so sustaining goodput G at acceptance alpha requires admitting G/alpha trajectories and any change that lowers acceptance raises offered load."
+  },
+  {
+   "term": "Queueing cost of utilization",
+   "def": "Near saturation queueing wait grows like rho/(1-rho), so a modest throughput gain from higher utilization costs a multiple in wait that compounds across every serial step of a trajectory."
+  },
+  {
+   "term": "Budget conservation",
+   "def": "Every budget account in the tree keeps budget = settled + reserved + free under atomic, logged transitions, so a delegation tree conserves spending and a stopped child keeps its reservation until its late bills settle."
+  },
+  {
+   "term": "Architecture pricing with human fallback",
+   "def": "Deterministic code, a fixed workflow, a bounded loop, and delegation are compared under one acceptance contract by cost per resolved task including human fallback, not by automated cost per automated acceptance."
+  },
+  {
+   "term": "Dedicated capacity break-even",
+   "def": "Owning capacity beats an API at a delivered utilization u* = F / (3600 R (P_eff - v)), not at a token price."
+  },
+  {
+   "term": "Speculative decoding profitability",
+   "def": "Speculative decoding pays only when the accepted-draft rate shortens the output-bound critical path by more than draft and verification work add to the bill."
+  },
+  {
+   "term": "Adaptation payback",
+   "def": "A one-time adaptation investment recovers its cost after N* = C_adapt / (C_base - C_adapted) tasks, never if the per-task saving is nonpositive, and only while acceptance stays equal."
+  }
+ ]
+}

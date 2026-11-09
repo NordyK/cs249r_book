@@ -1,0 +1,145 @@
+{
+ "title": "Test: Compute Infrastructure",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-02-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "In a warehouse-scale training cluster, the reliability wall implies that as the cluster scales to tens of thousands of GPUs, the aggregate fleet Mean Time Between Failures (MTBF) remains bounded primarily by the lifetime of the most resilient server chassis.",
+     "explanation": "False. Under the independent, equal-rate failure model, fleet-level MTBF degrades inversely with the total component count ($MTBF_{\\text{fleet}} \\approx MTBF_{\\text{component}} / N$). Even if individual GPUs possess an exceptional MTBF of $\\approx 50{,}000\\text{ hours}$, a cluster of \\$10{,}000$ GPUs operating synchronously will experience a hardware failure approximately every 5 hours (\\$50{,}000 / 10{,}000 = 5$), making failures a continuous operational certainty rather than an exceptional event governed by the best server.",
+     "hint": "Think about: explain how fleet-level MTBF scales inversely with total component count in large distributed training systems.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Node aggregates private memories**?",
+     "options": [
+      "A node multiplies HBM capacity and compute but each device's memory stays private, so a 175B model's roughly 2.8 TB of Adam training state must be partitioned across nodes; tensor parallelism inside the node and pipeline stages across nodes bring it to about 44 GB per GPU without sharding, and optimizer sharding, activation checkpointing, and tiering are the next steps when activations do not fit.",
+      "In steady operation cooling must remove heat at the rate the rack draws power (Q = mass flow x specific heat x temperature rise), so air's low heat capacity bounds air-cooled rack density while cold-plate and immersion liquid loops carry the same heat with thousands of times less flow, at a cost in serviceability, leak containment, and loss-of-flow risk.",
+      "The binding per-device constraint differs by workload (compute for large-batch training, bandwidth for decode, capacity for embeddings, bisection for MoE routing), so hardware is chosen by diagnosing that constraint and then comparing sustained useful work per dollar.",
+      "Per-accelerator bandwidth falls roughly an order of magnitude at each physical boundary (HBM, NVLink, InfiniBand port, storage), so tensor parallelism stays in the fast domain, pipeline stages cross nodes, and data parallelism spans the cluster."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Node aggregates private memories itself, not a neighbouring idea.",
+     "explanation": "**Node aggregates private memories:** A node multiplies HBM capacity and compute but each device's memory stays private, so a 175B model's roughly 2.8 TB of Adam training state must be partitioned across nodes; tensor parallelism inside the node and pipeline stages across nodes bring it to about 44 GB per GPU without sharding, and optimizer sharding, activation checkpointing, and tiering are the next steps when activations do not fit."
+    },
+    {
+     "q": "A team considers running 8-way tensor parallelism across 8 separate single-GPU server nodes connected by InfiniBand NDR (\\$50\\text{ GB/s}$ per GPU), rather than within an 8-GPU DGX H100 node over NVSwitch (\\$450\\text{ GB/s}$ per direction per GPU). What is the primary system consequence on training step time?",
+     "explanation": "The correct answer is D. Tensor parallelism exchanges partial results within layers, so placement on the slower fabric can expose substantially more communication. The quoted per-direction rates are \\$450\\text{ GB/s}$ and \\$50\\text{ GB/s}$. The actual step-time penalty depends on message sizes, overlap, and workload shape; it is not fixed by the bandwidth ratio alone. Exchanging only stage-boundary activations describes pipeline parallelism.",
+     "hint": "Think about: analyze why frequent tensor-parallel exchanges favor the fast interconnect domain and what must be measured before spanning slower links.",
+     "type": "single",
+     "options": [
+      "Tensor parallelism transfers only stage-boundary activations, so the network difference produces less than a 1% change in step time.",
+      "InfiniBand protocols cannot transmit floating-point data, forcing CPU format conversions on every step.",
+      "Inter-node tensor parallelism requires optical circuit switching, causing laser thermal shutdown.",
+      "Tensor parallelism requires frequent layer-level exchanges; placing them on the $\\approx 9\\times$ slower per-direction fabric increases exposed communication and can substantially reduce MFU."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A facility aisle is qualified to remove a sustained 25 kW of IT heat per rack with its existing air-cooling design under the specified inlet temperature and airflow. The proposed AI workload measures 60 kW per rack over its sustained operating interval. Which observation establishes the need to change the cooling design or reduce the rack load?",
+     "explanation": "The correct answer is C. The proposed sustained heat load exceeds the particular facility's qualified envelope. This establishes a local feasibility problem, not a universal rack-power threshold at which air cooling fails. Liquid cooling is a candidate whose complete heat path, parasitic energy, and serviceability must be qualified. Neither memory-bandwidth comparisons nor numerical precision establishes the required heat-removal capacity.",
+     "hint": "Think about: compare a measured rack heat load with a qualified facility envelope before selecting a cooling intervention",
+     "type": "single",
+     "options": [
+      "Web workloads have higher peak memory bandwidth requirements, causing localized thermal spikes.",
+      "AI training generates bursty, millisecond-scale CPU spikes followed by long idle periods, creating thermal cycling fatigue.",
+      "The measured 60 kW rack load exceeds this aisle's qualified 25 kW air-cooling envelope; a qualified liquid, hybrid, or redesigned air system, or a lower rack load, must restore thermal feasibility.",
+      "AI models require lower ambient operating temperatures to maintain FP16 arithmetic precision."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Rank the quoted peak data-movement bandwidth per GPU across the four primary hardware tiers in a modern DGX H100 cluster, from highest quoted bandwidth to lowest:",
+     "explanation": "The correct sequence is: (2) Intra-package HBM3 (approx 3.35 TB/s) rightarrow (3) Intra-node NVLink 4 (one direction, approx 450 GB/s) rightarrow (4) Host-to-device PCIe Gen5 x16 (approx 64 GB/s) rightarrow (1) Inter-node InfiniBand NDR (approx 50 GB/s per port). NVLink and the network port are compared in one direction; the \\$450/50 = 9 ratio compares per-GPU NVLink injection with one network port, not fabric bisection bandwidth. Adjacent entries in this four-tier ranking do not imply an order-of-magnitude drop at every boundary. The hierarchy favors placing frequent exchanges within the fast interconnect domain, subject to measured workload costs.",
+     "hint": "Think about: rank the data-movement tiers across the node-and-cluster hierarchy to explain the bandwidth cliffs governing distributed parallelism placement.",
+     "type": "order",
+     "items": [
+      "Intra-package HBM3",
+      "Host-to-device PCIe Gen5 x16.",
+      "Inter-node InfiniBand NDR"
+     ]
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Capacity and bandwidth are separate tests**?",
+     "options": [
+      "The binding per-device constraint differs by workload (compute for large-batch training, bandwidth for decode, capacity for embeddings, bisection for MoE routing), so hardware is chosen by diagnosing that constraint and then comparing sustained useful work per dollar.",
+      "A node multiplies HBM capacity and compute but each device's memory stays private, so a 175B model's roughly 2.8 TB of Adam training state must be partitioned across nodes; tensor parallelism inside the node and pipeline stages across nodes bring it to about 44 GB per GPU without sharding, and optimizer sharding, activation checkpointing, and tiering are the next steps when activations do not fit.",
+      "Memory capacity decides whether model state fits and memory bandwidth decides how fast low-reuse phases run, so batch-1 decode is floored at weight bytes over HBM bandwidth and bandwidth per dollar becomes a procurement metric; the roofline and its ridge point (peak arithmetic over bandwidth) are the hardware screen that tells which ceiling a phase meets before any purchase.",
+      "Accelerator TDP tripled across three generations while power density stopped shrinking, so watts per rack, delivery losses, cooling class, facility lead time, and synchronized current transients, not FLOP/s, bound installable compute."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Capacity and bandwidth are separate tests itself, not a neighbouring idea.",
+     "explanation": "**Capacity and bandwidth are separate tests:** Memory capacity decides whether model state fits and memory bandwidth decides how fast low-reuse phases run, so batch-1 decode is floored at weight bytes over HBM bandwidth and bandwidth per dollar becomes a procurement metric; the roofline and its ridge point (peak arithmetic over bandwidth) are the hardware screen that tells which ceiling a phase meets before any purchase."
+    },
+    {
+     "q": "The standard mixed-precision recipe runs the forward and backward passes in BF16 or FP16 but keeps a full-precision FP32 copy of the parameters, called the ____ weights, so that updates much smaller than a weight are not lost to FP16 rounding.",
+     "explanation": "The correct answer is master. The FP32 master weights are the copy the optimizer updates; they add four bytes per parameter to the training state, which the node memory budget must hold or offload.",
+     "hint": "Think about: identify the FP32 master weights in the mixed-precision recipe and their memory cost.",
+     "type": "fill",
+     "answer": [
+      "The correct answer is master"
+     ]
+    },
+    {
+     "q": "A hardware vendor transitions their next-generation accelerator from a monolithic \\$800\\text{ mm}^2$ die to a dual-die chiplet architecture (such as the NVIDIA B200 with an equivalent area of about \\$1{,}700\\text{ mm}^2$) connected on a single package. What physical constraint is this transition primarily designed to bypass, and what trade-off does it introduce?",
+     "explanation": "The correct answer is B. The photolithographic reticle limit restricts monolithic single-exposure dies to approximately \\$26 × 33 mm = 858 mm^2, and manufacturing yield decreases exponentially with die area. Chiplet-based packaging bypasses this ceiling by integrating multiple smaller, higher-yielding dies on a common substrate (e.g., connected at 10 TB/s on the B200), though this package-level link is inherently slower than a continuous on-die mesh. The claim that chiplets eliminate off-package DRAM or cause warp divergence is false. The assertion that dies are placed in separate server chassis is incorrect because chiplets reside on a single package substrate presented as a single logical GPU. The choice mentioning optical waveguides misattributes optical signaling to standard silicon chiplet packaging.",
+     "hint": "Think about: analyze why physical manufacturing constraints force the adoption of chiplet-based accelerator architectures and identify the resulting communication trade-off.",
+     "type": "single",
+     "options": [
+      "It bypasses the memory wall by moving all memory on-chip, but introduces warp divergence because threads must synchronize across the die boundary.",
+      "It bypasses the photolithographic reticle limit ($\\approx 858\\text{ mm}^2$) and improves manufacturing yield, but introduces a die-to-die interconnect that is slower than a continuous on-die mesh.",
+      "It bypasses the maximum TDP limit of a single package by separating thermal loads into different server chassis, but requires developers to write separate CUDA kernels for each chiplet.",
+      "It bypasses the communication wall by replacing electrical copper signaling with optical waveguides, but increases the generality tax of control logic."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Emerging infrastructure technologies such as CXL memory pooling, wafer-scale integration, and 2.5D packaging eliminate physical infrastructure constraints, allowing data center operators to deploy dense ML clusters without modifying cooling or power delivery.",
+     "explanation": "False. Emerging infrastructure technologies do not eliminate physical constraints; they relocate them. CXL moves memory capacity into a shared fabric but leaves interconnect bandwidth as the limiting factor. Wafer-scale integration removes some inter-package transfers for mapped operations but leaves on-wafer communication, external streaming bandwidth, and power concentration as constraints. Advanced packaging compresses die-to-die distances but concentrates thermal flux, requiring cooling and power delivery qualified for the package and rack.",
+     "hint": "Think about: evaluate the principle that emerging technologies relocate rather than eliminate physical infrastructure bottlenecks.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Arrange the following processor architectures in ascending order of the approximate percentage of their die area devoted strictly to arithmetic units (from lowest arithmetic die allocation to highest):",
+     "explanation": "The correct sequence is: (3) General-purpose server CPU (approx 5--10\\%) rightarrow (4) NVIDIA GPU (with Tensor Cores, approx 50--60\\%) rightarrow (1) Google TPU (systolic array, approx 70--80\\%) rightarrow (2) Purpose-built custom ASIC (>90\\%). Moving along this accelerator spectrum progressively reclaims silicon area from general-purpose control logic (branch prediction, instruction decoders, reorder buffers) and caches to dedicate more transistors directly to matrix arithmetic units.",
+     "hint": "Think about: order processor classes along the accelerator spectrum by their arithmetic die-area allocation.",
+     "type": "order",
+     "items": [
+      "General-purpose server CPU",
+      "Purpose-built custom ASIC"
+     ]
+    },
+    {
+     "q": "MLPerf results that fix the workload and the quality target so that different implementations can be compared belong to the ____ division.",
+     "explanation": "The correct answer is closed. The open division permits broader changes. Neither predicts a deployment automatically, so a procurement team must compare the submission's workload, software, precision, hardware count, and quality target with the intended system.",
+     "hint": "Think about: interpret benchmark results under the measurement rules that produced them.",
+     "type": "fill",
+     "answer": [
+      "The correct answer is closed"
+     ]
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Plan on sustained throughput**?",
+     "options": [
+      "Peak TFLOP/s is a precision-specific ceiling that assumes every unit stays fed, so a run planned from peak needs 1/eta times the GPU-hours at measured utilization eta, compared only under matched FLOP conventions, precision, and scale.",
+      "Moving from CPU to GPU to TPU to ASIC raises the arithmetic share of the die and throughput per watt, but a fixed dataflow is a multi-year bet that a shift in dominant operators can strand against a 15-year facility.",
+      "Peak arithmetic per watt compared at one precision (dense FP16 over TDP) rose about 5x from V100 to B200 and about 1.2x per year across vendors, slower than raw throughput because device power also rose, and it bounds rather than measures what a refresh delivers.",
+      "Accelerator TDP tripled across three generations while power density stopped shrinking, so watts per rack, delivery losses, cooling class, facility lead time, and synchronized current transients, not FLOP/s, bound installable compute."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Plan on sustained throughput itself, not a neighbouring idea.",
+     "explanation": "**Plan on sustained throughput:** Peak TFLOP/s is a precision-specific ceiling that assumes every unit stays fed, so a run planned from peak needs 1/eta times the GPU-hours at measured utilization eta, compared only under matched FLOP conventions, precision, and scale."
+    }
+   ]
+  }
+ ]
+}

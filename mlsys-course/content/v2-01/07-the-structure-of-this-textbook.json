@@ -1,0 +1,60 @@
+{
+ "title": "The Structure of This Textbook",
+ "summary": "Order the four Parts of the textbook according to the bottom-up constraint-propagation hierarchy of the fleet stack.",
+ "source": {
+  "chapter": "v2-01",
+  "sections": [
+   "The Structure of This Textbook"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Order the four Parts of the textbook according to the bottom-up constraint-propagation hierarchy of the fleet stack\n- Order the four arcs of the textbook along the fleet stack's dependency order\n- Justify the textbook's bottom-up pedagogical progression using cross-layer technical dependencies"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Introduction, § The Structure of This Textbook",
+   "md": "Meeting those three fleet challenges requires climbing the fleet stack in dependency order, because choices fixed in the physical substrate constrain every algorithm, runtime, and governance control built above it. The chapter sequence is therefore a dependency map rather than a topic inventory. Silicon, cooling, and network limits constrain training partitioning; partitioned algorithms create fault-tolerance and orchestration obligations; and those mechanisms support production operation. Requirements also flow in the other direction: security, governance, and service targets constrain which lower-layer designs are acceptable."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: Bottom-up Fleet Stack sequence across the textbook's four Parts; Mapping of each textbook Part to its governing Scale Impediment; Cross-layer dependency logic justifying why physical infrastructure precedes distribution, serving, and governance."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: The textbook structures its curriculum bottom-up (silicon -> distribution -> serving -> governance) rather than top-down (governance -> serving -> distribution -> silicon). Explain why this ordering is a pedagogical necessity of the fleet stack, using a concrete example of an upper-layer concept that cannot be understood without its underlying layer.",
+   "md": "The ordering establishes the mechanisms needed to reason about later design decisions. For example, deciding whether distributed inference can meet a latency target requires understanding local execution costs and inter-node communication. Likewise, tracing which training data contributed to a model requires understanding distributed data pipelines and checkpoint lineage. The stack makes these dependencies explicit while allowing mission requirements to constrain the lower layers in return."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-01-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "How are the four Parts of this textbook sequenced, and what architectural principle dictates this ordering from Part I to Part IV?",
+     "explanation": "The correct answer is D. The textbook progresses bottom-up along the fleet stack constraint-propagation hierarchy: Part I (The Fleet) establishes the physical silicon, network fabric, and storage foundation; Part II (Distributed ML) develops the multi-node parallelism, collective communication, and fault-tolerance mechanisms; Part III (The Fleet in Production) measures fleet efficiency and then handles serving, edge deployment, and operations at scale; and Part IV (The Responsible Fleet) addresses security, robustness, environmental sustainability, and ethical governance. Top-down ordering would require analyzing governance policies before understanding the distributed systems being governed, and placing production before infrastructure breaks physical dependency ordering.",
+     "hint": "Think about: order the four Parts of the textbook according to the bottom-up constraint-propagation hierarchy of the fleet stack.",
+     "type": "single",
+     "options": [
+      "Part I: The Responsible Fleet -> Part II: The Fleet in Production -> Part III: Distributed ML -> Part IV: The Fleet; starting with high-level societal policies and deriving physical silicon top-down.",
+      "Part I: The Fleet in Production -> Part II: The Fleet -> Part III: Distributed ML -> Part IV: The Responsible Fleet; prioritizing user-facing inference before hardware infrastructure.",
+      "Part I: Distributed ML -> Part II: The Fleet -> Part III: The Responsible Fleet -> Part IV: The Fleet in Production; grouping software training algorithms before facility physics.",
+      "Part I: The Fleet -> Part II: Distributed ML -> Part III: The Fleet in Production -> Part IV: The Responsible Fleet; following the fleet stack bottom-up from physical silicon and network fabrics to distribution logic, operational serving, and societal governance."
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now order the four Parts of the textbook according to the bottom-up constraint-propagation hierarchy of the fleet stack.",
+    "You can now order the four arcs of the textbook along the fleet stack's dependency order.",
+    "You can now justify the textbook's bottom-up pedagogical progression using cross-layer technical dependencies."
+   ]
+  }
+ ]
+}

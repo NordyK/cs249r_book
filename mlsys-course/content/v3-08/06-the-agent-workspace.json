@@ -1,0 +1,61 @@
+{
+ "title": "The Agent Workspace",
+ "summary": "Work through The Agent Workspace.",
+ "source": {
+  "chapter": "v3-08",
+  "sections": [
+   "The Agent Workspace",
+   "Copy-on-write provisioning",
+   "Cost of the first modification",
+   "Workspace leases"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **The Agent Workspace**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Agent Sandboxes, § The Agent Workspace",
+   "md": "In the connection-pool repair task, the agent generates an edit in one turn to create candidate patch `r18`, runs a shell command in the next turn to compile the code, and then invokes the test suite to produce an evaluation report. Spawning a fresh process for every command protects the host from runaway memory allocations or lingering background jobs, but those separate processes must still view and modify a shared, continuous filesystem state. Conversely, keeping a single process alive does not establish boundaries around which files the agent may alter."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Copy-on-write provisioning\n- Cost of the first modification\n- Workspace leases"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Copy-on-write workspace matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A task workspace separates immutable baseline, private modifications, scratch, and exportable artifacts, and copy-on-write makes provisioning cost track what the agent writes rather than what it can see."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-08-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Agent Workspace** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Pruning an interpreter's globals is an interface filter, not an execution boundary, because reachable object references, shared native libraries, and inherited authority leave the supervisor's full power within reach.",
+      "A task workspace separates immutable baseline, private modifications, scratch, and exportable artifacts, and copy-on-write makes provisioning cost track what the agent writes rather than what it can see.",
+      "Admitting a well-typed call does not bound what the code it starts can reach, so the limit must be enforced below the executing process by a mechanism the code cannot modify.",
+      "Mean active leases follow N_active = lambda * T_hold over the whole trajectory, so pool cost is driven by memory residency over the horizon, and the standby reserve is set by the replenishment window."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Copy-on-write workspace**: A task workspace separates immutable baseline, private modifications, scratch, and exportable artifacts, and copy-on-write makes provisioning cost track what the agent writes rather than what it can see."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through The Agent Workspace."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,102 @@
+{
+ "title": "The Data Pipeline Equation",
+ "summary": "Apply the pipeline throughput equation to predict aggregate storage bandwidth requirements as cluster compute scales.",
+ "source": {
+  "chapter": "v2-04",
+  "sections": [
+   "The Data Pipeline Equation",
+   "Pipelining and prefetching",
+   "Multi-worker data loading",
+   "Data locality and placement"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Apply the pipeline throughput equation to predict aggregate storage bandwidth requirements as cluster compute scales\n- Calculate the exposed data stall time when I/O fetch duration exceeds accelerator computation time under pipelining\n- Calculate minimum prefetch buffer depth from P99 I/O latency and iteration compute duration\n- Evaluate why average bandwidth metrics fail to rule out storage bottlenecks without fine-grained tail-latency and stall-ratio profiling\n- Analyze how locality-aware scheduling optimizes node recovery times and mitigates shared storage contention at fleet scale"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Data Storage, § The Data Pipeline Equation",
+   "md": "Whether a training job streams from object storage or reads from local NVMe, each worker's next batch must reach HBM before the current compute step finishes; falling short starves the fleet's accelerators, while provisioning far above demand strands capital in idle storage bandwidth. Sizing the hierarchy therefore begins by turning the accelerator consumption rate into a required byte rate. The data pipeline throughput equation in a later section quantifies the bandwidth the pipeline must sustain for a target training rate:"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Pipelining and prefetching\n- Multi-worker data loading\n- Data locality and placement\n\nPay attention to: the pipeline throughput equation (linear scaling with GPU count); data stall ratio diagnostic metric and latency hiding limits; prefetch buffer sizing to P99 tail latency ($Q_{\\text{prefetch}} = \\lceil T_{\\text{I/O,p99}} / T_{\\text{compute}} \\rceil$); multi-worker CPU allocation heuristics ($W \\approx 4 \\times G$)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A training iteration has a GPU compute time of $T_{\\text{compute}} = 200\\text{ ms}$ and an average I/O fetch time of $T_{\\text{I/O}} = 250\\text{ ms}$ per batch. Explain why enabling double-buffering (pipelining batch $i+1$ during batch $i$ compute) reduces but cannot eliminate the data stall, and quantify the remaining stall time per step.",
+   "md": "Pipelining overlaps I/O with compute such that step time becomes $T_{\\text{step}} = \\max(T_{\\text{compute}}, T_{\\text{I/O}}) = T_{\\text{compute}} + \\max(0, T_{\\text{I/O}} - T_{\\text{compute}})$. Because $T_{\\text{I/O}} (250\\text{ ms}) > T_{\\text{compute}} (200\\text{ ms})$, the pipeline remains fundamentally I/O-bound: when the GPU completes its 200 ms forward-backward pass, the next batch is still 50 ms away from completing its transfer. Pipelining reduces step time from sequential execution (\\$200 + 250 = 450\\text{ ms}$) to \\$250\\text{ ms}$, but an exposed stall of \\$50\\text{ ms}$ (a \\$20\\%$ stall ratio, calculated as $(250 - 200) / 250 \\times 100$) persists until storage bandwidth is increased or I/O volume is reduced."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-04-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "The data pipeline throughput equation is RequiredInputBandwidth = InputConsumerAcceleratorCount × TargetComputeTimeFraction × fracBatchDataVolumeIronLawComputeTime. If a cluster doubles its number of GPUs consuming distinct local batches from 1,024 to 2,048 while keeping per-GPU batch size, uninterrupted compute time per batch, and target active-time fraction constant, how does the required aggregate storage bandwidth scale?",
+     "explanation": "The correct answer is D. It doubles (\\$2×) because aggregate byte consumption scales strictly linearly with the number of accelerators independently executing forward-backward iterations. In the pipeline throughput equation, each data-parallel accelerator requires an independent batch BatchDataVolume every compute window IronLawComputeTime, so doubling InputConsumerAcceleratorCount exactly doubles the total bytes per second that the storage system must deliver to the fleet. The constant-bandwidth option confuses dataset size with per-iteration ingestion rate. The quadratic scaling option confuses inter-GPU all-reduce communication with storage data loader ingestion. The halving option misinterprets worker count scaling.",
+     "hint": "Think about: apply the pipeline throughput equation to predict aggregate storage bandwidth requirements as cluster compute scales",
+     "type": "single",
+     "options": [
+      "It remains constant because data-parallel workers divide the fixed total dataset into smaller partitions.",
+      "It quadruples (\\$4×) because collective communication overhead scales quadratically with worker count.",
+      "It decreases by \\$50\\% because each node requires fewer samples per epoch.",
+      "It doubles (\\$2×) because aggregate byte consumption scales strictly linearly with the number of accelerators independently executing forward-backward iterations."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A data loader pipeline has an accelerator compute window of $T_{\\text{compute}} = 200\\text{ ms}$ per batch. The storage tier exhibits median I/O latency of \\$180\\text{ ms}$ but experiences P99 tail-latency spikes of \\$500\\text{ ms}$ due to network jitter. What is the minimum recommended prefetch buffer depth ($Q_{\\text{prefetch}}$) suggested by the P99 sizing rule, before allowing for longer or correlated stalls?",
+     "explanation": "The correct answer is A. Three ready batches cover \\$600\\text{ ms}$ of computation, exceeding the stated \\$500\\text{ ms}$ P99 delay. This is a buffer-sizing baseline, not a guarantee: a longer or correlated outage can still drain the queue, and insufficient sustained delivery bandwidth cannot be fixed by buffering. The median and worker count alone do not bound the required coverage.",
+     "hint": "Think about: calculate minimum prefetch buffer depth from P99 I/O latency and iteration compute duration",
+     "type": "single",
+     "options": [
+      "At least 3 batches ($Q_{\\text{prefetch}} = \\lceil 500 / 200 \\rceil = 3$) plus a safety margin, covering the stated P99 delay when the queue is full.",
+      "Exactly 1 batch, because median I/O latency (\\$180\\text{ ms}$) is strictly less than compute time (\\$200\\text{ ms}$).",
+      "Zero batches, because multi-worker asynchronous threading eliminates the need for host-memory queue buffering.",
+      "At least 10 batches, because queue depth must equal the total number of CPU worker threads allocated to the data loader."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "If a cluster monitoring dashboard indicates that average storage read bandwidth matches the aggregate throughput predicted by the pipeline equation, storage performance issues can be conclusively ruled out as the cause of low GPU utilization.",
+     "explanation": "False. Average bandwidth metrics mask transient tail-latency spikes, worker-side lock contention, metadata serialization, and prefetch buffer underruns. Even if aggregate gigabytes-per-second over a 10-minute window matches the theoretical target, microsecond-level and millisecond-level I/O jitter can cause individual GPUs to stall repeatedly at step boundaries, driving down utilization. Diagnostics must evaluate per-step wait-for-data distributions (P95/P99 stall times) rather than aggregate bandwidth averages alone.",
+     "hint": "Think about: evaluate why average bandwidth metrics fail to rule out storage bottlenecks without fine-grained tail-latency and stall-ratio profiling",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain how locality-aware scheduling reduces cluster startup latency and relieves bandwidth pressure on the shared parallel file system when a node fails during a 1,024-GPU training run.",
+   "md": "A locality-aware scheduler can place a replacement worker where the required immutable input shards already reside in local NVMe, avoiding their transfer from the shared file system and reducing recovery traffic. This accelerates the data-staging part of recovery; it does not eliminate checkpoint restoration, coordination, or process startup. Locality is useful only when the cached version is correct and the placement also satisfies the job's resource constraints."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Compare the three primary data staging patterns (prestaging, on-demand staging, and pure streaming) in terms of job startup latency and network bandwidth consumption during multi-epoch training.",
+   "md": "Prestaging copies the required working set before training, trading startup delay and cache capacity for fewer remote input reads during execution. On-demand staging fetches shards on first access and can reuse them in later epochs if the cache retains them. Pure streaming avoids a full-dataset staging phase but repeatedly uses the remote path and remains exposed to its tail latency. Neither on-demand staging nor streaming eliminates first-batch latency, and local staging does not eliminate unrelated network traffic such as checkpoint writes."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Input pipeline**: The staged path that reads, transforms, and delivers batches to accelerators.",
+    "**Prefetching**: Preparing future input batches while the current batch computes, subject to buffer and service-rate limits."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Input pipeline",
+   "def": "The staged path that reads, transforms, and delivers batches to accelerators."
+  },
+  {
+   "term": "Prefetching",
+   "def": "Preparing future input batches while the current batch computes, subject to buffer and service-rate limits."
+  }
+ ]
+}

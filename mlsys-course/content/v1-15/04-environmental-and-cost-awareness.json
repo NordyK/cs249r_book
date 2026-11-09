@@ -1,0 +1,87 @@
+{
+ "title": "Environmental and Cost Awareness",
+ "summary": "Explain the conditions under which efficiency optimizations improve energy, cost, and hardware accessibility.",
+ "source": {
+  "chapter": "v1-15",
+  "sections": [
+   "Environmental and Cost Awareness",
+   "Efficiency as responsibility",
+   "Total cost of ownership",
+   "Environmental impact"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain the conditions under which efficiency optimizations improve energy, cost, and hardware accessibility\n- Apply an edge power budget to screen candidate models while separating resource fit from task suitability\n- Compare the financial leverage of training versus inference optimizations using a lifecycle TCO breakdown\n- Evaluate the carbon reduction impact of grid-carbon-intensity region selection versus algorithmic efficiency\n- Explain the definition and operational significance of power usage effectiveness (PUE) in ML data center carbon accounting"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Responsible Engineering, § Environmental and Cost Awareness",
+   "md": "In 2019, researchers estimated that development-scale training and architecture search for a large natural language processing (NLP) model could emit as much carbon as five cars over their entire lifetimes. Later analysis showed that the most quoted architecture-search estimate was highly sensitive to proxy-task, hardware, data-center efficiency, and grid carbon-intensity assumptions. The correction narrows the estimate without removing the point. Training runs consume megawatt-hours of electricity, inference at scale multiplies per-request inefficiencies into measurable environmental impact, and resource-intensive models exclude organizations that lack large compute budgets."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Efficiency as responsibility\n- Total cost of ownership\n- Environmental impact\n\nPay attention to: efficiency as a 3-channel responsibility obligation; edge deployment power budgets; inference-dominated TCO (40:1 ratio); operational carbon accounting (PUE, grid intensity)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In the chapter's illustrative three-year TCO model of the DLRM ranking service (Training: ~2%, Operations: ~25%, Inference: ~73%), assume one intervention halves total training cost, while another reduces total inference cost by 20% under unchanged traffic and quality. Which intervention saves more dollars, and by what approximate ratio? Why would halving only the final training run time not establish the first saving?",
+   "md": "Using the rounded shares, the inference intervention saves 20% of 73%, or approximately 14.6% of total TCO. Halving all training cost saves 50% of 2%, or approximately 1.0% of TCO, so the ratio is about 14.6:1. Halving only final-run time does not halve data preparation, hyperparameter search, or every retraining cost. The comparison assumes that the interventions actually reduce the stated billed costs; lower service demand on an unchanged provisioned fleet need not reduce the bill. These scenario shares establish where savings have more leverage here, not a universal optimization priority."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-15-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team optimizes an inference model using INT8 quantization and structured pruning, reducing dedicated accelerator compute by \\$4× while preserving accuracy. According to the chapter, why is this efficiency improvement classified as a responsible engineering intervention rather than a pure performance optimization?",
+     "explanation": "The correct answer is D. Supported kernels and representations must reduce measured service demand for the required traffic and predictive quality, including consequential subgroup slices. Lower demand can permit fewer provisioned devices or more accessible hardware, but dollar savings depend on billing and provisioning. Lifecycle energy and emissions must include added training or preprocessing, idle power, facility overhead, and the grid boundary. Compression does not guarantee demographic parity or remove governance duties. Recurring inference can dominate at sufficient traffic; measured lifecycle accounting determines whether it does in this deployment.",
+     "hint": "Think about: explain the conditions under which efficiency optimizations improve energy, cost, and hardware accessibility.",
+     "type": "single",
+     "options": [
+      "Because quantization mathematically guarantees that disparate impact across all protected demographic groups drops to zero.",
+      "Because reducing model parameters eliminates the need for data governance and audit logging in production pipelines.",
+      "Because efficiency optimizations are relevant only for one-time training runs, where carbon emissions are legally regulated.",
+      "Because it can lower lifecycle energy and cost and broaden hardware access when the actual runtime reduces measured service demand at the required quality and the deployment converts that gain into savings."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A wearable device has an inference power budget of 500 mW. Under the chapter's assumed active-power profiles (KWS DS-CNN: 50 mW; MobileNetV2: 1.2 W), which statement about the resource screen is correct?",
+     "explanation": "The correct answer is B. The DS-CNN's assumed 50 mW is one-tenth of the 500 mW budget, while MobileNetV2's 1.2 W exceeds it by 2.4$\\times$ before sustained thermals are considered. Offloading changes the system design and its latency, privacy, and connectivity assumptions, so it does not make MobileNetV2 fit this budget. Duty cycling lowers average draw but not the active power the budget bounds. Passing the screen does not establish suitability, since the DS-CNN is the keyword-spotting lighthouse and its inputs and outputs must match the intended application.",
+     "hint": "Think about: apply an edge power budget to screen candidate models while separating resource fit from task suitability.",
+     "type": "single",
+     "options": [
+      "MobileNetV2 passes, because its power overage can always be removed by offloading inference to the cloud.",
+      "The DS-CNN passes with a 10$\\times$ power margin and MobileNetV2 exceeds the budget by 2.4$\\times$; passing the screen still does not establish that the DS-CNN suits the intended task.",
+      "Both pass, because duty cycling makes any active power draw acceptable on a wearable.",
+      "Neither passes, because no ML model can run within a sub-watt budget."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "For an identical serving workload, relocating an inference deployment from a carbon-intensive fossil-fuel grid region to a region powered predominantly by low-carbon renewable energy can reduce operational carbon emissions more than a modest algorithmic efficiency improvement.",
+     "explanation": "True. Operational carbon emissions are computed as Carbon = Energy (kWh) × PUE × Carbon Intensity (kg CO_2e/kWh). Because regional grid carbon intensity varies widely (e.g., from over \\$0.6 kg/kWh in fossil-heavy grids to under \\$0.05 kg/kWh in renewable-dominated regions—more than a \\$10× difference), shifting workloads to cleaner regions or using carbon-aware scheduling can reduce emissions by factors that far exceed a typical 10% to 20% algorithmic speedup.",
+     "hint": "Think about: evaluate the carbon reduction impact of grid-carbon-intensity region selection versus algorithmic efficiency.",
+     "type": "truefalse",
+     "answer": true
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Operational carbon**: Emissions attributable to electricity use under a stated accounting boundary and electricity carbon intensity."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Operational carbon",
+   "def": "Emissions attributable to electricity use under a stated accounting boundary and electricity carbon intensity."
+  }
+ ]
+}

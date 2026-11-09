@@ -1,0 +1,93 @@
+{
+ "title": "Stage 5: Deployment and Integration",
+ "summary": "Calculate total cost of ownership, annual operating savings, and payback period for cloud versus edge ML deployment.",
+ "source": {
+  "chapter": "v1-03",
+  "sections": [
+   "Stage 5: Deployment and Integration",
+   "Deployment requirements",
+   "Pilot to full deployment"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate total cost of ownership, annual operating savings, and payback period for cloud versus edge ML deployment\n- Explain the additional score-interpretation and routing evidence required for ML integration into clinical software\n- Apply the Iron Law fixed overhead term ($L_{\\text{lat}}$) to analyze latency bottlenecks and evaluate caching strategies\n- Assess why phased deployment provides complementary overlapping evidence rather than perfectly separate failure coverage\n- Explain human-in-the-loop routing as an operational mechanism for managing model uncertainty in high-stakes deployments"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Lifecycle, § Stage 5: Deployment and Integration",
+   "md": "An approved release manifest certifies that a model configuration passed validation, but a manifest is not yet a running clinical service. In the DR scenario, deployment must install the compiled model on Orin Nano-class edge devices across rural clinics with intermittent connectivity, wire the runtime into hospital information systems with distinct schema requirements, and return predictions clinicians can act on before the patient leaves. On the clinic device, the serving path must first fit the 500 MB memory reservation, the precondition every candidate must meet."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Deployment requirements\n- Pilot to full deployment\n\nPay attention to: Realization of physical deployment constraints; Fixed serving overhead ($L_{\\text{lat}}$) minimization; Cloud vs. edge deployment economics and payback modeling; System integration (HIS), uncertainty, and human-in-the-loop routing."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain what integration requirements an ML screening score adds to a Hospital Information System (HIS) interface beyond recording a measurement with units, and why neither a sensor reading nor a model score establishes its own reliability.",
+   "md": "A measurement interface records a value, units, and relevant device and capture context; sensor readings still require evidence about calibration, error, and operating conditions. An ML screening score also requires evaluation of what its values mean on the intended population. A raw score does not automatically provide a reliable uncertainty estimate. Before the HIS uses a score to route a case, the workflow must validate its interpretation, decision thresholds, handling of rejected inputs, and downstream clinical response. The chapter also explains that privacy rules constrain retention, audit links, and reuse for model updates. Both interfaces require validated contracts, while the learned score adds population-dependent performance and routing evidence."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-03-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A deployment model processes ~760,000 screening images per month across 500 rural clinics. Cloud inference costs \\$0.01/image plus \\$45,000/year for connectivity/network operations (\\$136,200/year total). Edge deployment requires a \\$500 device per clinic (\\$250,000 CapEx), \\$25,000/year maintenance, and \\$0.001/image (\\$34,120/year total OpEx). Treat cloud as a counterfactual cost benchmark because it fails the stated connectivity and latency requirements. Using these rounded annual-cost givens, what is the annual operating savings of edge deployment and its payback period?",
+     "explanation": "The correct answer is A. Using the question's rounded annual-cost givens: Total Cloud Annual OpEx = \\$136,200. Total Edge Annual OpEx = \\$25,000 (maintenance) + \\$9,120 (variable inference) = \\$34,120. Annual Savings = \\$136,200 - \\$34,120 = \\$102,080. Edge Hardware CapEx = 500 clinics $\\times$ \\$500/device = \\$250,000. Payback Period = \\$250,000 / \\$102,080 $\\approx$ 2.45 years (~2.5 years). Beyond cost recovery, edge deployment provides the critical operational advantage of functioning without internet connectivity during network outages. The alternative payback periods contradict the stated capital expense divided by annual savings.",
+     "hint": "Think about: calculate total cost of ownership, annual operating savings, and payback period for cloud versus edge ML deployment.",
+     "type": "single",
+     "options": [
+      "A. Approximately \\$102,080 annual savings with a payback period of approximately 2.4 to 2.5 years, while enabling offline operation during connectivity outages.",
+      "B. The same annual savings with a payback period of ten years, making cloud deployment far more economical.",
+      "C. The same annual savings with an immediate three-month payback period.",
+      "D. Zero annual savings, because edge hardware maintenance costs exactly equal cloud inference fees at 500 clinics."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An edge-deployed vision device has a 100 ms total latency budget. Profiling reveals the following execution breakdown: on-device model inference = 15 ms, remote cloud lookup for patient metadata = 60 ms, and local serialization/HIS formatting = 40 ms (total = 115 ms). Assume a local cache contains valid, sufficiently fresh patient metadata and a lookup takes less than 1 ms without changing the other costs. Which engineering modification directly reduces the Iron Law fixed overhead ($L_{\\text{lat}}$) term to meet the 100 ms budget?",
+     "explanation": "The correct answer is B. The remote lookup and serialization account for 100 ms before any model inference. Keeping those costs unchanged leaves total latency above the 100 ms budget whenever inference takes positive time; reducing the stated 15 ms inference to 5 ms still gives 105 ms. Under the question's valid-cache and local-read assumptions, caching replaces the 60 ms remote lookup with less than 1 ms, leaving total latency below 56 ms with the existing 15 ms inference and 40 ms serialization. The cache's validity and freshness are necessary premises for this latency repair to preserve the integration contract.",
+     "hint": "Think about: apply the Iron Law fixed overhead term ($L_{\\text{lat}}$) to analyze latency bottlenecks and evaluate caching strategies.",
+     "type": "single",
+     "options": [
+      "A. Prune the neural network weights to reduce on-device model inference time from 15 ms to 5 ms.",
+      "B. Cache patient metadata locally on the device to eliminate the 60 ms remote network round-trip.",
+      "C. Quantize the model from FP32 to INT8 to increase arithmetic intensity (operations per byte).",
+      "D. Increase the GPU clock frequency on the edge device to accelerate tensor core processing."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Phased deployment progressing from simulation to pilot clinics to full production rollout is recommended because each phase is designed to expose a distinct, non-overlapping class of system failures: simulation catches software integration and schema bugs; pilots catch real-world camera and workflow heterogeneity; and full production catches distributed concurrency contention and rare clinical tail cases.",
+     "explanation": "False. The phases are useful because they provide complementary, overlapping evidence under increasingly realistic conditions, not because each one owns a perfectly separate failure class. Simulation often surfaces integration and schema issues, pilots add evidence about site heterogeneity and workflow fit, and full production reveals broader operating behavior, but a given failure can appear in more than one phase. There is no guarantee that simulation cannot expose a problem later seen in pilot, or that pilot cannot reveal latency or concurrency issues as well.",
+     "hint": "Think about: assess why phased deployment provides complementary overlapping evidence rather than perfectly separate failure coverage.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A deployment policy that automatically routes low-confidence or high-uncertainty model predictions to an expert specialist for manual review, while allowing high-confidence predictions to proceed automatically, is known as ____ routing.",
+     "explanation": "human-in-the-loop. Human-in-the-loop routing uses calibrated model uncertainty to triage decisions, ensuring that ambiguous or borderline cases receive expert human oversight while automating routine, high-confidence cases.",
+     "hint": "Think about: explain human-in-the-loop routing as an operational mechanism for managing model uncertainty in high-stakes deployments.",
+     "type": "fill",
+     "answer": [
+      "human in the loop",
+      "human-in-the-loop"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate total cost of ownership, annual operating savings, and payback period for cloud versus edge ML deployment.",
+    "You can now explain the additional score-interpretation and routing evidence required for ML integration into clinical software.",
+    "You can now apply the Iron Law fixed overhead term ($L_{\\text{lat}}$) to analyze latency bottlenecks and evaluate caching strategies.",
+    "You can now assess why phased deployment provides complementary overlapping evidence rather than perfectly separate failure coverage."
+   ]
+  }
+ ]
+}

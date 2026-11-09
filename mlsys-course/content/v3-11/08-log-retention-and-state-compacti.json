@@ -1,0 +1,62 @@
+{
+ "title": "Log Retention and State Compaction",
+ "summary": "Work through Log Retention and State Compaction.",
+ "source": {
+  "chapter": "v3-11",
+  "sections": [
+   "Log Retention and State Compaction",
+   "Retention lifetimes",
+   "Content-addressed payload storage",
+   "Log compaction",
+   "The storage engine contract"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Log Retention and State Compaction**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Durable Execution, § Log Retention and State Compaction",
+   "md": "An agent can reconstruct its execution trajectory from a checkpoint at sequence CheckpointLogPosition and its subsequent suffix only as long as both the event records and their referenced artifacts remain intact. An event that points to a deleted workspace snapshot `ws_r18` restores nothing. Conversely, retaining megabytes of raw compiler output is useless if the durable intent record for `test_r18` was prematurely discarded. Retention policies must therefore stem directly from the platform's recovery contract (the exact state and replay capabilities the system guarantees to support) rather than from storage format convenience."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Retention lifetimes\n- Content-addressed payload storage\n- Log compaction\n- The storage engine contract"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Recovery retention matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Current recovery, historical replay, and diagnostics need different artifacts on independent schedules, so retention is derived from the declared recovery and replay promise, not storage convenience."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-11-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Log Retention and State Compaction** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Young's interval prices checkpoints when a crash loses work to re-execute, and once each turn is logged the stride lengthens by the square root of the cost ratio because a crash costs reconstruction, not resampling.",
+      "An acknowledgment is durable only against the faults its storage tier survives, so each write's durability is declared against a failure domain rather than assumed.",
+      "Where a crash falls in the ordering decides whether an operation is not dispatched, in doubt, or established, and an absent intent proves non-dispatch only in a complete authoritative log prefix.",
+      "Current recovery, historical replay, and diagnostics need different artifacts on independent schedules, so retention is derived from the declared recovery and replay promise, not storage convenience."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Recovery retention**: Current recovery, historical replay, and diagnostics need different artifacts on independent schedules, so retention is derived from the declared recovery and replay promise, not storage convenience."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Log Retention and State Compaction."
+   ]
+  }
+ ]
+}

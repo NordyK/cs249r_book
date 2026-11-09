@@ -1,0 +1,305 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v1-10",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Model Compression** (Vol I). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Compression, Purpose",
+   "md": "A capable trained model is not automatically a deployable one. Cloud, Edge, Mobile, and TinyML environments each impose physical constraints that research benchmarks ignore, including memory budgets measured in megabytes rather than gigabytes, latency targets measured in milliseconds rather than seconds, and power envelopes measured in milliwatts rather than kilowatts. Research optimizes for accuracy on held-out test sets; production optimizes for accuracy per dollar, accuracy per watt, and accuracy per millisecond."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Fitting the Deployment Budget",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Structural Optimization: Changing What t",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Numerical Precision: Changing How Values",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Hardware Implementation: Changing How th",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Choosing and Combining Techniques",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Measuring Compression Gains",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Fallacies and Pitfalls",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Accuracy-efficiency frontier**",
+     "Structure-preserving changes can move a dominated model toward the accuracy-efficiency frontier at little quality cost while structure-altering ones trade along it, so the engineer stops at an operating point that meets explicit quality and resource thresholds rather than at a visual knee."
+    ],
+    [
+     "**Compression fits a deployment budget**",
+     "A deployment budget grants memory, time, and energy per result, and compression works three tiers (what the model computes, how many bits each value takes, how the result executes) after identifying the limiting term, since a phone vision model spends its frame on arithmetic and LLM decode spends its token on weight bytes."
+    ],
+    [
+     "**Structured vs unstructured pruning**",
+     "Pruning removes the weights or structures with the smallest loss impact, but only structured removal (channels, heads, layers, or 2:4 groups) yields smaller dense or hardware-supported tensors, and scattered zeros saved in a dense tensor save nothing."
+    ],
+    [
+     "**Quantization regimes and the cliff**",
+     "Accuracy holds on a plateau down to some bit width and then falls off a model-dependent cliff, so post-training quantization over a calibration set comes first and quantization-aware training is spent only when it misses the quality target."
+    ],
+    [
+     "**When fewer bits run faster**",
+     "Fewer bits speed a compute-bound layer only through a faster integer datapath but speed a bandwidth-bound decode in proportion to bytes removed, and only when dequantization is fused into the matmul, so the same precision change gives different gains in different regimes."
+    ],
+    [
+     "**Combined techniques do not multiply**",
+     "Compression techniques interact through shared distributions, shapes, and kernels, so the default order is structure first, distillation as recovery, quantization last, with profiling after each step, and a 2x prune times a 4x INT8 gives an 8x ratio on paper but a fraction of that measured."
+    ],
+    [
+     "**Measured deployment evidence**",
+     "Parameter, FLOP, and bit-width reductions are upper bounds, so a compressed artifact is accepted only on a measured profile on the target (accuracy, calibration, latency, throughput, size, energy), and model-only speedups are capped by the non-model share of end-to-end latency."
+    ],
+    [
+     "**Affine quantization mechanics**",
+     "Quantization maps a clipping range onto integer levels with a scale and zero-point, range calibration trades clipping against resolution, per-channel scales beat per-tensor when ranges differ, and integer matmuls accumulate in INT32 and requantize."
+    ],
+    [
+     "**Sparse storage break-even**",
+     "Unstructured sparsity pays only past a break-even, since an index beside each value doubles per-element bytes and irregular gathers keep sparse kernels slower than dense until high sparsity, whereas 2:4 structured sparsity halves the payload with fixed metadata."
+    ],
+    [
+     "**Compression-specific fusion**",
+     "Some fusions exist only once a graph is compressed: batch normalization folds into the preceding convolution's weights and bias after structure stops changing, and weight-only kernels must dequantize in registers or a separate dequantize kernel restores the traffic quantization removed."
+    ],
+    [
+     "**Knowledge distillation**",
+     "A compact dense student trained on a teacher's temperature-softened outputs moves cost from repeated inference to one extra training phase, runs on ordinary dense kernels, and is bounded by student capacity and teacher calibration."
+    ],
+    [
+     "**Low-rank factorization**",
+     "Truncated SVD replaces a matrix with two thin factors, but the saving becomes speed only if the two factor kernels and the staged intermediate cost less than the original dense kernel."
+    ],
+    [
+     "**Input-dependent computation and NAS**",
+     "Early exit, conditional layers, and mixture-of-experts spend less work on easy inputs but fragment batched execution and keep all experts resident, while hardware-aware architecture search is justified only by unusual targets or deployment scale (awareness)."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$\\min_{\\hat{W}} \\mathcal{L}(\\hat{W}) \\quad \\text{subject to} \\quad \\|\\hat{W}\\|_0 \\leq k$$\n\n$$M_{i,j} = \\begin{cases} 1, & \\text{if } |W_{i,j}| > \\tau \\\\ 0, & \\text{otherwise} \\end{cases}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v1-10-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Accuracy-efficiency frontier",
+     "back": "Structure-preserving changes can move a dominated model toward the accuracy-efficiency frontier at little quality cost while structure-altering ones trade along it, so the engineer stops at an operating point that meets explicit quality and resource thresholds rather than at a visual knee."
+    },
+    {
+     "front": "Compression fits a deployment budget",
+     "back": "A deployment budget grants memory, time, and energy per result, and compression works three tiers (what the model computes, how many bits each value takes, how the result executes) after identifying the limiting term, since a phone vision model spends its frame on arithmetic and LLM decode spends its token on weight bytes."
+    },
+    {
+     "front": "Structured vs unstructured pruning",
+     "back": "Pruning removes the weights or structures with the smallest loss impact, but only structured removal (channels, heads, layers, or 2:4 groups) yields smaller dense or hardware-supported tensors, and scattered zeros saved in a dense tensor save nothing."
+    },
+    {
+     "front": "Quantization regimes and the cliff",
+     "back": "Accuracy holds on a plateau down to some bit width and then falls off a model-dependent cliff, so post-training quantization over a calibration set comes first and quantization-aware training is spent only when it misses the quality target."
+    },
+    {
+     "front": "When fewer bits run faster",
+     "back": "Fewer bits speed a compute-bound layer only through a faster integer datapath but speed a bandwidth-bound decode in proportion to bytes removed, and only when dequantization is fused into the matmul, so the same precision change gives different gains in different regimes."
+    },
+    {
+     "front": "Combined techniques do not multiply",
+     "back": "Compression techniques interact through shared distributions, shapes, and kernels, so the default order is structure first, distillation as recovery, quantization last, with profiling after each step, and a 2x prune times a 4x INT8 gives an 8x ratio on paper but a fraction of that measured."
+    },
+    {
+     "front": "Measured deployment evidence",
+     "back": "Parameter, FLOP, and bit-width reductions are upper bounds, so a compressed artifact is accepted only on a measured profile on the target (accuracy, calibration, latency, throughput, size, energy), and model-only speedups are capped by the non-model share of end-to-end latency."
+    },
+    {
+     "front": "Affine quantization mechanics",
+     "back": "Quantization maps a clipping range onto integer levels with a scale and zero-point, range calibration trades clipping against resolution, per-channel scales beat per-tensor when ranges differ, and integer matmuls accumulate in INT32 and requantize."
+    },
+    {
+     "front": "Sparse storage break-even",
+     "back": "Unstructured sparsity pays only past a break-even, since an index beside each value doubles per-element bytes and irregular gathers keep sparse kernels slower than dense until high sparsity, whereas 2:4 structured sparsity halves the payload with fixed metadata."
+    },
+    {
+     "front": "Compression-specific fusion",
+     "back": "Some fusions exist only once a graph is compressed: batch normalization folds into the preceding convolution's weights and bias after structure stops changing, and weight-only kernels must dequantize in registers or a separate dequantize kernel restores the traffic quantization removed."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v1-10-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Accuracy-efficiency frontier**?",
+     "options": [
+      "Truncated SVD replaces a matrix with two thin factors, but the saving becomes speed only if the two factor kernels and the staged intermediate cost less than the original dense kernel.",
+      "Unstructured sparsity pays only past a break-even, since an index beside each value doubles per-element bytes and irregular gathers keep sparse kernels slower than dense until high sparsity, whereas 2:4 structured sparsity halves the payload with fixed metadata.",
+      "Structure-preserving changes can move a dominated model toward the accuracy-efficiency frontier at little quality cost while structure-altering ones trade along it, so the engineer stops at an operating point that meets explicit quality and resource thresholds rather than at a visual knee.",
+      "A deployment budget grants memory, time, and energy per result, and compression works three tiers (what the model computes, how many bits each value takes, how the result executes) after identifying the limiting term, since a phone vision model spends its frame on arithmetic and LLM decode spends its token on weight bytes."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Accuracy-efficiency frontier itself, not a neighbouring idea.",
+     "explanation": "**Accuracy-efficiency frontier:** Structure-preserving changes can move a dominated model toward the accuracy-efficiency frontier at little quality cost while structure-altering ones trade along it, so the engineer stops at an operating point that meets explicit quality and resource thresholds rather than at a visual knee."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Compression fits a deployment budget**?",
+     "options": [
+      "A deployment budget grants memory, time, and energy per result, and compression works three tiers (what the model computes, how many bits each value takes, how the result executes) after identifying the limiting term, since a phone vision model spends its frame on arithmetic and LLM decode spends its token on weight bytes.",
+      "Pruning removes the weights or structures with the smallest loss impact, but only structured removal (channels, heads, layers, or 2:4 groups) yields smaller dense or hardware-supported tensors, and scattered zeros saved in a dense tensor save nothing.",
+      "Unstructured sparsity pays only past a break-even, since an index beside each value doubles per-element bytes and irregular gathers keep sparse kernels slower than dense until high sparsity, whereas 2:4 structured sparsity halves the payload with fixed metadata.",
+      "Some fusions exist only once a graph is compressed: batch normalization folds into the preceding convolution's weights and bias after structure stops changing, and weight-only kernels must dequantize in registers or a separate dequantize kernel restores the traffic quantization removed."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Compression fits a deployment budget itself, not a neighbouring idea.",
+     "explanation": "**Compression fits a deployment budget:** A deployment budget grants memory, time, and energy per result, and compression works three tiers (what the model computes, how many bits each value takes, how the result executes) after identifying the limiting term, since a phone vision model spends its frame on arithmetic and LLM decode spends its token on weight bytes."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Structured vs unstructured pruning**?",
+     "options": [
+      "Some fusions exist only once a graph is compressed: batch normalization folds into the preceding convolution's weights and bias after structure stops changing, and weight-only kernels must dequantize in registers or a separate dequantize kernel restores the traffic quantization removed.",
+      "Unstructured sparsity pays only past a break-even, since an index beside each value doubles per-element bytes and irregular gathers keep sparse kernels slower than dense until high sparsity, whereas 2:4 structured sparsity halves the payload with fixed metadata.",
+      "A compact dense student trained on a teacher's temperature-softened outputs moves cost from repeated inference to one extra training phase, runs on ordinary dense kernels, and is bounded by student capacity and teacher calibration.",
+      "Pruning removes the weights or structures with the smallest loss impact, but only structured removal (channels, heads, layers, or 2:4 groups) yields smaller dense or hardware-supported tensors, and scattered zeros saved in a dense tensor save nothing."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Structured vs unstructured pruning itself, not a neighbouring idea.",
+     "explanation": "**Structured vs unstructured pruning:** Pruning removes the weights or structures with the smallest loss impact, but only structured removal (channels, heads, layers, or 2:4 groups) yields smaller dense or hardware-supported tensors, and scattered zeros saved in a dense tensor save nothing."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Quantization regimes and the cliff**?",
+     "options": [
+      "Unstructured sparsity pays only past a break-even, since an index beside each value doubles per-element bytes and irregular gathers keep sparse kernels slower than dense until high sparsity, whereas 2:4 structured sparsity halves the payload with fixed metadata.",
+      "Early exit, conditional layers, and mixture-of-experts spend less work on easy inputs but fragment batched execution and keep all experts resident, while hardware-aware architecture search is justified only by unusual targets or deployment scale (awareness).",
+      "Structure-preserving changes can move a dominated model toward the accuracy-efficiency frontier at little quality cost while structure-altering ones trade along it, so the engineer stops at an operating point that meets explicit quality and resource thresholds rather than at a visual knee.",
+      "Accuracy holds on a plateau down to some bit width and then falls off a model-dependent cliff, so post-training quantization over a calibration set comes first and quantization-aware training is spent only when it misses the quality target."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Quantization regimes and the cliff itself, not a neighbouring idea.",
+     "explanation": "**Quantization regimes and the cliff:** Accuracy holds on a plateau down to some bit width and then falls off a model-dependent cliff, so post-training quantization over a calibration set comes first and quantization-aware training is spent only when it misses the quality target."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **When fewer bits run faster**?",
+     "options": [
+      "Unstructured sparsity pays only past a break-even, since an index beside each value doubles per-element bytes and irregular gathers keep sparse kernels slower than dense until high sparsity, whereas 2:4 structured sparsity halves the payload with fixed metadata.",
+      "Parameter, FLOP, and bit-width reductions are upper bounds, so a compressed artifact is accepted only on a measured profile on the target (accuracy, calibration, latency, throughput, size, energy), and model-only speedups are capped by the non-model share of end-to-end latency.",
+      "Fewer bits speed a compute-bound layer only through a faster integer datapath but speed a bandwidth-bound decode in proportion to bytes removed, and only when dequantization is fused into the matmul, so the same precision change gives different gains in different regimes.",
+      "A deployment budget grants memory, time, and energy per result, and compression works three tiers (what the model computes, how many bits each value takes, how the result executes) after identifying the limiting term, since a phone vision model spends its frame on arithmetic and LLM decode spends its token on weight bytes."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is When fewer bits run faster itself, not a neighbouring idea.",
+     "explanation": "**When fewer bits run faster:** Fewer bits speed a compute-bound layer only through a faster integer datapath but speed a bandwidth-bound decode in proportion to bytes removed, and only when dequantization is fused into the matmul, so the same precision change gives different gains in different regimes."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Accuracy-efficiency frontier: Structure-preserving changes can move a dominated model toward the accuracy-efficiency frontier at little quality cost while structure-altering ones trade along it, so the engineer stops at an operating point that meets explicit quality and resource thresholds rather than at a visual knee.",
+    "Compression fits a deployment budget: A deployment budget grants memory, time, and energy per result, and compression works three tiers (what the model computes, how many bits each value takes, how the result executes) after identifying the limiting term, since a phone vision model spends its frame on arithmetic and LLM decode spends its token on weight bytes.",
+    "Structured vs unstructured pruning: Pruning removes the weights or structures with the smallest loss impact, but only structured removal (channels, heads, layers, or 2:4 groups) yields smaller dense or hardware-supported tensors, and scattered zeros saved in a dense tensor save nothing.",
+    "Quantization regimes and the cliff: Accuracy holds on a plateau down to some bit width and then falls off a model-dependent cliff, so post-training quantization over a calibration set comes first and quantization-aware training is spent only when it misses the quality target."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Accuracy-efficiency frontier",
+   "def": "Structure-preserving changes can move a dominated model toward the accuracy-efficiency frontier at little quality cost while structure-altering ones trade along it, so the engineer stops at an operating point that meets explicit quality and resource thresholds rather than at a visual knee."
+  },
+  {
+   "term": "Compression fits a deployment budget",
+   "def": "A deployment budget grants memory, time, and energy per result, and compression works three tiers (what the model computes, how many bits each value takes, how the result executes) after identifying the limiting term, since a phone vision model spends its frame on arithmetic and LLM decode spends its token on weight bytes."
+  },
+  {
+   "term": "Structured vs unstructured pruning",
+   "def": "Pruning removes the weights or structures with the smallest loss impact, but only structured removal (channels, heads, layers, or 2:4 groups) yields smaller dense or hardware-supported tensors, and scattered zeros saved in a dense tensor save nothing."
+  },
+  {
+   "term": "Quantization regimes and the cliff",
+   "def": "Accuracy holds on a plateau down to some bit width and then falls off a model-dependent cliff, so post-training quantization over a calibration set comes first and quantization-aware training is spent only when it misses the quality target."
+  },
+  {
+   "term": "When fewer bits run faster",
+   "def": "Fewer bits speed a compute-bound layer only through a faster integer datapath but speed a bandwidth-bound decode in proportion to bytes removed, and only when dequantization is fused into the matmul, so the same precision change gives different gains in different regimes."
+  },
+  {
+   "term": "Combined techniques do not multiply",
+   "def": "Compression techniques interact through shared distributions, shapes, and kernels, so the default order is structure first, distillation as recovery, quantization last, with profiling after each step, and a 2x prune times a 4x INT8 gives an 8x ratio on paper but a fraction of that measured."
+  },
+  {
+   "term": "Measured deployment evidence",
+   "def": "Parameter, FLOP, and bit-width reductions are upper bounds, so a compressed artifact is accepted only on a measured profile on the target (accuracy, calibration, latency, throughput, size, energy), and model-only speedups are capped by the non-model share of end-to-end latency."
+  },
+  {
+   "term": "Affine quantization mechanics",
+   "def": "Quantization maps a clipping range onto integer levels with a scale and zero-point, range calibration trades clipping against resolution, per-channel scales beat per-tensor when ranges differ, and integer matmuls accumulate in INT32 and requantize."
+  },
+  {
+   "term": "Sparse storage break-even",
+   "def": "Unstructured sparsity pays only past a break-even, since an index beside each value doubles per-element bytes and irregular gathers keep sparse kernels slower than dense until high sparsity, whereas 2:4 structured sparsity halves the payload with fixed metadata."
+  },
+  {
+   "term": "Compression-specific fusion",
+   "def": "Some fusions exist only once a graph is compressed: batch normalization folds into the preceding convolution's weights and bias after structure stops changing, and weight-only kernels must dequantize in registers or a separate dequantize kernel restores the traffic quantization removed."
+  },
+  {
+   "term": "Knowledge distillation",
+   "def": "A compact dense student trained on a teacher's temperature-softened outputs moves cost from repeated inference to one extra training phase, runs on ordinary dense kernels, and is bounded by student capacity and teacher calibration."
+  },
+  {
+   "term": "Low-rank factorization",
+   "def": "Truncated SVD replaces a matrix with two thin factors, but the saving becomes speed only if the two factor kernels and the staged intermediate cost less than the original dense kernel."
+  },
+  {
+   "term": "Input-dependent computation and NAS",
+   "def": "Early exit, conditional layers, and mixture-of-experts spend less work on easy inputs but fragment batched execution and keep all experts resident, while hardware-aware architecture search is justified only by unusual targets or deployment scale (awareness)."
+  }
+ ]
+}

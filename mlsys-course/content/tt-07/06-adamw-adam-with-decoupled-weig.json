@@ -1,0 +1,148 @@
+{
+ "title": "AdamW: Adam with Decoupled Weight Decay",
+ "summary": "TinyTorch optimizers: AdamW: Adam with Decoupled Weight Decay",
+ "source": {
+  "chapter": "tt-07",
+  "sections": [
+   "AdamW: Adam with Decoupled Weight Decay"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ AdamW: Adam with Decoupled Weight Decay\n\nAdamW (Loshchilov & Hutter, 2017) resolves a fundamental flaw in how adaptive optimizers historically handled weight decay. In standard SGD, \\$L_2\\$ regularization and weight decay are mathematically identical; in adaptive algorithms like Adam, they diverge catastrophically.\n\n### The Mathematical Divergence: SGD vs Adam\n\nIn classical SGD, adding an \\$L_2\\$ regularization penalty \\$\\frac{\\lambda}{2} \\|\\boldsymbol{\\theta}\\|_2^2\\$ to the loss function yields:\n\n\\$\\$\\nabla_{\\boldsymbol{\\theta}} \\mathcal{L}_{\\text{reg}} = \\mathbf{g}_t + \\lambda \\boldsymbol{\\theta}_t \\implies \\boldsymbol{\\theta}_{t+1} = \\boldsymbol{\\theta}_t - \\alpha (\\mathbf{g}_t + \\lambda \\boldsymbol{\\theta}_t) = (1 - \\alpha \\lambda) \\boldsymbol{\\theta}_t - \\alpha \\mathbf{g}_t\\$\\$\n\nEach parameter is shrunk uniformly by factor \\$(1 - \\alpha \\lambda)\\$ at every step, independent of gradient scale.\n\n### The Inversion Pathology in Standard Adam\n\nStandard Adam implements \"coupled\" weight decay by adding \\$\\lambda \\boldsymbol{\\theta}_t\\$ directly to the gradient vector \\$\\mathbf{g}_t^{\\text{coupled}} = \\mathbf{g}_t + \\lambda \\boldsymbol{\\theta}_t\\$ before computing moment buffers:"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\Delta \\boldsymbol{\\theta}_t = -\\alpha \\frac{\\hat{\\mathbf{m}}_t}{\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon} \\approx -\\alpha \\frac{\\mathbf{g}_t}{\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon} - \\frac{\\alpha \\lambda}{\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon} \\boldsymbol{\\theta}_t\\$\\$\n\nNotice the denominator \\$\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon\\$:\n- **Frequent or High-Magnitude Gradients**: \\$\\hat{\\mathbf{v}}_t\\$ is large \\$\\implies\\$ the effective weight decay \\$\\frac{\\alpha \\lambda}{\\sqrt{\\hat{\\mathbf{v}}_t}}\\$ is severely suppressed! Active parameters receive virtually no regularization.\n- **Sparse or Low-Magnitude Gradients**: \\$\\hat{\\mathbf{v}}_t\\$ is small \\$\\implies\\$ the effective weight decay is amplified! Rare feature parameters are shrunk aggressively toward zero.\n\nThis behavior is completely backwards from principled statistical regularization.\n\n### AdamW's Decoupled Solution\n\nAdamW decouples weight decay from adaptive gradient scaling. Moments are accumulated exclusively on pure task gradients \\$\\mathbf{g}_t\\$, while shrinkage is applied directly to the parameter buffer:"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\boldsymbol{\\theta}_{t+1} = \\underbrace{(1 - \\alpha \\lambda) \\boldsymbol{\\theta}_t}_{\\text{Uniform Parameter Shrinkage}} - \\underbrace{\\alpha \\frac{\\hat{\\mathbf{m}}_t}{\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon}}_{\\text{Adaptive Gradient Step}}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Property",
+    "Coupled Regularization (Adam)",
+    "Decoupled Weight Decay (AdamW)"
+   ],
+   "rows": [
+    [
+     "**Gradient Fed to Moments**",
+     "\\$\\mathbf{g}_t + \\lambda \\boldsymbol{\\theta}_t\\$ (contaminated)",
+     "\\$\\mathbf{g}_t\\$ (pure loss gradient)"
+    ],
+    [
+     "**Coordinate Decay Rate**",
+     "\\$\\frac{\\alpha \\lambda}{\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon}\\$ (inversely scaled by variance)",
+     "\\$\\alpha \\lambda\\$ (constant and uniform across all weights)"
+    ],
+    [
+     "**Frequent / Active Features**",
+     "Under-regularized (large \\$\\hat{v} \\implies\\$ negligible decay)",
+     "Consistently regularized"
+    ],
+    [
+     "**Sparse / Inactive Features**",
+     "Over-regularized (small \\$\\hat{v} \\implies\\$ massive decay)",
+     "Consistently regularized"
+    ],
+    [
+     "**Hyperparameter Coupling**",
+     "Optimal \\$\\lambda\\$ depends nonlinearly on \\$\\alpha\\$",
+     "Optimal \\$\\lambda\\$ is largely decoupled from \\$\\alpha\\$"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class AdamW(Optimizer):\n    \"\"\"\n    AdamW optimizer with decoupled weight decay.\n\n    AdamW applies weight decay directly to the parameters instead of folding\n    it into the gradient, so the decay is not rescaled by the adaptive step.\n    This gives cleaner regularization and is the preferred choice in practice.\n    \"\"\"\n\n    def __init__(self, params: List[Tensor], lr: float = DEFAULT_LEARNING_RATE_ADAM, betas: tuple = (DEFAULT_BETA1, DEFAULT_BETA2), eps: float = DEFAULT_EPS, weight_decay: float = DEFAULT_WEIGHT_DECAY_ADAMW):\n        \"\"\"\n        Initialize AdamW optimizer.\n\n        TODO: Set up AdamW with decoupled weight decay\n\n        APPROACH:\n        1. Call parent constructor\n        2. Store hyperparameters (note higher default weight_decay)\n        3. Initialize moment buffers like Adam\n\n        KEY DIFFERENCE from Adam:\n        - Weight decay is applied directly to parameters, not added to gradients\n        - This provides better regularization behavior\n\n        EXAMPLE:\n        >>> optimizer = AdamW(model.parameters(), lr=0.001, weight_decay=0.01)\n        \"\"\"\n        for name, value in ((\"lr\", lr), (\"eps\", eps), (\"weight_decay\", weight_decay)):\n            if not np.isfinite(value) or value < 0:\n                raise ValueError(f\"{name} must be finite and nonnegative\")\n        if len(betas) != 2 or any(not np.isfinite(beta) or not 0 <= beta < 1 for beta in betas):\n            raise ValueError(\"betas must contain two finite values in [0, 1)\")\n        super().__init__(params)\n\n        self.lr = lr\n        self.beta1, self.beta2 = betas\n        self.eps = eps\n        self.weight_decay = weight_decay\n\n        # Initialize moment buffers (same as Adam)\n        self.m_buffers = [None for _ in self.params]\n        self.update_counts = [0 for _ in self.params]  # Age of each parameter's moments\n        self.v_buffers = [None for _ in self.params]"
+  },
+  {
+   "type": "text",
+   "md": "### AdamW Moment Updates: Pure Gradients without Decay Pollution\n\nAdamW employs the exact same Exponential Moving Average (EMA) and bias correction mathematics as Adam. However, the architectural context differs fundamentally: AdamW feeds **pure objective gradients** \\$\\mathbf{g}_t\\$ into `_update_moments()`, ensuring that parameter decay never distorts the coordinate variance estimates:\n\n\\$\\$\\mathbf{g}_t \\xrightarrow{\\text{pure gradient}} \\_ \\text{update\\_moments}(i, \\mathbf{g}_t) \\implies \\begin{cases} \\hat{\\mathbf{m}}_t = \\frac{\\beta_1 \\mathbf{m}_{t-1} + (1 - \\beta_1) \\mathbf{g}_t}{1 - \\beta_1^t} \\\\ \\hat{\\mathbf{v}}_t = \\frac{\\beta_2 \\mathbf{v}_{t-1} + (1 - \\beta_2) \\mathbf{g}_t^{\\odot 2}}{1 - \\beta_2^t} \\end{cases}\\$\\$\n\nParameter shrinkage is subsequently applied as an independent transformation directly to the parameter buffer."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(AdamW)\ndef _update_moments(self, i: int, grad_data: np.ndarray) -> tuple:\n    \"\"\"\n    Update first and second moment estimates with bias correction for AdamW.\n\n    Identical math to Adam's _update_moments: EMA of gradient and squared\n    gradient, with bias correction. The key difference is in how step()\n    calls this -- AdamW passes pure gradients without weight decay mixed in.\n\n    TODO: Update moment buffers and return bias-corrected estimates\n\n    APPROACH:\n    1. Initialize m and v buffers to zeros if this is the first call\n    2. Update first moment: m = beta1 * m + (1 - beta1) * grad\n    3. Update second moment: v = beta2 * v + (1 - beta2) * grad^2\n    4. Compute bias corrections using this parameter's update count\n    5. Return bias-corrected m_hat and v_hat\n\n    EXAMPLE:\n    >>> m_hat, v_hat = self._update_moments(0, np.array([0.1, 0.2]))\n\n    HINT: Same math as Adam -- the decoupling happens in step(), not here\n    \"\"\"\n    # Initialize buffers if needed\n    if self.m_buffers[i] is None:\n        self.m_buffers[i] = np.zeros_like(grad_data)\n        self.v_buffers[i] = np.zeros_like(grad_data)\n\n    # Update biased first moment estimate\n    self.m_buffers[i] = self.beta1 * self.m_buffers[i] + (1 - self.beta1) * grad_data\n\n    # Update biased second moment estimate\n    self.v_buffers[i] = self.beta2 * self.v_buffers[i] + (1 - self.beta2) * (grad_data ** 2)\n\n    # A parameter with grad=None skipped this update. Its moments are younger\n    # than the optimizer's global step count, so correct using their own age.\n    self.update_counts[i] += 1\n    bias_correction1 = 1 - self.beta1 ** self.update_counts[i]\n    bias_correction2 = 1 - self.beta2 ** self.update_counts[i]\n\n    # Compute bias-corrected moments\n    m_hat = self.m_buffers[i] / bias_correction1\n    v_hat = self.v_buffers[i] / bias_correction2\n\n    return m_hat, v_hat"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: AdamW Moment Updates\n\nThis test validates that AdamW's `_update_moments` computes the same EMA\nand bias correction as Adam (the math is identical; the decoupling\ndifference is in how `step()` uses these results).\n\n**What we're testing**: EMA computation for AdamW\n**Why it matters**: Correct moments are needed for adaptive learning rates\n**Expected**: Same bias-corrected values as Adam for identical inputs"
+  },
+  {
+   "type": "text",
+   "md": "### AdamW Step: Decoupled Weight Decay Composition\n\nAdamW's `step()` composes the unified gradient extraction and moment update helpers into an atomic four-phase pipeline per parameter tensor:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Phase",
+    "Operation",
+    "Mathematical Transformation",
+    "Implementation Vector"
+   ],
+   "rows": [
+    [
+     "**1. Unpack**",
+     "Gradient Extraction",
+     "\\$\\mathbf{g}_t \\leftarrow \\text{param.grad}\\$",
+     "`grad_data = self._extract_gradient(param)`"
+    ],
+    [
+     "**2. Moments**",
+     "Variance Tracking",
+     "\\$(\\hat{\\mathbf{m}}_t, \\hat{\\mathbf{v}}_t) \\leftarrow \\text{EMA}(\\mathbf{g}_t)\\$",
+     "`m_hat, v_hat = self._update_moments(i, grad_data)`"
+    ],
+    [
+     "**3. Shrinkage**",
+     "Decoupled Weight Decay",
+     "\\$\\boldsymbol{\\theta} \\leftarrow (1 - \\alpha \\lambda) \\boldsymbol{\\theta}\\$",
+     "`param.data = param.data * (1 - self.lr * self.weight_decay)`"
+    ],
+    [
+     "**4. Descent**",
+     "Adaptive Normalization",
+     "\\$\\boldsymbol{\\theta} \\leftarrow \\boldsymbol{\\theta} - \\alpha \\frac{\\hat{\\mathbf{m}}_t}{\\sqrt{\\hat{\\mathbf{v}}_t} + \\epsilon}\\$",
+     "`param.data = param.data - self.lr * m_hat / (np.sqrt(v_hat) + self.eps)`"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Applying parameter shrinkage in Phase 3 prior to the adaptive descent in Phase 4 ensures that regularization remains completely orthogonal to gradient conditioning."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "@method_of(AdamW)\ndef step(self):\n    \"\"\"\n    Perform AdamW update step by composing helpers with decoupled weight decay.\n\n    TODO: Implement AdamW parameter update using _extract_gradient and _update_moments\n\n    APPROACH:\n    1. Increment the global step_count (each moment helper tracks its own age)\n    2. For each parameter with gradients:\n       a. Extract gradient with self._extract_gradient(param)\n       b. Update moments with self._update_moments(i, grad_data) -- pure gradient\n       c. Decay the old weight: param *= (1 - lr * weight_decay)\n       d. Apply gradient update: param -= lr * m_hat / (sqrt(v_hat) + eps)\n\n    KEY DIFFERENCE from Adam:\n    - NO weight decay added to gradient before moment update\n    - Weight decay applied to the old parameter BEFORE gradient update\n\n    HINTS:\n    - Do NOT modify grad_data with weight decay (that is Adam's coupled form)\n    - Apply decay as a multiplicative factor on param.data\n    - Keep the parameter's dtype: .astype(param.data.dtype, copy=False)\n    \"\"\"\n    # Increment step counter first\n    self.step_count += 1\n\n    for i, param in enumerate(self.params):\n        if param.grad is None:\n            continue\n\n        # Extract gradient using shared helper\n        grad_data = self._extract_gradient(param)\n\n        # Update moments using PURE gradients (no weight decay mixed in)\n        m_hat, v_hat = self._update_moments(i, grad_data)\n\n        # Remember the dtype so float32 weights come back out as float32.\n        dtype = param.data.dtype\n\n        # Decay the old weight, not the adaptive update we are about to add.\n        if self.weight_decay != 0:\n            param.data = param.data * (1 - self.lr * self.weight_decay)\n\n        # Apply gradient-based update independently of decay.\n        param.data = param.data - self.lr * m_hat / (np.sqrt(v_hat) + self.eps)\n        param.data = param.data.astype(dtype, copy=False)"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: AdamW Optimizer\n\nThis test validates our AdamW implementation with decoupled weight decay.\n\n**What we're testing**: AdamW updates with proper weight decay decoupling\n**Why it matters**: State-of-the-art optimizer for modern neural networks\n**Expected**: Correct separation of gradient updates and weight decay"
+  },
+  {
+   "type": "text",
+   "md": "### Checkpointing Adam's Moments\n\nModule 08's Trainer will save optimizer state through three small methods that SGD\nalready has: `has_momentum()`, `get_momentum_state()`, and `set_momentum_state()`.\nAdam and AdamW carry two buffers per parameter instead of one, so they answer the\nsame three questions with (m, v) pairs. These methods save and restore **buffers\nonly**, not a complete optimizer checkpoint. Module 08's Trainer will also save\nthe per-parameter `update_counts`, global `step_count`, and hyperparameters.\nThe moments and their update counts must resume together: restoring only the\nbuffers gives the wrong bias correction on the next step."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _adam_has_momentum(self) -> bool:\n    \"\"\"Adam always keeps moment buffers, so there is always state to checkpoint.\"\"\"\n    return True\n\ndef _adam_get_momentum_state(self) -> List:\n    \"\"\"Copy only (m, v) buffers; Trainer also saves counts and hyperparameters.\"\"\"\n    return [\n        (None if m is None else m.copy(), None if v is None else v.copy())\n        for m, v in zip(self.m_buffers, self.v_buffers)\n    ]\n\ndef _adam_set_momentum_state(self, state: Optional[List]) -> None:\n    \"\"\"Restore only buffers; the caller must also restore update_counts to resume.\"\"\"\n    if state is None:\n        return\n    if len(state) != len(self.m_buffers):\n        raise ValueError(\n            f\"Optimizer state mismatch: state has {len(state)} entries, \"\n            f\"optimizer has {len(self.m_buffers)} parameters\"\n        )\n    # Check the complete state before mutating either list of moment buffers.\n    for param, pair in zip(self.params, state):\n        if not isinstance(pair, (list, tuple)) or len(pair) != 2:\n            raise ValueError(\"Adam state entries must be (m, v) pairs\")\n        m, v = pair\n        if (m is None) != (v is None):\n            raise ValueError(\"Adam moment buffers must both be initialized or both be None\")\n        for buf in pair:\n            if buf is not None and (not isinstance(buf, np.ndarray) or buf.shape != param.data.shape):\n                raise ValueError(\"Adam moment buffer shape must match its parameter\")\n    restored_m = [None if m is None else m.copy() for m, _ in state]\n    restored_v = [None if v is None else v.copy() for _, v in state]\n    self.m_buffers, self.v_buffers = restored_m, restored_v\n\nfor _cls in (Adam, AdamW):\n    _cls.has_momentum = _adam_has_momentum\n    _cls.get_momentum_state = _adam_get_momentum_state\n    _cls.set_momentum_state = _adam_set_momentum_state"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Adam Checkpoint State\n\n**What we're testing**: get_momentum_state / set_momentum_state round trip for Adam and AdamW\n**Why it matters**: Module 08's Trainer will restore optimizer state from checkpoints\n**Expected**: Restored buffers equal the saved ones"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: AdamW: Adam with Decoupled Weight Decay."
+   ]
+  }
+ ]
+}

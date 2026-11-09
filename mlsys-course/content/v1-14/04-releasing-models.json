@@ -1,0 +1,76 @@
+{
+ "title": "Releasing Models",
+ "summary": "Select a deployment pattern that supports live traffic evaluation without serving candidate predictions to users.",
+ "source": {
+  "chapter": "v1-14",
+  "sections": [
+   "Releasing Models",
+   "Infrastructure as code",
+   "Validating the serving artifact",
+   "Model deployment",
+   "Edge AI deployment",
+   "Memory and compute of release controls"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Select a deployment pattern that supports live traffic evaluation without serving candidate predictions to users\n- Explain why rollback of stateful ML services requires cache and data handling beyond redeploying earlier weights\n- Justify explicit runtime version pinning as part of validating optimized serving artifacts"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Operations, § Releasing Models",
+   "md": "A model that passes every offline check has still not made a single production decision. Between the validated checkpoint and the first user-facing prediction lie packaging, conversion to a serving runtime, staged exposure to live traffic, and a path back if the new version misbehaves. At each step, the artifact users see can drift from the artifact that was evaluated. Deployment transforms a static checkpoint into a versioned, reproducible execution artifact."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Infrastructure as code\n- Validating the serving artifact\n- Model deployment\n- Edge AI deployment\n- Memory and compute of release controls\n\nPay attention to: model deployment strategies (shadow, canary, blue-green); stateful vs. stateless rollback; validating converted serving artifacts and runtime version pinning."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A two-tower recommender caches precomputed user and item embeddings. Model v2 changed the embedding dimension, and after a regression the team rolls back to v1 by redeploying v1's weights. Explain why this rollback can still fail, and state what a stateful rollback procedure must include.",
+   "md": "The embeddings cached while v2 was serving live in v2's vector space (here even a different dimension), so v1 would score queries against incompatible vectors and return nonsense or errors although its own weights are correct. A stateful rollback must invalidate or version those caches atomically with the weight swap, for example through dual-version namespaces, and if v2's bad predictions polluted feature logs or clickstream data during the degraded window, those records must be quarantined before the next retraining. Clean rollback is an architectural property that must be exercised in advance, not assumed."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-14-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An engineering team needs to evaluate the live inference latency, resource consumption, and numerical output distribution of a new deep recommender against live production traffic without exposing users to potential prediction quality regressions. Which deployment pattern should they select?",
+     "explanation": "The correct answer is C. Shadow deployment duplicates live traffic to the candidate model while only the incumbent model's outputs reach users, so the team can compare latency, resource use, and prediction distributions without exposing user-facing decisions to the new model. That does not make shadowing risk-free: duplicated inference still adds cost, can create resource contention, and requires careful isolation and privacy handling. A canary deliberately exposes some users to candidate predictions, while blue-green and in-place approaches do not provide the same live side-by-side observation before user impact.",
+     "hint": "Think about: select a deployment pattern that supports live traffic evaluation without serving candidate predictions to users",
+     "type": "single",
+     "options": [
+      "Canary deployment, routing 5% of user-facing production traffic directly to the candidate model",
+      "Blue-green deployment, performing an immediate router-level cutover of 100% of user traffic",
+      "Shadow deployment, asynchronously duplicating live production traffic to the candidate model while returning only the incumbent model's predictions to users",
+      "In-place deployment, updating the model weights directly on active production inference servers"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Once an INT8-converted model passes numerical-equivalence tests against the original, upgrading the inference runtime by a minor version needs no revalidation, because the model weights have not changed.",
+     "explanation": "False. A runtime upgrade can change kernel selection and fusion, and with them both latency and numerical results, in an artifact whose weights never changed. The runtime version is an input to reproducibility, so deployment configurations pin it explicitly and treat any upgrade as a change that must pass the same equivalence and slice-level checks as a new model.",
+     "hint": "Think about: justify explicit runtime version pinning as part of validating optimized serving artifacts",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Rollback**: Recovery to a known-good artifact and configuration when a release violates operational bounds."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Rollback",
+   "def": "Recovery to a known-good artifact and configuration when a release violates operational bounds."
+  }
+ ]
+}

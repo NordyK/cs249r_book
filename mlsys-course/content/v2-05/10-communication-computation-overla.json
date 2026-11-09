@@ -1,0 +1,98 @@
+{
+ "title": "Communication-Computation Overlap",
+ "summary": "Calculate effective overlapped step time using the LogP model by separating overlappable wire latency from nonoverlappable processor overhead.",
+ "source": {
+  "chapter": "v2-05",
+  "sections": [
+   "Communication-Computation Overlap",
+   "The LogP model of what overlap can hide",
+   "Layer-by-layer overlap",
+   "Bucket fusion",
+   "Overlap limits and exposed communication"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate effective overlapped step time using the LogP model by separating overlappable wire latency from nonoverlappable processor overhead\n- Evaluate how computation-latency overlap renders further wire latency reductions ineffective when processor overhead dominates\n- Analyze the trade-off between startup latency amortization and communication launch delay in DDP bucket fusion\n- Calculate exposed communication residuals in pipelined training when collective transfer time exceeds layer backward computation\n- Identify the output-layer and input-layer boundary conditions that prevent complete communication hiding in backward pass overlap"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Collective Communication, § Communication-Computation Overlap",
+   "md": "Even with hierarchical routing and gradient compression, waiting until the entire backward pass finishes before launching AllReduce leaves every GPU idle across the full transfer window before the optimizer can update the weights. **Communication-computation overlap** hides that stall by running transfers concurrently with independent backward-pass computation, attacking the communication time that algorithm selection and compression leave exposed. The time it hides is the overlap term OverlappedTime that the Fleet Law (a later section) subtracts from step time."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The LogP model of what overlap can hide\n- Layer-by-layer overlap\n- Bucket fusion\n- Overlap limits and exposed communication\n\nPay attention to: The LogP model: overlappable network latency L versus nonoverlappable processor overhead o; Layer-by-layer gradient overlap using PyTorch DDP gradient hooks; Bucket fusion trade-offs: amortizing launch overhead alpha vs delay in initial communication; Parameter registration order and observed backward readiness for bucket assignment."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In the illustrative 32-layer, 7B-parameter FP32 gradient budget, each equal layer has 875 MB of gradients. Charging nine 100 MB buckets at 3 ms each gives 27 ms of communication per layer, while backward compute takes 15 ms. Under a single serialized communication stream, calculate total backward-plus-communication time with and without overlap and explain the exposed tail.",
+   "md": "Sequential execution takes \\$32(15+27)=1344 ms. With overlap, the first gradient becomes ready at 15 ms, then 32 communication stages take 27 ms each: \\$15+32×27=879 ms, a 34.6 percent saving. Compute alone takes 480 ms, leaving 399 ms exposed: a 27 ms drain plus \\$31(27-15)=372 ms of backlog. These values include the stated full-bucket charge for the final partial bucket."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-05-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In a toy overlap budget, independent computation takes \\$600\\,mus and the complete network interval takes \\$200\\,mus. Initiation and completion each cost \\$50\\,mus on the same execution resource as that computation. Assume independent network progress and no contention. What is the effective elapsed time, and which component remains exposed?",
+     "explanation": "The correct answer is D. Under the stated shared-resource assumptions, initiation and completion add \\$2o=100\\,\\mu\\text{s}$. Independent computation hides the 200-microsecond network interval, giving \\$2o+\\max(600,200)=700\\,\\mu\\text{s}$. This is a scoped overlap budget, not a claim that all CPU coordination blocks every GPU execution resource. Other processor placement, dependencies, progress, or contention require a different schedule.",
+     "hint": "Think about: calculate effective overlapped step time using the LogP model by separating overlappable wire latency from nonoverlappable processor overhead.",
+     "type": "single",
+     "options": [
+      "Effective time is \\$600\\,mus, and communication is 100% hidden because L_lat < T_compute.",
+      "Effective time is \\$800\\,mus, because network latency and processor overhead must both be added directly to compute time.",
+      "Effective time is \\$750\\,mus, because the gap parameter g adds an irreducible stall to the compute pipeline.",
+      "Effective time is \\$700\\,\\mu\\text{s}$ (\\$2o + \\max(T_{\\text{compute}}, L_{\\text{lat}})$), where the \\$200\\,\\mu\\text{s}$ network latency is completely hidden behind the \\$600\\,\\mu\\text{s}$ compute, but the \\$100\\,\\mu\\text{s}$ of processor overhead (\\$2o$) remains exposed."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In the stated toy LogP budget with independent work, network progress, and no contention, upgrading a network fabric to achieve lower physical wire latency ($L_{\\text{lat}}$) will not reduce step time if the overlapped computation window $T_{\\text{compute}}$ already exceeds $L_{\\text{lat}}$ and the nonoverlappable processor overhead $o$ remains unchanged.",
+     "explanation": "True under those assumptions. The budget is \\$2o+max(T_compute,L_lat). When independent compute already covers the complete network interval, reducing that interval alone leaves the maximum and elapsed time unchanged. This does not establish the same result for a different dependency schedule, processor placement, or contended transfer.",
+     "hint": "Think about: evaluate how computation-latency overlap renders further wire latency reductions ineffective when processor overhead dominates.",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "In PyTorch DistributedDataParallel (DDP), how does bucket fusion balance the trade-off between communication startup latency ($\\alpha$) and the compute-communication overlap window?",
+     "explanation": "The correct answer is A. Fusion replaces many small reductions with fewer larger ones, amortizing startup cost. Each bucket waits for its last required gradient, so a larger bucket can delay launch enough to expose communication that smaller buckets could hide. The useful size depends on readiness, tensor sizes, achieved transfer duration, and collective ordering. Measure training-step time, including the final transfer and any backlog; larger buckets do not guarantee bandwidth saturation or only a slight delay. Fusion does not itself quantize gradients or change layer dimensions.",
+     "hint": "Think about: analyze the trade-off between startup latency amortization and communication launch delay in DDP bucket fusion.",
+     "type": "single",
+     "options": [
+      "Grouping multiple parameter gradients into a bucket amortizes per-collective startup overhead, but the bucket must wait until all required gradients are ready, reducing the available overlap window.",
+      "Bucket fusion compresses all gradient tensors into 8-bit integers before allocating them to ring communication buffers.",
+      "Bucket fusion permanently disables all gradient hooks and forces all communication to occur after optimizer step completion.",
+      "Bucket fusion ensures that all layers in the transformer model have mathematically identical parameter counts."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain the startup and drain boundaries of bucketed backpropagation that limit communication-computation overlap even when intermediate layers hide communication successfully.",
+   "md": "Communication cannot start until the first backward bucket is ready, leaving an initial compute-only startup interval. That first bucket can then overlap with later backward work; its communication is not inherently exposed. At the other end, the final bucket has no later backward computation to hide behind, so the optimizer must wait for its reduction and any accumulated communication backlog."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Why can one late gradient delay a DDP bucket whose other gradients are ready? Explain how parameter registration order and observed backward readiness can guide bucket membership without guaranteeing an optimal overlap schedule.",
+   "md": "A bucket cannot launch its reduction until all required gradients are ready, so one late gradient consumes the overlap window of the others. Reverse parameter registration order can approximate backward readiness, and some configurations rebuild buckets using observed readiness. Registration order need not match forward execution order in branched models or models with reused parameters. Grouping gradients that become ready together can help, while the runtime must preserve compatible collective order across ranks and measure the resulting step time."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Communication overlap**: Executing eligible communication concurrently with independent compute to hide part of its elapsed cost."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Communication overlap",
+   "def": "Executing eligible communication concurrently with independent compute to hide part of its elapsed cost."
+  }
+ ]
+}

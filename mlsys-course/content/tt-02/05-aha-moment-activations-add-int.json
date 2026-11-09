@@ -1,0 +1,35 @@
+{
+ "title": "⭐ Aha Moment: Activations Add Intelligence",
+ "summary": "TinyTorch activations: ⭐ Aha Moment: Activations Add Intelligence",
+ "source": {
+  "chapter": "tt-02",
+  "sections": [
+   "⭐ Aha Moment: Activations Add Intelligence"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: Activations Add Intelligence\n\n**What you built:** Five activation functions that introduce nonlinearity to neural networks.\n\n**Why it matters:** Without activations, stacking layers would just be matrix multiplication -\na linear operation. ReLU's simple \"zero out negatives\" rule is what allows networks to learn\ncomplex patterns like recognizing faces or understanding language.\n\nModule 03 will combine your activations with Linear layers!"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_activations():\n    \"\"\"🎯 See how activations transform data.\"\"\"\n    print(\"🎯 AHA MOMENT: Activations Add Intelligence\")\n    print(\"=\" * 45)\n\n    # Test input with positive and negative values\n    x = Tensor(np.array([-2.0, -1.0, 0.0, 1.0, 2.0]))\n    print(f\"Input:   {x.data}\")\n\n    # ReLU - zeros out negatives\n    relu = ReLU()\n    relu_out = relu(x)\n    print(f\"ReLU:    {relu_out.data}\")\n    print(\"         Negatives become 0, positives unchanged!\")\n\n    # Sigmoid - squashes to (0, 1)\n    sigmoid = Sigmoid()\n    sigmoid_out = sigmoid(x)\n    print(f\"\\nSigmoid: {np.round(sigmoid_out.data, 2)}\")\n    print(\"         All values squashed to (0, 1) range!\")\n\n    # Softmax - probability distribution\n    softmax = Softmax()\n    softmax_out = softmax(x)\n    print(f\"\\nSoftmax: {np.round(softmax_out.data, 3)}\")\n    print(f\"         Sum = {softmax_out.data.sum():.1f} (valid probability distribution!)\")\n\n    print(\"\\n✨ Activations add nonlinearity, the key to deep learning!\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Activations\n\nCongratulations! You've built the intelligence engine of neural networks!\n\n### Key Accomplishments\n- **Built 5 core activation functions** with distinct behaviors and use cases\n- **Implemented forward passes** for Sigmoid, ReLU, Tanh, GELU, and Softmax\n- **Discovered computational cost differences** between activations (ReLU fastest)\n- **Handled numerical stability** with max subtraction techniques\n- **All tests pass** (validated by `test_module()`)\n\n### Systems Insights Discovered\n- **ReLU efficiency**: A max is far cheaper than an exponential, so ReLU costs a fraction of Sigmoid or Tanh per element\n- **Numerical stability**: Softmax's max subtraction prevents overflow without changing results\n- **Sparsity is not free speed**: ReLU's zero outputs make representations sparse, but a dense matrix multiply still does the full work, so cashing that sparsity in takes a kernel and a layout that can skip zeros\n- **Activation selection**: Different layers need different activations (ReLU for hidden, Softmax for output)\n\n### Ready for Next Steps\nYour activation functions give every layer the nonlinearity it needs. Without\nthem a stack of Linear layers collapses into a single Linear layer, no matter\nhow deep you make it.\n\nExport with: `tito module complete 02`"
+  },
+  {
+   "type": "text",
+   "md": "**Next**: Module 03 will combine your Tensors and Activations to build complete neural network Layers!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: Activations Add Intelligence."
+   ]
+  }
+ ]
+}

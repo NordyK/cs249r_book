@@ -1,0 +1,61 @@
+{
+ "title": "Model Size Analysis: The Composition Function",
+ "summary": "TinyTorch quantization: Model Size Analysis: The Composition Function",
+ "source": {
+  "chapter": "tt-15",
+  "sections": [
+   "Model Size Analysis: The Composition Function"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Model Size Analysis: The Composition Function\n\nThe aggregation function `analyze_model_sizes` traverses original and quantized network graphs in parallel, computing total parameter counts, memory footprints in megabytes, and the overall compression ratio:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Metric Name",
+    "Mathematical Definition",
+    "Physical Systems Meaning"
+   ],
+   "rows": [
+    [
+     "**`original_mb`**",
+     "\\$\\sum_{\\ell \\in \\mathcal{M}_{\\text{orig}}} \\text{bytes}(\\ell) / 10^6\\$",
+     "Total memory consumed by FP32 baseline weights"
+    ],
+    [
+     "**`quantized_mb`**",
+     "\\$\\sum_{\\ell \\in \\mathcal{M}_{\\text{quant}}} \\text{bytes}(\\ell) / 10^6\\$",
+     "Memory consumed by modeled INT8 packed weights + metadata"
+    ],
+    [
+     "**`compression_ratio`**",
+     "\\$\\text{original\\_bytes} / \\text{quantized\\_bytes}\\$",
+     "Multiplicative factor of model size reduction (\\$\\approx 3.8\\times \\text{--} 4.0\\times\\$)"
+    ],
+    [
+     "**`memory_saved_mb`**",
+     "\\$\\text{original\\_mb} - \\text{quantized\\_mb}\\$",
+     "Physical memory footprint liberated for KV cache or other models"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_model_sizes(original_model, quantized_model) -> Dict[str, float]:\n    \"\"\"\n    Compare memory usage between original and quantized models.\n\n    TODO: Aggregate per-layer measurements and compute compression metrics\n\n    APPROACH:\n    1. Iterate original model layers, measure each with _measure_layer_bytes()\n    2. Iterate quantized model layers, measure each (with is_quantized=True for QuantizedLinear)\n    3. Compute compression ratio and savings from the totals\n\n    Args:\n        original_model: Model before quantization\n        quantized_model: Model after quantization\n\n    Returns:\n        Dictionary with compression metrics\n\n    EXAMPLE:\n    >>> baseline = Sequential(Linear(100, 50), Linear(50, 10))\n    >>> compressed = Sequential(Linear(100, 50), Linear(50, 10))\n    >>> quantize_model(compressed)  # quantizes in place, so keep a separate baseline\n    >>> stats = analyze_model_sizes(baseline, compressed)\n    >>> print(f\"Reduced to {stats['compression_ratio']:.1f}x smaller\")\n\n    HINT:\n    - Use _measure_layer_bytes(layer) for original FP32 layers\n    - Use _measure_layer_bytes(layer, is_quantized=True) for quantized layers\n    \"\"\"\n    # Measure original model\n    original_params = 0\n    original_bytes = 0\n    for layer in original_model.layers:\n        p, b = _measure_layer_bytes(layer, is_quantized=False)\n        original_params += p\n        original_bytes += b\n\n    # Measure quantized model\n    quantized_params = 0\n    quantized_bytes = 0\n    for layer in quantized_model.layers:\n        p, b = _measure_layer_bytes(layer, is_quantized=True)\n        quantized_params += p\n        quantized_bytes += b\n\n    compression_ratio = original_bytes / quantized_bytes if quantized_bytes > 0 else 1.0\n    memory_saved = original_bytes - quantized_bytes\n\n    return {\n        'original_params': original_params,\n        'quantized_params': quantized_params,\n        'original_bytes': original_bytes,\n        'quantized_bytes': quantized_bytes,\n        'compression_ratio': compression_ratio,\n        'memory_saved_mb': memory_saved / MB_TO_BYTES,\n        'memory_saved_percent': (memory_saved / original_bytes) * 100 if original_bytes > 0 else 0\n    }"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Model Size Analysis\n\nThis test validates our model size analysis function correctly measures compression.\n\n**What we're testing**: Memory comparison between original and quantized models\n**Why it matters**: Need accurate metrics to verify quantization benefits\n**Expected**: Compression ratio > 2x and significant memory savings"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Model Size Analysis: The Composition Function."
+   ]
+  }
+ ]
+}

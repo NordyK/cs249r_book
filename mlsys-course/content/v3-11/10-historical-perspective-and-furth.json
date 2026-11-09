@@ -1,0 +1,59 @@
+{
+ "title": "Historical Perspective and Further Reading",
+ "summary": "Work through Historical Perspective and Further Reading.",
+ "source": {
+  "chapter": "v3-11",
+  "sections": [
+   "Historical Perspective and Further Reading"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Historical Perspective and Further Reading**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Durable Execution, § Historical Perspective and Further Reading",
+   "md": "Every mechanism in this chapter answers a question that transaction processing confronted first: how a system that crashes mid-update can determine afterward what work had already escaped. In his foundational 1978 notes on database operating systems, Jim Gray established the write-ahead log as the record from which recovery reconstructs committed work, while introducing the two-phase commit protocol to coordinate atomic updates across autonomous resource managers. As databases moved into main memory, writing that log to stable storage emerged as the primary throughput bottleneck."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Trajectory log matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Recovery state comes from an append-only, typed trajectory log, and the live trajectory record is a deterministic fold over that log."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-11-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Historical Perspective and Further Reading** develops one of the chapter's claims. Which one?",
+     "options": [
+      "An acknowledgment is durable only against the faults its storage tier survives, so each write's durability is declared against a failure domain rather than assumed.",
+      "Recovery state comes from an append-only, typed trajectory log, and the live trajectory record is a deterministic fold over that log.",
+      "A checkpoint binds the record snapshot, workspace snapshot, artifacts, and reducer versions to one committed log position, captured as a consistent cut and published only after the state it references is durable.",
+      "Current recovery, historical replay, and diagnostics need different artifacts on independent schedules, so retention is derived from the declared recovery and replay promise, not storage convenience."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Trajectory log**: Recovery state comes from an append-only, typed trajectory log, and the live trajectory record is a deterministic fold over that log."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Trajectory log* reconstructs *Trajectory saga*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Trajectory log* reconstructs *Trajectory record*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Historical Perspective and Further Reading."
+   ]
+  }
+ ]
+}

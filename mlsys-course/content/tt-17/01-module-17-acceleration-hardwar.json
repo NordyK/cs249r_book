@@ -1,0 +1,115 @@
+{
+ "title": "Module 17: Acceleration - Hardware-Aware Optimization",
+ "summary": "TinyTorch acceleration: Module 17: Acceleration - Hardware-Aware Optimization",
+ "source": {
+  "chapter": "tt-17",
+  "sections": [
+   "Module 17: Acceleration - Hardware-Aware Optimization"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 17: Acceleration - Hardware-Aware Optimization\n\nWelcome to Module 17! In this module, we transition from pure mathematical abstractions to silicon-level efficiency: vectorizing operations via BLAS GEMM kernels, analyzing memory traffic savings from operator fusion, implementing cache-aware matrix tiling, and lowering multi-loop 2D convolutions into single matrix multiplies via `im2col` and its backward dual `col2im`.\n\n\n  \n  \n\n\n\n## 🔗 Prerequisites & Progress\n\n**You've Built**: Complete neural network foundation with autograd (`06_autograd`), training pipelines (`08_training`), spatial CNNs (`09_convolutions`), profiling diagnostics (`14_profiling`), and model compression (`15_quantization`, `16_compression`).\n**You'll Build**: Vectorized BLAS matrix multiplications, intermediate allocation analysis, cache-aware blocked matmul, and a fully differentiable `im2col`/`col2im` convolution engine.\n**You'll Enable**: Peak hardware FLOP/s utilization and minimal memory bus stalls for high-throughput edge and server inference.\n\n### Architectural Roadmap"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Tier",
+    "Subsystem",
+    "Primitives & Capabilities",
+    "Status"
+   ],
+   "rows": [
+    [
+     "**Modules 01–08**",
+     "Foundation Tier",
+     "`Tensor`, `Function`, `Linear`, `GELU`, `SGD`, `Adam`, `Trainer`",
+     "Completed"
+    ],
+    [
+     "**Modules 09–13**",
+     "Architecture Tier",
+     "`Conv2d`, `BPETokenizer`, `EmbeddingLayer`, `MultiHeadAttention`, `GPT`",
+     "Completed"
+    ],
+    [
+     "**Modules 14–16**",
+     "Optimization Diagnostics",
+     "`Profiler`, `count_flops`, `quantize_int8`, `magnitude_prune`, `KnowledgeDistillation`",
+     "Completed"
+    ],
+    [
+     "**Module 17**",
+     "**Hardware Acceleration**",
+     "`vectorized_matmul`, `fused_gelu`, `tiled_matmul`, `im2col`, `col2im`, `Im2colConv2dFunction`",
+     "**Active Subsystem**"
+    ],
+    [
+     "**Modules 18–20**",
+     "Serving & Capstone",
+     "`KVCache`, `CachedAttention`, `BenchmarkSuite`, `BenchmarkReport`",
+     "Downstream Consumers"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 🎯 Learning Objectives\n\nBy the end of this module, you will:\n1. **Vectorize Matrix Computations**: Leverage underlying BLAS (Basic Linear Algebra Subprograms) GEMM routines for hardware SIMD execution.\n2. **Audit Operator Memory Traffic**: Reason about the memory bus footprint of multi-step element-wise pipelines from a byte model, and measure the allocation peaks those pipelines actually produce.\n3. **Block a Matrix Multiply for Cache**: Implement tiled matrix multiplication, then measure it against one BLAS call to see what the tiling in a library already does for you.\n4. **Lower Convolutions via im2col**: Transform seven nested spatial loops into a single contiguous GEMM, quantifying memory-versus-latency trade-offs.\n5. **Differentiate im2col via col2im**: Implement the transpose scatter-add backward pass to train convolutional networks at GEMM speed.\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/17_acceleration/acceleration.ipynb`\n**Building Side:** Code exports to `tinytorch.perf.acceleration`\n\n```python\n# How to use this module:\nfrom tinytorch.perf.acceleration import (\n    vectorized_matmul,     # BLAS GEMM behind a Tensor\n    fused_gelu,            # GELU as one compact expression\n    unfused_gelu,          # GELU with every intermediate retained\n    tiled_matmul,          # cache-blocked matmul\n    im2col,                # patch matrix for a convolution\n    im2col_conv2d,         # convolution as one matmul (inference)\n    col2im,                # scatter-add dual of im2col\n    Im2colConv2dFunction,  # the differentiable version\n)\n```\n\n## 📋 Module Dependencies\n\n**Prerequisites**: Modules 01 (Tensor), 06 (Autograd), 09 (Convolutions), and 14 (Profiling) must be complete\n\n**External Dependencies**:\n- `numpy` (vectorized kernels and array operations)\n- `time` and `typing` (for timing loops and type hints)\n- `tracemalloc` (used only inside an analysis cell)"
+  },
+  {
+   "type": "text",
+   "md": "**TinyTorch Dependencies**:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dependency Component",
+    "Source Module",
+    "Systems Capability Exploited",
+    "Integration Role"
+   ],
+   "rows": [
+    [
+     "**`Tensor` & `Function`**",
+     "Module 01 (`01_tensor`)",
+     "Multidimensional data container & computational graph node",
+     "Base tensor representations & custom autograd mechanics"
+    ],
+    [
+     "**`autograd` Engine**",
+     "Module 06 (`06_autograd`), loaded with the `tinytorch` package rather than imported by name",
+     "Reverse-mode automatic differentiation graph traversal",
+     "Backpropagates through `Im2colConv2dFunction`"
+    ],
+    [
+     "**`Conv2d` Reference**",
+     "Module 09 (`09_convolutions`)",
+     "Seven-loop explicit spatial convolution kernel",
+     "Golden mathematical reference for im2col verification"
+    ],
+    [
+     "**`Profiler`**",
+     "Module 14 (`14_profiling`)",
+     "High-resolution microsecond latency and memory benchmarking",
+     "Validates acceleration speedup & memory savings"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Dependency Flow**:\n```\nModule 01 (Tensor, Function) ──┐\nModule 06 (autograd)         ──┤\nModule 09 (Conv2d reference) ──┼──→ Module 17 (Acceleration)\nModule 14 (Profiler)         ──┘\n```"
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import numpy as np\nrng = np.random.default_rng(7)\nimport time\nfrom typing import Optional, Tuple\n\n# Import from TinyTorch package (previous modules must be completed and exported)\nfrom tinytorch.core.tensor import Tensor, Function\n\n# Constants for performance measurement\nDEFAULT_WARMUP_ITERATIONS = 2  # Default warmup iterations for timing\nDEFAULT_TIMING_ITERATIONS = 5  # Default timing iterations for measurement\nBYTES_PER_FLOAT32 = 4  # Standard float32 size in bytes"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 17: Acceleration - Hardware-Aware Optimization."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,60 @@
+{
+ "title": "The Boundary Contract",
+ "summary": "Work through The Boundary Contract.",
+ "source": {
+  "chapter": "v4-13",
+  "sections": [
+   "The Boundary Contract",
+   "Immutable record mailboxes and non-blocking synchronization",
+   "Windowed watchdog timers and execution liveness"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **The Boundary Contract**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Workload Placement, § The Boundary Contract",
+   "md": "Relocating the permission path isolates the execution domains on separate processors, but the two still have to talk. Consider an upstream proposal writer, such as the chunk policy on the application processor, that stalls or crashes halfway through publishing an action chunk. The downstream safety enforcer running on the real-time microcontroller still owes the physical plant a deterministic actuation decision on its very next tick."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Immutable record mailboxes and non-blocking synchronization\n- Windowed watchdog timers and execution liveness"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Boundary contract and windowed watchdog matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: The exchange has two separately timed obligations (board-link transport, then one bounded local publication read inside the WCET), and liveness needs a windowed watchdog that catches early feeds as well as late ones."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-13-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Boundary Contract** develops one of the chapter's claims. Which one?",
+     "options": [
+      "WCET comes from static analysis, measurement plus margin, hybrid methods, or probabilistic tail models, and local worst cases do not compose to a global one on modern microarchitectures.",
+      "On a shared die sustained inference drives the junction past the trip point, the governor cuts the clock so every tick overruns its bound, and hysteresis holds the clock down for seconds after the burst ends.",
+      "Execution budgets depend on the assurance level, so when a high-criticality task exhausts its lower budget the scheduler withdraws service from low-criticality work to keep the enforcer's tick.",
+      "The exchange has two separately timed obligations (board-link transport, then one bounded local publication read inside the WCET), and liveness needs a windowed watchdog that catches early feeds as well as late ones."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Boundary contract and windowed watchdog**: The exchange has two separately timed obligations (board-link transport, then one bounded local publication read inside the WCET), and liveness needs a windowed watchdog that catches early feeds as well as late ones."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through The Boundary Contract."
+   ]
+  }
+ ]
+}

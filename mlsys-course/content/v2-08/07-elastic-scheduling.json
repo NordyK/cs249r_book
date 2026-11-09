@@ -1,0 +1,89 @@
+{
+ "title": "Elastic Scheduling",
+ "summary": "Analyze the trade-offs between constant global batch size and adaptive learning rate during elastic worker scaling.",
+ "source": {
+  "chapter": "v2-08",
+  "sections": [
+   "Elastic Scheduling",
+   "The scheduler-framework contract",
+   "Scheduler integration",
+   "Elastic scaling policies"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze the trade-offs between constant global batch size and adaptive learning rate during elastic worker scaling\n- Calculate the break-even duration required for an elastic scaling resize to deliver positive net training throughput\n- Explain the three core parameters of the contract between an elastic scheduler and a training framework\n- Compare binary preemption with elastic worker downsizing under sudden cluster contention\n- Explain the allocation, membership, and durable-state dependencies of elastic recovery after an unexpected worker failure"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Orchestration, § Elastic Scheduling",
+   "md": "When cluster demand fluctuates, rigid allocation creates two categories of waste. During off-peak hours, a job running on 256 GPUs cannot absorb idle resources to speed up training. During peak demand, the same job cannot release excess resources to accommodate higher-priority work without being fully preempted. The scheduler's only options are \"let it keep all its resources\" or \"kill it entirely,\" with nothing in between."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- The scheduler-framework contract\n- Scheduler integration\n- Elastic scaling policies\n\nPay attention to: Scheduler-framework contract: elastic range, transition cost, efficiency curve; Constant global batch size vs. adaptive learning rate trade-offs; TorchElastic dynamic rendezvous and recovery mechanics; Preemption avoidance via elastic worker downsizing."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: What three parameters define the operational contract between an elastic scheduler and an elastic training framework (such as TorchElastic), and why is each necessary?",
+   "md": "The contract specifies the elastic range and valid allocation increments, the measured transition cost including any checkpoint, restart, redistribution, and rendezvous, and the scaling-efficiency curve for supported configurations. The range identifies viable execution groups; the transition cost determines how long a new allocation must persist to repay disruption; the curve supports comparing marginal progress with the value of allocating those devices elsewhere. Batch and quality policies must also remain valid under the chosen resize."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-08-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "When an elastic scheduler resizes a distributed training job from 64 GPUs to 128 GPUs, what trade-off exists between maintaining a constant global batch size versus scaling batch size proportionally with worker count?",
+     "explanation": "The correct answer is A. With constant global batch, doubling worker count halves the effective per-worker batch, which includes gradient accumulation rather than necessarily requiring smaller microbatches. Shrinking instead raises the examples each worker must contribute, potentially increasing memory demand or accumulation time. Preserving global batch controls one source of optimization change but does not prove identical convergence or hardware efficiency. Keeping the per-worker batch fixed changes global batch, so the learning-rate policy and target quality must be validated. The other options incorrectly tie batch policy to restarting weights, disabling NVLink, or automatic learning-rate changes.",
+     "hint": "Think about: analyze the trade-offs between constant global batch size and adaptive learning rate during elastic worker scaling.",
+     "type": "single",
+     "options": [
+      "Constant global batch size halves the effective examples per worker per optimizer update, removing one source of optimization change without guaranteeing identical convergence; proportional batch scaling preserves that per-worker count but changes optimization and requires a validated learning-rate policy.",
+      "Constant global batch size requires restarting the model weights from epoch zero, whereas proportional batch size allows continuous gradient descent without learning rate adjustment.",
+      "Constant global batch size disables NVLink communication across workers, whereas proportional batch size enables ring AllReduce.",
+      "Constant global batch size doubles the learning rate automatically via PyTorch hooks, whereas proportional batch size keeps the learning rate fixed to prevent divergence."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An elastic job running on 64 GPUs at 100 steps/minute can scale to 128 GPUs, reaching 180 steps/minute. If resizing triggers a dynamic rendezvous and checkpoint-sync transition pause of 60 seconds (0 steps during pause), what is the break-even duration the job must run after the pause at 128 GPUs to recover the lost progress in total steps completed?",
+     "explanation": "The correct answer is D. In the 60-second (1.0 minute) pause, the 64-GPU baseline would have completed \\$100 \\text{ steps/min} \\times 1.0 \\text{ min} = 100 \\text{ steps}$. At 128 GPUs, the job produces \\$180 \\text{ steps/min}$, which is an incremental gain of $\\Delta = 180 - 100 = 80 \\text{ steps/min}$. To recover the 100 lost steps, the job must run at 128 GPUs for $t = 100 / 80 = 1.25 \\text{ minutes} = 75 \\text{ seconds}$. At 75 seconds the runs tie; a net gain requires running longer. The shorter choices do not recover the 100 lost steps.",
+     "hint": "Think about: calculate the break-even duration required for an elastic scaling resize to deliver positive net training throughput.",
+     "type": "single",
+     "options": [
+      "At least 15 seconds.",
+      "At least 30 seconds.",
+      "At least 45 seconds.",
+      "At least 75 seconds."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Under a supported resize and checkpoint contract, an elastic scheduler can reclaim capacity by shrinking a training job to a smaller viable configuration without terminating the logical job, although worker processes may restart.",
+     "explanation": "True. Elasticity adds supported allocation increments between the declared bounds rather than permitting arbitrary or continuous worker counts. A planned shrink can save state, restart or redistribute workers, and rebuild the group at reduced throughput. It still pays transition overhead; preserving recent progress depends on a valid save, while a forced interruption can require replay from the last durable checkpoint.",
+     "hint": "Think about: compare binary preemption with elastic worker downsizing under sudden cluster contention.",
+     "type": "truefalse",
+     "answer": true
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A worker encounters an unhandled CUDA fault during a TorchElastic training run. Explain the dependencies that must hold before useful training resumes, and why recovery cannot require every surviving worker to finish a clean step boundary.",
+   "md": "Failure detection triggers worker-group recovery; the scheduler must preserve exclusive resource ownership and provide or authorize a viable allocation, while elastic agents stop and restart the worker group as required by the runtime. Restarted workers re-rendezvous, rebuild ranks and process groups, and restore valid durable training state before resuming. Detection, allocation, and cleanup can overlap rather than follow one universal serial order. A fault can strand peers inside a collective, so a clean step boundary is not guaranteed; recovery may replay work after the last valid checkpoint."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the trade-offs between constant global batch size and adaptive learning rate during elastic worker scaling.",
+    "You can now calculate the break-even duration required for an elastic scaling resize to deliver positive net training throughput.",
+    "You can now explain the three core parameters of the contract between an elastic scheduler and a training framework.",
+    "You can now compare binary preemption with elastic worker downsizing under sudden cluster contention."
+   ]
+  }
+ ]
+}

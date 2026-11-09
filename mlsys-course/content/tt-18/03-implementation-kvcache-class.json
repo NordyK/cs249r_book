@@ -1,0 +1,97 @@
+{
+ "title": "Implementation: KVCache Class",
+ "summary": "TinyTorch memoization: Implementation: KVCache Class",
+ "source": {
+  "chapter": "tt-18",
+  "sections": [
+   "Implementation: KVCache Class"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Implementation: KVCache Class\n\n### Core Architectural Requirements\n\nTo serve high-performance inference pipelines, `KVCache` must satisfy five systems invariants:\n1. **Multi-Layer Isolation**: Independent contiguous key and value buffers per transformer layer \\$l \\in [0, L-1]\\$.\n2. **Multi-Head Layout**: Dedicated dimensions for batch, heads, sequence length, and head dimension \\$(B, H, S_{\\max}, d_k)\\$.\n3. **Static Pre-Allocation**: Contiguous allocation of the full context window \\$S_{\\max}\\$ up front to prevent dynamic memory allocation and heap fragmentation.\n4. **\\$\\mathcal{O}(1)\\$ Update Semantics**: In-place indexed assignment at write cursor `seq_pos` without array recreation.\n5. **Prefix Retrieval**: Exposing the valid token history \\$\\mathbf{K}[:, :, :t, :]\\$ for immediate vector-matrix GEMV attention. The NumPy slice itself is a view, but `get()` wraps it in a `Tensor`, which copies, so retrieval costs \\$\\mathcal{O}(t)\\$ bytes per call rather than being free. A production serving stack avoids that copy by handing the kernel the buffer and a length; TinyTorch pays it to keep the `Tensor` API uniform.\n\n### Buffer Dimension Specification"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Cache Tensor",
+    "Dimension Order",
+    "Shape",
+    "Element Type",
+    "Role in Attention GEMV"
+   ],
+   "rows": [
+    [
+     "**Key Cache (\\$\\mathbf{K}\\$)**",
+     "`(batch, heads, seq, dim)`",
+     "\\$(B, H, S_{\\max}, d_k)\\$",
+     "`float32` (4 bytes)",
+     "Multiplied by query vector \\$\\mathbf{q}_t\\$ to compute attention scores"
+    ],
+    [
+     "**Value Cache (\\$\\mathbf{V}\\$)**",
+     "`(batch, heads, seq, dim)`",
+     "\\$(B, H, S_{\\max}, d_v)\\$",
+     "`float32` (4 bytes)",
+     "Linearly combined by attention probabilities \\$\\mathbf{a}_t\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Buffer Write & Retrieval Progression"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Operational Step",
+    "Buffer Action",
+    "Tensor Slice Expression",
+    "Systems Mechanism"
+   ],
+   "rows": [
+    [
+     "**Initialization**",
+     "Pre-allocate zeroed buffers",
+     "`zeros((B, H, S_max, D))`",
+     "Contiguous single malloc per layer"
+    ],
+    [
+     "**Incoming Token \\$t\\$**",
+     "In-place slot write",
+     "`cache[:, :, seq_pos:seq_pos+1, :] = new_token`",
+     "\\$\\mathcal{O}(1)\\$ strided memory copy into DRAM"
+    ],
+    [
+     "**Attention Query**",
+     "Slice active prefix",
+     "`cache[:, :, :valid_len, :]`",
+     "Contiguous memory read up to cursor"
+    ],
+    [
+     "**Pointer Step**",
+     "Advance write cursor",
+     "`self.seq_pos += 1`",
+     "Zero cost integer increment"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 311 lines of code (starting with `class KVCache:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: KVCache Implementation\n\nThis test validates that our cache correctly stores and retrieves key-value pairs across multiple layers and sequence positions.\n\n**What we're testing**: KVCache initialization, update, get, and reset operations\n**Why it matters**: Cache must work correctly for generation to produce coherent output\n**Expected**: Cache stores and retrieves values correctly, tracks sequence position"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Implementation: KVCache Class."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,60 @@
+{
+ "title": "Observation Stream Truncation",
+ "summary": "Work through Observation Stream Truncation.",
+ "source": {
+  "chapter": "v3-07",
+  "sections": [
+   "Observation Stream Truncation",
+   "Bounded output capture",
+   "Truncation notices and inspection handles"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Observation Stream Truncation**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Tool Calling, § Observation Stream Truncation",
+   "md": "An automated repair agent running a test suite may encounter a process that terminates with a definitive exit code while generating a log far too vast to fit within the subsequent model request. Conversely, a remote network operation may time out with an uncertain execution state while its local connection layer still captures valuable diagnostic telemetry. Determining the concrete execution outcome of a tool invocation and deciding what subset of telemetry to stage into the prompt are distinct systems responsibilities."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Bounded output capture\n- Truncation notices and inspection handles"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Bounded observation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Capture and staging are separate budgets, so the adapter drains both pipes, enforces byte limits, and stages a head-and-tail view with a typed notice of what was omitted and a handle to the rest."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-07-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Observation Stream Truncation** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A timeout records that the caller stopped waiting, not that the effect failed, so a dispatched mutation without a reply is an uncertain outcome that blocks retry until its repeat semantics or evidence settle it.",
+      "Capture and staging are separate budgets, so the adapter drains both pipes, enforces byte limits, and stages a head-and-tail view with a typed notice of what was omitted and a handle to the rest.",
+      "A click keeps every tool-boundary invariant while losing atomicity, so each observation carries capture, window, and coordinate mapping and target identity is rechecked before dispatch.",
+      "A shared tool protocol cuts integration to N_host + N_tool adapters, but listed tools supply only interface syntax: descriptions are untrusted input and admitted schemas must be bound to the server instance."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Bounded observation**: Capture and staging are separate budgets, so the adapter drains both pipes, enforces byte limits, and stages a head-and-tail view with a typed notice of what was omitted and a handle to the rest."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Observation Stream Truncation."
+   ]
+  }
+ ]
+}

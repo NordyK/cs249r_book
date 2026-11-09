@@ -1,0 +1,60 @@
+{
+ "title": "Chunk Lease Sizing from the Stopping Budget",
+ "summary": "Work through Chunk Lease Sizing from the Stopping Budget.",
+ "source": {
+  "chapter": "v4-04",
+  "sections": [
+   "Chunk Lease Sizing from the Stopping Budget",
+   "Supervisory timers and proposal wire contracts",
+   "Rate interpolation and boundary fallback execution"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Chunk Lease Sizing from the Stopping Budget**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, The Nervous System, § Chunk Lease Sizing from the Stopping Budget",
+   "md": "A learned policy runtime can stall for many reasons: a page fault, thermal throttling on the vision accelerator, memory fragmentation, or an uncaught exception in perception preprocessing. The robot does not stop when its software does. A loaded base keeps its momentum (LinearMomentum = Mass SpeedAtDetection) and covers … every millisecond at the drive limit, while the downstream controller keeps converting the remaining waypoints of the last admitted chunk into setpoints."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Supervisory timers and proposal wire contracts\n- Rate interpolation and boundary fallback execution"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Chunk lease matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: An admitted chunk may drive the actuators only for a lease counted on the permission path's own clock, derived from the plant: longer than the renewal period plus jitter and short enough to fit under the pre-brake ceiling of the stopping budget."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-04-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Chunk Lease Sizing from the Stopping Budget** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Under any workload the proposer can generate, the permission path must meet its response bound and keep its authority to refuse, and separate processors are one realization of that requirement, a hypothesis that loaded tests must still confirm.",
+      "An admitted chunk may drive the actuators only for a lease counted on the permission path's own clock, derived from the plant: longer than the renewal period plus jitter and short enough to fit under the pre-brake ceiling of the stopping budget.",
+      "Proposals cross rate boundaries as state messages, not events, so a single-slot seqlock or wait-free multi-slot mailbox gives the faster reader one bounded, nonblocking attempt per tick that returns a complete snapshot or keeps the previous one.",
+      "Each tier takes its rate from a different physical constant (winding L/R and the PWM carrier for the current loop, base travel per tick for the permission tick, weight-sweep cost for the chunk policy, prefill cost for the intent model), not from convenience."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Chunk lease**: An admitted chunk may drive the actuators only for a lease counted on the permission path's own clock, derived from the plant: longer than the renewal period plus jitter and short enough to fit under the pre-brake ceiling of the stopping budget."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Chunk Lease Sizing from the Stopping Budget."
+   ]
+  }
+ ]
+}

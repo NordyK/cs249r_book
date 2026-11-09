@@ -1,0 +1,104 @@
+{
+ "title": "Orchestration Paradigms",
+ "summary": "Compare the core architectural control mechanisms of Slurm and Kubernetes for ML training workflows.",
+ "source": {
+  "chapter": "v2-08",
+  "sections": [
+   "Orchestration Paradigms",
+   "Slurm and HPC scheduling heritage",
+   "Kubernetes declarative container orchestration",
+   "Kubernetes ecosystem for ML training",
+   "Paradigm trade-offs and selection criteria",
+   "Hybrid architectures in practice"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare the core architectural control mechanisms of Slurm and Kubernetes for ML training workflows\n- Explain how PodGroup minimum membership supplies the group admission that a rigid training job needs on Kubernetes\n- Explain how usage decay affects priority in the illustrative fair-share model\n- Explain the separate network-namespace, device-access, and transport requirements of high-performance training in Kubernetes\n- Differentiate between scheduler replacement (Volcano) and queue admission control (Kueue) in the Kubernetes batch ecosystem"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Orchestration, § Orchestration Paradigms",
+   "md": "A pending gang and a queue of small backfill jobs need both a policy for sharing capacity and a control plane that can enforce it. The policies just developed apply across platforms; the orchestration paradigm determines how the platform represents allocations and recovers when observed state diverges from them. Slurm, shaped by HPC batch systems, favors explicit resource requests and predictable allocation. Kubernetes, shaped by cloud-native service management, favors declared desired state and continuous reconciliation. The choice is therefore not Slurm vs."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Slurm and HPC scheduling heritage\n- Kubernetes declarative container orchestration\n- Kubernetes ecosystem for ML training\n- Paradigm trade-offs and selection criteria\n- Hybrid architectures in practice\n\nPay attention to: Imperative (Slurm) vs. Declarative (Kubernetes) control planes; Slurm partitions, consumable resources (cons_tres), and fair-share decay; Kubernetes controller pattern, device plugins, and PodGroup group admission; Volcano and Kueue batch scheduling abstractions."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In the illustrative fair-share priority model ($\\text{Priority}_{\\text{effective}} = \\text{Priority}_{\\text{base}} \\times \\frac{F_{\\text{target}}}{F_{\\text{actual}} + \\epsilon}$), what role does the usage decay half-life play, and what is the trade-off between setting a short versus a long half-life?",
+   "md": "The half-life determines how quickly the scheduler discounts past GPU consumption in $F_{\\text{actual}}$, allowing heavy users to gradually restore their priority. A short half-life (e.g., 1-2 days) rapidly restores priority but can cause oscillatory usage where teams cycle between hogging and starvation; a long half-life (e.g., 2-4 weeks) stabilizes priority order but penalizes researchers long after a major burst project has completed."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-08-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "What is the fundamental difference in control philosophy between Slurm and Kubernetes when managing distributed ML training workloads?",
+     "explanation": "The correct answer is C. Slurm originates from HPC batch systems and uses an imperative model (sbatch requests explicit resources like `--gres=gpu:8 --nodes=4`), providing authoritative upfront allocation. Kubernetes uses a declarative model where controllers continuously observe actual state and execute reconciliation loops to converge toward desired state (e.g., Pods, Deployments). The option swapping Slurm and Kubernetes mechanisms reverses their core architectures. The gossip protocol alternative invents a non-existent scheduling model for Slurm. The containerization claim reverses the platforms' primary native workload types.",
+     "hint": "Think about: compare the core architectural control mechanisms of Slurm and Kubernetes for ML training workflows.",
+     "type": "single",
+     "options": [
+      "Slurm relies on continuous reconciliation loops against desired state stored in etcd, whereas Kubernetes executes imperative one-time allocation scripts via a centralized daemon.",
+      "Slurm uses peer-to-peer gossip protocols to schedule tasks across nodes, whereas Kubernetes enforces hierarchical master-slave token ring passing.",
+      "Slurm employs an imperative allocation model where users request explicit physical resources guaranteed at launch, whereas Kubernetes uses a declarative model where controllers continuously reconcile observed cluster state toward declared desired state.",
+      "Slurm schedules containerized microservices with dynamic horizontal auto-scaling, whereas Kubernetes only supports uncontainerized bare-metal MPI processes."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Kubernetes' default scheduler places a 64-pod training job one pod at a time, and the cluster has room for only 60 of the pods. How does a PodGroup with a minimum membership of 64 change the outcome?",
+     "explanation": "The correct answer is B. A PodGroup turns admission into a group decision. The scheduler reserves placements as it finds them but binds none until the minimum membership is placed, and it releases the reservations on failure or timeout, so 60 pods never hold GPUs while waiting for 4 more. Binding 60 pods recreates the partial allocation that strands capacity, and preemption follows priority-class policy rather than group admission. Group admission also does not make launches simultaneous; the framework must still form its communication group.",
+     "hint": "Think about: explain how PodGroup minimum membership supplies the group admission that a rigid training job needs on Kubernetes.",
+     "type": "single",
+     "options": [
+      "The scheduler binds the first 60 pods immediately and starts training with a smaller communication group, adding the last 4 pods as capacity frees.",
+      "The scheduler tentatively reserves placements but binds no pod until all 64 members are placed, releasing every reservation if the attempt fails or times out.",
+      "The scheduler preempts every lower-priority pod in the cluster until 64 GPUs are free, regardless of priority-class settings.",
+      "The PodGroup guarantees that all 64 containers start at the same instant, so the framework no longer needs to establish its communication group."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Kueue replaces the native Kubernetes `kube-scheduler` binary entirely to implement custom gang scheduling algorithms, whereas Volcano acts purely as an admission controller layered on top of the default scheduler.",
+     "explanation": "False. Kueue governs admission and quota reservation while delegating pod placement to a scheduler. Its all-or-nothing mechanisms can track workload readiness and return quota when an admitted workload cannot become ready within its configured contract. Volcano provides batch and gang scheduling and may coexist with the default scheduler. Admission, placement, and readiness are separate controls.",
+     "hint": "Think about: differentiate between scheduler replacement (Volcano) and queue admission control (Kueue) in the Kubernetes batch ecosystem.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the dependencies in this illustrative launch path for a Kubernetes training job configured with a compatible training operator and Volcano group admission:",
+     "explanation": "The correct order is (2) -> (5) -> (1) -> (3) -> (4). Submission supplies the desired job, the configured integration represents its workers and group, and the scheduler checks minimum-group feasibility before authorizing placement. Node launches can complete at different times; group admission does not make them simultaneous. RDMA access requires separate device, driver, permission, and fabric configuration. The framework then forms the communication group before training proceeds.",
+     "hint": "Think about: order the operational stages of launching a distributed PyTorch training job via the Kubeflow Training Operator and Volcano.",
+     "type": "order",
+     "items": [
+      "The developer submits the training-job manifest defining workers and resource requirements.",
+      "The operator and configured scheduling integration create worker pods and their PodGroup.",
+      "Volcano verifies a feasible placement for the PodGroup's minimum viable membership.",
+      "Volcano authorizes group placement, and node agents launch the admitted workers using the separately configured device and network resources.",
+      "Launched workers establish their communication group through rendezvous before synchronized training begins."
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Why do high-performance distributed training jobs in Kubernetes typically enable `hostNetwork: true` and leverage the NVIDIA Network Operator instead of relying on default Container Network Interface (CNI) overlay networks?",
+   "md": "Host networking changes which network namespace a pod uses and can avoid an overlay path. It does not allocate an RDMA device or grant access to its device files. Device plugins and operators must arrange the required devices, drivers, permissions, and GPU-to-NIC mapping; the fabric must also support the intended transport. Validate bandwidth and latency for that configured path rather than inferring RDMA from hostNetwork alone."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare the core architectural control mechanisms of Slurm and Kubernetes for ML training workflows.",
+    "You can now explain how PodGroup minimum membership supplies the group admission that a rigid training job needs on Kubernetes.",
+    "You can now explain how usage decay affects priority in the illustrative fair-share model.",
+    "You can now explain the separate network-namespace, device-access, and transport requirements of high-performance training in Kubernetes."
+   ]
+  }
+ ]
+}

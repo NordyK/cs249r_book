@@ -1,0 +1,105 @@
+{
+ "title": "Case Studies",
+ "summary": "Analyze bottleneck displacement across iterative optimization rounds using timeline breakdown data.",
+ "source": {
+  "chapter": "v2-10",
+  "sections": [
+   "Case Studies",
+   "One replica against its token-latency target",
+   "Embedding-heavy recommendation serving",
+   "A multi-model generation API",
+   "Search ranking under a deadline",
+   "Multimodal recommendation and freshness",
+   "Cross-cutting observations"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze bottleneck displacement across iterative optimization rounds using timeline breakdown data\n- Distinguish average token cadence from per-gap latency when evaluating speculative decoding against serving targets\n- Calculate candidate reduction factors and compute savings achieved by multi-stage ranking cascades\n- Compare the hardware topologies and bottleneck constraints of large-scale recommendation systems versus LLM serving APIs\n- Analyze the asynchronous online-versus-offline execution cadence of two-tower recommendation architectures"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Serving at Scale, § Case Studies",
+   "md": "Individual serving optimizations such as quantization, continuous batching, sharding, or caching can look decisive in isolation yet still leave a production endpoint missing its latency, memory, or cost contract when combined under real traffic. The five design cases below are illustrative composites rather than descriptions of named companies' internal deployments, and their request rates, latency budgets, hardware allocations, and update cadences follow the chapter's scenario convention. Each case binds on a different constraint: one replica's decode step, embedding scale, variable-length generation, cascade cost, or multimodal freshness."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- One replica against its token-latency target\n- Embedding-heavy recommendation serving\n- A multi-model generation API\n- Search ranking under a deadline\n- Multimodal recommendation and freshness\n- Cross-cutting observations\n\nPay attention to: Illustrative embedding-heavy recommendation: hybrid CPU-GPU placement; Illustrative LLM API: continuous batching, chunked prefill, and rate limits; Illustrative search: four-stage ranking cascade; Illustrative video recommendation: online user and offline content towers."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: After fusion and graph replay, the reference replica's decode step is 49.6 ms. Adding speculative decoding with a 4 ms draft and about 3.5 emitted tokens per round brings the average time per output token to about 15 ms. Why can the endpoint still miss a 50 ms time-between-tokens (TBT) target?",
+   "md": "Speculation emits tokens in blocks, one block per draft-and-verify round. Each round takes 4 + 49.6 = 53.6 ms, so the gap between blocks exceeds 50 ms even though the average per token is about 15 ms. A TPOT target, which averages the cadence, is met easily; a per-gap TBT target is missed on every round. The gain also shrinks at larger batch, where verification no longer finds idle compute, so the policy must be measured at the admitted batch."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-10-15-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "The reference 70B replica's constructed batch-one decode step is 85 ms: 34 ms GEMM, 20.4 ms attention, 10.2 ms element-wise work, 10.2 ms AllReduce, and 10.2 ms launch and runtime overhead. INT4 weights cut only the GEMM interval, by 45 percent, leaving 69.7 ms. Why does this still miss a 50 ms TPOT target?",
+     "explanation": "The correct answer is C. GEMM becomes 34 × 0.55 = 18.7 ms, while the other exposed intervals remain 51 ms, so the step is 69.7 ms. The next experiment must attack other critical-path intervals: with attention at 15.3 ms, element-wise work at 3.4 ms, and launch and runtime overhead at 2 ms, the constructed budget reaches 49.6 ms. These are scenario assumptions, not benchmark claims, and the batch-one step says nothing yet about SLO goodput under load.",
+     "hint": "Think about: analyze bottleneck displacement across iterative optimization rounds using timeline breakdown data",
+     "type": "single",
+     "options": [
+      "INT4 weights halve memory bandwidth, so the other intervals lengthen to absorb the saving",
+      "The bandwidth-only floor of about 5.2 ms already exceeds what INT4 can recover, so no precision change can help",
+      "The unchanged non-GEMM intervals still total 51 ms, so reducing GEMM alone by the assumed amount cannot reach the target",
+      "The TPOT target applies to prefill, and INT4 weights do not change prefill time"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In an illustrative search-ranking cascade (L0: 1M to 10k in 10 ms; L1: 10k to 1k in 20 ms; L2: 1k to 100 in 50 ms; L3: 100 to 10 in 100 ms), what follows under a simplified additive candidate-work model?",
+     "explanation": "The correct answer is D. Under the stated simplified model, L3 evaluates 100 rather than 1,000,000 candidates, a 10,000-fold reduction. If its 100 ms budget represents one ms of additive work per candidate, applying it to every candidate costs 1,000 seconds versus the assumed 0.18-second cascade budget, about 5,556-fold more. Parallel service latency is not generally interchangeable with aggregate compute; this is an illustrative accounting assumption, not a verified production benchmark.",
+     "hint": "Think about: calculate candidate reduction factors and compute savings achieved by multi-stage ranking cascades.",
+     "type": "single",
+     "options": [
+      "It runs L3 on all 1,000,000 candidates using asynchronous DMA transfers without CPU involvement.",
+      "It replaces neural networks entirely with BM25 keyword matching across all stages.",
+      "It dynamically recompiles transformer weights at each stage using TensorRT-LLM.",
+      "It cuts final expensive L3 evaluations by \\$10,000× (from 1,000,000 to 100), reducing total candidate-scoring compute by approx 5,600× within a 180 ms budget."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In the illustrative two-tower video recommendation scenario, both the user tower and the content tower must execute synchronously for every swipe.",
+     "explanation": "False. The scenario computes changing user representations online but precomputes slower-changing content embeddings and caches them. Online work then combines the user representation with stored candidates. Refresh cadence must satisfy the application's freshness contract rather than a universal hourly schedule.",
+     "hint": "Think about: analyze the asynchronous online-versus-offline execution cadence of two-tower recommendation architectures.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Which combination of architectural design choices addresses variable-length autoregressive generation and reusable session context in the chapter's LLM serving scenario?",
+     "explanation": "The correct answer is A. These mechanisms address variable-length generation, growing KV state, scheduling interference, and reusable session context. They are useful architectural choices rather than mandatory properties of every LLM endpoint: a stateless API can reconstruct context, and a scheduler can use different preemption policies. Uniform static batches are a better fit for predictable fixed-work requests.",
+     "hint": "Think about: evaluate how the computational characteristics of autoregressive LLMs dictate their specific profile across the five serving architecture dimensions.",
+     "type": "single",
+     "options": [
+      "Continuous batching, paged memory management, preemptive scheduling, and stateful routing",
+      "Static batching, preallocated memory management, first-come-first-served (FCFS) scheduling, and stateless routing",
+      "Feature-parallel batching, distributed memory tables, priority-aware scheduling, and stateless routing",
+      "Streaming frame batching, pinned buffer allocation, non-preemptive scheduling, and edge-only topology"
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Compare the binding bottlenecks and serving topologies of the illustrative embedding-heavy recommendation scenario and autoregressive LLM API scenario.",
+   "md": "The recommendation scenario prioritizes sparse embedding locality and memory capacity, placing large tables on memory-rich CPU/SSD servers and dense ranking on GPUs. The LLM scenario prioritizes growing KV state, variable request lengths, and decode bandwidth, using sharded replicas and iteration scheduling. These are workload design cases, not verified inventories of a named company's private infrastructure; the topology follows the measured limiting resource."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze bottleneck displacement across iterative optimization rounds using timeline breakdown data.",
+    "You can now distinguish average token cadence from per-gap latency when evaluating speculative decoding against serving targets.",
+    "You can now calculate candidate reduction factors and compute savings achieved by multi-stage ranking cascades.",
+    "You can now compare the hardware topologies and bottleneck constraints of large-scale recommendation systems versus LLM serving APIs."
+   ]
+  }
+ ]
+}

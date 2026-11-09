@@ -1,0 +1,98 @@
+{
+ "title": "Level 2 Transport and the Performance Model",
+ "summary": "Explain the architectural mechanism and performance benefits of GPUDirect RDMA.",
+ "source": {
+  "chapter": "v2-03",
+  "sections": [
+   "Level 2 Transport and the Performance Model",
+   "RDMA and GPUDirect",
+   "InfiniBand and RoCE",
+   "Reliable delivery and loss recovery",
+   "The $\\MessageStartupLatency$-$\\LinkBandwidth$ performance model"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain the architectural mechanism and performance benefits of GPUDirect RDMA\n- Apply the $\\alpha$-$\\beta$ performance model to differentiate latency-dominated and bandwidth-dominated transfer regimes\n- Calculate the $\\alpha$-$\\beta$ crossover point and determine architectural strategies for latency-dominated transfers\n- Identify the packet recovery mechanism used by RDMA over Converged Ethernet\n- Compare hardware and link-layer losslessness mechanisms in InfiniBand and RoCEv2"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Network Fabrics, § Level 2 Transport and the Performance Model",
+   "md": "Closing the physical link budget delivers raw bits between adjacent ports, but a single AllReduce across … still stalls if host software sits in the path of every transfer or if a dropped packet triggers a multi-millisecond recovery pause. Turning raw wire rate into predictable step time requires a transport layer that offloads memory-to-memory delivery and bounds loss recovery (a contract met either through a physically lossless fabric or through loss-tolerant endpoint recovery), together with a performance model that separates fixed per-message startup latency from sustained link bandwidth."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- RDMA and GPUDirect\n- InfiniBand and RoCE\n- Reliable delivery and loss recovery\n- The MessageStartupLatency-LinkBandwidth performance model\n\nPay attention to: RDMA and GPUDirect kernel-bypass mechanisms; InfiniBand vs RoCEv2 transport stacks and flow control; Losslessness and Go-Back-N retransmission penalties; The alpha-beta performance model and crossover point calculations."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Given an InfiniBand fabric with startup latency $\\alpha = 1.5\\,\\mu\\text{s}$ and bandwidth $\\beta = 50\\text{ GB/s}$, calculate the crossover message size $n^*$. Explain what architectural changes can reduce transfer time for messages below $n^*$.",
+   "md": "The crossover message size is calculated as n^* = alpha × beta = 1.5\\,mus × 50 GB/s = 75 KB. For messages smaller than \\$75 KB, transfer time is dominated by the fixed startup latency alpha rather than link bandwidth. To reduce transfer time in this regime, architects must reduce alpha by minimizing switch hop counts (such as using rail-optimized or flatter topologies), decreasing physical cable propagation distances, or reducing physical-layer FEC overhead, rather than increasing link bandwidth."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-03-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "How does GPUDirect RDMA optimize the end-to-end data path during a multi-node AllReduce gradient exchange compared to traditional host-staged network transfers?",
+     "explanation": "The correct answer is A. Traditional network transfers require copying gradient data from GPU memory to CPU system RAM, and then through the OS kernel buffer before reaching the NIC. GPUDirect RDMA enables peer-to-peer DMA over PCIe between the GPU memory and the NIC, eliminating intermediate host copies, reducing CPU utilization and host-staging overhead. The choice claiming tensor compression in GPU L2 cache describes a data compression technique rather than RDMA DMA bypass. The option regarding GPU-executed TCP/IP checksums is incorrect because GPUDirect RDMA offloads the data path to the NIC rather than executing transport checksums on GPU cores. The claim regarding SATA storage buses confuses storage interfaces with accelerator network interconnects.",
+     "hint": "Think about: explain the architectural mechanism and performance benefits of GPUDirect RDMA.",
+     "type": "single",
+     "options": [
+      "It allows the network interface card (NIC) to read and write GPU High Bandwidth Memory directly over the PCIe bus without staging data through host CPU system RAM",
+      "It compresses floating-point tensors in GPU L2 cache before writing them directly to the optical switch buffer",
+      "It enables the GPU to execute TCP/IP checksum offloading in CUDA streaming multiprocessors",
+      "It re-routes inter-node gradient traffic over host SATA storage buses to bypass network switch congestion"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An engineer observes that upgrading network links from \\$200 Gb/s (HDR) to \\$400 Gb/s (NDR) reduces the transfer time of a \\$10 KB pipeline control message by only about \\$11\\%, whereas the same upgrade halves the transfer time of a \\$350 MB gradient tensor. How does the alpha-beta performance model explain this discrepancy?",
+     "explanation": "The correct answer is D. In the Hockney $\\alpha$-$\\beta$ model ($T(n) = \\alpha + n/\\beta$), the crossover point $n^* = \\alpha\\beta$ marks the transition between regimes. For NDR InfiniBand ($\\alpha \\approx 1.5\\,\\mu\\text{s}$, $\\beta \\approx 50\\text{ GB/s}$), $n^* \\approx 75\\text{ KB}$. A \\$10\\text{ KB}$ message is in the latency-dominated regime ($n < n^*$), where fixed startup overhead $\\alpha$ (SerDes, FEC, switch hops) accounts for nearly all transfer time, so doubling $\\beta$ provides negligible benefit. A \\$350\\text{ MB}$ message is deeply bandwidth-dominated ($n \\gg n^*$), so transfer time scales inversely with $\\beta$. The option regarding switch routing tables dropping small packets confuses routing policies with transfer time physics. The claim about transceivers disabling FEC for large messages is factually false. The choice suggesting PCIe power throttling on small transfers misidentifies the source of the latency floor.",
+     "hint": "Think about: apply the $\\alpha$-$\\beta$ performance model to differentiate latency-dominated and bandwidth-dominated transfer regimes.",
+     "type": "single",
+     "options": [
+      "Switch routing tables drop small packets more frequently than large packets due to flowlet timeouts",
+      "High-bandwidth optical transceivers disable forward error correction for messages larger than \\$1 MB",
+      "PCIe bus arbitration introduces dynamic power throttling on transfers smaller than \\$64 KB",
+      "The \\$10\\text{ KB}$ message falls below the crossover point ($n^* = \\alpha\\beta \\approx 75\\text{ KB}$), where fixed startup latency $\\alpha$ dominates, while the \\$350\\text{ MB}$ message is in the bandwidth-dominated regime ($n \\gg n^*$)"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "On an RNIC that discards out-of-order arrivals rather than retaining them, ______ recovery retransmits from the missing sequence point after packet loss.",
+     "explanation": "Go-Back-N. This recovery scheme retransmits from the missing packet, potentially repeating later data; other RNIC designs support more selective recovery.",
+     "hint": "Think about: identify the packet recovery mechanism used by RDMA over Converged Ethernet.",
+     "type": "fill",
+     "answer": [
+      "Go Back N",
+      "Go-Back-N"
+     ]
+    },
+    {
+     "q": "InfiniBand and RoCEv2 achieve losslessness through identical mechanisms because both protocols expose the standard user-space Verbs API to the application.",
+     "explanation": "False. InfiniBand normally prevents buffer-overflow loss through link-level credits. Many RoCE deployments instead combine PFC with congestion control, while PFC-free designs rely on stronger endpoint recovery. A shared Verbs API does not specify identical flow-control or recovery mechanisms.",
+     "hint": "Think about: compare hardware and link-layer losslessness mechanisms in InfiniBand and RoCEv2.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Message startup latency**: The fixed startup component of a transfer that matters most for small messages."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Message startup latency",
+   "def": "The fixed startup component of a transfer that matters most for small messages."
+  }
+ ]
+}

@@ -1,0 +1,75 @@
+{
+ "title": "Module Integration Test",
+ "summary": "TinyTorch profiling: Module Integration Test",
+ "source": {
+  "chapter": "tt-14",
+  "sections": [
+   "Module Integration Test"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🧪 Module Integration Test\n\nFinal validation that everything works together correctly."
+  },
+  {
+   "type": "text",
+   "md": "## 🤔 ML Systems Reflection Questions\n\n### Question 1: FLOP Analysis & Hardware Projection\n\n**Scenario**: You profile a `Linear(1000, 500)` projection layer with input dimension \\$d_{\\text{in}} = 1,000\\$ and output dimension \\$d_{\\text{out}} = 500\\$, with weights \\$W \\in \\mathbb{R}^{1000 \\times 500}\\$ and bias \\$b \\in \\mathbb{R}^{500}\\$.\n\n#### 1. Forward Pass Arithmetic Work (Single Sample \\$B=1\\$):\n- **Matrix Multiplication**: Each output feature requires an inner dot product of length \\$d_{\\text{in}}\\$: \\$1,000\\$ multiplications and \\$999\\$ additions \\$\\approx 2 \\cdot d_{\\text{in}} = 2,000\\$ floating-point operations. Across all \\$500\\$ output features:\n  \\$\\$\\text{FLOP}_{\\text{matmul}} = 2 \\cdot d_{\\text{in}} \\cdot d_{\\text{out}} = 2 \\times 1,000 \\times 500 = 1,000,000\\text{ FLOPs } (1.00\\text{ MFLOP})\\$\\$\n- **Bias Addition**: Adding \\$b \\in \\mathbb{R}^{500}\\$ requires \\$500\\$ additions:\n  \\$\\$\\text{FLOP}_{\\text{total}} = 1,000,000 + 500 = 1,000,500\\text{ FLOPs } (1.0005\\text{ MFLOP})\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "#### 2. Scaling to Batch Size \\$B=32\\$:\n- **Total Work**: \\$\\text{FLOP}_{\\text{batch}} = 32 \\times 1,000,500 = 32,016,000\\text{ FLOPs } (32.016\\text{ MFLOPs})\\$.\n- **Per-Sample FLOP Invariant**: Per-sample FLOPs remain exactly constant at \\$1,000,500\\text{ FLOPs/sample}\\$.\n- **Systems Consequence**: Although per-sample compute is invariant, **arithmetic reuse increases \\$32\\times\\$**. At \\$B=1\\$, the \\$500,000\\$ parameter weights (\\$2.0\\text{ MB}\\$ at FP32) must be streamed from DRAM for only \\$1.0\\text{ MFLOP}\\$ (\\$I \\approx 0.5\\text{ FLOP/B}\\$). At \\$B=32\\$, the weights are loaded once into high-speed L1/SRAM and reused across 32 tokens (\\$I \\approx 16\\text{ FLOP/B}\\$), shifting the kernel toward the compute-bound roofline regime.\n\n#### 3. Cross-Hardware Latency Projection:\nTheoretical lower-bound execution latency is predicted by dividing FLOP count by device peak arithmetic throughput:\n\n\\$\\$T_{\\text{compute\\_bound}} = \\frac{\\text{FLOPs}}{P_{\\text{peak}}}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Hardware Device",
+    "Peak FP32 Throughput (\\$P_{\\text{peak}}\\$)",
+    "Memory Bandwidth (\\$\\text{BW}\\$)",
+    "Ridge Point (\\$I_{\\text{ridge}}\\$)",
+    "Theoretical Compute Latency",
+    "Hardware Regime at \\$I = 16\\$"
+   ],
+   "rows": [
+    [
+     "**Intel Xeon CPU**",
+     "\\$1.5\\text{ TFLOP/s}\\$",
+     "\\$100\\text{ GB/s}\\$",
+     "\\$15.0\\text{ FLOP/B}\\$",
+     "\\$21.3\\ \\mu\\text{s}\\$",
+     "Compute-bound (only just)"
+    ],
+    [
+     "**NVIDIA A100 GPU**",
+     "\\$19.5\\text{ TFLOP/s}\\$ (FP32)",
+     "\\$2,039\\text{ GB/s}\\$ (HBM2e)",
+     "\\$9.6\\text{ FLOP/B}\\$",
+     "\\$1.64\\ \\mu\\text{s}\\$",
+     "Compute-bound"
+    ],
+    [
+     "**NVIDIA H100 SXM GPU**",
+     "\\$67.0\\text{ TFLOP/s}\\$ (FP32)",
+     "\\$3,350\\text{ GB/s}\\$ (HBM3)",
+     "\\$20.0\\text{ FLOP/B}\\$",
+     "\\$0.48\\ \\mu\\text{s}\\$",
+     "Memory-bound"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "Read the last two columns together, because they disagree on purpose. The H100 has the\nshortest compute time and is the one machine here that cannot reach it. Its FP32 ALUs\noutran its memory system, pushing the ridge to \\$20\\text{ FLOP/B}\\$, so a workload at\n\\$I = 16\\$ starves. The A100, slower on paper, has a ridge of \\$9.6\\$ and runs the same\nkernel compute-bound. A faster device does not move a workload toward compute-bound; it\nmoves the ridge point to the right and can strand a kernel that used to be fine. The\nXeon clears its own ridge by a hair, which is a reminder that \\$I\\$ is a property of the\nkernel and the regime is a property of the pairing. (The PCIe H100 is rated at\n\\$51\\text{ TFLOP/s}\\$ FP32, giving a ridge of \\$15.2\\$, which would flip this row.)\n\n---\n\n### Question 2: Memory Scaling & Precision Economics\n\n**Scenario**: A 125M parameter transformer (\\$P = 125 \\times 10^6\\$) trained at batch size \\$B=16\\$.\n\n#### 1. Minimum Gradient Memory:\nIn reverse-mode automatic differentiation, every learnable weight and bias requires an accumulator tensor \\$\\nabla_W L\\$ of identical dimensions:\n\n\\$\\$\\text{Memory}_{\\text{grad}} = P \\times 4\\text{ bytes} = 125 \\times 10^6 \\times 4\\text{ B} = 500,000,000\\text{ B} \\approx 500\\text{ MB}\\$\\$\n\n#### 2. Adam Optimizer State & Total Training Budget:\nThe standard Adam/AdamW optimizer maintains two full-precision float32 state tensors per parameter:\n1. First moment vector \\$m_t\\$ (exponential moving average of gradients): \\$P \\times 4\\text{ B} = 500\\text{ MB}\\$.\n2. Second moment vector \\$v_t\\$ (exponential moving average of squared gradients): \\$P \\times 4\\text{ B} = 500\\text{ MB}\\$.\n\n\\$\\$\\text{Memory}_{\\text{Adam}} = 2 \\times P \\times 4\\text{ B} = 1,000\\text{ MB} = 1.0\\text{ GB}\\$\\$\n\nAssuming activation memory \\$A \\approx 200\\text{ MB}\\$ at \\$B=16\\$:\n\n\\$\\$\\text{Total Training VRAM} = W (500\\text{ MB}) + A (200\\text{ MB}) + \\nabla W (500\\text{ MB}) + \\text{Adam } (1,000\\text{ MB}) = \\mathbf{2,200\\text{ MB}} \\quad (4.4\\times \\text{ Model Size})\\$\\$\n\n#### 3. Mixed Precision (FP16 / BF16 AMP) Impact (a preview, not a review):\nEverything in this part is new. Automatic Mixed Precision, FP32 master weights, gradient\nunderflow, and Tensor Cores appear nowhere earlier in the course, and Module 15 will build\nthe precision machinery that makes them make sense. What carries over from this\nmodule is only the budget arithmetic, so read the list as the same four pools priced at\ntwo different byte widths. Automatic Mixed Precision keeps the compute copies of the\nweights in 16 bits while holding one 32-bit copy, the master weights, for the optimizer\nto update, because repeatedly adding tiny updates to a 16-bit number loses them.\n\nIn Automatic Mixed Precision (AMP):\n- Forward/backward model weights: \\$P \\times 2\\text{ B} = 250\\text{ MB}\\$ (50% reduction).\n- Backward gradients: \\$P \\times 2\\text{ B} = 250\\text{ MB}\\$ (50% reduction).\n- Activation caches: \\$A \\times 0.5 \\approx 100\\text{ MB}\\$ (50% reduction).\n- Master weights (FP32 for numerical stability against underflow): \\$P \\times 4\\text{ B} = 500\\text{ MB}\\$.\n- Adam optimizer states (FP32 moments): \\$2 \\times P \\times 4\\text{ B} = 1,000\\text{ MB}\\$.\n- **Net Static Footprint**: \\$250 + 250 + 100 + 500 + 1,000 = \\mathbf{2,100\\text{ MB}}\\$.\n- **Key Takeaway**: While static weight memory savings are modest in standard AMP due to FP32 master weights and Adam states, **activation memory drops by 50%**, enabling \\$2\\times\\$ larger batch sizes or \\$2\\times\\$ longer context windows, while Tensor Cores deliver up to \\$4\\times\\$ throughput speedup.\n\n---\n\n### Question 3: Performance Bottlenecks & The Roofline Bound\n\n**Scenario**: A model kernel achieves \\$10\\text{ GFLOP/s}\\$ on hardware rated at \\$100\\text{ GFLOP/s}\\$ peak. Doubling batch size (\\$B \\to 2B\\$) yields zero change in achieved GFLOP/s.\n\n#### 1. Computational Efficiency:\n\\$\\$\\eta = \\frac{P_{\\text{achieved}}}{P_{\\text{peak}}} = \\frac{10\\text{ GFLOP/s}}{100\\text{ GFLOP/s}} = 10.0\\%\\$\\$\nThe hardware compute units are active for only 10% of total elapsed execution time; the system is severely bottlenecked.\n\n#### 2. Root Cause Diagnosis:\nBecause doubling batch size does **not** improve arithmetic throughput, the workload is **not** simply under-batched, and it is not short of parallel work to fill the device. Note what this does not rule out. Its arithmetic intensity may still be far below the ridge point, and step 2 below raises it; batching is only one of the ways to do that, and here it is the one that has already failed. The root cause is:\n- **Memory Bandwidth Saturation**: The memory bus between DRAM and processor is already saturated at 100% capacity (\\$\\text{BW}_{\\text{achieved}} \\approx \\text{BW}_{\\text{peak}}\\$). Increasing batch size simply scales compute and memory transfers proportionally, locking throughput at the memory bandwidth ceiling.\n- **Alternative Contributor (Small Sizes)**: High per-call runtime overhead (Python interpreter dispatch latency or asynchronous kernel launch overhead) dominating wall-clock time.\n\n#### 3. Profiling-Guided Optimization Strategy:\n1. **Refuse to write micro-kernel GEMM optimizations**: Optimizing matrix multiply algorithms will yield zero speedup because the ALU is already idle waiting on data.\n2. **Apply Quantization**: Convert FP32 weights to INT8. Cutting data bus transfers by \\$4\\times\\$ at unchanged FLOPs multiplies arithmetic intensity by \\$4\\times\\$, which in a bandwidth-saturated regime is an immediate theoretical \\$4\\times\\$ throughput improvement. Batching raises \\$I\\$ by adding work; quantization raises it by removing bytes, and only the second one is still available here.\n3. **Fuse Pointwise Kernels**: Combine adjacent operations (e.g. Bias + GELU + LayerNorm) to execute in on-chip SRAM registers, eliminating redundant intermediate VRAM write/read round-trips.\n\n---\n\n### Question 4: Profiling Trade-offs & Production Economics\n\n**Scenario**: `analyze_profiling_overhead` printed a measured overhead factor on your machine. Call it \\$k\\$. On the run that produced the output in this notebook \\$k\\$ was a little under \\$3\\times\\$, almost all of it from two `perf_counter` calls and a `np.median` wrapped around a forward pass that takes a couple of microseconds. That measurement exposes a targeted optimization delivering a 50% runtime reduction (\\$2\\times\\$ speedup).\n\n#### 1. Justification in Development:\nProfiling overhead is an **offline capital investment**. You pay \\$k\\$ once, across the few hundred iterations of a diagnostic sweep. The resulting 50% runtime reduction is harvested across **billions of production requests** continuously, so the break-even point arrives in the first seconds of serving. Note also where \\$k\\$ came from. The instrumented work here is a single elementwise add, so the fixed per-call cost of timing dominates it. Profile something substantial and the same absolute overhead becomes a rounding error, which is why \\$k\\$ is a property of what you measure and not of the profiler.\n\n#### 2. Production Profiling Policy (a preview of production practice):\nNothing in Modules 01 to 14 builds any of the machinery named here, so read this part as a map of where the subject goes rather than as something to derive. Invasive synchronous profilers (using Python's `tracemalloc`, full execution hooks, or monotonic timer calls on every layer) must **never run inline on production user traffic**:\n- They disable GPU kernel concurrency, serializing asynchronous streams.\n- They incur multi-millisecond CPU scheduling penalties that degrade the slowest 1% of requests, the tail a serving contract is usually written against.\n- **Production Solution**: Employ asynchronous out-of-band statistical sampling, sampling hardware counters or tracing roughly one request in ten thousand, for well under \\$0.1\\%\\$ overhead. Module 19 will build the measurement harness that this discipline sits on top of."
+  },
+  {
+   "type": "text",
+   "md": "#### 3. The Cost of Profiling vs. The Cost of Misdirected Optimization:\nAs formalized by **Amdahl's Law**:\n\n\\$\\$S_{\\text{overall}} = \\frac{1}{(1 - f) + \\frac{f}{s}}\\$\\$\n\nIf an engineering team spends three months optimizing an unprofiled routine that accounts for only \\$f = 5\\%\\$ of total execution time, even an infinite speedup (\\$s \\to \\infty\\$) improves total system throughput by a negligible **\\$5.2\\%\\$**. Profiling identifies the true \\$80\\%\\$ bottlenecks, ensuring that engineering hours directly translate to order-of-magnitude systems acceleration."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module Integration Test."
+   ]
+  }
+ ]
+}

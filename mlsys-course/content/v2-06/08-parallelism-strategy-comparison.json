@@ -1,0 +1,60 @@
+{
+ "title": "Parallelism Strategy Comparison",
+ "summary": "Identify the binding constraint criteria that validate using standard Data Parallelism.",
+ "source": {
+  "chapter": "v2-06",
+  "sections": [
+   "Parallelism Strategy Comparison"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Identify the binding constraint criteria that validate using standard Data Parallelism\n- Analyze pipeline bubble underutilization and propose architectural remedies\n- Rank distributed parallelism strategies by their structural decomposition granularity"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Distributed Training, § Parallelism Strategy Comparison",
+   "md": "A parallelism strategy is useful only if it moves the limiting constraint without creating a larger one. Assembling data, tensor, pipeline, and hybrid partitioning into a coherent decision procedure requires evaluating where each strategy relocates overhead across the cluster's memory and interconnect hierarchy. For a new model, the decisive questions are which memory state fits, how often communication occurs, where the pipeline bubble appears, and which abstraction cost the engineering team can tolerate."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: binding constraint mapping across DDP, FSDP, TP, PP, and Hybrid parallelism; pipeline bubble vs network underutilization diagnosis; structural granularity hierarchy from batch to intra-operator."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: An engineering team observes that an 8-GPU training job using pure pipeline parallelism achieves only 35 percent Model Flops Utilization (MFU), while interconnect links are largely idle. Using the bubble formula $F_{\\text{bubble}} = \\frac{p-1}{m+p-1}$, explain how to assess the pipeline-bubble hypothesis and propose two adjustments if the trace confirms it.",
+   "md": "Low MFU and idle interconnect links make pipeline bubbles a candidate, but they do not prove the cause. Measure stage timelines and the microbatch count, and compare observed fill/drain idle slots with the bubble formula. Stage imbalance, input stalls, or inefficient local kernels can also lower MFU. If bubbles bind, increasing microbatch count can reduce their fraction, subject to activation memory and useful global batch size. Reducing stage count can also help when the revised memory budget fits; replacing some intra-node stages with tensor parallelism additionally requires a suitable communication budget."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-06-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "According to the chapter's parallelism decision framework, which condition indicates that standard DistributedDataParallel (DDP) is a sensible baseline to evaluate over FSDP, TP, or PP?",
+     "explanation": "The correct answer is C. Comfortable full-state and activation fit makes DDP a sensible baseline because it avoids sharded parameter reconstruction and pipeline bubbles. Memory fit alone does not prove maximum throughput; exposed communication and useful batch size still need evaluation. An oversized layer makes tensor parallelism a candidate, while offload or recomputation may enable other layouts. Slow Ethernet requires a workload-specific communication budget; accumulation or a faster fabric may help. Sparse MoE routing motivates evaluating expert placement and its AllToAll demand.",
+     "hint": "Think about: identify the binding constraint criteria that validate using standard Data Parallelism",
+     "type": "single",
+     "options": [
+      "The model's single layer weight matrices exceed the HBM capacity of an individual GPU",
+      "The cluster is connected by slow 10 Gb/s commodity Ethernet across 1,024 nodes",
+      "The entire model state (parameters, gradients, and optimizer state) fits comfortably within single-device memory with sufficient headroom for activations",
+      "The model architecture contains sparse Mixture-of-Experts routing layers"
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now identify the binding constraint criteria that validate using standard Data Parallelism.",
+    "You can now analyze pipeline bubble underutilization and propose architectural remedies.",
+    "You can now rank distributed parallelism strategies by their structural decomposition granularity."
+   ]
+  }
+ ]
+}

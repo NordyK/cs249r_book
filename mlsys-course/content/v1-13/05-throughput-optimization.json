@@ -1,0 +1,91 @@
+{
+ "title": "Throughput Optimization",
+ "summary": "Analyze how batch size changes arithmetic intensity and throughput for weight-streaming inference workloads under the Roofline model.",
+ "source": {
+  "chapter": "v1-13",
+  "sections": [
+   "Throughput Optimization",
+   "Why batching helps",
+   "Formation delay and the latency-throughput frontier",
+   "Static vs. dynamic batching",
+   "Dynamic batching latency-throughput trade-offs",
+   "Traffic patterns and batching strategy"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Analyze how batch size changes arithmetic intensity and throughput for weight-streaming inference workloads under the Roofline model\n- Classify synchronized sensor traffic using the chapter's serving arrival-pattern categories\n- Evaluate dynamic batching timeout trade-offs under low-traffic arrival patterns by separating batch-formation delay from batching efficiency"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Serving, § Throughput Optimization",
+   "md": "Consider the reference ResNet-50 classifier on an H100 GPU operating at batch size one. Each forward pass reads the model's weights from high-bandwidth memory to serve a single image and issues a long sequence of small kernels whose fixed launch cost is paid once per image, leaving neither weight traffic nor launch overhead shared across inputs. Processing requests continuously at …, each pass spends … of its time on those fixed costs."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Why batching helps\n- Formation delay and the latency-throughput frontier\n- Static vs. dynamic batching\n- Dynamic batching latency-throughput trade-offs\n- Traffic patterns and batching strategy\n\nPay attention to: Why batching helps: arithmetic intensity, Roofline knee, kernel launch amortization; Formation delay and inference inflation on the latency-throughput frontier; Static vs. dynamic batching parameters (max batch size, batch delay timeout); Traffic pattern classifications: Poisson (server), Streaming/correlated (multi-camera AV), Single-user."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-13-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why can increasing batch size during deep learning inference improve hardware throughput on modern GPUs for weight-streaming workloads, and when does that improvement stop paying off on a Roofline model?",
+     "explanation": "The correct answer is D. For weight-streaming inference workloads, small batches often spend much of their time moving weights from HBM to on-chip memory relative to the useful arithmetic done per request. Batching reuses those loaded weights across $B$ inputs, raising arithmetic intensity and improving throughput until the workload approaches the roofline's compute ceiling or another bottleneck takes over. Turning FLOPs into bitshifts is unrelated, sharing a batch does not change parameter count, and batching does not remove PCIe transfers.",
+     "hint": "Think about: analyze how batch size changes arithmetic intensity and throughput for weight-streaming inference workloads under the Roofline model.",
+     "type": "single",
+     "options": [
+      "Batching converts all floating-point operations into integer bitshifts, bypassing GPU ALUs entirely.",
+      "Batching reduces the total parameter count of the neural network by sharing weights across batch samples.",
+      "Batching eliminates PCIe bus data transfer overhead by generating synthetic input tensors on the device.",
+      "Batching increases arithmetic intensity (FLOPs per byte of memory accessed) by reusing loaded weight matrices across multiple input samples, shifting the workload toward the compute ceiling until another limit or saturation is reached."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A video-analytics node receives frames from 6 synchronized cameras that capture simultaneously at 30 Hz. Because these camera frames arrive in synchronized periodic bursts, this represents a ____ arrival process in the traffic taxonomy.",
+     "explanation": "streaming. Streaming traffic refers to correlated, synchronized arrivals such as multi-camera sensor frames. Those bursts can make co-batching natural when frames fit together in time, but any additional waiting still depends on worker availability and scheduling rather than disappearing automatically.",
+     "hint": "Think about: classify synchronized sensor traffic using the chapter's serving arrival-pattern categories.",
+     "type": "fill",
+     "answer": [
+      "streaming"
+     ]
+    },
+    {
+     "q": "A cloud serving system with an end-to-end latency budget of 50 ms configures a dynamic batcher with `max_batch_size = 32` and `max_batch_delay_ms = 20`. Under low traffic, requests arrive deterministically 100 ms apart, the worker is idle when each request arrives, and no other requests arrive during any 20 ms batching window. What is the operational impact on latency and batch efficiency?",
+     "explanation": "The correct answer is A. With deterministic 100 ms spacing and no additional arrivals during any 20 ms batching window, each oldest request simply waits for `max_batch_delay_ms` to expire and then runs alone as batch size 1. That burns 20 ms of the 50 ms budget on batch formation without gaining any batching amortization benefit. Timeouts dispatch the request rather than dropping it, a batch of 1 does not imply peak utilization, and the configured timeout prevents indefinite waiting.",
+     "hint": "Think about: evaluate dynamic batching timeout trade-offs under low-traffic arrival patterns by separating batch-formation delay from batching efficiency.",
+     "type": "single",
+     "options": [
+      "Every request waits the full 20 ms timeout in the queue and executes as a batch of size 1, incurring the maximum batch-formation delay penalty with zero throughput amortization gain.",
+      "Requests are automatically dropped because the queue fails to reach the maximum batch size of 32 within 50 ms.",
+      "The server achieves peak GPU utilization because small batches execute with sub-microsecond latency.",
+      "The dynamic batcher disables timeouts and waits indefinitely until 32 requests accumulate, preserving throughput at the cost of infinite latency."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Batch formation delay**: A request may wait while the server collects a batch. This delay spends latency allowance before the model runs.",
+    "**Batching**: Grouping requests shares fixed work and can reuse weights. It can improve capacity while adding formation delay; the useful batch is constrained by latency and memory."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Batch formation delay",
+   "def": "A request may wait while the server collects a batch. This delay spends latency allowance before the model runs."
+  },
+  {
+   "term": "Batching",
+   "def": "Grouping requests shares fixed work and can reuse weights. It can improve capacity while adding formation delay; the useful batch is constrained by latency and memory."
+  }
+ ]
+}

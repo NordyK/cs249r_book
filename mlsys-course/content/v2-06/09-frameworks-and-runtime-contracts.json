@@ -1,0 +1,65 @@
+{
+ "title": "Frameworks and Runtime Contracts",
+ "summary": "Explain the role of gradient bucketing in amortizing collective communication latency.",
+ "source": {
+  "chapter": "v2-06",
+  "sections": [
+   "Frameworks and Runtime Contracts"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain the role of gradient bucketing in amortizing collective communication latency\n- Compare collective communication primitive invocations between standard DDP and full-shard FSDP\n- Evaluate the physical limits of framework-level communication optimizations"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Distributed Training, § Frameworks and Runtime Contracts",
+   "md": "A TP-8, PP-16, DP-128 layout that passes every feasibility check on paper can still hang at its first collective if two ranks disagree on the membership of their communication group, or run slowly if gradient buckets become ready in an order the collective runtime cannot overlap. Choosing DDP, FSDP/ZeRO-style sharding, tensor parallelism, or pipeline parallelism is therefore also a decision about which constraints the runtime owns and which constraints the engineer must manage directly."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "Pay attention to: framework abstraction layers (DDP vs FSDP vs Megatron placement); gradient bucketing and communication-computation overlap mechanics; collective count comparison (layer-wrapped full-reshard FSDP vs bucketed DDP)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Contrast the collective communication primitive invocation frequency of standard DDP against full-shard FSDP with resharding for a model with $N_L$ layers during a single training step.",
+   "md": "DDP launches one AllReduce per ready gradient bucket, often overlapping those calls with backward computation. Full-shard FSDP with layer-level wrapping and resharding after forward typically adds an AllGather before forward, another before backward, and a ReduceScatter after backward: approximately \\$3N_L calls. Actual counts depend on wrapping, bucketing, prefetch, and resharding policy."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-06-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In distributed training framework runtimes (such as PyTorch DDP), what mechanism combines multiple small layer gradient tensors into contiguous memory buffers before launching collective communication?",
+     "explanation": "The correct answer is D. Gradient bucketing groups individual layer gradient tensors into larger contiguous memory buffers (typically 25–50 MB buckets) during the backward pass. Launching an AllReduce on a single aggregated bucket amortizes collective invocation latency and saturates network link bandwidth far more effectively than issuing hundreds of tiny per-tensor transfers. Activation checkpointing recomputes activations to save memory. ZeRO-3 parameter gathering reconstructs sharded weights on demand. Temporal multiplexing alternates execution modes in multi-model RLHF.",
+     "hint": "Think about: explain the role of gradient bucketing in amortizing collective communication latency",
+     "type": "single",
+     "options": [
+      "Activation checkpointing",
+      "ZeRO Stage 3 parameter gathering",
+      "Temporal multiplexing",
+      "Gradient bucketing"
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain why framework optimizations such as CUDA graphs and asynchronous communication streams cannot eliminate the physical scaling penalty of distributed training as the cluster size $N$ becomes very large.",
+   "md": "Framework optimizations can reduce launch overhead and change readiness, overlap, and effective communication service time. They cannot make a required payload cross a finite-bandwidth link instantaneously. At fixed global work, adding ranks reduces local compute while required transfers and coordination can remain exposed. A scaling prediction therefore needs the actual workload, collective schedule, and critical path; a fixed-residual Amdahl ceiling applies only under that model’s assumptions."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the role of gradient bucketing in amortizing collective communication latency.",
+    "You can now compare collective communication primitive invocations between standard DDP and full-shard FSDP.",
+    "You can now evaluate the physical limits of framework-level communication optimizations."
+   ]
+  }
+ ]
+}

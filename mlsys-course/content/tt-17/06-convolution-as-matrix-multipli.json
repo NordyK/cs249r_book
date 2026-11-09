@@ -1,0 +1,159 @@
+{
+ "title": "Convolution as Matrix Multiplication: Lowering via im2col",
+ "summary": "TinyTorch acceleration: Convolution as Matrix Multiplication: Lowering via im2col",
+ "source": {
+  "chapter": "tt-17",
+  "sections": [
+   "Convolution as Matrix Multiplication: Lowering via im2col"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Convolution as Matrix Multiplication: Lowering via im2col\n\nIn Module 09 (`09_convolutions`), `Conv2d` implemented spatial feature extraction via seven nested Python loops (iterating across batch, channels, rows, columns, and filter dimensions). While mathematically transparent, executing millions of individual scalar operations inside the Python virtual machine incurs catastrophic interpreter overhead.\n\n`im2col` (\"image to columns\") algorithmically lowers a multi-channel 2D convolution into a single contiguous General Matrix Multiply (GEMM), allowing the entire workload to execute on SIMD vector units, multi-threaded BLAS libraries, and systolic Tensor Cores.\n\n### Workload Audit: Python Loops vs. Single GEMM\n\nConsider a standard intermediate convolutional layer processing a batch of 4 CIFAR images:\n- Input shape: \\$(N=4, C_{\\text{in}}=32, H=32, W=32)\\$\n- Filter weights: \\$(C_{\\text{out}}=64, C_{\\text{in}}=32, K_h=3, K_w=3)\\$ with stride \\$1\\$ and padding \\$1\\$\n\n\\$\\$\\text{Total Multiply-Accumulate Operations (MACs)} = N \\times C_{\\text{out}} \\times H_{\\text{out}} \\times W_{\\text{out}} \\times C_{\\text{in}} \\times K_h \\times K_w\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "\\$\\$\\text{MACs} = 4 \\times 64 \\times 32 \\times 32 \\times 32 \\times 3 \\times 3 = \\mathbf{75{,}497{,}472\\text{ operations}} \\quad (\\approx 151\\text{ MFLOPs})\\$\\$\n\nExecuting 75 million loop iterations in CPython takes seconds; inside an optimized BLAS GEMM kernel, it completes in a few milliseconds.\n\n### The im2col Lowering Schema\n\nEvery output pixel \\$y[n, c_{\\text{out}}, h, w]\\$ is the inner product of the flattened filter with the corresponding spatial receptive field patch \\$x[n, :, h:h+K, w:w+K]\\$. By unrolling each patch into a matrix row and flattening filters into matrix columns:\n\n\\$\\$X_{\\text{col}} \\in \\mathbb{R}^{(N \\cdot H_{\\text{out}} \\cdot W_{\\text{out}}) \\times (C_{\\text{in}} \\cdot K_h \\cdot K_w)}\\$\\$\n\n\\$\\$W_{\\text{row}} \\in \\mathbb{R}^{(C_{\\text{in}} \\cdot K_h \\cdot K_w) \\times C_{\\text{out}}}\\$\\$\n\n\\$\\$Y_{\\text{col}} = X_{\\text{col}} @ W_{\\text{row}} \\in \\mathbb{R}^{(N \\cdot H_{\\text{out}} \\cdot W_{\\text{out}}) \\times C_{\\text{out}}}\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "Reshaping \\$Y_{\\text{col}}\\$ from \\$(N \\cdot H_{\\text{out}} \\cdot W_{\\text{out}}, C_{\\text{out}})\\$ back to \\$(N, C_{\\text{out}}, H_{\\text{out}}, W_{\\text{out}})\\$ yields the exact convolution output.\n\n### Concrete Patch Unrolling (1 Channel, \\$3 \\times 3\\$ Input, \\$2 \\times 2\\$ Kernel, Stride 1)\n\nFor input \\$X = \\begin{bmatrix} 1 & 2 & 3 \\\\ 4 & 5 & 6 \\\\ 7 & 8 & 9 \\end{bmatrix}\\$, there are 4 valid \\$2 \\times 2\\$ receptive fields:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Output Position",
+    "Receptive Field Coordinates",
+    "Flattened Patch (Row in \\$X_{\\text{col}}\\$)",
+    "Shared Input Elements"
+   ],
+   "rows": [
+    [
+     "**Position \\$(0, 0)\\$**",
+     "Rows \\$0..1\\$, Cols \\$0..1\\$",
+     "\\$[1, 2, 4, 5]\\$",
+     "Pixel 5 shared with all 4 patches"
+    ],
+    [
+     "**Position \\$(0, 1)\\$**",
+     "Rows \\$0..1\\$, Cols \\$1..2\\$",
+     "\\$[2, 3, 5, 6]\\$",
+     "Pixels 2, 5 shared with \\$(0, 0)\\$"
+    ],
+    [
+     "**Position \\$(1, 0)\\$**",
+     "Rows \\$1..2\\$, Cols \\$0..1\\$",
+     "\\$[4, 5, 7, 8]\\$",
+     "Pixels 4, 5 shared with \\$(0, 0)\\$"
+    ],
+    [
+     "**Position \\$(1, 1)\\$**",
+     "Rows \\$1..2\\$, Cols \\$1..2\\$",
+     "\\$[5, 6, 8, 9]\\$",
+     "Pixels 5, 6 shared with \\$(0, 1)\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### The Space-Time Trade-Off: Memory Footprint Expansion\n\nThe speed of im2col comes at the cost of duplicate memory allocation. Because overlapping receptive fields replicate pixels up to \\$K_h \\times K_w\\$ times:\n\n\\$\\$\\text{Memory Expansion Ratio} = \\frac{\\text{Bytes}(X_{\\text{col}})}{\\text{Bytes}(X)} \\approx K_h \\times K_w = 3 \\times 3 = \\mathbf{9\\times}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Representation",
+    "Dimensions / Elements",
+    "FP32 Memory Footprint",
+    "Systems Characteristics"
+   ],
+   "rows": [
+    [
+     "**Original Input Tensor**",
+     "\\$(4, 32, 32, 32) = 131{,}072\\$ elements",
+     "\\$524{,}288\\text{ bytes} \\approx \\mathbf{0.524\\text{ MB}}\\$",
+     "Compact, non-redundant storage"
+    ],
+    [
+     "**Unrolled Patch Matrix \\$X_{\\text{col}}\\$**",
+     "\\$(4096, 288) = 1{,}179{,}648\\$ elements",
+     "\\$4{,}718{,}592\\text{ bytes} \\approx \\mathbf{4.72\\text{ MB}}\\$",
+     "\\$9\\times\\$ memory bloat; enables single BLAS GEMM call"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Vectorized Patch Construction via Strided Slices\n\nRather than looping over all \\$N \\times H_{\\text{out}} \\times W_{\\text{out}}\\$ output coordinates (which would reintroduce Python loop latency), we invert the iteration and loop only over the \\$K_h \\times K_w\\$ **kernel offsets** \\$(i, j)\\$:\n\n\\$\\$\\text{padded}[:, :, i : i + \\text{stride} \\cdot H_{\\text{out}} : \\text{stride}, \\; j : j + \\text{stride} \\cdot W_{\\text{out}} : \\text{stride}]\\$\\$\n\nA \\$3 \\times 3\\$ convolution requires exactly \\$9\\$ strided slice copies across the entire batch simultaneously, independent of spatial image resolution.\n\n### What You Are and Are Not Building\n\nLike the other helpers in this module, `im2col_conv2d` provides an accelerated forward inference path. In the following section, we derive its mathematical dual, **`col2im`**, to build a fully differentiable `Im2colConv2dFunction` that trains seamlessly within TinyTorch's autograd engine."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 91 lines of code (starting with `def im2col(x: Tensor, kernel_size: int, stride: int = 1, padding: int = 0) -> Te`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: im2col\n\nThis test validates the patch matrix against patches written out by hand.\n\n**What we're testing**: Row contents and order, column order, output shape with\nstride and padding, and rejection of non-image input\n**Why it matters**: A patch matrix with its columns in the wrong order still\nmultiplies without error; it just pairs the wrong pixels with the wrong weights\n**Expected**: The four hand-written patches of the 3×3 example, and shapes that\nfollow the convolution output formula"
+  },
+  {
+   "type": "text",
+   "md": "### Convolution Through One Matrix Multiply\n\nWith the patch matrix unrolled, the forward spatial convolution reduces to three sequential algebraic steps:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Step",
+    "Operation",
+    "Tensor Transformation",
+    "Output Shape"
+   ],
+   "rows": [
+    [
+     "**1. Unroll Patches**",
+     "\\$X_{\\text{col}} = \\text{im2col}(X, K, s, p)\\$",
+     "Receptive fields \\$\\to\\$ rows",
+     "\\$(N \\cdot H_{\\text{out}} \\cdot W_{\\text{out}}, \\; C_{\\text{in}} \\cdot K_h \\cdot K_w)\\$"
+    ],
+    [
+     "**2. Flatten Filters**",
+     "\\$W_{\\text{matrix}} = W.\\text{reshape}(C_{\\text{out}}, -1)^T\\$",
+     "Spatial filters \\$\\to\\$ columns",
+     "\\$(C_{\\text{in}} \\cdot K_h \\cdot K_w, \\; C_{\\text{out}})\\$"
+    ],
+    [
+     "**3. Vectorized GEMM**",
+     "\\$Y_{\\text{col}} = X_{\\text{col}} @ W_{\\text{matrix}} + b\\$",
+     "BLAS matrix multiplication",
+     "\\$(N \\cdot H_{\\text{out}} \\cdot W_{\\text{out}}, \\; C_{\\text{out}})\\$"
+    ],
+    [
+     "**4. Spatial Layout**",
+     "\\$Y = Y_{\\text{col}}.\\text{reshape}(N, H_{\\text{out}}, W_{\\text{out}}, C_{\\text{out}})^T\\$",
+     "Channel permutation \\$(0, 3, 1, 2)\\$",
+     "\\$(N, C_{\\text{out}}, H_{\\text{out}}, W_{\\text{out}})\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The matrix multiply invokes `vectorized_matmul`, directly inheriting the cache efficiency and multi-core parallelism of underlying BLAS GEMM kernels."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 77 lines of code (starting with `def im2col_conv2d(x: Tensor, weight: Tensor, bias: Optional[Tensor] = None,`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: im2col Convolution\n\nThis test validates the matrix-multiply convolution against Module 09's loops.\n\n**What we're testing**: Agreement with `Conv2d` for padding, stride, and no-bias\ncases, output layout, and channel validation\n**Why it matters**: An optimization is only correct if it computes the same\nfunction as the reference; Module 09's `Conv2d` is that reference\n**Expected**: Outputs match `Conv2d` within float tolerance in every case"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Convolution as Matrix Multiplication: Lowering via im2col."
+   ]
+  }
+ ]
+}

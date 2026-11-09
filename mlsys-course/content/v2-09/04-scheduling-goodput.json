@@ -1,0 +1,98 @@
+{
+ "title": "Scheduling Goodput",
+ "summary": "Calculate a pool's scheduling goodput and the ceiling a single lever can reach.",
+ "source": {
+  "chapter": "v2-09",
+  "sections": [
+   "Scheduling Goodput",
+   "What scheduling goodput counts",
+   "Attributing scheduler losses",
+   "Evidence, size, and the serving replica"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate a pool's scheduling goodput and the ceiling a single lever can reach\n- Analyze how a scheduling lever can move a loss between goodput factors\n- Distinguish a job's queue wait from a pool's scheduling loss\n- Interpret scheduler records to separate a capacity planning loss from a policy loss\n- Recall how out-of-service capacity is reported in scheduling goodput accounting"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Efficiency, § Scheduling Goodput",
+   "md": "Partially assembled gangs, scattered node fragments, and draining reservations waste accelerator hours *before* any workload holds a complete allocation, whereas zombie jobs, input starvation, exposed collectives, and fragmented key-value caches waste capacity inside an allocation a job already holds. A cluster orchestrator's general health dashboards surface both classes of waste together, but scheduling goodput counts only the pre-allocation losses; fixing the post-allocation losses leaves scheduling goodput unchanged. Separating pre-allocation losses from post-allocation losses, and quantifying the pre-allocation share, is what scheduling goodput adds to the orchestrator's own view."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- What scheduling goodput counts\n- Attributing scheduler losses\n- Evidence, size, and the serving replica\n\nPay attention to: Complete allocations and the in-service denominator; Queue wait versus scheduling loss; Attributing orchestration losses by first boundary missed versus the layer that removes them; The shared-pool snapshot and the ceiling of group admission."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A team's reserved block is granted as an allocation and refused to everyone else while no job takes steps on it. Which goodput factor is charged, and why does reclaiming the block move part of the loss rather than recover all of it?",
+   "md": "The block crosses the first boundary because it is held as an allocation, then fails the second because no retained step runs, so it is a runtime goodput loss. Reclaiming it recovers only the share a borrower actually uses; the share no borrower takes becomes free capacity outside any complete allocation, now a scheduling loss. A lever can move a loss between factors without removing it, and only the product shows whether the fleet gained."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-09-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In a shared pool's snapshot, 80% of in-service capacity is assigned to jobs, 15% is held by groups still waiting for their remaining members, and 5% sits in complete allocations waiting for input. What is the pool's scheduling goodput, and how far can atomic group admission alone raise it?",
+     "explanation": "The correct answer is C. Scheduling goodput counts only capacity held by complete allocations, \\$0.80 - 0.15 = 0.65$, so the 35% loss is the 20% no job holds plus the 15% held by incomplete groups. The 5% input wait lies inside complete allocations, so it is a runtime loss. Group admission returns the 15% to the pool as free capacity, giving a ceiling of \\$0.65 + 0.15 = 0.80$ that is reached only if backfill and packing refill every freed device.",
+     "hint": "Think about: calculate a pool's scheduling goodput and the ceiling a single lever can reach.",
+     "type": "single",
+     "options": [
+      "0.80, rising to 0.95, because every assigned device counts as held and admission removes the input waits",
+      "0.60, rising to 0.80, because both the incomplete groups and the input waits are scheduling losses",
+      "0.65, rising at most to 0.80, and only if other jobs' complete allocations take every freed device",
+      "0.65, rising to 1.0, because group admission eliminates every interval of unheld capacity"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A job's own wait in the queue always lowers its pool's scheduling goodput.",
+     "explanation": "False. The wait lowers scheduling goodput only while capacity sat unheld during it. If other jobs held that capacity in complete allocations, the pool lost nothing, and the wait costs the job only time to result, which is weighed against goodput when factors are traded. Pushing scheduling goodput toward one lengthens such waits steeply.",
+     "hint": "Think about: distinguish a job's queue wait from a pool's scheduling loss.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Two pools report the same low scheduling goodput. In pool X, capacity sat free while the queue was empty; in pool Y, capacity sat free while gangs waited. Which reading of the scheduler records is correct?",
+     "explanation": "The correct answer is B. A low scheduling goodput describes the pool, not its scheduler, and the same value calls for opposite remedies, so queue depth is recorded beside every interval of free capacity. Scheduler records, not step traces, settle this factor, because nothing that happens inside an allocation enters it.",
+     "hint": "Think about: interpret scheduler records to separate a capacity planning loss from a policy loss.",
+     "type": "single",
+     "options": [
+      "Both pools need a better placement policy, because scheduling goodput measures the competence of the scheduler",
+      "Pool X is larger than its demand, a capacity planning question, while pool Y has capacity stranded by placement, quota, or fragmentation, a policy question",
+      "Pool X has a fragmentation problem and pool Y has more capacity than its demand",
+      "Neither value can be interpreted without step traces from the jobs in each pool"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Scheduling goodput divides by in-service capacity. Accelerators out of service for repair or maintenance are left out of the denominator, and their downtime is reported beside the product as the pool's ____.",
+     "explanation": "availability. Dividing by installed capacity instead would fold hardware reliability into scheduling goodput, so the measurement contract records which denominator was used, and two reports that differ on it cannot be compared.",
+     "hint": "Think about: recall how out-of-service capacity is reported in scheduling goodput accounting.",
+     "type": "fill",
+     "answer": [
+      "availability"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Why must the moment an allocation becomes complete be logged by the scheduler as an event rather than inferred from the job's first training step, and why does a serving replica make whole-node fragmentation a scheduling concern?",
+   "md": "Inferring completion from the first step would move startup, a runtime loss, into the scheduling factor, so the two factors would no longer divide cleanly; startup is measured between the scheduler's gang-complete event and the timeline's first step. A serving replica is one indivisible gang, a whole node across which tensor parallelism splits the weights, so a pool can hold many free GPUs and no free node. A replica waiting for a node is a scheduling loss, while loading and warmup after placement are runtime losses."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate a pool's scheduling goodput and the ceiling a single lever can reach.",
+    "You can now analyze how a scheduling lever can move a loss between goodput factors.",
+    "You can now distinguish a job's queue wait from a pool's scheduling loss.",
+    "You can now interpret scheduler records to separate a capacity planning loss from a policy loss."
+   ]
+  }
+ ]
+}

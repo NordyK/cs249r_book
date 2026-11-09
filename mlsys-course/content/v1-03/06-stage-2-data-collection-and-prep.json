@@ -1,0 +1,108 @@
+{
+ "title": "Stage 2: Data Collection and Preparation",
+ "summary": "Calculate network transmission times for clinical data collection and evaluate edge preprocessing as a bandwidth mitigation strategy.",
+ "source": {
+  "chapter": "v1-03",
+  "sections": [
+   "Stage 2: Data Collection and Preparation",
+   "Lab-to-field data gap",
+   "Distributed data infrastructure",
+   "Quality assurance and validation",
+   "Sample order and delivery rate"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Calculate network transmission times for clinical data collection and evaluate edge preprocessing as a bandwidth mitigation strategy\n- Analyze how distribution mismatches between curated research datasets and real-world field environments cause deployment performance gaps\n- Explain why distributed data collection requires per-image provenance metadata\n- Evaluate why early point-of-capture data quality validation is essential despite large training set sizes\n- Classify store-and-forward architectures as the primary mechanism for managing intermittent network connectivity in distributed data pipelines"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Lifecycle, § Stage 2: Data Collection and Preparation",
+   "md": "On paper, the problem definition asks for 90 percent sensitivity across rural clinics; in the field, that target immediately meets smudged camera lenses, missing patient records, and a 2 Mbps clinic internet link. Moving from problem definition to data collection is where abstract accuracy targets meet those physical realities. This stage determines dataset size (DatasetSize), the number of examples, and through it the iron law's byte volume (DataVolume) for a training run, the bytes that storage systems, networks, and memory buses must move."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Lab-to-field data gap\n- Distributed data infrastructure\n- Quality assurance and validation\n- Sample order and delivery rate\n\nPay attention to: Bandwidth vs. compute trade-offs in data pipelines; The lab-to-field data distribution gap; Distributed data infrastructure and tiered storage economics; Point-of-capture data quality assurance."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why a DR screening model achieving an AUC of 0.99 on a curated laboratory research dataset can see its sensitivity fall well below the 90 percent screening target when deployed to rural clinics.",
+   "md": "This drop illustrates the lab-to-field distribution gap. Curated research datasets are captured using standardized, high-end fundus cameras under controlled lighting with dilated pupils and experienced operators. In rural field clinics, images are captured on older, lower-resolution cameras by technicians with minimal training, leading to motion blur, poor illumination, glare, and improper framing. The model degrades not because the learning algorithm is broken, but because production inputs fall outside the training data distribution envelope."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-03-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A rural clinic screens 100 patients per day for DR, capturing 4 retinal photos per patient (two fields per eye) at 5 MB per photo. The clinic operates on an 8-hour daily shift with an intermittent 2 Mbps uplink. According to the chapter's Bandwidth vs. Compute analysis, why does the screening result still require edge inference?",
+     "explanation": "The correct answer is B. Daily volume is \\$100 \\times 4 \\times 5 \\text{ MB} = 2,000 \\text{ MB}$, and a 2 Mbps link moves 0.25 MB/s, so the upload takes \\$2,000 / 0.25 = 8,000 \\text{ s} \\approx 2.2 \\text{ hours}$, about 28 percent of the shift. Bandwidth alone does not force edge deployment; the requirement that a result reach the nurse during the visit, even when the intermittent link is down, does. Local inference with 10 KB summaries (\\$100 \\times 10 \\text{ KB} = 1 \\text{ MB}$) also cuts uplink traffic about \\$2,000\\times$. The claim that cloud inference suffices whenever the link is up ignores outages, and the remaining choices miscompute the volume or invent latencies.",
+     "hint": "Think about: calculate network transmission times for clinical data collection and evaluate edge preprocessing as a bandwidth mitigation strategy.",
+     "type": "single",
+     "options": [
+      "A. Raw upload takes about 2.2 hours, so it fits the shift and cloud inference is sufficient whenever the link is up.",
+      "B. Raw upload of 2 GB takes about 2.2 hours, roughly a quarter of the shift, but a result that must reach the nurse during the visit cannot depend on a link that drops, so inference runs locally and only 10 KB summaries go upstream, cutting traffic by about 2,000$\\times$.",
+      "C. Daily raw image upload generates 75 GB of data, which exceeds daily satellite uplink capacity by a factor of 100$\\times$ regardless of compression.",
+      "D. Raw uploads complete in 45 minutes, but cloud GPU queuing delay adds 12 hours of fixed inference latency."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "As a DR screening deployment expands from a pilot site to hundreds of clinics, the data pipeline records the camera model, capture settings, and operator ID for every image. Why does the chapter treat this provenance metadata as essential rather than optional bookkeeping?",
+     "explanation": "The correct answer is B. Divergent camera optics, clinic illumination, and operator training give each clinic a distinct input distribution, so heterogeneity scales alongside byte volume. Recording camera model, capture settings, and operator ID for every image makes it possible to trace an accuracy regression to a specific site or device and to satisfy regulatory audits. Provenance does not replace quality validation, does not reduce upload size, and does not substitute for consensus labels.",
+     "hint": "Think about: explain why distributed data collection requires per-image provenance metadata.",
+     "type": "single",
+     "options": [
+      "A. It lets the training cluster skip quality validation for images from clinics with trusted operators.",
+      "B. Data heterogeneity grows with the number of clinics, so the provenance trail is what isolates site-specific accuracy regressions and satisfies regulatory audit requirements.",
+      "C. It compresses each image enough to fit within the clinic's 2 Mbps uplink during operating hours.",
+      "D. It replaces the need for consensus grading by multiple ophthalmologists."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In large-scale medical data collection, if collected images pass basic file format and schema validation, image-quality defects (such as blur, low contrast, or partial occlusion) can be safely ignored because deep neural networks naturally learn to filter out bad samples when trained on sufficiently large datasets.",
+     "explanation": "False. File format and schema checks do not guarantee that an image contains usable clinical evidence. Blur, low contrast, or occlusion can hide the very features the model must learn, creating misleading training examples or unusable production inputs. Catching these problems at capture time can trigger immediate recapture and prevent downstream rework; letting them pass pushes the problem into later validation, retraining, or deployment debugging.",
+     "hint": "Think about: evaluate why early point-of-capture data quality validation is essential despite large training set sizes.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In rural clinics with intermittent connectivity, an architecture that buffers captured images locally and reconciles inference results asynchronously with the central cloud during available network windows is known as a(n) ____ architecture.",
+     "explanation": "store-and-forward. Store-and-forward architectures buffer data locally during network outages and transmit batched data when connectivity is restored, decoupling local clinical operations from central cloud availability.",
+     "hint": "Think about: classify store-and-forward architectures as the primary mechanism for managing intermittent network connectivity in distributed data pipelines.",
+     "type": "fill",
+     "answer": [
+      "store and forward",
+      "store-and-forward"
+     ]
+    },
+    {
+     "q": "A training pipeline randomly shuffles a multi-terabyte dataset across samples on every epoch, pulling records from storage backed by NVMe and spinning disks. Even though the hardware accelerator has ample peak compute capacity, training throughput stalls. Which explanation correctly identifies the systems-level bottleneck according to the chapter?",
+     "explanation": "The correct answer is B. Random sample order scatters reads across storage, so the caching and prefetching that make sequential reads fast stop helping. The data loader then delivers samples more slowly than training consumes them, and the accelerator idles however much peak compute it has. The chapter's delivery test (compare the loader's delivery rate with the rate training consumes samples) exposes this stall; the fixes belong to data layout and prefetching, not to more compute. The other options misplace the bottleneck in arithmetic, instruction decoding, or ordering requirements that the workload does not have.",
+     "hint": "Think about: analyze how randomized data access patterns in ML training defeat OS locality mechanisms and cause data-delivery bottlenecks.",
+     "type": "single",
+     "options": [
+      "A. Random shuffling makes the training workload strictly compute-bound, so the accelerator cores become overloaded by stochastic gradient calculations.",
+      "B. Random sample access scatters reads across storage, defeating the caching and prefetching that sequential reads enjoy, so the data loader cannot deliver samples as fast as the accelerator consumes them.",
+      "C. Shuffling multi-terabyte datasets bypasses the operating system page cache entirely, forcing floating-point arithmetic units to stall on instruction decoding.",
+      "D. The memory hierarchy becomes saturated because the accelerator requires deterministic sample ordering to maintain kernel pipeline parallelism."
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate network transmission times for clinical data collection and evaluate edge preprocessing as a bandwidth mitigation strategy.",
+    "You can now analyze how distribution mismatches between curated research datasets and real-world field environments cause deployment performance gaps.",
+    "You can now explain why distributed data collection requires per-image provenance metadata.",
+    "You can now evaluate why early point-of-capture data quality validation is essential despite large training set sizes."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,176 @@
+{
+ "title": "Integration: Bringing It Together",
+ "summary": "TinyTorch layers: Integration: Bringing It Together",
+ "source": {
+  "chapter": "tt-03",
+  "sections": [
+   "Integration: Bringing It Together"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🔧 Integration: Bringing It Together\n\nNow that we've built both layer types, let's see how they work together to create a complete neural network architecture. We'll compose a realistic 3-layer MLP for MNIST digit classification.\n\n### End-to-End Computational Pipeline\n\n\\$\\$\\mathbf{X} \\in \\mathbb{R}^{32 \\times 784} \\xrightarrow{\\text{Linear}(784, 256)} \\mathbf{Z}_1 \\xrightarrow{\\text{ReLU}} \\mathbf{A}_1 \\xrightarrow{\\text{Dropout}(0.5)} \\hat{\\mathbf{A}}_1 \\xrightarrow{\\text{Linear}(256, 128)} \\mathbf{Z}_2 \\xrightarrow{\\text{ReLU}} \\mathbf{A}_2 \\xrightarrow{\\text{Dropout}(0.3)} \\hat{\\mathbf{A}}_2 \\xrightarrow{\\text{Linear}(128, 10)} \\mathbf{Y} \\in \\mathbb{R}^{32 \\times 10}\\$\\$\n\n### Parameter Count & Memory Breakdown"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Stage",
+    "Component / Layer",
+    "Kernel Shape",
+    "Bias Shape",
+    "Trainable Parameters",
+    "Memory (FP32)"
+   ],
+   "rows": [
+    [
+     "**Layer 1**",
+     "`Linear(784, 256)`",
+     "\\$(784, 256)\\$",
+     "\\$(256,)\\$",
+     "\\$200{,}704 + 256 = 200{,}960\\$",
+     "\\$803.84\\text{ KB}\\$"
+    ],
+    [
+     "—",
+     "`ReLU()`",
+     "—",
+     "—",
+     "\\$0\\$",
+     "\\$0\\text{ B}\\$"
+    ],
+    [
+     "—",
+     "`Dropout(p=0.5)`",
+     "—",
+     "—",
+     "\\$0\\$",
+     "\\$0\\text{ B}\\$"
+    ],
+    [
+     "**Layer 2**",
+     "`Linear(256, 128)`",
+     "\\$(256, 128)\\$",
+     "\\$(128,)\\$",
+     "\\$32{,}768 + 128 = 32{,}896\\$",
+     "\\$131.58\\text{ KB}\\$"
+    ],
+    [
+     "—",
+     "`ReLU()`",
+     "—",
+     "—",
+     "\\$0\\$",
+     "\\$0\\text{ B}\\$"
+    ],
+    [
+     "—",
+     "`Dropout(p=0.3)`",
+     "—",
+     "—",
+     "\\$0\\$",
+     "\\$0\\text{ B}\\$"
+    ],
+    [
+     "**Layer 3**",
+     "`Linear(128, 10)`",
+     "\\$(128, 10)\\$",
+     "\\$(10,)\\$",
+     "\\$1{,}280 + 10 = 1{,}290\\$",
+     "\\$5.16\\text{ KB}\\$"
+    ],
+    [
+     "**Total**",
+     "**3-Layer MLP**",
+     "—",
+     "—",
+     "**\\$235{,}146\\$ parameters**",
+     "**\\$940.58\\text{ KB}\\$**"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 📊 Systems Analysis: Memory and Performance\n\nUnderstanding memory allocation lifecycles and computational FLOPs budgets allows engineers to optimize training throughput and prevent GPU out-of-memory (OOM) faults.\n\n### Memory Hierarchy Breakdown"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Memory Category",
+    "Allocation Lifecycle",
+    "Sizing Formula",
+    "Systems Trade-off"
+   ],
+   "rows": [
+    [
+     "**Parameter Memory**",
+     "Static; persistent across epochs",
+     "\\$\\sum (D_{\\text{in}} \\times D_{\\text{out}} + D_{\\text{out}}) \\times 4\\text{ B}\\$",
+     "Scales with network width & depth; resident in GPU VRAM"
+    ],
+    [
+     "**Activation Memory**",
+     "Dynamic per forward pass; retained for backward",
+     "\\$B \\times D_{\\text{layer}} \\times 4\\text{ B}\\$ per layer",
+     "Dominates training footprint; linear in batch size \\$B\\$"
+    ],
+    [
+     "**Temporary Buffer Memory**",
+     "Ephemeral during kernel execution",
+     "\\$B \\times D_{\\text{layer}} \\times 4\\text{ B}\\$ (e.g. dropout mask)",
+     "Peak allocated at layer forward/backward boundary"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Computational Complexity & Hardware Profile"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Operation",
+    "Computational Complexity (FLOPs)",
+    "Memory I/O Complexity",
+    "Dominant Hardware Bottleneck"
+   ],
+   "rows": [
+    [
+     "**Linear Layer**",
+     "\\$2 \\cdot B \\cdot D_{\\text{in}} \\cdot D_{\\text{out}} + B \\cdot D_{\\text{out}}\\$",
+     "Read \\$\\mathbf{X}, \\mathbf{W}, \\mathbf{b}\\$; Write \\$\\mathbf{Y}\\$",
+     "Compute-bound for large \\$B\\$, memory-bandwidth-bound for \\$B=1\\$"
+    ],
+    [
+     "**Multi-layer MLP**",
+     "\\$\\sum_{\\ell=1}^L 2 \\cdot B \\cdot D_{\\ell-1} \\cdot D_\\ell\\$",
+     "Intermediate tensor reads & writes",
+     "Cache line eviction across deep layer cascades"
+    ],
+    [
+     "**Dropout Forward**",
+     "\\$O(B \\cdot D)\\$ (PRNG + threshold + multiply)",
+     "Read \\$\\mathbf{X}\\$; Write \\$\\hat{\\mathbf{M}}, \\mathbf{Y}\\$",
+     "Memory bandwidth bound (streaming kernel)"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def analyze_layer_memory():\n    \"\"\"📊 Analyze memory usage patterns in layer operations.\"\"\"\n    print(\"📊 Analyzing Layer Memory Usage...\")\n\n    # Test different layer sizes\n    layer_configs = [\n        (784, 256),   # MNIST → hidden\n        (256, 256),   # Hidden → hidden\n        (256, 10),    # Hidden → output\n        (2048, 2048), # Large hidden\n    ]\n\n    print(\"\\nLinear Layer Memory Analysis (decimal KB, 1 KB = 1000 B, as in the tables above):\")\n    print(\"Configuration → Weight Memory → Bias Memory → Total Memory\")\n\n    for in_feat, out_feat in layer_configs:\n        # Calculate memory usage\n        weight_memory = in_feat * out_feat * 4  # 4 bytes per float32\n        bias_memory = out_feat * 4\n        total_memory = weight_memory + bias_memory\n\n        print(f\"({in_feat:4d}, {out_feat:4d}) → {weight_memory/1000:9.2f} KB → {bias_memory/1000:7.2f} KB → {total_memory/1000:9.2f} KB\")\n\n    # Analyze multi-layer memory scaling\n    print(\"\\n💡 Multi-layer Model Memory Scaling (decimal MB, 1 MB = 1,000,000 B):\")\n    hidden_sizes = [128, 256, 512, 1024, 2048]\n\n    for hidden_size in hidden_sizes:\n        # 3-layer MLP: 784 → hidden → hidden/2 → 10\n        layer1_params = 784 * hidden_size + hidden_size\n        layer2_params = hidden_size * (hidden_size // 2) + (hidden_size // 2)\n        layer3_params = (hidden_size // 2) * 10 + 10\n\n        total_params = layer1_params + layer2_params + layer3_params\n        memory_mb = total_params * 4 / 1_000_000\n\n        print(f\"Hidden={hidden_size:4d}: {total_params:7,} params = {memory_mb:5.1f} MB\")\n\nif __name__ == \"__main__\":\n    analyze_layer_memory()"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 63 lines of code (starting with `def analyze_layer_performance():`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Integration: Bringing It Together."
+   ]
+  }
+ ]
+}

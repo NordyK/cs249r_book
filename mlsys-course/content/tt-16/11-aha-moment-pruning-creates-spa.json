@@ -1,0 +1,35 @@
+{
+ "title": "⭐ Aha Moment: Pruning Creates Sparsity",
+ "summary": "TinyTorch compression: ⭐ Aha Moment: Pruning Creates Sparsity",
+ "source": {
+  "chapter": "tt-16",
+  "sections": [
+   "⭐ Aha Moment: Pruning Creates Sparsity"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## ⭐ Aha Moment: Pruning Creates Sparsity\n\n**What you built:** Pruning that zeros out small weights, creating sparse models.\n\n**Why it matters:** At 50% sparsity, half the weights are zero. This demo measures\nthat change on a freshly initialized layer; its dense storage and computation\nshape stay the same. Memory savings require a sparse representation, and speed\ngains require suitable kernels or rebuilding smaller layers.\n\nAccuracy preservation depends on the trained model and data and may require\nfine-tuning. Milestone 06 measures accuracy before and after pruning on real digits."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def demo_compression():\n    \"\"\"🎯 See pruning create sparsity.\"\"\"\n    print(\"🎯 AHA MOMENT: Pruning Removes Weights\")\n    print(\"=\" * 45)\n\n    # Create a model\n    layer = Linear(128, 64)\n\n    original_nonzero = np.count_nonzero(layer.weight.data)\n    original_total = layer.weight.data.size\n    original_bytes = layer.weight.data.nbytes\n\n    # Apply 50% pruning\n    magnitude_prune(layer, sparsity=0.5)\n\n    pruned_nonzero = np.count_nonzero(layer.weight.data)\n    sparsity = 1 - (pruned_nonzero / original_total)\n\n    print(f\"Original: {original_nonzero:,} non-zero weights\")\n    print(f\"After 50% pruning: {pruned_nonzero:,} non-zero weights\")\n    print(f\"\\nActual sparsity: {sparsity:.1%}\")\n    print(f\"Half the weights are now zero!\")\n\n    print(f\"Dense weight storage: {original_bytes:,} → {layer.weight.data.nbytes:,} bytes\")\n    print(\"\\n✨ Sparsity increased; accuracy and latency still need measurement.\")"
+  },
+  {
+   "type": "text",
+   "md": "## 🚀 MODULE SUMMARY: Compression\n\nCongratulations! You've built the four compression techniques that shrink production models, and the measurements that say what each one actually bought.\n\n### Key Accomplishments\n- Built magnitude-based and structured pruning techniques with clear sparsity patterns\n- Implemented knowledge distillation for teacher-student compression with temperature scaling\n- Created low-rank approximation using SVD decomposition, with the break-even rank enforced\n- Developed sparsity measurement, output-drift measurement, and a compression pipeline\n- All tests pass (validated by `test_module()`)\n\n### Systems Insights Discovered\n- **Three Axes, Not One**: Compression means fewer parameters, fewer bits per parameter, or fewer operations, and a technique buys only one or two of the three\n- **Structured vs Unstructured**: Hardware-friendly patterns vs maximum sparsity\n- **Zeros Are Not Savings**: Unstructured pruning pays off only with a sparse format and a sparse kernel, and fine-tuning refills the zeros unless you keep the mask\n- **Break-Even Is Real**: Above \\$r^*\\$, a low-rank factorization is bigger than the matrix it replaces\n- **Compression Cascading**: Multiple techniques compound but need careful sequencing\n- **Deployment Strategy**: Different scenarios require different compression approaches\n\n### Ready for Next Steps\nYour compression implementation enables efficient model deployment across diverse hardware constraints!\nExport with: `tito module complete 16`"
+  },
+  {
+   "type": "text",
+   "md": "**Next**: Module 17 will add acceleration techniques including vectorization and kernel fusion!"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: ⭐ Aha Moment: Pruning Creates Sparsity."
+   ]
+  }
+ ]
+}

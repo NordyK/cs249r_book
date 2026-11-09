@@ -1,0 +1,79 @@
+{
+ "title": "Network Virtualization",
+ "summary": "Explain the hardware virtualization mechanism of SR-IOV and Virtual Functions in RDMA fabrics.",
+ "source": {
+  "chapter": "v2-03",
+  "sections": [
+   "Network Virtualization",
+   "Hardware NIC virtualization with SR-IOV",
+   "Traffic isolation and quality of service"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Explain the hardware virtualization mechanism of SR-IOV and Virtual Functions in RDMA fabrics\n- Analyze traffic isolation and QoS mechanisms in multi-tenant ML networks\n- Evaluate bandwidth partitioning and burst limitations in hardware-enforced NIC virtualization\n- Identify the InfiniBand hardware mechanism used for traffic isolation and QoS"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Network Fabrics, § Network Virtualization",
+   "md": "When a single training job leaves racks or spine links idle between runs, operators carve the cluster among multiple tenants and jobs, only to discover that a neighbor's checkpoint burst or evaluation sweep can starve a synchronous AllReduce across shared NICs and switch buffers. Network virtualization must make sharing compatible with bandwidth allocations, latency targets, and access isolation. These requirements interact because tenants still share physical links and buffers. An operator might reserve … of the cluster's BisectionBandwidth for training and allocate the remaining … to inference and preprocessing."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Hardware NIC virtualization with SR-IOV\n- Traffic isolation and quality of service\n\nPay attention to: SR-IOV hardware NIC virtualization and Virtual Functions; DMA kernel bypass in virtualized environments; Traffic isolation using Virtual Lanes (VLs) and Traffic Classes; Preventing noisy-neighbor interference from storage checkpoints."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how Virtual Lanes (VLs) in InfiniBand (or Traffic Classes in RoCEv2) reduce the impact of a multi-gigabyte storage checkpoint burst on the iteration time of an active distributed training job on a shared cluster.",
+   "md": "InfiniBand virtual lanes maintain separate buffering and credit state, so a storage lane exhausting its credits need not block a gradient lane. Mapping traffic to separate lanes must be paired with arbitration and bandwidth policy because both still share the physical link. RoCE uses Ethernet traffic classes and configured QoS mechanisms for an analogous separation. These mechanisms reduce interference; they do not create additional capacity or guarantee zero queuing delay."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-03-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "How does Single Root I/O Virtualization (SR-IOV) enable near-bare-metal RDMA performance in multi-tenant cloud GPU environments?",
+     "explanation": "The correct answer is A. SR-IOV allows a single physical PCIe NIC to instantiate multiple hardware-level Virtual Functions (VFs), each equipped with dedicated queue pairs, doorbell registers, and DMA channels. By assigning a VF directly to a virtual machine via PCIe passthrough, the guest OS initiates direct RDMA DMA transactions without hypervisor interception, achieving within a few percent of bare-metal performance. The choice describing 10 GbE software emulation introduces massive CPU overhead and high latency. The option suggesting CPU AVX-512 compression describes software payload processing rather than NIC hardware virtualization. The option proposing InfiniBand-to-TCP packet conversion violates RDMA kernel-bypass operation.",
+     "hint": "Think about: explain the hardware virtualization mechanism of SR-IOV and Virtual Functions in RDMA fabrics.",
+     "type": "single",
+     "options": [
+      "It allows a physical NIC to present multiple independent Virtual Functions (VFs) directly to guest VMs or containers, bypassing the host hypervisor and OS kernel for DMA operations",
+      "It emulates a 10 GbE software NIC inside the KVM kernel module to buffer gradient bursts",
+      "It compresses tenant network streams using the host CPU's AVX-512 vector units before transmission",
+      "It dynamically converts InfiniBand packets into TCP/IP frames at the virtual switch layer"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Configuring SR-IOV Virtual Functions (VFs) with strict bandwidth limits (such as capping each VF at \\$50 Gb/s on a \\$400 Gb/s NIC) allows a training job to dynamically burst up to \\$400 Gb/s during AllReduce if other VFs on the host are idle.",
+     "explanation": "False. When strict rate limiting or static bandwidth partitioning is configured on an SR-IOV Virtual Function at the hardware NIC level, the NIC hardware enforces a hard transmission ceiling. The tenant workload cannot exceed its allocated slice (e.g., \\$50 Gb/s), even if all other VFs on the physical port are completely idle, unless dynamic bandwidth-sharing policies (such as Enhanced Transmission Selection with excess credit sharing) are explicitly configured.",
+     "hint": "Think about: evaluate bandwidth partitioning and burst limitations in hardware-enforced NIC virtualization.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In InfiniBand fabrics, traffic isolation is achieved using independent logical channels called ______, which maintain separate credit-based buffer management on the same physical link.",
+     "explanation": "virtual lanes. Separate buffer and credit state isolate backpressure between traffic classes while sharing the physical link and its finite bandwidth.",
+     "hint": "Think about: identify the InfiniBand hardware mechanism used for traffic isolation and QoS.",
+     "type": "fill",
+     "answer": [
+      "virtual lanes"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the hardware virtualization mechanism of SR-IOV and Virtual Functions in RDMA fabrics.",
+    "You can now analyze traffic isolation and QoS mechanisms in multi-tenant ML networks.",
+    "You can now evaluate bandwidth partitioning and burst limitations in hardware-enforced NIC virtualization.",
+    "You can now identify the InfiniBand hardware mechanism used for traffic isolation and QoS."
+   ]
+  }
+ ]
+}

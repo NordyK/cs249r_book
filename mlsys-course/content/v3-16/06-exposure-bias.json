@@ -1,0 +1,60 @@
+{
+ "title": "Exposure Bias",
+ "summary": "Work through Exposure Bias.",
+ "source": {
+  "chapter": "v3-16",
+  "sections": [
+   "Exposure Bias",
+   "State distributions and imitation regret",
+   "Dataset aggregation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Exposure Bias**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Trajectory Fine-Tuning, § Exposure Bias",
+   "md": "Suppose a repair policy trained on this corpus is placed in a fresh bounded trial and meets a version conflict instead of the malformed-argument rejection recorded in `trace_r19_01_redacted_v1`. A plausible failure is that the policy repeats its previously accepted edit without first querying compatible state evidence. The runtime's conditional-update guard then blocks the stale write, and the trial exhausts its execution allowance without completing the repair. The training corpus never included that state, so nothing in it taught a correction."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- State distributions and imitation regret\n- Dataset aggregation"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Adapter state and modularity matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-16-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Exposure Bias** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A disagreement rate measured on reference prefixes bounds excess task cost only by min(H, H^2 eps), while the same rate on learner states with bounded recovery cost gives a linear bound, so where imitation error is measured sets the horizon penalty.",
+      "LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation.",
+      "Packing is only a memory layout, so block-diagonal attention, per-example label shifts, and position handling must leave each packed example's logits equal to its unpacked logits, a property tested rather than assumed.",
+      "A costly teacher configuration generates trajectories that pass the same admission as any demonstration, so distillation from sampled tokens is imitation rather than soft-target matching."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Adapter state and modularity**: LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Exposure Bias."
+   ]
+  }
+ ]
+}

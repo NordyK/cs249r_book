@@ -1,0 +1,70 @@
+{
+ "title": "Hermetic Evaluation Gyms",
+ "summary": "Work through Hermetic Evaluation Gyms.",
+ "source": {
+  "chapter": "v3-13",
+  "sections": [
+   "Hermetic Evaluation Gyms",
+   "Task fixtures",
+   "Controlled interactions",
+   "State reset between trials",
+   "Grader isolation",
+   "Evaluation leakage"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson covers the book's section on **Hermetic Evaluation Gyms**. Read the excerpt, then test yourself below."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Agent Evaluation, § Hermetic Evaluation Gyms",
+   "md": "If a trial of `candidate_v2` on `pool_repair_01` inherits mutated state from an earlier run or reaches live external endpoints that shift between attempts, the observed score difference against `baseline_v1` measures environmental contamination rather than an architectural improvement. Both systems must execute against the declared task under equivalent starting conditions, and the evaluator must verify every result directly against the artifact generated during that specific trial. An **evaluation gym** provides the task's interactive environment, establishes controlled starting conditions, and exposes clean interfaces for capturing trial evidence."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Task fixtures\n- Controlled interactions\n- State reset between trials\n- Grader isolation\n- Evaluation leakage"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Hermetic evaluation gym matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Comparable trials need a hermetic boundary that declares which dependencies are provisioned, simulated, or blocked, a versioned task fixture, and a reset that leaves no state for the next trial."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-13-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Hermetic Evaluation Gyms** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A trial is credited as an accepted task only when evidence on the exact candidate bytes satisfies its declared outcome, process, resource, and residual-duty criteria, and every verdict is pass, fail, pending, or unknown, with no default to pass.",
+      "Comparable trials need a hermetic boundary that declares which dependencies are provisioned, simulated, or blocked, a versioned task fixture, and a reset that leaves no state for the next trial.",
+      "Benchmark tasks or solutions that appeared in pretraining corpora or retrieval indices before the trial invalidate the claim the benchmark supports, and no similarity threshold proves independence.",
+      "A check certifies only the behavior its assertions exercise, so acceptance criteria name what each check covers and what it leaves unverified."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Hermetic evaluation gym**: Comparable trials need a hermetic boundary that declares which dependencies are provisioned, simulated, or blocked, a versioned task fixture, and a reset that leaves no state for the next trial."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Hermetic evaluation gym* creates comparable trials for *Task acceptance contract*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Hermetic evaluation gym creates comparable trials for Task acceptance contract."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Hermetic Evaluation Gyms."
+   ]
+  }
+ ]
+}

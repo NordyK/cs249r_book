@@ -1,0 +1,107 @@
+{
+ "title": "AllReduce Algorithms and Topologies",
+ "summary": "Compare Ring AllReduce and a simple unsegmented Tree AllReduce in terms of balanced byte volume and elapsed transfer cost.",
+ "source": {
+  "chapter": "v2-05",
+  "sections": [
+   "AllReduce Algorithms and Topologies",
+   "Naive approaches vs. the bandwidth bottleneck",
+   "The bandwidth-optimal lower bound",
+   "Ring AllReduce",
+   "Tree AllReduce",
+   "Recursive halving-doubling (butterfly)",
+   "Double binary tree",
+   "The algorithm crossover point"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Compare Ring AllReduce and a simple unsegmented Tree AllReduce in terms of balanced byte volume and elapsed transfer cost\n- Calculate the approximate Ring-versus-simple-Tree crossover and identify lower modeled cost under stated assumptions\n- Explain how rank placement and shared physical paths can limit Butterfly AllReduce and its alternatives\n- Describe how Double Binary Tree AllReduce combines complementary binary trees to achieve near-optimal bandwidth with logarithmic latency\n- Order the operational phases and dataflow transitions of a Ring AllReduce collective execution"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Collective Communication, § AllReduce Algorithms and Topologies",
+   "md": "A correct AllReduce must give each of 1,000 GPUs the reduced sum of all 1,000 gradient contributions, subject to the floating-point reduction contract, and the algorithm that delivers it sets the cluster's scaling ceiling. The naive answer, in which every GPU sends to one central server whose single network link must carry every worker's gradient, fails first, which makes it the right place to start."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Naive approaches vs. the bandwidth bottleneck\n- The bandwidth-optimal lower bound\n- Ring AllReduce\n- Tree AllReduce\n- Recursive halving-doubling (butterfly)\n- Double binary tree\n- The algorithm crossover point\n\nPay attention to: Naive parameter server bottlenecks vs bandwidth optimality; Bandwidth lower bound 2(N-1)/N * M / beta approaching 2M / beta; Ring AllReduce mechanics: uniform link utilization, 2(N-1) rounds, O(N) latency; Tree AllReduce: O(log N) latency vs link underutilization / bandwidth penalty."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Recursive halving-doubling (Butterfly AllReduce) combines logarithmic startup rounds with bandwidth-optimal byte volume in a flat-network model. What physical placement condition can defeat that modeled advantage, and why do double-tree or hierarchical alternatives still require measurement?",
+   "md": "XOR partner pairs can share a constrained fabric cut if the rank placement sends their concurrent exchanges across it. For example, pairing the two logical rank halves crosses racks only when those halves occupy different racks. Shared paths and changing chunk sizes can then erode the flat-network advantage. Complementary trees balance logical endpoint work, and hierarchy distributes work across tiers, but neither construction guarantees disjoint physical paths or sufficient port capacity. Compare achieved collective duration and exposed step time under the actual placement."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-05-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why does Ring AllReduce achieve the information-theoretic lower bound for bandwidth (\\$2 fracN-1N fracMbeta) while a simple unsegmented binary Tree AllReduce incurs a bandwidth penalty of mathcalO(log N × fracMbeta)?",
+     "explanation": "The correct answer is A. Each ring rank sends a uniform chunk in every round, yielding the balanced byte-volume lower bound. The simple unsegmented tree instead forwards full messages along successive levels, adding byte-transfer time to the dependency path. Logical ring edges may share physical links, so byte optimality does not guarantee peak link utilization. The ring needs neither gradient compression nor switch arithmetic and retains a startup cost that grows with rank count.",
+     "hint": "Think about: compare Ring AllReduce and a simple unsegmented Tree AllReduce in terms of balanced byte volume and elapsed transfer cost.",
+     "type": "single",
+     "options": [
+      "Ring AllReduce distributes uniform chunks ($M/N$) across all logical ring edges in each round, whereas the simple unsegmented tree sends full messages through successive levels of a reduction and broadcast.",
+      "Ring AllReduce compresses floating-point gradients to 1-bit representations during ring circulation, whereas Tree AllReduce always uses uncompressed FP64 precision.",
+      "Tree AllReduce requires an external parameter server node to perform floating-point additions, whereas Ring AllReduce computes sums purely in network switch ASICs.",
+      "Ring AllReduce eliminates the latency term $\\alpha$ entirely by using asynchronous token rings, whereas Tree AllReduce scales latency quadratically with cluster size."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An infrastructure engineer evaluates AllReduce algorithm selection for synchronizing gradients across a 256-GPU cluster with per-node launch latency $\\alpha = 5\\,\\mu\\text{s}$ and link bandwidth $\\beta = 50\\text{ GB/s}$. Using the log-aware crossover model $M_{\\text{crossover}} \\approx \\frac{N \\alpha \\beta}{\\log_2 N}$, within the simple full-message Tree versus Ring comparison, what is the crossover message size, and which modeled candidate has lower cost for a 500 KB activation tensor versus a 100 MB gradient bucket?",
+     "explanation": "The correct answer is D. The crossover is M_crossover approx frac256 × (5 × 10^-6 s) × (50 × 10^9 B/s)8 = 8 MB; Tree AllReduce wins for the 500 KB tensor (latency-dominated), while Ring AllReduce wins for the 100 MB bucket (bandwidth-dominated). Equating T_ring = 2(N-1)alpha + 2fracN-1NfracMbeta and T_tree = 2log_2 N × alpha + 2log_2 N × fracMbeta yields the crossover threshold M_crossover approx fracN alpha betalog_2 N. For N=256, log_2(256) = 8, so M_crossover approx frac256 × 5\\,mus × 50 GB/s8 = frac64 MB8 = 8 MB. For the 500 KB tensor (M < 8 MB), latency dominates, and Tree AllReduce wins by avoiding Ring's \\$2(255) × 5\\,mus = 2.55 ms startup delay. For the 100 MB bucket (M > 8 MB), bandwidth dominates, and Ring AllReduce wins by avoiding Tree's \\$8× bandwidth penalty. The \\$1.25 GB crossover miscalculates the formula, the \\$800 KB choice inverts algorithm assignments, and the \\$16 GB choice ignores message-size regime transitions. These are predictions for the stated two-model comparison, not a selection guarantee over optimized trees, hierarchy, or a contended runtime. Benchmark candidate collective duration and exposed step time.",
+     "hint": "Think about: calculate the approximate Ring-versus-simple-Tree crossover and identify lower modeled cost under stated assumptions.",
+     "type": "single",
+     "options": [
+      "The crossover is $M_{\\text{crossover}} \\approx 1.25\\text{ GB}$; Tree AllReduce should be selected for both tensors because $\\log_2(256) = 8$ is always smaller than 256.",
+      "The crossover is $M_{\\text{crossover}} \\approx 800\\text{ KB}$; Ring AllReduce should be selected for 500 KB, and Tree AllReduce for 100 MB.",
+      "The crossover is $M_{\\text{crossover}} \\approx 16\\text{ GB}$; Butterfly AllReduce should be selected for both tensors regardless of network topology.",
+      "The crossover is $M_{\\text{crossover}} \\approx \\frac{256 \\times (5 \\times 10^{-6}\\text{ s}) \\times (50 \\times 10^9\\text{ B/s})}{8} = 8\\text{ MB}$; Tree AllReduce wins for the 500 KB tensor (latency-dominated), while Ring AllReduce wins for the 100 MB bucket (bandwidth-dominated)."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Sequence the execution steps of a 4-GPU Ring AllReduce (\\$0 to 1 to 2 to 3 to 0) reducing a 4-chunk vector [A, B, C, D]:",
+     "explanation": "The correct order is: (3) each GPU partitions its local vector into $N=4$ equal chunks, (4) each GPU simultaneously sends chunk $k$ to its right neighbor and receives from its left neighbor, accumulating partial sums over $N-1$ steps, (2) rank $i$ owns a single fully aggregated chunk of the global sum, (1) each GPU forwards its fully reduced chunk around the ring for $N-1$ steps until all ranks possess the complete array. The algorithm first partitions the tensor into $N$ equal chunks; executes $N-1$ Scatter-Reduce steps where partial sums are accumulated; establishes that each rank holds one fully reduced chunk; and finishes with $N-1$ AllGather steps circulating the reduced chunks so every rank ends with the full result.",
+     "hint": "Think about: order the operational phases and dataflow transitions of a Ring AllReduce collective execution.",
+     "type": "order",
+     "items": [
+      "each GPU partitions its local vector into $N=4$ equal chunks",
+      "each GPU simultaneously sends chunk $k$ to its right neighbor and receives from its left neighbor, accumulating partial sums over $N-1$ steps.",
+      "rank $i$ owns a single fully aggregated chunk of the global sum",
+      "each GPU forwards its fully reduced chunk around the ring for $N-1$ steps until all ranks possess the complete array"
+     ]
+    },
+    {
+     "q": "Under the standard balanced point-to-point model, an AllReduce with M bytes per rank has a per-rank sent-volume lower bound of \\$2(N-1)M/N bytes. Meeting this bound is known as ____ optimality, which Ring AllReduce achieves.",
+     "explanation": "bandwidth. The ring ReduceScatter and AllGather phases each send $(N-1)M/N$ bytes per rank. The rank also receives the same total volume; adding sent and received bytes would double the one-direction accounting used with link bandwidth $\\beta$.",
+     "hint": "Think about: identify the definition and formula for bandwidth optimality in collective reductions.",
+     "type": "fill",
+     "answer": [
+      "bandwidth"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain the structural mechanism of the Double Binary Tree AllReduce algorithm that allows it to achieve near-optimal bandwidth ($\\approx 2M/\\beta$) while preserving logarithmic latency ($\\mathcal{O}(\\log N)\\alpha$).",
+   "md": "Double Binary Tree divides the payload between complementary logical trees so that ranks serving as interior nodes in one tree can be leaves in the other. This balances forwarding and reduction work while retaining logarithmic depth. Pipelining the halves can approach bandwidth-efficient transfer, but complementary logical roles do not guarantee that every physical link is saturated or that the mapping avoids network contention."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare Ring AllReduce and a simple unsegmented Tree AllReduce in terms of balanced byte volume and elapsed transfer cost.",
+    "You can now calculate the approximate Ring-versus-simple-Tree crossover and identify lower modeled cost under stated assumptions.",
+    "You can now explain how rank placement and shared physical paths can limit Butterfly AllReduce and its alternatives.",
+    "You can now describe how Double Binary Tree AllReduce combines complementary binary trees to achieve near-optimal bandwidth with logarithmic latency."
+   ]
+  }
+ ]
+}

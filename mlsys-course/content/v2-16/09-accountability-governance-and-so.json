@@ -1,0 +1,90 @@
+{
+ "title": "Accountability, Governance, and Sociotechnical Dynamics",
+ "summary": "Apply standardized documentation frameworks like Datasheets for Datasets to ML pipeline governance.",
+ "source": {
+  "chapter": "v2-16",
+  "sections": [
+   "Accountability, Governance, and Sociotechnical Dynamics",
+   "Accountability and governance",
+   "Validation approaches",
+   "Monitoring responsible behavior after deployment",
+   "Sociotechnical system dynamics"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Apply standardized documentation frameworks like Datasheets for Datasets to ML pipeline governance\n- Analyze the sequential stages of the bias amplification cycle\n- Evaluate the invalidity of static i.i.d. evaluation assumptions in closed-loop sociotechnical systems\n- Analyze how the paradox of reliability and automation bias impact human-AI system safety\n- Diagnose clinical alert-workflow failures using discriminating evidence before selecting and evaluating an intervention"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Responsible AI, § Accountability, Governance, and Sociotechnical Dynamics",
+   "md": "When a deployed model harms someone, two questions decide whether the harm is corrected: who has the authority to investigate and remedy the decision, and whether the evidence needed to do so still exists. Accountability answers both by assigning owners, preserving traceable records, and monitoring behavior after launch, and it must hold inside the human workflows and institutions that surround the system."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Accountability and governance\n- Validation approaches\n- Monitoring responsible behavior after deployment\n- Sociotechnical system dynamics\n\nPay attention to: Datasheets, model cards, and traceability; Fleet-scale monitoring load and alert fatigue; Bias amplification feedback loops and closed-loop governance; Automation bias and the paradox of reliability."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A hospital deploys a sepsis predictor with high offline accuracy, yet mortality does not improve and clinicians often ignore alerts. What workflow explanations remain possible, and what evidence would distinguish them before choosing a remedy?",
+   "md": "Excessive low-value alerts could cause fatigue, but alerts could also arrive too late, reach the wrong clinician, or lack a feasible response path. Measure alert volume and precision on matched outcomes, delivery and action timestamps, recipients, workload, and reasons for nonresponse. Test a candidate workflow change against timely useful action, errors corrected or introduced, workload, and patient outcomes; these observations alone do not identify a false-positive cause or establish causal mortality benefit."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-16-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Order the stages of the Bias Amplification Feedback Loop in an unconstrained retraining pipeline:",
+     "explanation": "The correct order is (4) Historical bias in initial training data is learned during initial model fit, (2) Biased model produces skewed deployment predictions, (5) Real-world discriminatory outcomes occur based on automated decisions, (1) Reinforced data bias is captured in operational logs, (3) New model retrained on reinforced data exhibits compounded disparity. This order traces the specified amplifying scenario. A closed loop does not inevitably increase disparity; its direction depends on the policy and how outcomes are observed and reused.",
+     "hint": "Think about: analyze the sequential stages of the bias amplification cycle.",
+     "type": "order",
+     "items": [
+      "Historical bias in initial training data is learned during initial model fit",
+      "Biased model produces skewed deployment predictions",
+      "Real-world discriminatory outcomes occur based on automated decisions.",
+      "Reinforced data bias is captured in operational logs",
+      "New model retrained on reinforced data exhibits compounded disparity"
+     ]
+    },
+    {
+     "q": "In a closed-loop system where future data distribution ProbabilityFunction_FeedbackStepIndex+1(ModelInput) is dynamically altered by current model decisions ModelPredictor_FeedbackStepIndex(ModelInput) (such as predictive policing or recommendation engines), validating model performance on a static held-out test set guarantees long-term fairness and stability.",
+     "explanation": "False. A fixed test set measures behavior on its recorded cases; it does not establish long-term behavior after deployment changes decisions, observations, or the training population. Feedback can amplify or reduce disparities depending on the policy and observation process. Monitor matched outcomes and consequential groups over time, and evaluate governed interventions rather than infer a continuing fairness guarantee from the original test.",
+     "hint": "Think about: evaluate the invalidity of static i.i.d. evaluation assumptions in closed-loop sociotechnical systems.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In human-AI collaborative decision-making, what is the 'paradox of reliability' and what is its primary engineering implication for interface design?",
+     "explanation": "The correct answer is D. Automation bias can cause users to accept a wrong recommendation because they over-trust the system. A low overall override rate cannot distinguish few model errors from failure to notice errors. Test verification prompts or other interface changes using error-conditional acceptance, successful corrections, errors introduced by overrides, and response delay. Reliability does not mechanically determine a universal human error rate; the hardware and networking distractors do not describe this behavioral mechanism.",
+     "hint": "Think about: analyze how the paradox of reliability and automation bias impact human-AI system safety.",
+     "type": "single",
+     "options": [
+      "A model with \\$50\\%$ accuracy causes hardware crashes more frequently than a model with \\$90\\%$ accuracy",
+      "As a model's latency decreases, network packet loss increases proportionally",
+      "Highly compressed models consume more DRAM memory than uncompressed models",
+      "High apparent reliability can encourage over-reliance; interface design must be evaluated by how often users accept erroneous recommendations, correct errors, or introduce new errors, not by the overall override rate alone."
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Define normative pluralism in machine learning system design and explain why value conflicts cannot be resolved through purely algorithmic optimization.",
+   "md": "Normative pluralism refers to the existence of multiple, legitimate, and often mathematically incompatible human values and fairness definitions across diverse stakeholders (e.g., patient autonomy vs. clinical paternalism vs. privacy). Purely algorithmic optimization cannot resolve these tensions because selecting an objective function inherently prioritizes one moral value over another, requiring human deliberation, policy trade-offs, and governance frameworks before optimization begins."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply standardized documentation frameworks like Datasheets for Datasets to ML pipeline governance.",
+    "You can now analyze the sequential stages of the bias amplification cycle.",
+    "You can now evaluate the invalidity of static i.i.d. evaluation assumptions in closed-loop sociotechnical systems.",
+    "You can now analyze how the paradox of reliability and automation bias impact human-AI system safety."
+   ]
+  }
+ ]
+}

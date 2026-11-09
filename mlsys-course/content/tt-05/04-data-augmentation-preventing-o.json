@@ -1,0 +1,222 @@
+{
+ "title": "Data Augmentation: Preventing Overfitting Through Variety",
+ "summary": "TinyTorch dataloader: Data Augmentation: Preventing Overfitting Through Variety",
+ "source": {
+  "chapter": "tt-05",
+  "sections": [
+   "Data Augmentation: Preventing Overfitting Through Variety"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 🏗️ Data Augmentation: Preventing Overfitting Through Variety\n\nData augmentation is one of the most effective techniques for improving model generalization. By applying random transformations during training, we artificially expand the dataset and force the model to learn robust, invariant features.\n\n### Why Augmentation Matters"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Training Regime",
+    "Input Sequence Across Epochs",
+    "Optimization Dynamic",
+    "Generalization Result"
+   ],
+   "rows": [
+    [
+     "**No Augmentation**",
+     "Sample \\$i\\$ static across all epochs",
+     "Memorizes spatial pixel coordinates",
+     "High training accuracy, low validation accuracy"
+    ],
+    [
+     "**With Augmentation**",
+     "Flipped, shifted, cropped variants of \\$i\\$",
+     "Invariant feature manifold learning",
+     "Robust generalization to unseen test samples"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Common Augmentation Strategies\n\n\\$\\$\\begin{aligned}\n\\mathbf{\\text{RandomHorizontalFlip:}} \\quad & I_{\\text{flipped}}[c, y, x] = I[c, y, W - 1 - x] \\quad \\text{with probability } p = 0.5 \\\\\n\\mathbf{\\text{RandomCrop:}} \\quad & I_{\\text{padded}} = \\text{pad}(I, p), \\quad I_{\\text{crop}} = I_{\\text{padded}}[c, \\text{top}:\\text{top}+H, \\text{left}:\\text{left}+W]\n\\end{aligned}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Transform",
+    "Coordinate Mapping",
+    "Spatial Dimension Effect",
+    "Invariant Semantics"
+   ],
+   "rows": [
+    [
+     "**RandomHorizontalFlip**",
+     "\\$x \\mapsto W - 1 - x\\$",
+     "Unchanged \\$(C, H, W)\\$",
+     "Reflection invariance (animals, vehicles, scenes)"
+    ],
+    [
+     "**RandomCrop**",
+     "\\$(y, x) \\mapsto (y + \\delta_y, x + \\delta_x)\\$",
+     "\\$(C, H + 2p, W + 2p) \\to (C, H, W)\\$",
+     "Translation invariance (decentering objects)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Training vs Evaluation\n\n> **Important:** Augmentation applies **only during training**. During evaluation and testing, transforms must be deterministic to provide reproducible benchmarks."
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Phase",
+    "Pipeline Configuration",
+    "Determinism & Systems Objective"
+   ],
+   "rows": [
+    [
+     "**Training**",
+     "\\$\\text{Image} \\longrightarrow \\text{RandomFlip} \\longrightarrow \\text{RandomCrop} \\longrightarrow \\text{Model}\\$",
+     "Stochastic perturbation expands data coverage"
+    ],
+    [
+     "**Evaluation / Inference**",
+     "\\$\\text{Image} \\longrightarrow \\text{Model}\\$",
+     "Deterministic, reproducible scoring without added noise"
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 93 lines of code (starting with `class RandomHorizontalFlip:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Padding an Image for Random Cropping\n\nBefore we can randomly crop an image, we need to pad it with zeros on all sides.\nThis creates extra space so that when we crop back to the original size, we get\na slightly shifted version of the image.\n\n\\$\\$\\begin{aligned}\n\\mathbf{\\text{Original Spatial Plane:}} \\quad & \\mathbf{I} \\in \\mathbb{R}^{H \\times W} \\\\\n\\mathbf{\\text{Zero-Padded Plane:}} \\quad & \\mathbf{I}_{\\text{pad}} \\in \\mathbb{R}^{(H + 2p) \\times (W + 2p)}, \\quad \\mathbf{I}_{\\text{pad}}[y, x] = \\begin{cases} \\mathbf{I}[y - p, x - p] & \\text{if } p \\le y < H+p \\text{ and } p \\le x < W+p \\\\ 0 & \\text{otherwise} \\end{cases}\n\\end{aligned}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Image Layout",
+    "Raw Shape",
+    "Padded Shape (\\$p\\$)",
+    "Unmodified Axis"
+   ],
+   "rows": [
+    [
+     "**Grayscale (`HW`)**",
+     "\\$(H, W)\\$",
+     "\\$(H + 2p, W + 2p)\\$",
+     "None"
+    ],
+    [
+     "**Channels-First (`CHW`)**",
+     "\\$(C, H, W)\\$",
+     "\\$(C, H + 2p, W + 2p)\\$",
+     "Axis 0 (\\$C\\$)"
+    ],
+    [
+     "**Channels-Last (`HWC`)**",
+     "\\$(H, W, C)\\$",
+     "\\$(H + 2p, W + 2p, C)\\$",
+     "Axis 2 (\\$C\\$)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "The tricky part is handling different image formats: \\$(H, W)\\$ for grayscale,\n\\$(C, H, W)\\$ for channels-first color, and \\$(H, W, C)\\$ for channels-last color.\nWe must pad **only spatial dimensions**, never the channel dimension."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 62 lines of code (starting with `def _pad_image(data: np.ndarray, padding: int, layout: Optional[str] = None) -> `). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _pad_image\n\n**What we're testing**: Zero-padding applied correctly to spatial dimensions only\n**Why it matters**: Incorrect padding (e.g., padding the channel axis) corrupts image data\n**Expected**: Shape grows by 2*padding on H and W, channels unchanged"
+  },
+  {
+   "type": "text",
+   "md": "### Sampling a Random Crop Region\n\nOnce the image is padded, we need to pick a random top-left corner for the crop.\nThe valid range depends on the padded size minus the target crop size:\n\n\\$\\$\\begin{aligned}\n\\text{Valid vertical offset:} \\quad & \\text{top} \\sim \\mathcal{U}\\{0, \\, H_{\\text{pad}} - H_{\\text{target}}\\} \\\\\n\\text{Valid horizontal offset:} \\quad & \\text{left} \\sim \\mathcal{U}\\{0, \\, W_{\\text{pad}} - W_{\\text{target}}\\}\n\\end{aligned}\\$\\$"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Parameter",
+    "Calculation",
+    "Concrete Example (\\$40 \\times 40 \\to 32 \\times 32\\$)"
+   ],
+   "rows": [
+    [
+     "**Max Vertical Offset**",
+     "\\$H_{\\text{pad}} - H_{\\text{target}}\\$",
+     "\\$32 + 2(4) - 32 = 8 \\implies \\text{top} \\in \\{0, \\dots, 8\\}\\$"
+    ],
+    [
+     "**Max Horizontal Offset**",
+     "\\$W_{\\text{pad}} - W_{\\text{target}}\\$",
+     "\\$32 + 2(4) - 32 = 8 \\implies \\text{left} \\in \\{0, \\dots, 8\\}\\$"
+    ],
+    [
+     "**Target Slices**",
+     "\\$y \\in [\\text{top}, \\text{top} + H_{\\text{target}}]\\$",
+     "Slices exactly \\$32\\$ pixels along vertical axis"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "This is a pure random sampling operation — no data manipulation, just\ncomputing two random integers within valid bounds."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "def _random_crop_region(padded_h: int, padded_w: int, target_h: int, target_w: int) -> Tuple[int, int]:\n    \"\"\"\n    Sample a random (top, left) position for cropping.\n\n    TODO: Generate random top-left corner within valid bounds\n\n    APPROACH:\n    1. Compute max valid top: padded_h - target_h\n    2. Compute max valid left: padded_w - target_w\n    3. Sample uniformly from [0, max_top] and [0, max_left]\n\n    EXAMPLE:\n    >>> top, left = _random_crop_region(40, 40, 32, 32)\n    >>> # top in [0, 8], left in [0, 8]\n\n    HINT: rng.integers(0, high+1) gives values in [0, high] inclusive\n    \"\"\"\n    top = rng.integers(0, padded_h - target_h + 1)\n    left = rng.integers(0, padded_w - target_w + 1)\n    return top, left"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: _random_crop_region\n\n**What we're testing**: Random positions fall within valid bounds for all cases\n**Why it matters**: Out-of-bounds positions cause array indexing errors or silent data corruption\n**Expected**: top in [0, padded_h - target_h], left in [0, padded_w - target_w]"
+  },
+  {
+   "type": "text",
+   "md": "### RandomCrop: Composing Pad, Sample, and Extract\n\nNow we combine our two helpers into the complete RandomCrop transform.\nThe `__call__` method simply orchestrates three clear steps:\n\n\\$\\$\\underbrace{\\mathbf{I}}_{\\mathbb{R}^{H \\times W}} \\xrightarrow{\\text{\\_pad\\_image}} \\underbrace{\\mathbf{I}_{\\text{pad}}}_{\\mathbb{R}^{(H+2p) \\times (W+2p)}} \\xrightarrow{\\text{\\_random\\_crop\\_region}} \\underbrace{(\\text{top}, \\text{left})}_{\\text{Sampling}} \\xrightarrow{\\text{slice}} \\underbrace{\\mathbf{I}_{\\text{crop}}}_{\\mathbb{R}^{H \\times W}}\\$\\$\n\nEach step does ONE thing. The composition function wires them together."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Code in the exercise file",
+   "md": "This part of the module is 104 lines of code (starting with `class RandomCrop:`). You will find it in the exercise file at the end of this chapter."
+  },
+  {
+   "type": "text",
+   "md": "### Compose: Chaining Transforms\n\nAugmentations are rarely used alone. `Compose` takes a list of transforms and\napplies them in order, passing each output to the next, so a pipeline such as\n\"flip, then crop\" becomes one callable a Dataset can apply in `__getitem__` each time it serves a sample."
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "class Compose:\n    \"\"\"\n    Compose multiple transforms into a pipeline.\n\n    Applies transforms in sequence, passing output of each\n    as input to the next.\n\n    Args:\n        transforms: List of transform callables\n    \"\"\"\n\n    def __init__(self, transforms: List[Callable]) -> None:\n        \"\"\"\n        Initialize Compose with list of transforms.\n\n        EXAMPLE:\n        >>> transforms = Compose([\n        ...     RandomHorizontalFlip(0.5),\n        ...     RandomCrop(32, padding=4)\n        ... ])\n        \"\"\"\n        self.transforms = transforms\n\n    def __call__(self, x: Union[Tensor, np.ndarray]) -> Union[Tensor, np.ndarray]:\n        \"\"\"Apply all transforms in sequence.\"\"\"\n        for transform in self.transforms:\n            x = transform(x)\n        return x"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: Data Augmentation Transforms\n\nThis test validates our augmentation implementations.\n\n**What we're testing**: RandomHorizontalFlip, RandomCrop, Compose pipeline\n**Why it matters**: Augmentation is critical for training models that generalize\n**Expected**: Correct shapes and appropriate randomness"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: DataLoader\n\nThis test validates our DataLoader implementation with batching and shuffling.\n\n**What we're testing**: Batch creation, length calculation, shuffling, data preservation\n**Why it matters**: Core component for feeding data to training loops\n**Expected**: Correct batch sizes, proper shuffling, all data preserved"
+  },
+  {
+   "type": "text",
+   "md": "### 🧪 Unit Test: DataLoader Deterministic Shuffling\n\nThis test validates deterministic shuffling with fixed random seeds.\n\n**What we're testing**: Same seed produces same shuffle, different seeds produce different shuffles\n**Why it matters**: Reproducibility is crucial for debugging and research\n**Expected**: Identical batches with same seed, different batches with different seeds"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Data Augmentation: Preventing Overfitting Through Variety."
+   ]
+  }
+ ]
+}

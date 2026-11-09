@@ -1,0 +1,257 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v1-01",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Introduction** (Vol I). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Introduction, Purpose",
+   "md": "Machine learning systems have a physics. Data moves through memory hierarchies governed by bandwidth, arithmetic executes on silicon governed by power, and predictions must arrive within strict latency windows. Conventional software can often treat such constraints as implementation details, but in ML systems they decide what can run at all."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The AI Systems Moment",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "From Code-Defined Logic to Data-Defined ",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "The Evolution of AI Bottlenecks",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "The Bitter Lesson",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Defining ML Systems",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "When ML Systems Fail Silently",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Iron Law of ML Systems",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Dual mandate**",
+     "Every ML system must show both that its learned behavior is trustworthy and that the machine delivers it within time, memory, energy, and cost budgets, so an accurate but slow model and a fast model trained on unrepresentative data are both failures."
+    ],
+    [
+     "**Data defines behavior**",
+     "Training data plus the optimization procedure produce the program, so changing the dataset changes system behavior as surely as changing source code, and debugging, versioning, and review must extend to the data."
+    ],
+    [
+     "**D·A·M diagnosis**",
+     "Attributing a symptom to Data, Algorithm, or Machine chooses the evidence and the class of fix, and relieving the limiting constraint moves the bottleneck across the triad, so diagnosis is a loop of diagnose, intervene, and re-measure."
+    ],
+    [
+     "**Iron law of ML systems**",
+     "Across Data, Algorithm, and Machine, execution time factors as samples per task times FLOPs per sample times seconds per FLOP (where the first two multiply to total operations O), and unpacks on hardware into bytes moved over bandwidth plus operations over peak rate times utilization plus fixed overhead, with ideal overlap giving the larger of the first two plus overhead, so a faster component helps only through the share of time it changes."
+    ],
+    [
+     "**Three efficiency levers**",
+     "Data selection cuts samples per task, algorithmic efficiency lowers FLOPs per sample, and compute efficiency lowers realized seconds per FLOP by raising utilization and reducing stalls, while return on compute (accuracy gained per added cost) tests whether an added investment is worth its price."
+    ],
+    [
+     "**Silent degradation**",
+     "ML adds a failure route in which code, runtime, and health checks stay green while predictive quality falls as the operating population shifts or training and serving transforms diverge, and locally accuracy falls by a fitted sensitivity times the divergence (eq-degradation), where divergence prompts investigation and labeled outcomes establish loss."
+    ],
+    [
+     "**Bitter lesson and bottleneck migration**",
+     "General methods that turn computation into capability have repeatedly overtaken encoded human knowledge, so each AI era traded one limiting constraint for the next and today's limit is the infrastructure: memory, bandwidth, power, and orchestration."
+    ],
+    [
+     "**The system is the model**",
+     "User-visible behavior is produced by the data pipeline, weights, execution stack, serving path, and monitoring loop together, so most of the engineering burden and the costliest failures sit outside the learned parameters, at interfaces no component test exercises."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$\\text{Verification Gap} = \\text{Total Input Space} - \\text{Test Set Coverage} \\approx \\text{Total Input Space}$$\n\n$$\\text{Accuracy}(t) \\approx \\text{Accuracy}_0 - \\lambda \\cdot \\mathcal{D}(P_t \\lVert P_0)$$\n\n$$T = \\left(\\frac{\\text{Samples}}{\\text{Task}}\\right) \\times \\left(\\frac{\\text{FLOPs}}{\\text{Sample}}\\right) \\times \\left(\\frac{\\text{Seconds}}{\\text{FLOP}}\\right)$$\n\n$$T \\approx \\frac{D_{\\text{vol}}}{\\text{BW}} + \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}} + L_{\\text{lat}}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v1-01-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Dual mandate",
+     "back": "Every ML system must show both that its learned behavior is trustworthy and that the machine delivers it within time, memory, energy, and cost budgets, so an accurate but slow model and a fast model trained on unrepresentative data are both failures."
+    },
+    {
+     "front": "Data defines behavior",
+     "back": "Training data plus the optimization procedure produce the program, so changing the dataset changes system behavior as surely as changing source code, and debugging, versioning, and review must extend to the data."
+    },
+    {
+     "front": "D·A·M diagnosis",
+     "back": "Attributing a symptom to Data, Algorithm, or Machine chooses the evidence and the class of fix, and relieving the limiting constraint moves the bottleneck across the triad, so diagnosis is a loop of diagnose, intervene, and re-measure."
+    },
+    {
+     "front": "Iron law of ML systems",
+     "back": "Across Data, Algorithm, and Machine, execution time factors as samples per task times FLOPs per sample times seconds per FLOP (where the first two multiply to total operations O), and unpacks on hardware into bytes moved over bandwidth plus operations over peak rate times utilization plus fixed overhead, with ideal overlap giving the larger of the first two plus overhead, so a faster component helps only through the share of time it changes."
+    },
+    {
+     "front": "Three efficiency levers",
+     "back": "Data selection cuts samples per task, algorithmic efficiency lowers FLOPs per sample, and compute efficiency lowers realized seconds per FLOP by raising utilization and reducing stalls, while return on compute (accuracy gained per added cost) tests whether an added investment is worth its price."
+    },
+    {
+     "front": "Silent degradation",
+     "back": "ML adds a failure route in which code, runtime, and health checks stay green while predictive quality falls as the operating population shifts or training and serving transforms diverge, and locally accuracy falls by a fitted sensitivity times the divergence (eq-degradation), where divergence prompts investigation and labeled outcomes establish loss."
+    },
+    {
+     "front": "Bitter lesson and bottleneck migration",
+     "back": "General methods that turn computation into capability have repeatedly overtaken encoded human knowledge, so each AI era traded one limiting constraint for the next and today's limit is the infrastructure: memory, bandwidth, power, and orchestration."
+    },
+    {
+     "front": "The system is the model",
+     "back": "User-visible behavior is produced by the data pipeline, weights, execution stack, serving path, and monitoring loop together, so most of the engineering burden and the costliest failures sit outside the learned parameters, at interfaces no component test exercises."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v1-01-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Dual mandate**?",
+     "options": [
+      "User-visible behavior is produced by the data pipeline, weights, execution stack, serving path, and monitoring loop together, so most of the engineering burden and the costliest failures sit outside the learned parameters, at interfaces no component test exercises.",
+      "Training data plus the optimization procedure produce the program, so changing the dataset changes system behavior as surely as changing source code, and debugging, versioning, and review must extend to the data.",
+      "Every ML system must show both that its learned behavior is trustworthy and that the machine delivers it within time, memory, energy, and cost budgets, so an accurate but slow model and a fast model trained on unrepresentative data are both failures.",
+      "General methods that turn computation into capability have repeatedly overtaken encoded human knowledge, so each AI era traded one limiting constraint for the next and today's limit is the infrastructure: memory, bandwidth, power, and orchestration."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Dual mandate itself, not a neighbouring idea.",
+     "explanation": "**Dual mandate:** Every ML system must show both that its learned behavior is trustworthy and that the machine delivers it within time, memory, energy, and cost budgets, so an accurate but slow model and a fast model trained on unrepresentative data are both failures."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Data defines behavior**?",
+     "options": [
+      "Training data plus the optimization procedure produce the program, so changing the dataset changes system behavior as surely as changing source code, and debugging, versioning, and review must extend to the data.",
+      "General methods that turn computation into capability have repeatedly overtaken encoded human knowledge, so each AI era traded one limiting constraint for the next and today's limit is the infrastructure: memory, bandwidth, power, and orchestration.",
+      "Attributing a symptom to Data, Algorithm, or Machine chooses the evidence and the class of fix, and relieving the limiting constraint moves the bottleneck across the triad, so diagnosis is a loop of diagnose, intervene, and re-measure.",
+      "ML adds a failure route in which code, runtime, and health checks stay green while predictive quality falls as the operating population shifts or training and serving transforms diverge, and locally accuracy falls by a fitted sensitivity times the divergence (eq-degradation), where divergence prompts investigation and labeled outcomes establish loss."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Data defines behavior itself, not a neighbouring idea.",
+     "explanation": "**Data defines behavior:** Training data plus the optimization procedure produce the program, so changing the dataset changes system behavior as surely as changing source code, and debugging, versioning, and review must extend to the data."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **D·A·M diagnosis**?",
+     "options": [
+      "Across Data, Algorithm, and Machine, execution time factors as samples per task times FLOPs per sample times seconds per FLOP (where the first two multiply to total operations O), and unpacks on hardware into bytes moved over bandwidth plus operations over peak rate times utilization plus fixed overhead, with ideal overlap giving the larger of the first two plus overhead, so a faster component helps only through the share of time it changes.",
+      "General methods that turn computation into capability have repeatedly overtaken encoded human knowledge, so each AI era traded one limiting constraint for the next and today's limit is the infrastructure: memory, bandwidth, power, and orchestration.",
+      "Every ML system must show both that its learned behavior is trustworthy and that the machine delivers it within time, memory, energy, and cost budgets, so an accurate but slow model and a fast model trained on unrepresentative data are both failures.",
+      "Attributing a symptom to Data, Algorithm, or Machine chooses the evidence and the class of fix, and relieving the limiting constraint moves the bottleneck across the triad, so diagnosis is a loop of diagnose, intervene, and re-measure."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is D·A·M diagnosis itself, not a neighbouring idea.",
+     "explanation": "**D·A·M diagnosis:** Attributing a symptom to Data, Algorithm, or Machine chooses the evidence and the class of fix, and relieving the limiting constraint moves the bottleneck across the triad, so diagnosis is a loop of diagnose, intervene, and re-measure."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Iron law of ML systems**?",
+     "options": [
+      "ML adds a failure route in which code, runtime, and health checks stay green while predictive quality falls as the operating population shifts or training and serving transforms diverge, and locally accuracy falls by a fitted sensitivity times the divergence (eq-degradation), where divergence prompts investigation and labeled outcomes establish loss.",
+      "Training data plus the optimization procedure produce the program, so changing the dataset changes system behavior as surely as changing source code, and debugging, versioning, and review must extend to the data.",
+      "Across Data, Algorithm, and Machine, execution time factors as samples per task times FLOPs per sample times seconds per FLOP (where the first two multiply to total operations O), and unpacks on hardware into bytes moved over bandwidth plus operations over peak rate times utilization plus fixed overhead, with ideal overlap giving the larger of the first two plus overhead, so a faster component helps only through the share of time it changes.",
+      "Data selection cuts samples per task, algorithmic efficiency lowers FLOPs per sample, and compute efficiency lowers realized seconds per FLOP by raising utilization and reducing stalls, while return on compute (accuracy gained per added cost) tests whether an added investment is worth its price."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Iron law of ML systems itself, not a neighbouring idea.",
+     "explanation": "**Iron law of ML systems:** Across Data, Algorithm, and Machine, execution time factors as samples per task times FLOPs per sample times seconds per FLOP (where the first two multiply to total operations O), and unpacks on hardware into bytes moved over bandwidth plus operations over peak rate times utilization plus fixed overhead, with ideal overlap giving the larger of the first two plus overhead, so a faster component helps only through the share of time it changes."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Three efficiency levers**?",
+     "options": [
+      "User-visible behavior is produced by the data pipeline, weights, execution stack, serving path, and monitoring loop together, so most of the engineering burden and the costliest failures sit outside the learned parameters, at interfaces no component test exercises.",
+      "Training data plus the optimization procedure produce the program, so changing the dataset changes system behavior as surely as changing source code, and debugging, versioning, and review must extend to the data.",
+      "ML adds a failure route in which code, runtime, and health checks stay green while predictive quality falls as the operating population shifts or training and serving transforms diverge, and locally accuracy falls by a fitted sensitivity times the divergence (eq-degradation), where divergence prompts investigation and labeled outcomes establish loss.",
+      "Data selection cuts samples per task, algorithmic efficiency lowers FLOPs per sample, and compute efficiency lowers realized seconds per FLOP by raising utilization and reducing stalls, while return on compute (accuracy gained per added cost) tests whether an added investment is worth its price."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Three efficiency levers itself, not a neighbouring idea.",
+     "explanation": "**Three efficiency levers:** Data selection cuts samples per task, algorithmic efficiency lowers FLOPs per sample, and compute efficiency lowers realized seconds per FLOP by raising utilization and reducing stalls, while return on compute (accuracy gained per added cost) tests whether an added investment is worth its price."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Dual mandate: Every ML system must show both that its learned behavior is trustworthy and that the machine delivers it within time, memory, energy, and cost budgets, so an accurate but slow model and a fast model trained on unrepresentative data are both failures.",
+    "Data defines behavior: Training data plus the optimization procedure produce the program, so changing the dataset changes system behavior as surely as changing source code, and debugging, versioning, and review must extend to the data.",
+    "D·A·M diagnosis: Attributing a symptom to Data, Algorithm, or Machine chooses the evidence and the class of fix, and relieving the limiting constraint moves the bottleneck across the triad, so diagnosis is a loop of diagnose, intervene, and re-measure.",
+    "Iron law of ML systems: Across Data, Algorithm, and Machine, execution time factors as samples per task times FLOPs per sample times seconds per FLOP (where the first two multiply to total operations O), and unpacks on hardware into bytes moved over bandwidth plus operations over peak rate times utilization plus fixed overhead, with ideal overlap giving the larger of the first two plus overhead, so a faster component helps only through the share of time it changes."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Dual mandate",
+   "def": "Every ML system must show both that its learned behavior is trustworthy and that the machine delivers it within time, memory, energy, and cost budgets, so an accurate but slow model and a fast model trained on unrepresentative data are both failures."
+  },
+  {
+   "term": "Data defines behavior",
+   "def": "Training data plus the optimization procedure produce the program, so changing the dataset changes system behavior as surely as changing source code, and debugging, versioning, and review must extend to the data."
+  },
+  {
+   "term": "D·A·M diagnosis",
+   "def": "Attributing a symptom to Data, Algorithm, or Machine chooses the evidence and the class of fix, and relieving the limiting constraint moves the bottleneck across the triad, so diagnosis is a loop of diagnose, intervene, and re-measure."
+  },
+  {
+   "term": "Iron law of ML systems",
+   "def": "Across Data, Algorithm, and Machine, execution time factors as samples per task times FLOPs per sample times seconds per FLOP (where the first two multiply to total operations O), and unpacks on hardware into bytes moved over bandwidth plus operations over peak rate times utilization plus fixed overhead, with ideal overlap giving the larger of the first two plus overhead, so a faster component helps only through the share of time it changes."
+  },
+  {
+   "term": "Three efficiency levers",
+   "def": "Data selection cuts samples per task, algorithmic efficiency lowers FLOPs per sample, and compute efficiency lowers realized seconds per FLOP by raising utilization and reducing stalls, while return on compute (accuracy gained per added cost) tests whether an added investment is worth its price."
+  },
+  {
+   "term": "Silent degradation",
+   "def": "ML adds a failure route in which code, runtime, and health checks stay green while predictive quality falls as the operating population shifts or training and serving transforms diverge, and locally accuracy falls by a fitted sensitivity times the divergence (eq-degradation), where divergence prompts investigation and labeled outcomes establish loss."
+  },
+  {
+   "term": "Bitter lesson and bottleneck migration",
+   "def": "General methods that turn computation into capability have repeatedly overtaken encoded human knowledge, so each AI era traded one limiting constraint for the next and today's limit is the infrastructure: memory, bandwidth, power, and orchestration."
+  },
+  {
+   "term": "The system is the model",
+   "def": "User-visible behavior is produced by the data pipeline, weights, execution stack, serving path, and monitoring loop together, so most of the engineering burden and the costliest failures sit outside the learned parameters, at interfaces no component test exercises."
+  }
+ ]
+}

@@ -1,0 +1,150 @@
+{
+ "title": "Test: ML Operations",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-14-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "A team versions its model training code in Git, but datasets are pulled dynamically from unversioned live database queries and training hyperparameters are passed via ad hoc shell flags. Which foundational MLOps principle is violated, and what formal dependency does this break?",
+     "explanation": "The correct answer is B. Reproducibility means the team can reconstruct and audit a training run from versioned artifacts: $\\text{Code}_v$, $\\text{Data}_v$, $\\text{Config}_v$, and $\\text{Environment}_v$, while controlling for or characterizing execution nondeterminism. If data snapshots and configurations are unversioned, the run cannot be reliably reproduced for comparison or audit. An answer based on runtime telemetry confuses artifact provenance with production monitoring, while the layer-boundary and scheduler options address different operational concerns.",
+     "hint": "Think about: apply the formal reproducibility dependency to identify artifact versioning violations in an ML workflow",
+     "type": "single",
+     "options": [
+      "Observable degradation; it prevents inference proxies from logging P99 latency percentiles",
+      "Reproducibility; it breaks the ability to reconstruct a training run from versioned Code, Data, Config, and Environment artifacts while controlling for or characterizing execution nondeterminism",
+      "Separation of concerns; it couples feature transformation code with neural loss calculation",
+      "Cost-aware automation; it prevents the workload scheduler from executing batch inference"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Why does the ClinAIOps clinical AI framework intentionally incorporate clinician-in-the-loop override points as a core architectural feature rather than viewing human review as a failure of automation?",
+     "explanation": "The correct answer is D. Because in healthcare, the asymmetric cost of diagnostic error involves patient harm, making expert oversight an essential risk-mitigation control in cost-aware automation. In the chapter's proposed ClinAIOps framework, human oversight is built in because the consequences of bad recommendations are high and accountability matters. That oversight reduces risk but does not guarantee safety, and it does not remove the need for provenance or audit mechanisms. The other answers either overstate regulation or deny that clinical distributions can change.",
+     "hint": "Think about: evaluate why human oversight remains a core risk-control mechanism in proposed clinical AI operations frameworks",
+     "type": "single",
+     "options": [
+      "Because FDA regulations strictly forbid machine learning algorithms from executing in clinical settings",
+      "Because clinical patient distributions never experience covariate shift or demographic drift",
+      "Because human review eliminates the need for regulatory audit trails or data provenance tracking",
+      "Because in healthcare, the asymmetric cost of diagnostic error involves patient harm, making expert oversight an essential risk-mitigation control in cost-aware automation"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "When transitioning an MLOps architecture from a cloud environment to a battery-constrained edge wearable, the foundational principles of reproducibility and consistency are discarded in favor of battery life.",
+     "explanation": "False. The five foundational MLOps principles (reproducibility, separation of concerns, consistency, observable degradation, cost-aware automation) remain universal across domains; edge constraints reshape *how* they are implemented (e.g., using OTA firmware versioning and quantized preprocessing parity) without discarding the principles themselves.",
+     "hint": "Think about: compare how domain constraints alter the technical implementation of universal MLOps principles",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Release safety costs resident memory**?",
+     "options": [
+      "A validated checkpoint is not yet a safe release: exposure is staged (shadow, canary, blue-green), every node is verified to run the intended version, and rollback is tiered, tested, and state-aware, because cached state survives a weights-only revert.",
+      "An ML incident is a statistical signal without a stack trace, so response classifies severity by impact, contains in parallel with diagnosis, debugs data-first, restores the whole contract rather than just the weights, and turns each incident into a new check.",
+      "A readiness score over data, model, infrastructure, and monitoring tests takes the minimum, so a perfectly validated model with no monitoring scores zero, and maturity is judged by which missing control to add next.",
+      "Every shadow, canary, A/B arm, or standby keeps a second full model copy resident regardless of its traffic share, so release strategy is a memory decision for capacity-bound models and must be scheduled together with retraining on one node."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Release safety costs resident memory itself, not a neighbouring idea.",
+     "explanation": "**Release safety costs resident memory:** Every shadow, canary, A/B arm, or standby keeps a second full model copy resident regardless of its traffic share, so release strategy is a memory decision for capacity-bound models and must be scheduled together with retraining on one node."
+    },
+    {
+     "q": "According to Sculley et al. (2015), what additional mechanisms make technical debt in machine learning systems especially hard to detect and manage compared with ordinary code-focused debt?",
+     "explanation": "The correct answer is C. ML systems add debt through implicit statistical relationships, hidden data dependencies, and feedback loops that standard code-level checks may not expose, so predictive quality can degrade even while the service stays up. An answer based on unsupported frameworks or unserializable weights is simply false, and the \"more lines of mathematical code\" claim misses the chapter's point that the hard part is the surrounding system and its data couplings.",
+     "hint": "Think about: distinguish ML-specific technical debt mechanisms from ordinary code-focused software debt",
+     "type": "single",
+     "options": [
+      "Because ML frameworks prevent developers from running unit tests or continuous integration jobs",
+      "Because ML algorithms require more lines of raw mathematical code than supporting infrastructure software",
+      "Because ML debt accumulates through implicit statistical relationships, data dependencies, and feedback loops that can degrade predictive quality silently without throwing runtime exceptions",
+      "Because neural network parameters cannot be serialized to disk or stored in artifact registries"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "After drift has been investigated and retraining has been approved under policy, an automated MLOps continuous training and delivery pipeline executes. Place the following pipeline stages in their correct execution order:",
+     "explanation": "The correct sequence is: (1) Data Validation Check, (3) Model Training & Hyperparameter Optimization, (4) Model Evaluation & Guardrail Check, (5) Model Registry Registration, (2) Staged Rollout / Canary Deployment. The pipeline must validate the newly ingested data before training on it, evaluate the trained candidate before treating it as an approved artifact, register the validated artifact so the exact version is tracked, and only then expose it to production traffic through a staged rollout. Swapping evaluation with training is impossible because there is no candidate to judge yet, and deploying before registration would weaken rollback and provenance tracking.",
+     "hint": "Think about: design the execution sequence of a continuous ML training-and-deployment pipeline after retraining has been approved",
+     "type": "order",
+     "items": [
+      "Data Validation Check: Run schema and statistical boundary checks on newly ingested data.",
+      "Model Training & Hyperparameter Optimization: Train candidate model weights on the validated dataset.",
+      "Model Evaluation & Guardrail Check: Evaluate candidate model against golden test slices and latency SLOs.",
+      "Model Registry Registration: Tag and store the validated model binary, metadata, and container hash.",
+      "Staged Rollout / Canary Deployment: Route a small percentage of live production traffic to the new model."
+     ]
+    },
+    {
+     "q": "The formal decision criterion governing whether a degraded model should be retrained balances expected accuracy improvement against training compute costs and deployment risk under the principle of ____.",
+     "explanation": "cost-aware automation. This principle frames retraining as a decision about expected benefit versus execution cost, validation effort, and deployment risk. It helps decide when retraining is warranted, but a favorable result still does not by itself authorize production release without validation.",
+     "hint": "Think about: identify cost-aware automation as the principle that frames retraining as a conditional cost-benefit decision",
+     "type": "fill",
+     "answer": [
+      "cost aware automation",
+      "cost-aware automation"
+     ]
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Safe release and tested rollback**?",
+     "options": [
+      "ML debt compounds through statistical coupling that code review cannot see (entanglement, correction cascades, undeclared consumers, feedback loops, glue code), and each pattern names the infrastructure that pays it down.",
+      "An A/B release decision needs a randomization unit, a power-derived sample size, guardrail metrics, and a preregistered horizon, and a non-significant result is inconclusive rather than a license to ship.",
+      "Every shadow, canary, A/B arm, or standby keeps a second full model copy resident regardless of its traffic share, so release strategy is a memory decision for capacity-bound models and must be scheduled together with retraining on one node.",
+      "A validated checkpoint is not yet a safe release: exposure is staged (shadow, canary, blue-green), every node is verified to run the intended version, and rollback is tiered, tested, and state-aware, because cached state survives a weights-only revert."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Safe release and tested rollback itself, not a neighbouring idea.",
+     "explanation": "**Safe release and tested rollback:** A validated checkpoint is not yet a safe release: exposure is staged (shadow, canary, blue-green), every node is verified to run the intended version, and rollback is tiered, tested, and state-aware, because cached state survives a weights-only revert."
+    },
+    {
+     "q": "In an illustrative PSI rule of thumb, a Population Stability Index value of $\\text{PSI} \\ge$ ____ is treated as a severe distribution shift that should trigger investigation.",
+     "explanation": "0.25. In this illustrative convention, PSI < 0.10 is below the warning range, \\$0.10 le PSI < 0.25 is a warning range, and PSI ge 0.25 should trigger escalation. This is an illustrative rule of thumb for interpretation, not a universal threshold or proof of accuracy loss.",
+     "hint": "Think about: identify an illustrative PSI threshold for severe shift and distinguish it from a universal drift rule",
+     "type": "fill",
+     "answer": [
+      "0.25"
+     ]
+    },
+    {
+     "q": "An inference server showing 95% GPU busy time and 30% HBM memory bandwidth utilization provides sufficient evidence to prescribe weight quantization as the primary optimization.",
+     "explanation": "False. GPU busy time is not the same as achieved FLOPs efficiency, and 95% busy with 30% HBM utilization is not sufficient by itself to uniquely diagnose the bottleneck. You would still need achieved-ops, stall, and kernel-profile evidence. Quantization can reduce memory traffic, but on supported hardware lower precision can also change compute throughput.",
+     "hint": "Think about: evaluate whether coarse GPU busy-time and memory-bandwidth counters are sufficient to prescribe a serving optimization",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the following stages in a single drift-alert workflow where each step depends on the previous one:",
+     "explanation": "The correct order is: (3) select and validate the versioned input cohort for analysis, (4) compute divergence against the specified reference distribution, (2) compare the computed divergence with a calibrated threshold, (1) route the resulting alert to the designated owner for investigation. The dependencies are intrinsic: divergence is meaningless until the cohort and reference are fixed, threshold comparison requires a computed divergence value, and routing an alert only makes sense after the threshold test indicates that an alert exists. Swapping threshold comparison ahead of divergence computation or routing before thresholding would break the logic of the alert itself.",
+     "hint": "Think about: sequence the data-dependent stages of a drift-alert workflow from validated cohort selection to owner routing",
+     "type": "order",
+     "items": [
+      "select and validate the versioned input cohort for analysis",
+      "compute divergence against the specified reference distribution.",
+      "compare the computed divergence with a calibrated threshold",
+      "route the resulting alert to the designated owner for investigation"
+     ]
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Operations loop**?",
+     "options": [
+      "Telemetry is an operating cost rate set by series, sample rate, ingest, and retention, so sampling, cardinality control, and tiered retention set the budget, and monitoring earns its keep only through harm it prevents.",
+      "Exact replay requires freezing code, data, configuration, and environment plus deterministic kernels, content-addressed lineage traces an incident to its inputs, and a model registry holds immutable versions with lifecycle states so release machinery can promote or roll back the exact evaluated artifact.",
+      "Every production model runs detect, diagnose, decide, release, and recover, each step a control with a concrete machine cost, across three interfaces (data-model consistency, model-infrastructure parity, production feedback) where debt accumulates when a boundary erodes.",
+      "An A/B release decision needs a randomization unit, a power-derived sample size, guardrail metrics, and a preregistered horizon, and a non-significant result is inconclusive rather than a license to ship."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Operations loop itself, not a neighbouring idea.",
+     "explanation": "**Operations loop:** Every production model runs detect, diagnose, decide, release, and recover, each step a control with a concrete machine cost, across three interfaces (data-model consistency, model-infrastructure parity, production feedback) where debt accumulates when a boundary erodes."
+    }
+   ]
+  }
+ ]
+}

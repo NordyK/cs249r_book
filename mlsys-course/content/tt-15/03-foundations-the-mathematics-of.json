@@ -1,0 +1,78 @@
+{
+ "title": "Foundations: The Mathematics of Compression",
+ "summary": "TinyTorch quantization: Foundations: The Mathematics of Compression",
+ "source": {
+  "chapter": "tt-15",
+  "sections": [
+   "Foundations: The Mathematics of Compression"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "## 📐 Foundations: The Mathematics of Compression\n\n### Understanding the Core Challenge\n\nQuantization projects continuous high-precision real numbers onto a discrete lattice of \\$2^b\\$ integer values (for \\$b=8\\$, exactly 256 discrete levels). The primary systems challenge is minimizing quantization distortion (measured by mean-squared error or Signal-to-Quantization-Noise Ratio) while preserving the zero-value boundary without rounding bias.\n\n### The Affine (Asymmetric) Quantization Formulation\n\nAffine quantization applies a linear scaling and translation operator that maps an arbitrary real interval \\$[x_{\\min}, x_{\\max}]\\$ onto the signed 8-bit integer coordinate space \\$[q_{\\min}, q_{\\max}] = [-128, 127]\\$:\n\n\\$\\$q = \\text{clamp}\\left( \\left\\lfloor \\frac{x}{s} \\right\\rceil + z, \\, -128, \\, 127 \\right)\\$\\$\n\nwhere:\n- \\$\\lfloor \\cdot \\rceil\\$ denotes the round-to-nearest-integer operation.\n- \\$s \\in \\mathbb{R}^+\\$ is the **scale factor**, representing the continuous step size corresponding to one integer quantum.\n- \\$z \\in \\mathbb{Z}\\$ is the **zero point**, representing the integer coordinate that maps exactly to continuous zero (\\$x = 0.0\\$)."
+  },
+  {
+   "type": "text",
+   "md": "The inverse transformation (Dequantization) maps discrete integer codes back to continuous real approximations:\n\n\\$\\$\\hat{x} = (q - z) \\times s\\$\\$\n\n### Derivation of Scale and Zero Point\n\nGiven a target continuous dynamic range \\$[x_{\\min}, x_{\\max}]\\$ (nudged to ensure \\$0.0 \\in [x_{\\min}, x_{\\max}]\\$ so that real zero has an exact representation):\n\n\\$\\$s = \\frac{x_{\\max} - x_{\\min}}{q_{\\max} - q_{\\min}} = \\frac{x_{\\max} - x_{\\min}}{127 - (-128)} = \\frac{x_{\\max} - x_{\\min}}{255}\\$\\$\n\nTo guarantee that \\$x_{\\min}\\$ aligns with the lowest integer coordinate \\$q_{\\min} = -128\\$:\n\n\\$\\$-128 = \\frac{x_{\\min}}{s} + z \\implies z = \\left\\lfloor -128 - \\frac{x_{\\min}}{s} \\right\\rceil\\$\\$\n\n### Symmetric vs. Asymmetric Quantization"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Architectural Dimension",
+    "Asymmetric (Affine) Quantization",
+    "Symmetric Quantization"
+   ],
+   "rows": [
+    [
+     "**Quantization Mapping**",
+     "\\$q = \\text{clamp}(\\lfloor x/s \\rceil + z, -128, 127)\\$",
+     "\\$q = \\text{clamp}(\\lfloor x/s \\rceil, -127, 127)\\$"
+    ],
+    [
+     "**Zero Point Alignment**",
+     "\\$z \\in [-128, 127]\\$ (Dynamic integer offset)",
+     "\\$z = 0\\$ (Implicitly fixed at integer zero)"
+    ],
+    [
+     "**Scale Derivation**",
+     "\\$s = (x_{\\max} - x_{\\min}) / 255\\$",
+     "\\$s = \\max(\\"
+    ],
+    [
+     "**Zero Representation**",
+     "Real \\$0.0\\$ maps exactly to \\$z\\$ without precision penalty",
+     "Real \\$0.0\\$ maps symmetrically to \\$0\\$"
+    ],
+    [
+     "**GEMM Arithmetic Overhead**",
+     "Cross-terms \\$\\sum x_i z_w\\$ require compensation logic",
+     "Cross-terms cancel out entirely (\\$\\mathcal{O}(1)\\$ bias update)"
+    ],
+    [
+     "**Typical Target Domain**",
+     "Activations post-ReLU (\\$\\ge 0\\$, highly skewed)",
+     "Weights & activations centered at zero (GELU, LayerNorm)"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "### Quantization Error and Signal-to-Noise Ratio (SQNR)\n\nWhen discretizing a continuous tensor, rounding introduces quantization noise \\$\\epsilon = x - \\hat{x}\\$:\n\n\\$\\$\\epsilon = x - (q - z) \\times s, \\quad \\text{bounded by} \\quad |\\epsilon| \\le \\frac{s}{2} = \\frac{x_{\\max} - x_{\\min}}{510}\\$\\$\n\nAssuming a uniform distribution of rounding noise over the quantization interval \\$[-\\frac{s}{2}, \\frac{s}{2}]\\$, the expected noise power is:\n\n\\$\\$\\sigma_q^2 = \\mathbb{E}[\\epsilon^2] = \\frac{1}{s} \\int_{-s/2}^{s/2} \\epsilon^2 d\\epsilon = \\frac{s^2}{12}\\$\\$\n\nFor a \\$b\\$-bit uniform quantizer covering the full signal dynamic range, the classic Signal-to-Quantization-Noise Ratio is:\n\n\\$\\$\\text{SQNR} \\approx 6.02 \\times b + 1.76 \\text{ dB}\\$\\$\n\n\\$\\$\\text{At } b=8 \\text{ (INT8)}: \\quad \\text{SQNR} \\approx 6.02 \\times 8 + 1.76 = 49.92 \\text{ dB}\\$\\$"
+  },
+  {
+   "type": "text",
+   "md": "The \\$1.76\\text{ dB}\\$ term carries an assumption worth naming. This result was derived for a full-scale *sinusoid*, whose signal power is \\$A^2/2\\$. A tensor whose values spread uniformly across the same range carries only \\$A^2/3\\$, a factor of \\$1.5\\$ less, so it lands at \\$20\\log_{10}(255) \\approx 48.13\\text{ dB}\\$ instead. That \\$1.79\\text{ dB}\\$ gap is exactly what the sine assumption contributes, and \\$48.13\\text{ dB}\\$ is the figure the reflection questions below arrive at for a uniform weight tensor."
+  },
+  {
+   "type": "text",
+   "md": "An SQNR near \\$50\\text{ dB}\\$ is enough fidelity that per-tensor INT8 is usually close to lossless on convolutional networks. Transformers are the harder case, because a few outlier activation channels stretch the range every other value has to share, so per-tensor INT8 often costs real accuracy there until weights are quantized per channel or the outliers are handled separately. Note also what SQNR does and does not say. It bounds the reconstruction error of a single tensor, not end-task accuracy, and this module measures no task accuracy at all."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Foundations: The Mathematics of Compression."
+   ]
+  }
+ ]
+}

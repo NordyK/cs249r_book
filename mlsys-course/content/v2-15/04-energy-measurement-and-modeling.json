@@ -1,0 +1,101 @@
+{
+ "title": "Energy Measurement and Modeling",
+ "summary": "Apply the energy-roofline crossover to classify a kernel's dominant energy component and select the corresponding optimization.",
+ "source": {
+  "chapter": "v2-15",
+  "sections": [
+   "Energy Measurement and Modeling",
+   "Power modeling fundamentals",
+   "Systematic energy metrics",
+   "Energy measurement techniques"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "By the end of this lesson you should be able to:\n\n- Apply the energy-roofline crossover to classify a kernel's dominant energy component and select the corresponding optimization\n- Calculate annual facility energy savings resulting from PUE improvements and justify infrastructure optimization as a high-leverage sustainability intervention\n- Explain the role of the switching activity factor in the CMOS dynamic power equation\n- Select instrumentation capable of measuring the declared duty cycle and electrical boundary of a TinyML system\n- Evaluate the requirement of incorporating facility overhead (PUE) into comprehensive AI energy accounting"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Sustainable AI, § Energy Measurement and Modeling",
+   "md": "A cluster drawing five megawatts during a large language model training run directs only a fraction of that power into matrix multiplications; host processors, memory, networking, power conversion, and cooling consume the rest. Engineers cannot optimize those losses from a single monthly utility bill."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "What the section covers",
+   "md": "In the book this section runs through:\n\n- Power modeling fundamentals\n- Systematic energy metrics\n- Energy measurement techniques\n\nPay attention to: CMOS power decomposition and switching activity; energy roofline model and crossover intensity; PUE, WUE, and CUE facility metrics; edge vs datacenter measurement telemetry."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A 2 MW IT load cluster improves its Power Usage Effectiveness (PUE) from 1.58 to 1.10 without altering any model weights or server SKUs. Calculate the annual electricity savings in megawatt-hours (MWh) assuming 24/7 continuous operation, and explain why facility optimization is considered a first-order sustainability lever.",
+   "md": "At PUE = 1.58, total facility power is \\$2 MW × 1.58 = 3.16 MW. At PUE = 1.10, total power drops to \\$2 MW × 1.10 = 2.20 MW, saving \\$0.96 MW continuously. Over one year (\\$8,760 hours), this saves \\$0.96 MW × 8,760 h approx 8,410 MWh. This demonstrates that facility infrastructure optimization delivers multi-gigawatt-hour savings equivalent to massive algorithmic optimizations without requiring changes to model code or accuracy."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-15-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An attention kernel has an arithmetic intensity of 3 FLOP/byte. An illustrative chip-and-memory energy model assigns 10 pJ per FLOP and 160 pJ per byte moved from DRAM, excluding static and facility energy. Which intervention directly targets the larger modeled energy contribution?",
+     "explanation": "The correct answer is C. The crossover is 16 FLOP/byte, so at 3 FLOP/byte movement contributes more energy than arithmetic in this model. Fusion and tiling can reduce that traffic when implemented successfully. Peak throughput alone establishes neither an energy saving nor the execution bottleneck; PUE does not eliminate memory stalls. Measure the complete workload to confirm the saving.",
+     "hint": "Think about: apply the energy-roofline crossover to classify a kernel's dominant energy component and select the corresponding optimization",
+     "type": "single",
+     "options": [
+      "Replacing the accelerator with one offering double the peak TFLOP/s while retaining the same memory bandwidth and memory technology.",
+      "Increasing arithmetic precision from FP16 to FP32 to execute more FLOPs per memory transaction.",
+      "Fusing normalization and attention operators and tiling intermediate activations to keep data in on-chip SRAM, reducing DRAM traffic.",
+      "Lowering facility PUE from 1.5 to 1.1 to eliminate memory stall cycles."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In the CMOS dynamic power equation $P_{\\text{dynamic}}=\\alpha_{\\text{sw}}CV^2f$, the parameter $\\alpha_{\\text{sw}}$ is the `____`, summarizing capacitance-weighted switching per clock cycle under the chosen counting convention.",
+     "explanation": "switching activity factor. It scales dynamic power linearly at fixed capacitance, voltage, and frequency; more switching is not necessarily more useful computation or greater energy efficiency.",
+     "hint": "Think about: explain the role of the switching activity factor in the CMOS dynamic power equation",
+     "type": "fill",
+     "answer": [
+      "switching activity factor"
+     ]
+    },
+    {
+     "q": "An engineer needs to profile the energy consumption of a sub-watt microcontroller executing an on-device wake-word detection model that spends 98 percent of its time in deep sleep drawing 30 $\\mu\\text{W}$. The microcontroller lacks on-chip energy counters. Which measurement approach is appropriate?",
+     "explanation": "The correct answer is D. An external analyzer must resolve both sleep and active states at the declared electrical boundary. Its configured range, bandwidth, calibration, voltage measurement, and integration interval determine whether it can do so; a fast sample rate or product name alone is insufficient. RAPL and NVML do not supply this microcontroller measurement, and parameter count omits duty-cycle and peripheral costs.",
+     "hint": "Think about: select instrumentation capable of measuring the declared duty cycle and electrical boundary of a TinyML system",
+     "type": "single",
+     "options": [
+      "Sampling the Linux RAPL interface at 100 Hz to capture CPU package power states.",
+      "Querying NVML/nvidia-smi programmatic bindings to integrate instantaneous milliwatt metrics.",
+      "Multiplying model parameter count by a theoretical constant of 5 pJ per parameter.",
+      "Using a calibrated external analyzer with verified current range, analog bandwidth, synchronized voltage measurement, and integration windows covering sleep, active execution, and transitions."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "To determine the total environmental energy impact of an AI workload, an engineering team can simply sum the measured energy of the GPUs, CPUs, DRAM, and network interface cards reported by hardware telemetry.",
+     "explanation": "False. Component measurements must cover disjoint IT loads over the same interval; GPU telemetry that includes device memory must not be added to that memory again. Restore omitted support loads, then use facility meters or a time-matched PUE to include non-IT overhead. Electricity alone still omits manufacturing and other lifecycle impacts.",
+     "hint": "Think about: evaluate the requirement of incorporating facility overhead (PUE) into comprehensive AI energy accounting",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain how the Energy-Delay Product ($\\text{EDP} = E \\times t$) guides operating point selection in TinyML systems, and identify how voltage scaling interacts with clock frequency to minimize EDP.",
+   "md": "EDP compares energy multiplied by execution time across feasible operating points. First exclude settings that miss quality or deadline requirements, then measure energy and delay for supported voltage-frequency combinations. Lower voltage can reduce switching energy, but a longer runtime adds static and support energy. The measured curves determine the optimum; the formula does not guarantee a moderate frequency or a universally beneficial voltage reduction."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "**Operating energy**: The time integral of operating power across a declared set of devices and facility consumers."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Operating energy",
+   "def": "The time integral of operating power across a declared set of devices and facility consumers."
+  }
+ ]
+}

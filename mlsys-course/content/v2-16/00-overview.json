@@ -1,0 +1,305 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v2-16",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Responsible AI** (Vol II). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Responsible AI, Purpose",
+   "md": "In high-risk regulated settings, a model that cannot explain or document its behavior, support audit, or meet applicable discrimination rules may fail deployment review regardless of its accuracy or latency. Strong aggregate performance can conceal a pattern of errors concentrated among people with little power to challenge the outcome. Increasing throughput then increases the reach of that failure."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Governance Imperative",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "The Governance and Assurance Lifecycle",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Core Principles and the ML Lifecycle",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Architectural Trade-Offs",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Fairness and Bias Mitigation",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Privacy and Data Governance",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Explainability and Transparency",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Assurance case**",
+     "A registry proves which weights shipped, not that shipping was justified, so deployment is justified by a versioned assurance case (claim for a stated use, argument, evidence, assumptions, an owner who can block, an invalidation rule) that expires on material change and maps the applicable legal obligations onto the lifecycle."
+    ],
+    [
+     "**Fairness criteria conflict**",
+     "Demographic parity, equalized odds, equality of opportunity, and calibration measure different conditional rates, one classifier can fail all of them at once, and they cannot all hold when base rates differ, so choosing one is a governance decision."
+    ],
+    [
+     "**Disparity measurement uncertainty**",
+     "A subgroup gap is evidence only with denominators, confidence intervals, and coverage limits, single-axis audits hide intersectional failure, and a significant disparity says nothing about its cause."
+    ],
+    [
+     "**Fleet fairness monitoring**",
+     "Continuous fairness telemetry costs streaming counters per group and metric, runs mostly off the request path, updates prediction-only metrics at once while label-dependent metrics wait for outcomes, and reports under-supported groups as insufficient, not zero."
+    ],
+    [
+     "**Safeguards as capacity**",
+     "Every responsible-AI control consumes budgeted training, serving, memory, storage, or human-review capacity on a specific path, and where it is placed decides who is protected."
+    ],
+    [
+     "**Machine unlearning**",
+     "A privacy guarantee bounds exposure but does not remove a record from trained weights, so deletion that reaches model state needs a removal method and evidence, and its cost (full retraining vs sharded retraining) is set by architecture chosen before training."
+    ],
+    [
+     "**Contestability and remedy**",
+     "Explanation serves accountability only when an affected person can challenge a decision and obtain correction, which requires decision provenance, audience-appropriate reasons, an appeal routed to an authorized reviewer, and tracked outcomes."
+    ],
+    [
+     "**Sociotechnical feedback and designed oversight**",
+     "Deployed models reshape their own future data and their operators, so predictions can become self-fulfilling in ways a static test set cannot detect, and human oversight must be designed against both automation bias and alert fatigue."
+    ],
+    [
+     "**Threshold postprocessing and the fairness cost**",
+     "Group-specific thresholds can equalize a chosen rate but leave score calibration unchanged, need authorized sensitive attributes at decision time, and carry a scenario-specific accuracy cost."
+    ],
+    [
+     "**Explanation placement**",
+     "Explanation method and placement are fixed by audience, deadline, and attribution cost (saliency, exact tree attribution, sampled Shapley values), and attribution is not causation."
+    ],
+    [
+     "**Generative governance surfaces**",
+     "For a generative fleet, fairness, privacy, and safety are governed through system prompts, retrieved context, reward models, policy classifiers, and output filters, all versioned as infrastructure."
+    ],
+    [
+     "**Bounded autonomy and safety case**",
+     "When a system acts faster than anyone can review its decisions, the objective itself becomes a governed artifact and trust is operationalized as a safety case over a validated envelope with runtime guardrails, because fleet scale turns rare failures into expected incidents."
+    ],
+    [
+     "**Privacy claims name their boundary**",
+     "A privacy guarantee covers only the data path its mechanism accounts for, so differentially private training says nothing about private inputs copied into service logs, and each claim must state which accesses it covers."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$\\text{DI}(a,b) = \\frac{\\Pr(h(x) = 1 \\mid A = a)}{\\Pr(h(x) = 1 \\mid A = b)}$$\n\n$$\\text{DI}(B,A) = \\frac{0.40}{0.70} = 0.57$$\n\n$$\\text{SPD}(a,b) = \\Pr(h(x) = 1 \\mid A = a) - \\Pr(h(x) = 1 \\mid A = b)$$\n\n$$\\text{EOD}(a,b) = \\Pr(h(x) = 1 \\mid A = a, Y = 1) - \\Pr(h(x) = 1 \\mid A = b, Y = 1)$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v2-16-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Assurance case",
+     "back": "A registry proves which weights shipped, not that shipping was justified, so deployment is justified by a versioned assurance case (claim for a stated use, argument, evidence, assumptions, an owner who can block, an invalidation rule) that expires on material change and maps the applicable legal obligations onto the lifecycle."
+    },
+    {
+     "front": "Fairness criteria conflict",
+     "back": "Demographic parity, equalized odds, equality of opportunity, and calibration measure different conditional rates, one classifier can fail all of them at once, and they cannot all hold when base rates differ, so choosing one is a governance decision."
+    },
+    {
+     "front": "Disparity measurement uncertainty",
+     "back": "A subgroup gap is evidence only with denominators, confidence intervals, and coverage limits, single-axis audits hide intersectional failure, and a significant disparity says nothing about its cause."
+    },
+    {
+     "front": "Fleet fairness monitoring",
+     "back": "Continuous fairness telemetry costs streaming counters per group and metric, runs mostly off the request path, updates prediction-only metrics at once while label-dependent metrics wait for outcomes, and reports under-supported groups as insufficient, not zero."
+    },
+    {
+     "front": "Safeguards as capacity",
+     "back": "Every responsible-AI control consumes budgeted training, serving, memory, storage, or human-review capacity on a specific path, and where it is placed decides who is protected."
+    },
+    {
+     "front": "Machine unlearning",
+     "back": "A privacy guarantee bounds exposure but does not remove a record from trained weights, so deletion that reaches model state needs a removal method and evidence, and its cost (full retraining vs sharded retraining) is set by architecture chosen before training."
+    },
+    {
+     "front": "Contestability and remedy",
+     "back": "Explanation serves accountability only when an affected person can challenge a decision and obtain correction, which requires decision provenance, audience-appropriate reasons, an appeal routed to an authorized reviewer, and tracked outcomes."
+    },
+    {
+     "front": "Sociotechnical feedback and designed oversight",
+     "back": "Deployed models reshape their own future data and their operators, so predictions can become self-fulfilling in ways a static test set cannot detect, and human oversight must be designed against both automation bias and alert fatigue."
+    },
+    {
+     "front": "Threshold postprocessing and the fairness cost",
+     "back": "Group-specific thresholds can equalize a chosen rate but leave score calibration unchanged, need authorized sensitive attributes at decision time, and carry a scenario-specific accuracy cost."
+    },
+    {
+     "front": "Explanation placement",
+     "back": "Explanation method and placement are fixed by audience, deadline, and attribution cost (saliency, exact tree attribution, sampled Shapley values), and attribution is not causation."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v2-16-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Assurance case**?",
+     "options": [
+      "Explanation method and placement are fixed by audience, deadline, and attribution cost (saliency, exact tree attribution, sampled Shapley values), and attribution is not causation.",
+      "Continuous fairness telemetry costs streaming counters per group and metric, runs mostly off the request path, updates prediction-only metrics at once while label-dependent metrics wait for outcomes, and reports under-supported groups as insufficient, not zero.",
+      "A registry proves which weights shipped, not that shipping was justified, so deployment is justified by a versioned assurance case (claim for a stated use, argument, evidence, assumptions, an owner who can block, an invalidation rule) that expires on material change and maps the applicable legal obligations onto the lifecycle.",
+      "Every responsible-AI control consumes budgeted training, serving, memory, storage, or human-review capacity on a specific path, and where it is placed decides who is protected."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Assurance case itself, not a neighbouring idea.",
+     "explanation": "**Assurance case:** A registry proves which weights shipped, not that shipping was justified, so deployment is justified by a versioned assurance case (claim for a stated use, argument, evidence, assumptions, an owner who can block, an invalidation rule) that expires on material change and maps the applicable legal obligations onto the lifecycle."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Fairness criteria conflict**?",
+     "options": [
+      "For a generative fleet, fairness, privacy, and safety are governed through system prompts, retrieved context, reward models, policy classifiers, and output filters, all versioned as infrastructure.",
+      "Demographic parity, equalized odds, equality of opportunity, and calibration measure different conditional rates, one classifier can fail all of them at once, and they cannot all hold when base rates differ, so choosing one is a governance decision.",
+      "Every responsible-AI control consumes budgeted training, serving, memory, storage, or human-review capacity on a specific path, and where it is placed decides who is protected.",
+      "A registry proves which weights shipped, not that shipping was justified, so deployment is justified by a versioned assurance case (claim for a stated use, argument, evidence, assumptions, an owner who can block, an invalidation rule) that expires on material change and maps the applicable legal obligations onto the lifecycle."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Fairness criteria conflict itself, not a neighbouring idea.",
+     "explanation": "**Fairness criteria conflict:** Demographic parity, equalized odds, equality of opportunity, and calibration measure different conditional rates, one classifier can fail all of them at once, and they cannot all hold when base rates differ, so choosing one is a governance decision."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Disparity measurement uncertainty**?",
+     "options": [
+      "A registry proves which weights shipped, not that shipping was justified, so deployment is justified by a versioned assurance case (claim for a stated use, argument, evidence, assumptions, an owner who can block, an invalidation rule) that expires on material change and maps the applicable legal obligations onto the lifecycle.",
+      "Explanation method and placement are fixed by audience, deadline, and attribution cost (saliency, exact tree attribution, sampled Shapley values), and attribution is not causation.",
+      "Explanation serves accountability only when an affected person can challenge a decision and obtain correction, which requires decision provenance, audience-appropriate reasons, an appeal routed to an authorized reviewer, and tracked outcomes.",
+      "A subgroup gap is evidence only with denominators, confidence intervals, and coverage limits, single-axis audits hide intersectional failure, and a significant disparity says nothing about its cause."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Disparity measurement uncertainty itself, not a neighbouring idea.",
+     "explanation": "**Disparity measurement uncertainty:** A subgroup gap is evidence only with denominators, confidence intervals, and coverage limits, single-axis audits hide intersectional failure, and a significant disparity says nothing about its cause."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Fleet fairness monitoring**?",
+     "options": [
+      "A registry proves which weights shipped, not that shipping was justified, so deployment is justified by a versioned assurance case (claim for a stated use, argument, evidence, assumptions, an owner who can block, an invalidation rule) that expires on material change and maps the applicable legal obligations onto the lifecycle.",
+      "Continuous fairness telemetry costs streaming counters per group and metric, runs mostly off the request path, updates prediction-only metrics at once while label-dependent metrics wait for outcomes, and reports under-supported groups as insufficient, not zero.",
+      "Demographic parity, equalized odds, equality of opportunity, and calibration measure different conditional rates, one classifier can fail all of them at once, and they cannot all hold when base rates differ, so choosing one is a governance decision.",
+      "Group-specific thresholds can equalize a chosen rate but leave score calibration unchanged, need authorized sensitive attributes at decision time, and carry a scenario-specific accuracy cost."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Fleet fairness monitoring itself, not a neighbouring idea.",
+     "explanation": "**Fleet fairness monitoring:** Continuous fairness telemetry costs streaming counters per group and metric, runs mostly off the request path, updates prediction-only metrics at once while label-dependent metrics wait for outcomes, and reports under-supported groups as insufficient, not zero."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Safeguards as capacity**?",
+     "options": [
+      "When a system acts faster than anyone can review its decisions, the objective itself becomes a governed artifact and trust is operationalized as a safety case over a validated envelope with runtime guardrails, because fleet scale turns rare failures into expected incidents.",
+      "Continuous fairness telemetry costs streaming counters per group and metric, runs mostly off the request path, updates prediction-only metrics at once while label-dependent metrics wait for outcomes, and reports under-supported groups as insufficient, not zero.",
+      "Deployed models reshape their own future data and their operators, so predictions can become self-fulfilling in ways a static test set cannot detect, and human oversight must be designed against both automation bias and alert fatigue.",
+      "Every responsible-AI control consumes budgeted training, serving, memory, storage, or human-review capacity on a specific path, and where it is placed decides who is protected."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Safeguards as capacity itself, not a neighbouring idea.",
+     "explanation": "**Safeguards as capacity:** Every responsible-AI control consumes budgeted training, serving, memory, storage, or human-review capacity on a specific path, and where it is placed decides who is protected."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Assurance case: A registry proves which weights shipped, not that shipping was justified, so deployment is justified by a versioned assurance case (claim for a stated use, argument, evidence, assumptions, an owner who can block, an invalidation rule) that expires on material change and maps the applicable legal obligations onto the lifecycle.",
+    "Fairness criteria conflict: Demographic parity, equalized odds, equality of opportunity, and calibration measure different conditional rates, one classifier can fail all of them at once, and they cannot all hold when base rates differ, so choosing one is a governance decision.",
+    "Disparity measurement uncertainty: A subgroup gap is evidence only with denominators, confidence intervals, and coverage limits, single-axis audits hide intersectional failure, and a significant disparity says nothing about its cause.",
+    "Fleet fairness monitoring: Continuous fairness telemetry costs streaming counters per group and metric, runs mostly off the request path, updates prediction-only metrics at once while label-dependent metrics wait for outcomes, and reports under-supported groups as insufficient, not zero."
+   ]
+  }
+ ],
+ "terms": [
+  {
+   "term": "Assurance case",
+   "def": "A registry proves which weights shipped, not that shipping was justified, so deployment is justified by a versioned assurance case (claim for a stated use, argument, evidence, assumptions, an owner who can block, an invalidation rule) that expires on material change and maps the applicable legal obligations onto the lifecycle."
+  },
+  {
+   "term": "Fairness criteria conflict",
+   "def": "Demographic parity, equalized odds, equality of opportunity, and calibration measure different conditional rates, one classifier can fail all of them at once, and they cannot all hold when base rates differ, so choosing one is a governance decision."
+  },
+  {
+   "term": "Disparity measurement uncertainty",
+   "def": "A subgroup gap is evidence only with denominators, confidence intervals, and coverage limits, single-axis audits hide intersectional failure, and a significant disparity says nothing about its cause."
+  },
+  {
+   "term": "Fleet fairness monitoring",
+   "def": "Continuous fairness telemetry costs streaming counters per group and metric, runs mostly off the request path, updates prediction-only metrics at once while label-dependent metrics wait for outcomes, and reports under-supported groups as insufficient, not zero."
+  },
+  {
+   "term": "Safeguards as capacity",
+   "def": "Every responsible-AI control consumes budgeted training, serving, memory, storage, or human-review capacity on a specific path, and where it is placed decides who is protected."
+  },
+  {
+   "term": "Machine unlearning",
+   "def": "A privacy guarantee bounds exposure but does not remove a record from trained weights, so deletion that reaches model state needs a removal method and evidence, and its cost (full retraining vs sharded retraining) is set by architecture chosen before training."
+  },
+  {
+   "term": "Contestability and remedy",
+   "def": "Explanation serves accountability only when an affected person can challenge a decision and obtain correction, which requires decision provenance, audience-appropriate reasons, an appeal routed to an authorized reviewer, and tracked outcomes."
+  },
+  {
+   "term": "Sociotechnical feedback and designed oversight",
+   "def": "Deployed models reshape their own future data and their operators, so predictions can become self-fulfilling in ways a static test set cannot detect, and human oversight must be designed against both automation bias and alert fatigue."
+  },
+  {
+   "term": "Threshold postprocessing and the fairness cost",
+   "def": "Group-specific thresholds can equalize a chosen rate but leave score calibration unchanged, need authorized sensitive attributes at decision time, and carry a scenario-specific accuracy cost."
+  },
+  {
+   "term": "Explanation placement",
+   "def": "Explanation method and placement are fixed by audience, deadline, and attribution cost (saliency, exact tree attribution, sampled Shapley values), and attribution is not causation."
+  },
+  {
+   "term": "Generative governance surfaces",
+   "def": "For a generative fleet, fairness, privacy, and safety are governed through system prompts, retrieved context, reward models, policy classifiers, and output filters, all versioned as infrastructure."
+  },
+  {
+   "term": "Bounded autonomy and safety case",
+   "def": "When a system acts faster than anyone can review its decisions, the objective itself becomes a governed artifact and trust is operationalized as a safety case over a validated envelope with runtime guardrails, because fleet scale turns rare failures into expected incidents."
+  },
+  {
+   "term": "Privacy claims name their boundary",
+   "def": "A privacy guarantee covers only the data path its mechanism accounts for, so differentially private training says nothing about private inputs copied into service logs, and each claim must state which accesses it covers."
+  }
+ ]
+}

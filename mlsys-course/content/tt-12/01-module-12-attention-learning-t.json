@@ -1,0 +1,156 @@
+{
+ "title": "Module 12: Attention - Learning to Focus",
+ "summary": "TinyTorch attention: Module 12: Attention - Learning to Focus",
+ "source": {
+  "chapter": "tt-12",
+  "sections": [
+   "Module 12: Attention - Learning to Focus"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "# Module 12: Attention - Learning to Focus\n\nWelcome to Module 12! You're about to build the multi-head attention mechanism that forms the computational core of GPT, BERT, Llama, and modern transformer architectures.\n\n## 🔗 Prerequisites & Progress\n**You've Built**: Complete neural network stack including autograd, optimizers, data loaders, 2D convolutions, subword BPE tokenization, and vector embeddings (`Tensor`, `Function`, `Linear`, `Conv2d`, `BPETokenizer`, `EmbeddingLayer`).\n**You'll Build**: Scaled dot-product attention (`scaled_dot_product_attention`), causal autoregressive masking, and parallel subspace routing (`MultiHeadAttention`).\n**You'll Enable**: Complete Transformer Blocks and causal language models (`13_transformers`), KV caching (`18_memoization`), and the Capstone model (`20_capstone`).\n\n### Architectural Roadmap"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Stage",
+    "Subsystem",
+    "Primitives & Capabilities",
+    "Status"
+   ],
+   "rows": [
+    [
+     "**Modules 01–08**",
+     "Foundation & Training",
+     "`Tensor`, `Function`, `Linear`, `SGD`, `Adam`, `Trainer`",
+     "Completed"
+    ],
+    [
+     "**Modules 09–11**",
+     "Spatial & Language Representations",
+     "`Conv2d`, `BPETokenizer`, `Embedding`, `PositionalEncoding`",
+     "Completed"
+    ],
+    [
+     "**Module 12**",
+     "**Self-Attention & Multi-Head**",
+     "`scaled_dot_product_attention`, `MultiHeadAttention`",
+     "**Active Subsystem**"
+    ],
+    [
+     "**Modules 13–20**",
+     "Transformers & Acceleration",
+     "`TransformerBlock`, `create_causal_mask`, `KVCache`, `TinyGPT`",
+     "Downstream Consumers"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "## 🎯 Learning Objectives\nBy the end of this module, you will:\n1. **Implement scaled dot-product attention** from mathematical first principles, exposing the quadratic \\$\\mathcal{O}(S^2)\\$ memory and compute bottleneck.\n2. **Derive score normalization variance scaling (\\$1/\\sqrt{d_k}\\$)** to prevent dot product magnitudes from saturating softmax gradients.\n3. **Apply a causal mask** by replacing future logits with \\$-\\infty\\$ before the softmax, enforcing autoregressive temporal ordering without information leakage.\n4. **Implement multi-head coordinate origami** (`_split_heads` and `_merge_heads`), transforming 3D tensors \\$(B, S, D)\\$ into 4D subspace planes \\$(B, H, S, d_k)\\$ for batched GEMM execution.\n5. **Benchmark quadratic memory and FLOP scaling** across sequence lengths and quantify the activation memory footprint during backward pass.\n\n## 📦 Where This Code Lives in the Final Package\n\n**Learning Side:** You work in `modules/12_attention/attention.ipynb`\n**Building Side:** Code exports to `tinytorch.core.attention`\n\n```python\n# How to use this module:\nfrom tinytorch.core.attention import scaled_dot_product_attention, MultiHeadAttention\n```\n\n**Why this matters:**\n- **Learning:** Unveils the inner mechanics of attention as soft dynamic routing across queries, keys, and values.\n- **Production:** Mirrors PyTorch's `torch.nn.MultiheadAttention` and `torch.nn.functional.scaled_dot_product_attention`. One convention is inverted, so port masks with care. TinyTorch marks the positions to keep (1 = attend, 0 = block), while PyTorch's boolean `attn_mask` marks the positions to block.\n- **Consistency:** Unifies tensor transformations and attention projections in `tinytorch.core.attention`."
+  },
+  {
+   "type": "text",
+   "md": "## 📋 Module Dependencies\n\n**Prerequisites**: Modules 01 (Tensor), 02 (Activations), and 03 (Layers) must be complete. Module 11 produces this module's input vectors conceptually but is not imported.\n\n**External Dependencies**:\n- `numpy`: fast array operations, lower-triangular (causal) masking, and benchmarking; provides `np.tril` and `np.broadcast_to` for causal masks\n- `math` (for the \\$1/\\sqrt{d_k}\\$ scale factor)\n- `time` and `typing` (for timing measurements and type hints)\n\n**TinyTorch Dependencies**:"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Dependency",
+    "Origin",
+    "Purpose in Module 12",
+    "Systems Invariant"
+   ],
+   "rows": [
+    [
+     "`Tensor`",
+     "Module 01 (`core.tensor`)",
+     "Multi-dimensional array container supporting strided matmul and transposition",
+     "Manages contiguous memory buffers and backward computational graph"
+    ],
+    [
+     "`Softmax`",
+     "Module 02 (`core.activations`)",
+     "Normalizes raw attention scores into probability distributions",
+     "Numerically stable along last dimension `dim=-1`"
+    ],
+    [
+     "`Linear`",
+     "Module 03 (`core.layers`)",
+     "Parameter projections \\$W_Q, W_K, W_V\\$ and output projection \\$W_O\\$",
+     "Dense matrix multiplication \\$(B, S, D) \\times (D, D)\\$"
+    ],
+    [
+     "`EmbeddingLayer`",
+     "Module 11 (`core.embeddings`), not imported",
+     "Upstream provider of position-aware continuous vectors",
+     "Produces input tensor \\$X \\in \\mathbb{R}^{B \\times S \\times D}\\$"
+    ]
+   ]
+  },
+  {
+   "type": "text",
+   "md": "**Dependency Flow**: the attention information routing pipeline"
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Step",
+    "Operation",
+    "Mathematical Formula",
+    "Tensor Shape & Semantics"
+   ],
+   "rows": [
+    [
+     "**1. Linear Projections**",
+     "Query, Key, Value mappings",
+     "\\$\\mathbf{Q} = \\mathbf{X}\\mathbf{W}_Q, \\; \\mathbf{K} = \\mathbf{X}\\mathbf{W}_K, \\; \\mathbf{V} = \\mathbf{X}\\mathbf{W}_V\\$",
+     "\\$(B, S, D) \\rightarrow (B, H, S, d_k)\\$"
+    ],
+    [
+     "**2. Scaled Dot-Product**",
+     "Raw attention scores",
+     "\\$\\mathbf{S} = \\frac{\\mathbf{Q}\\mathbf{K}^T}{\\sqrt{d_k}}\\$",
+     "\\$(B, H, S, S)\\$ query-key correlation"
+    ],
+    [
+     "**3. Causal Masking**",
+     "Autoregressive masking",
+     "\\$\\mathbf{S}_{\\text{masked}} = \\text{masked\\_fill}(\\mathbf{S}, \\mathbf{M} = 0, -\\infty)\\$, where \\$\\mathbf{M}\\$ is a 0/1 keep-mask (1 = allowed, lower triangle for causal)",
+     "Prevents attending to future tokens"
+    ],
+    [
+     "**4. Probability Weights**",
+     "Softmax normalizer",
+     "\\$\\mathbf{A} = \\text{softmax}(\\mathbf{S}_{\\text{masked}}, \\text{dim}=-1)\\$",
+     "Non-negative attention distribution"
+    ],
+    [
+     "**5. Value Mixture**",
+     "Context aggregation",
+     "\\$\\mathbf{Y} = \\mathbf{A}\\mathbf{V}\\$",
+     "Weighted sum of value vectors"
+    ],
+    [
+     "**6. Output Projection**",
+     "Feature projection",
+     "\\$\\text{Output} = \\mathbf{Y}\\mathbf{W}_O\\$",
+     "Restores model dimension \\$(B, S, D)\\$"
+    ]
+   ]
+  },
+  {
+   "type": "code",
+   "lang": "python",
+   "code": "import numpy as np\nrng = np.random.default_rng(7)\nimport math\nimport time\nfrom typing import Optional, Tuple, List\n\nfrom tinytorch.core.tensor import Tensor\nfrom tinytorch.core.layers import Linear\nfrom tinytorch.core.activations import Softmax\n\nMASK_VALUE = float(\"-inf\")  # Hard exclusion: exp(-inf) is exactly zero"
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You worked through: Module 12: Attention - Learning to Focus."
+   ]
+  }
+ ]
+}
