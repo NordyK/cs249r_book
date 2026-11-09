@@ -1,0 +1,94 @@
+{
+ "title": "Stage 3: Model Development and Training",
+ "summary": "Classify the four inference-package components of a reproducible system artifact and explain why weights alone fail to guarantee consistent inference.",
+ "source": {
+  "chapter": "v1-03",
+  "sections": [
+   "Stage 3: Model Development and Training",
+   "Accuracy vs. efficiency",
+   "Constraint-driven development",
+   "Prototype to production",
+   "Reproducibility and system artifacts"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Stage 3: Model Development and Training** in *ML Lifecycle* (Vol I). By the end you should be able to:\n\n- Classify the four inference-package components of a reproducible system artifact and explain why weights alone fail to guarantee consistent inference\n- Analyze the competition-versus-production trade-off in ensemble methods and justify why benchmark-winning models may be unviable for edge serving\n- Calculate the cumulative accuracy trajectory under the Iteration Tax model and explain how experimentation velocity acts as a systems optimization lever\n- Explain how automated artifact lineage narrows regression investigation by identifying changed artifacts and guiding controlled comparisons\n- Design the sequence of stages in a constraint-driven model development and optimization pipeline"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Lifecycle, § Stage 3: Model Development and Training",
+   "md": "The DR team has on the order of \\$10^5 labeled retinal images, the scale of the 128,000-image dataset in Google's study, along with a validated preprocessing pipeline and a target: more than 90 percent sensitivity on edge hardware, returned within seconds of capture. The question is no longer *what data* to collect but *what model* to build, and that question has no answer independent of the deployment constraints already established."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Accuracy vs. efficiency\n- Constraint-driven development\n- Prototype to production\n- Reproducibility and system artifacts\n\nPay attention to: Model development under physical deployment constraints; Reproducible system artifacts (weights, code, environment, config); The Iteration Tax and experimentation velocity; Experiment tracking lineage and the MLOps flywheel."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why a competition-winning 50-model ensemble that achieves state-of-the-art accuracy on a benchmark may be discarded for production edge deployment, citing the Netflix Prize as an empirical reference.",
+   "md": "An ensemble generally adds inference work and model storage across its constituents. Serial execution adds their runtimes, whereas parallel execution requires enough hardware and coordination; model count alone establishes no fixed latency multiplier. The chapter cites the Netflix Prize as a case where benchmark gains did not justify operational complexity. On a clinic device with a 500 MB model budget, a 50-model ensemble may exceed memory, latency, or power limits, but that verdict requires constituent sizes and measured execution on the target. The team must compare the integrated ensemble's quality and resource demands with simpler or compressed alternatives rather than infer infeasibility from model count alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-03-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "According to the chapter, which bundle of deliverables constitutes the inference package of a reproducible system artifact from the Model Development and Training stage, and why are model weights alone insufficient?",
+     "explanation": "The correct answer is A. A mature ML workflow defines the inference package of a reproducible system artifact as four co-dependent components: model weights, inference preprocessing code, environment specification (Docker image, CUDA driver, dependency graph), and runtime configuration. Packaging weights alone creates 'works on my machine' failures: subtle differences in linear algebra kernels, CUDA versions, or image-resizing libraries (e.g., OpenCV vs. PIL) alter floating-point outputs or pixel interpolation without throwing exceptions, silently degrading accuracy. The complete artifact also links dataset and training-code versions, preprocessing and training recipes, and the training environment. Training logs or scorecards do not enable execution, and hardware differences make pure seed-based bitwise weight reconstruction unreliable across different accelerator architectures.",
+     "hint": "Think about: classify the four inference-package components of a reproducible system artifact and explain why weights alone fail to guarantee consistent inference.",
+     "type": "single",
+     "options": [
+      "A. Model weights, inference/preprocessing code, environment specification (e.g., container or locked dependency graph), and runtime configuration; weights alone fail because library version mismatches or preprocessing differences alter outputs without crashing.",
+      "B. Model weights and a serialized training log; the execution environment can always be inferred from the framework version tag.",
+      "C. Model weights, a test-set evaluation scorecard, and an architecture diagram; deployment engineers reconstruct dependencies during serving containerization.",
+      "D. Source code repository commits and hyperparameters; weights can be deterministically reproduced from random seeds on any hardware."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In the chapter's Iteration Tax scenario, a team compares Model L (large ensemble, starts at 95% accuracy, 1-week training cycle, +0.15% gain/iter) with Model S (lightweight model, starts at 90% accuracy, 1-hour training cycle, +0.1% gain/iter, 100 effective iters) over a 26-week window with a 99% ceiling. What is the modeled outcome after 26 weeks, and what systems lesson does it demonstrate?",
+     "explanation": "The correct answer is B. As modeled in the Iteration Tax notebook: over 26 weeks, Model L runs 26 iterations at 1 week each, reaching \\$95.0\\% + (26 × 0.15\\%) = 98.9\\%. Model S runs 100 effective iterations (capped by hypothesis generation), reaching an uncapped \\$90.0\\% + (100 × 0.1\\%) = 100.0\\%, which hits the \\$99.0\\% ceiling. The 0.1-point gap between them is an artifact of the assumed gains, not a finding. The systems lesson is that *iteration velocity is a feature* because it buys search breadth: 100 effective iterations against 26 means the fast-cycle team tests about four times as many architectures, data augmentations, and preprocessing choices. The claim that starting accuracy dominates contradicts the worked math, and the saturation/non-convergence claims contradict the chapter's scenario parameters.",
+     "hint": "Think about: calculate the cumulative accuracy trajectory under the Iteration Tax model and explain how experimentation velocity acts as a systems optimization lever.",
+     "type": "single",
+     "options": [
+      "A. Model L reaches 99.0% while Model S reaches 92.6%, proving that starting accuracy dominates iteration speed over six months.",
+      "B. Model S reaches the 99.0% ceiling while Model L reaches 98.9%, so both end near the ceiling; the lasting difference is that the fast-cycle team tests about four times as many ideas.",
+      "C. Both models reach exactly 95.0% accuracy because human hypothesis generation saturates at 26 experiments regardless of training speed.",
+      "D. Model L fails to converge due to training instability, while Model S converges to 90.0% without improvement."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Arrange the following model development milestones in a plausible order for a constraint-driven ML workflow, where each milestone uses the outputs of the one before it:",
+     "explanation": "The correct order is: (2) Physical constraint profiling (target latency, memory ceiling, power envelope), (1) Baseline transfer-learning fine-tuning from pretrained weights, (3) Systematic ablation studies to isolate component contributions, (4) Model compression (pruning/quantization) and hardware-in-the-loop latency validation, (5) Packaging weights, preprocessing code, dependencies, and configuration into a reproducible system artifact. The chapter does not prescribe a fixed sequence, but each step depends on the previous one. Development begins by establishing physical constraint boundaries; next, transfer learning establishes a functional baseline; ablation studies systematically isolate architectural improvements; model compression adapts the architecture to target device constraints; and finally, all code, weights, environment specs, and configs are packaged into a reproducible artifact.",
+     "hint": "Think about: design the sequence of stages in a constraint-driven model development and optimization pipeline.",
+     "type": "order",
+     "items": [
+      "Baseline transfer-learning fine-tuning from pretrained weights",
+      "Systematic ablation studies to isolate component contributions",
+      "Packaging weights, preprocessing code, dependencies, and configuration into a reproducible system artifact."
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A team observes that model validation accuracy drops 2 percent between run 47 and run 48. Explain how an automated experiment tracking lineage record helps investigate this regression compared to an ad hoc notebook workflow.",
+   "md": "Automated lineage narrows the search space by showing exactly which artifacts changed between the two runs: dataset version, code commit, hyperparameters, environment, and seed. In an ad hoc notebook workflow, those differences may be incomplete or missing, so the team spends much more time reconstructing what changed before it can even form a hypothesis. A metadata diff does not prove the cause by itself, but it identifies the most plausible candidates and supports repeated or controlled comparisons to test which change actually produced the regression."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify the four inference-package components of a reproducible system artifact and explain why weights alone fail to guarantee consistent inference.",
+    "You can now analyze the competition-versus-production trade-off in ensemble methods and justify why benchmark-winning models may be unviable for edge serving.",
+    "You can now calculate the cumulative accuracy trajectory under the Iteration Tax model and explain how experimentation velocity acts as a systems optimization lever.",
+    "You can now explain how automated artifact lineage narrows regression investigation by identifying changed artifacts and guiding controlled comparisons."
+   ]
+  }
+ ]
+}

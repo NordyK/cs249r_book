@@ -1,0 +1,244 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v2-15",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Sustainable AI** (Vol II). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Sustainable AI, Purpose",
+   "md": "Power is an operational expense and a physical constraint on what can be built. A data center has a power budget determined by electrical infrastructure and cooling capacity; a training run that exceeds it cannot proceed at the intended scale regardless of its financial budget. Adding accelerators only helps if the site can supply their electricity and remove their heat. A design that runs efficiently on one machine can therefore become infeasible when replicated across a fleet."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Energy Ceiling",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "The Scale of Environmental Impact",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Exponential Growth vs. Physical Constrai",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Energy Measurement and Modeling",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Carbon Footprint Calculation",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Data Center Energy and Resource Consumpt",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Training vs. Inference Energy Analysis",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Power ceiling versus energy account**",
+     "A facility cannot draw more than its grid feed and cooling capacity at any instant, while run energy integrates average power over time, so a short run can be infeasible at modest energy and a long run feasible at large energy."
+    ],
+    [
+     "**Sustainability measurement contract**",
+     "An energy or carbon number supports a comparison only when it extends the reproducible measurement contract with five fields, the functional unit, system boundary, attribution rule, carbon signal, and time and location of operation."
+    ],
+    [
+     "**Operational carbon chain**",
+     "Operational CO2 = IT energy x PUE x grid carbon intensity, three terms acting at separate tiers, and PUE measures only non-IT overhead, so a coal-fed site can beat a hydro-fed one on PUE."
+    ],
+    [
+     "**Embodied carbon allocation**",
+     "Manufacturing emissions are fixed before first power-on and allocated to work by a declared rule, so their share of a job's footprint rises on clean grids and at low utilization and decides when replacing hardware pays."
+    ],
+    [
+     "**Dominant lifecycle carbon term**",
+     "Lifecycle CO2 is training plus inference plus embodied, where development multiplies training and inference recurs with query volume and idle capacity, so for widely served models inference is usually the dominant term and picks the lever."
+    ],
+    [
+     "**Carbon-aware placement and time-shifting**",
+     "Moving work to cleaner regions or hours changes the emissions factor, not the energy, so it must use a marginal signal from a forecast, meet deadline, data, capacity, and reliability constraints, and beat the cost of the move."
+    ],
+    [
+     "**Water accounting**",
+     "Evaporative heat rejection lowers facility energy at the price of water, so water is a separate, location-weighted account (WUE at the IT boundary, withdrawal vs consumption, direct vs indirect) traded against energy."
+    ],
+    [
+     "**Demand outruns efficiency**",
+     "Fleet energy is energy per job times number of jobs, and demand outruns efficiency twice, through scaling laws that price each loss reduction in multiplicative compute and through rebound, so efficiency targets need absolute budgets."
+    ],
+    [
+     "**Facility overhead boundary**",
+     "PUE is facility energy over IT energy, defined once at the facility boundary, so budgeting by accelerator TDP underestimates load and the boundary decides where each loss is counted: upstream transformer, UPS, and distribution losses raise PUE while supply and regulator losses stay in IT load."
+    ],
+    [
+     "**Energy crossover versus performance ridge**",
+     "Modeled energy crosses over from movement-dominated to arithmetic-dominated at an intensity set by energy per byte over energy per operation, a different point from the performance ridge, so batch-1 decode spends most of its energy moving bytes."
+    ],
+    [
+     "**Edge and federated energy accounting**",
+     "Local execution saves energy only when the radio, remote compute, and transfers it avoids exceed the device's added compute, idle power, and manufacturing, so edge and federated deployment move energy rather than remove it."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$P_{\\text{total}} = P_{\\text{dynamic}} + P_{\\text{static}} = \\alpha C V^2 f + V I_{\\text{leak}}$$\n\n$$\\text{PUE} = \\frac{P_{\\text{total\\_facility}}}{P_{\\text{IT\\_equipment}}}$$\n\n$$\\text{WUE} = \\frac{W_{\\text{annual\\_water\\_usage}}}{P_{\\text{IT\\_equipment\\_energy}}}$$\n\n$$\\text{AI} = \\frac{\\text{Total FLOPs}}{\\text{Total Bytes Moved}}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v2-15-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Power ceiling versus energy account",
+     "back": "A facility cannot draw more than its grid feed and cooling capacity at any instant, while run energy integrates average power over time, so a short run can be infeasible at modest energy and a long run feasible at large energy."
+    },
+    {
+     "front": "Sustainability measurement contract",
+     "back": "An energy or carbon number supports a comparison only when it extends the reproducible measurement contract with five fields, the functional unit, system boundary, attribution rule, carbon signal, and time and location of operation."
+    },
+    {
+     "front": "Operational carbon chain",
+     "back": "Operational CO2 = IT energy x PUE x grid carbon intensity, three terms acting at separate tiers, and PUE measures only non-IT overhead, so a coal-fed site can beat a hydro-fed one on PUE."
+    },
+    {
+     "front": "Embodied carbon allocation",
+     "back": "Manufacturing emissions are fixed before first power-on and allocated to work by a declared rule, so their share of a job's footprint rises on clean grids and at low utilization and decides when replacing hardware pays."
+    },
+    {
+     "front": "Dominant lifecycle carbon term",
+     "back": "Lifecycle CO2 is training plus inference plus embodied, where development multiplies training and inference recurs with query volume and idle capacity, so for widely served models inference is usually the dominant term and picks the lever."
+    },
+    {
+     "front": "Carbon-aware placement and time-shifting",
+     "back": "Moving work to cleaner regions or hours changes the emissions factor, not the energy, so it must use a marginal signal from a forecast, meet deadline, data, capacity, and reliability constraints, and beat the cost of the move."
+    },
+    {
+     "front": "Water accounting",
+     "back": "Evaporative heat rejection lowers facility energy at the price of water, so water is a separate, location-weighted account (WUE at the IT boundary, withdrawal vs consumption, direct vs indirect) traded against energy."
+    },
+    {
+     "front": "Demand outruns efficiency",
+     "back": "Fleet energy is energy per job times number of jobs, and demand outruns efficiency twice, through scaling laws that price each loss reduction in multiplicative compute and through rebound, so efficiency targets need absolute budgets."
+    },
+    {
+     "front": "Facility overhead boundary",
+     "back": "PUE is facility energy over IT energy, defined once at the facility boundary, so budgeting by accelerator TDP underestimates load and the boundary decides where each loss is counted: upstream transformer, UPS, and distribution losses raise PUE while supply and regulator losses stay in IT load."
+    },
+    {
+     "front": "Energy crossover versus performance ridge",
+     "back": "Modeled energy crosses over from movement-dominated to arithmetic-dominated at an intensity set by energy per byte over energy per operation, a different point from the performance ridge, so batch-1 decode spends most of its energy moving bytes."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v2-15-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Power ceiling versus energy account**?",
+     "options": [
+      "Modeled energy crosses over from movement-dominated to arithmetic-dominated at an intensity set by energy per byte over energy per operation, a different point from the performance ridge, so batch-1 decode spends most of its energy moving bytes.",
+      "A facility cannot draw more than its grid feed and cooling capacity at any instant, while run energy integrates average power over time, so a short run can be infeasible at modest energy and a long run feasible at large energy.",
+      "Lifecycle CO2 is training plus inference plus embodied, where development multiplies training and inference recurs with query volume and idle capacity, so for widely served models inference is usually the dominant term and picks the lever.",
+      "An energy or carbon number supports a comparison only when it extends the reproducible measurement contract with five fields, the functional unit, system boundary, attribution rule, carbon signal, and time and location of operation."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Power ceiling versus energy account itself, not a neighbouring idea.",
+     "explanation": "**Power ceiling versus energy account:** A facility cannot draw more than its grid feed and cooling capacity at any instant, while run energy integrates average power over time, so a short run can be infeasible at modest energy and a long run feasible at large energy."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Sustainability measurement contract**?",
+     "options": [
+      "Moving work to cleaner regions or hours changes the emissions factor, not the energy, so it must use a marginal signal from a forecast, meet deadline, data, capacity, and reliability constraints, and beat the cost of the move.",
+      "Manufacturing emissions are fixed before first power-on and allocated to work by a declared rule, so their share of a job's footprint rises on clean grids and at low utilization and decides when replacing hardware pays.",
+      "An energy or carbon number supports a comparison only when it extends the reproducible measurement contract with five fields, the functional unit, system boundary, attribution rule, carbon signal, and time and location of operation.",
+      "Operational CO2 = IT energy x PUE x grid carbon intensity, three terms acting at separate tiers, and PUE measures only non-IT overhead, so a coal-fed site can beat a hydro-fed one on PUE."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Sustainability measurement contract itself, not a neighbouring idea.",
+     "explanation": "**Sustainability measurement contract:** An energy or carbon number supports a comparison only when it extends the reproducible measurement contract with five fields, the functional unit, system boundary, attribution rule, carbon signal, and time and location of operation."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Operational carbon chain**?",
+     "options": [
+      "Operational CO2 = IT energy x PUE x grid carbon intensity, three terms acting at separate tiers, and PUE measures only non-IT overhead, so a coal-fed site can beat a hydro-fed one on PUE.",
+      "Evaporative heat rejection lowers facility energy at the price of water, so water is a separate, location-weighted account (WUE at the IT boundary, withdrawal vs consumption, direct vs indirect) traded against energy.",
+      "Moving work to cleaner regions or hours changes the emissions factor, not the energy, so it must use a marginal signal from a forecast, meet deadline, data, capacity, and reliability constraints, and beat the cost of the move.",
+      "Local execution saves energy only when the radio, remote compute, and transfers it avoids exceed the device's added compute, idle power, and manufacturing, so edge and federated deployment move energy rather than remove it."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Operational carbon chain itself, not a neighbouring idea.",
+     "explanation": "**Operational carbon chain:** Operational CO2 = IT energy x PUE x grid carbon intensity, three terms acting at separate tiers, and PUE measures only non-IT overhead, so a coal-fed site can beat a hydro-fed one on PUE."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Embodied carbon allocation**?",
+     "options": [
+      "Modeled energy crosses over from movement-dominated to arithmetic-dominated at an intensity set by energy per byte over energy per operation, a different point from the performance ridge, so batch-1 decode spends most of its energy moving bytes.",
+      "Evaporative heat rejection lowers facility energy at the price of water, so water is a separate, location-weighted account (WUE at the IT boundary, withdrawal vs consumption, direct vs indirect) traded against energy.",
+      "An energy or carbon number supports a comparison only when it extends the reproducible measurement contract with five fields, the functional unit, system boundary, attribution rule, carbon signal, and time and location of operation.",
+      "Manufacturing emissions are fixed before first power-on and allocated to work by a declared rule, so their share of a job's footprint rises on clean grids and at low utilization and decides when replacing hardware pays."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Embodied carbon allocation itself, not a neighbouring idea.",
+     "explanation": "**Embodied carbon allocation:** Manufacturing emissions are fixed before first power-on and allocated to work by a declared rule, so their share of a job's footprint rises on clean grids and at low utilization and decides when replacing hardware pays."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Dominant lifecycle carbon term**?",
+     "options": [
+      "Manufacturing emissions are fixed before first power-on and allocated to work by a declared rule, so their share of a job's footprint rises on clean grids and at low utilization and decides when replacing hardware pays.",
+      "Lifecycle CO2 is training plus inference plus embodied, where development multiplies training and inference recurs with query volume and idle capacity, so for widely served models inference is usually the dominant term and picks the lever.",
+      "Local execution saves energy only when the radio, remote compute, and transfers it avoids exceed the device's added compute, idle power, and manufacturing, so edge and federated deployment move energy rather than remove it.",
+      "Fleet energy is energy per job times number of jobs, and demand outruns efficiency twice, through scaling laws that price each loss reduction in multiplicative compute and through rebound, so efficiency targets need absolute budgets."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Dominant lifecycle carbon term itself, not a neighbouring idea.",
+     "explanation": "**Dominant lifecycle carbon term:** Lifecycle CO2 is training plus inference plus embodied, where development multiplies training and inference recurs with query volume and idle capacity, so for widely served models inference is usually the dominant term and picks the lever."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Power ceiling versus energy account: A facility cannot draw more than its grid feed and cooling capacity at any instant, while run energy integrates average power over time, so a short run can be infeasible at modest energy and a long run feasible at large energy.",
+    "Sustainability measurement contract: An energy or carbon number supports a comparison only when it extends the reproducible measurement contract with five fields, the functional unit, system boundary, attribution rule, carbon signal, and time and location of operation.",
+    "Operational carbon chain: Operational CO2 = IT energy x PUE x grid carbon intensity, three terms acting at separate tiers, and PUE measures only non-IT overhead, so a coal-fed site can beat a hydro-fed one on PUE.",
+    "Embodied carbon allocation: Manufacturing emissions are fixed before first power-on and allocated to work by a declared rule, so their share of a job's footprint rises on clean grids and at low utilization and decides when replacing hardware pays."
+   ]
+  }
+ ],
+ "terms": []
+}

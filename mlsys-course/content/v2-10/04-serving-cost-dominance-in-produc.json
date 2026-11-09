@@ -1,0 +1,81 @@
+{
+ "title": "Serving Cost Dominance in Production",
+ "summary": "Calculate the lifetime economic leverage of recurring inference expense relative to one-time training expense.",
+ "source": {
+  "chapter": "v2-10",
+  "sections": [
+   "Serving Cost Dominance in Production"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Serving Cost Dominance in Production** in *Serving at Scale* (Vol II). By the end you should be able to:\n\n- Calculate the lifetime economic leverage of recurring inference expense relative to one-time training expense\n- Identify the inputs that decide whether serving or training dominates a model's lifetime cost\n- Apply a consistent accounting boundary when estimating unit serving cost for the lifetime cost model\n- Justify why recurring serving savings can rival training cost, and identify the conditions under which a unit-cost reduction yields real savings"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Serving at Scale, § Serving Cost Dominance in Production",
+   "md": "A team that budgets millions of dollars to train a model can find within weeks of launch that serving traffic is spending more compute per month than the entire training run cost. While the serving tax in a later section consumes a fraction of each request's latency budget, those per-request costs compound across every query over the model's operational lifetime."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Serving cost dominance: one-time training expense versus recurring serving expense; Lifetime cost as training cost plus cost per query times duration times query rate; Consistent accounting boundary for unit serving cost; Conditions under which a unit-cost reduction yields recurring savings."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A model costs \\$2M to train, and its first year of serving costs about \\$18M. Explain why a 10 percent reduction in cost per request can be worth nearly as much as the original training run, and state the conditions under which that saving is real.",
+   "md": "Serving expense recurs with traffic, so a 10 percent reduction in cost per request saves about \\$1.8M in the first year alone and keeps saving every year after, while training was paid once. The saving is real only if request volume and service quality stay fixed, because the reduction must lower billed capacity for the same useful work. A change that only lowers latency does not reduce billed capacity, so engineering effort on a deployed model should target cost per completed request at the SLO."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-10-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A production recommendation model costs \\$50,000 to train (a one-time expense) and serves 10,000 QPS continuously for 2 years (730 days) at an operational cost of \\$10 per million queries. What is the ratio of lifetime serving cost to training cost?",
+     "explanation": "The correct answer is B. The model serves \\$10{,}000 \\times 86{,}400 \\times 730 = 6.3072 \\times 10^{11}$ queries. At \\$10^{-5}$ dollars per query, serving costs 6,307,200 dollars, or approximately 126.1 times the 50,000-dollar training cost. The other ratios miscount accumulated queries or unit cost. This result depends on the specified sustained traffic, lifetime, and price rather than a universal cost ratio.",
+     "hint": "Think about: calculate the lifetime economic leverage of recurring inference expense relative to one-time training expense.",
+     "type": "single",
+     "options": [
+      "Approximately \\$1.3×",
+      "Approximately \\$126.1×",
+      "Approximately \\$12.6×",
+      "Approximately \\$630.7×"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Serving cost always exceeds training cost once a model is large enough, because larger models cost more per query.",
+     "explanation": "False. Whether serving dominates depends on traffic, unit serving cost, deployment duration, and the training expense, not on model size alone. A low-traffic deployment or a short lifetime can leave training as the larger cost over the whole deployment.",
+     "hint": "Think about: identify the inputs that decide whether serving or training dominates a model's lifetime cost.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A team estimates its cost per query from GPU time on fully loaded replicas, but its fleet also bills for reserved replicas that sit idle overnight to absorb the daytime peak. What does the lifetime cost model require?",
+     "explanation": "The correct answer is D. Unit serving cost must include the chosen serving boundary, including idle or reserved capacity whenever it is billed, and the query rate must count the same served queries. Treating idle replicas as free understates the bill, and inflating the query rate double-counts traffic rather than fixing the cost boundary. Reserved capacity recurs with every billing period, so it is not a one-time expense.",
+     "hint": "Think about: apply a consistent accounting boundary when estimating unit serving cost for the lifetime cost model.",
+     "type": "single",
+     "options": [
+      "Nothing more, because idle replicas do no work and therefore add no cost per query.",
+      "Doubling the query rate to account for the peak, because peaks set the cost.",
+      "Replacing cost per query with training cost, because idle capacity is a one-time expense.",
+      "Charging the billed idle and reserved capacity inside the unit cost, and counting the same served queries in the rate that was used to estimate that cost."
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate the lifetime economic leverage of recurring inference expense relative to one-time training expense.",
+    "You can now identify the inputs that decide whether serving or training dominates a model's lifetime cost.",
+    "You can now apply a consistent accounting boundary when estimating unit serving cost for the lifetime cost model.",
+    "You can now justify why recurring serving savings can rival training cost, and identify the conditions under which a unit-cost reduction yields real savings."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,90 @@
+{
+ "title": "Fleet-Internal Trust Boundaries",
+ "summary": "Quantify the communication cost that robust aggregation imposes on data-parallel training.",
+ "source": {
+  "chapter": "v2-13",
+  "sections": [
+   "Fleet-Internal Trust Boundaries",
+   "Gradient synchronization integrity",
+   "Collective traffic confidentiality",
+   "Shared accelerators and caches",
+   "Attestation and key custody at fleet scale"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fleet-Internal Trust Boundaries** in *Security & Privacy* (Vol II). By the end you should be able to:\n\n- Quantify the communication cost that robust aggregation imposes on data-parallel training\n- Evaluate how to measure the capacity cost of multi-tenant isolation controls under a matched resource budget\n- Identify the confidentiality assumption behind unencrypted collective communication\n- Analyze how shared serving state creates cross-tenant timing channels\n- Place fleet attestation and key custody costs on the coordination axis of the Fleet Law"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Security & Privacy, § Fleet-Internal Trust Boundaries",
+   "md": "A training job on the reference cluster of … GPUs (… nodes with … GPUs each) depends on contributions from many participants. Each optimizer step of the Archetype A (GPT-4/Llama-3) reference model reduces … of FP16 gradients across the job, and each checkpoint interval produces a … artifact containing valuable learned state. Public inference controls do not govern these internal exchanges."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Gradient synchronization integrity\n- Collective traffic confidentiality\n- Shared accelerators and caches\n- Attestation and key custody at fleet scale\n\nPay attention to: Breakdown point of mean gradient aggregation; Traffic cost of robust aggregation vs. ring AllReduce; Confidentiality of unencrypted RDMA collective traffic; Residual state and prefix-cache timing channels on shared accelerators."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Two hypothetical serving configurations use the same allocated accelerator capacity, models, request mix, and latency target. The baseline sustains 1,000 tokens/s and the configuration with additional security controls sustains 850 tokens/s. Explain what this 15% capacity loss establishes and why comparing a whole GPU against a smaller MIG partition would not isolate security overhead.",
+   "md": "The matched scenario requires capacity planning around a 15% throughput loss; it does not measure a universal isolation cost or identify a particular mechanism. A whole-GPU versus smaller-partition comparison also changes available compute and memory capacity. MIG partitioning can affect pooling and fragmentation, which must be distinguished from execution overhead; it does not inherently imply secure context switching. Measure the actual configuration under its stated security boundary."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-13-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A 64-worker data-parallel job replaces ring AllReduce with a gather-based coordinate-wise median implementation: every worker gathers every individual gradient before computing the median. Approximately how does per-worker gradient traffic change under this schedule?",
+     "explanation": "The correct answer is A. The specified gather receives (N-1)M bytes per worker, compared with \\$2(N-1)M/N for ring AllReduce, giving N/2=32. Ring summation does not expose individual gradients. This is the cost of the stated gather schedule, not a lower bound for every robust aggregation protocol.",
+     "hint": "Think about: quantify the communication cost that robust aggregation imposes on data-parallel training.",
+     "type": "single",
+     "options": [
+      "It rises by about 32 times, because this implementation gathers the 63 peer gradients instead of moving about twice the gradient size in the ring.",
+      "It is unchanged, because this median implementation uses only the sum returned by ring AllReduce.",
+      "It roughly doubles, because gathering all individual gradients costs one extra ring pass.",
+      "It falls, because the implementation discards outlier gradients before receiving them."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "RDMA movement between accelerator memories establishes gradient confidentiality even when the fabric payloads are plaintext.",
+     "explanation": "False. RDMA specifies a data path, not confidentiality. Plaintext protection depends on access to links, switches, endpoints, and management. Facility isolation restricts access without removing that boundary; even line-rate encryption adds latency and may change critical-path overlap.",
+     "hint": "Think about: identify the confidentiality assumption behind unencrypted collective communication.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A multi-tenant LLM service shares one prefix cache across all tenants, and cache hits are distinguishable in time-to-first-token measurements. What can a probing tenant infer, and which control removes this cross-tenant cache-reuse path?",
+     "explanation": "The correct answer is A. A cache hit returns the first token measurably sooner than a miss, so probing can provide evidence of prior processing of that prefix. This does not identify a particular user or recover arbitrary prompts. Per-tenant cache scoping removes the cross-tenant reuse state at the price of lost reuse; other timing channels require separate assessment. Weight encryption at rest protects stored artifacts, not a timing difference at serving time. Mutual TLS authenticates peers but does not hide cache behavior. Output rounding limits extraction through probabilities and does not affect time to first token.",
+     "hint": "Think about: analyze how shared serving state creates cross-tenant timing channels.",
+     "type": "single",
+     "options": [
+      "Evidence that a probed prefix was recently processed outside the probing tenant; per-tenant cache scoping removes this shared-reuse path at the cost of a lower hit rate.",
+      "The model weights of the serving replica; encrypting the weights at rest closes the channel.",
+      "Another tenant's API key; mutual TLS between client and gateway closes the channel.",
+      "The exact output tokens of other tenants; rounding output probabilities closes the channel."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: When a 128-node training job waits for fresh remote attestation and key delivery before admission or recovery, explain why that delay enters the coordination term and recovery path of the Fleet Law. Distinguish it from steady-state protected-execution costs.",
+   "md": "The job cannot resume until the required evidence is checked and keys are delivered, so this delay lies on the admission or recovery critical path and contributes to coordination cost. Which components are attested and when re-attestation is required depend on the platform and policy. This placement does not imply that protected execution, encrypted communication, or later key-management events have zero steady-state overhead; those costs must be measured separately."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now quantify the communication cost that robust aggregation imposes on data-parallel training.",
+    "You can now evaluate how to measure the capacity cost of multi-tenant isolation controls under a matched resource budget.",
+    "You can now identify the confidentiality assumption behind unencrypted collective communication.",
+    "You can now analyze how shared serving state creates cross-tenant timing channels."
+   ]
+  }
+ ]
+}

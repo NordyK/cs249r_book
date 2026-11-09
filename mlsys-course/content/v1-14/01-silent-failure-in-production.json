@@ -1,0 +1,100 @@
+{
+ "title": "Silent Failure in Production",
+ "summary": "Explain how the operational mismatch between infrastructure availability and statistical predictive correctness motivates MLOps.",
+ "source": {
+  "chapter": "v1-14",
+  "sections": [
+   "Silent Failure in Production",
+   "Five operational principles"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Silent Failure in Production** in *ML Operations* (Vol I). By the end you should be able to:\n\n- Explain how the operational mismatch between infrastructure availability and statistical predictive correctness motivates MLOps\n- Classify operational system failures according to the three critical MLOps interfaces\n- Analyze why MLOps uses monitoring and conditional corrective updates to manage changing production conditions over time\n- Define the operational scope and architectural components comprising a single ML Node\n- Calculate the annualized financial impact of training-serving skew using the skew cost equation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Operations, § Silent Failure in Production",
+   "md": "A serving cluster can return HTTP 200 on every request, stay well inside its tail-latency budget, and pass every infrastructure health check while the recommendations it serves lose relevance week after week. A **silent failure** is a production model that keeps answering every request on time, raises no error, and passes every health check while its answers grow worse. Any deployed model is exposed to it, because a model is a fit to the data it trained on and the world it serves keeps moving after training ends."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Five operational principles\n\nPay attention to: operational mismatch between traditional software availability and statistical predictive correctness; the single-model operational unit (ML Node); the three critical MLOps interfaces; closed-loop control system dynamics."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why MLOps treats a deployed model as a closed-loop control system rather than a terminal release pipeline.",
+   "md": "MLOps treats deployment as a closed-loop control system because the data environment may change after launch, and a model can remain available while its prediction quality degrades or its assumptions stop matching production inputs. The loop continuously gathers telemetry on system health, input distributions, and—when labels or outcomes arrive—prediction quality, then uses that evidence to diagnose whether action is needed. If investigation supports intervention, the team can retrain, validate, and release a new model through staged rollout rather than assuming drift alone automatically authorizes an update."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-14-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "The chapter's ranking service keeps its P99 latency inside budget, 99.99% server availability, and zero HTTP error responses. However, over four weeks, its click-prediction accuracy drops from 94% to 88% after a competitor's promotion shifts what users click. Which operational challenge does this scenario illustrate?",
+     "explanation": "The correct answer is C. The operational mismatch between traditional infrastructure availability and statistical predictive correctness. Traditional infrastructure monitoring tracks server uptime, request latency, and HTTP status codes, none of which detect statistical decay in model predictions. When user behavior shifted, the model failed silently while all infrastructure dashboards remained green. The choices concerning hardware memory capacity ceilings, serialization bottlenecks, and network communication protocols describe systems and computational constraints rather than the statistical observability gap that motivates MLOps.",
+     "hint": "Think about: explain how the operational mismatch between infrastructure availability and statistical predictive correctness motivates MLOps",
+     "type": "single",
+     "options": [
+      "The hardware compute capacity ceiling between GPU memory and host memory",
+      "The protocol communication overhead between REST endpoints and gRPC streaming",
+      "The operational mismatch between traditional infrastructure availability and statistical predictive correctness",
+      "The serialization throughput bottleneck between CPU preprocessing and accelerator execution"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Which scenario represents a direct failure of the Data-Model Interface in a production ML system?",
+     "explanation": "The correct answer is D. An online inference service computes user_session_duration in seconds while the offline training pipeline calculated it in minutes. The Data-Model Interface governs feature consistency and transformation alignment between data pipelines and model training/serving; diverging feature definitions between offline and online systems is a textbook failure of this interface. A container crashing due to CUDA driver incompatibilities or delayed deployments due to lack of warm standby are Model-Infrastructure Interface failures. A misrouted drift alert represents a Production-Monitoring Interface failure.",
+     "hint": "Think about: classify operational system failures according to the three critical MLOps interfaces",
+     "type": "single",
+     "options": [
+      "An inference container crashes upon startup because the host system has an incompatible CUDA driver",
+      "A candidate model deployment is delayed because previous model weights were not cached in warm standby",
+      "A statistical drift alert is routed to an unmonitored ticketing queue instead of the on-call engineer",
+      "An online inference service computes user_session_duration in seconds while the offline training pipeline calculated it in minutes"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "An ML Node is defined solely as the trained neural network weight file packaged inside a container runtime.",
+     "explanation": "False. An ML Node is the complete, self-contained operational unit for a single machine learning application, encompassing data ingestion pipelines, feature computation, model training, serving infrastructure, and monitoring/telemetry systems. Packaging weights in a container is only a single component of the Model-Infrastructure layer.",
+     "hint": "Think about: define the operational scope and architectural components comprising a single ML Node",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A production recommendation service processes Q = 2 × 10^6 queries per day. Due to a feature encoding discrepancy between offline training and online serving, Rate_skew = 0.005 (\\$0.5\\% of queries) receive incorrect predictions, each causing an estimated business loss of C_error = \\$0.20. Using the chapter's skew-cost equation, what is the annual financial impact of this inconsistency over a 365-day year?",
+     "explanation": "The correct answer is A. $\\$730,000$ per year. The skew cost equation is $\\text{Skew Cost} = \\text{Rate}_{\\text{skew}} \\times Q \\times C_{\\text{error}} \\times \\text{Days}$. Substituting the parameters: $\\text{Daily Cost} = 0.005 \\times (2 \\times 10^6) \\times \\$0.20 = 10,000 \\times \\$0.20 = \\$2,000/\\text{day}$. Multiplying across 365 days yields $\\$2,000 \\times 365 = \\$730,000/\\text{year}$. The choice of $\\$73,000$ underestimates the daily volume by a factor of 10, while $\\$36,500$ and $\\$200,000$ fail to reflect the compound product of daily query volume, skew error rate, error cost, and days in a year.",
+     "hint": "Think about: calculate the annualized financial impact of training-serving skew using the skew cost equation",
+     "type": "single",
+     "options": [
+      "$\\$730,000$ per year",
+      "$\\$73,000$ per year",
+      "$\\$200,000$ per year",
+      "$\\$36,500$ per year"
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain how the principle of 'Separation of Concerns' across the four MLOps functional layers (Data, Training, Serving, Monitoring) limits the blast radius of operational updates.",
+   "md": "Separation of concerns places the Data, Training, Serving, and Monitoring layers behind modular interfaces so teams can change one layer without automatically rewriting the others. For example, a serving-runtime update or a monitoring-threshold change can often proceed independently, but only if interface contracts remain compatible and integration tests verify that the change did not break adjacent layers. The practical effect is reduced coupling and easier fault isolation, not a guarantee that one layer can never affect another."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain how the operational mismatch between infrastructure availability and statistical predictive correctness motivates MLOps.",
+    "You can now classify operational system failures according to the three critical MLOps interfaces.",
+    "You can now analyze why MLOps uses monitoring and conditional corrective updates to manage changing production conditions over time.",
+    "You can now define the operational scope and architectural components comprising a single ML Node."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,254 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v4-05",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Physical Data** (Vol IV). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Physical Data, Purpose",
+   "md": "A successful demonstration shows how one machine completed a task under one set of conditions. It shows almost nothing about what to do after a slip, a shifted fixture, or a worn gripper, yet a learned policy's first error carries it into exactly those states, where the archive holds no instruction. Repeating the demonstration enlarges the archive without filling that gap."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Endogenous Experience",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Mechanics of Endogenous Covariate Shift",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Recovery and Compounding Error",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Physical Telemetry Sources and Collectio",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Action Label Selection across the Contro",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Teleoperation Demonstration Costs",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Collection Policy Coverage",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Endogenous covariate shift**",
+     "Because a physical machine's own executed actions choose its next states and observations, the learner visits a distribution its demonstrations never sampled, so more nominal demonstrations only densify the region the expert already covered."
+    ],
+    [
+     "**Compounding error and recoverability**",
+     "Behavioral cloning's worst-case excess cost grows as T^2*eps because training error is weighted by the expert's occupancy, and labeling learner-visited states makes it linear only while a recovering action still exists."
+    ],
+    [
+     "**Action-label semantics**",
+     "One command exists as four signals (requested, mapped, enforced, measured) and every pair must be dated at the exposure midpoint, because the tap chosen and the pairing lag decide what behavior the label teaches."
+    ],
+    [
+     "**Demonstration yield and wear**",
+     "Physical data is bought in cell time and component life, so less than a quarter of a scheduled hour survives as retained demonstration and failed attempts wear parts like successful ones."
+    ],
+    [
+     "**Operational design domain**",
+     "The operational design domain is declared before collection, and an archive's coverage is a join between its state-action occupancy and a scenario table derived from that domain, never a property the archive can measure alone."
+    ],
+    [
+     "**Intervention curation**",
+     "A zero-count cell can mean unvisited, intercepted, cut short by takeover, or censored, and takeover logs are failure-conditioned, so curation locates the divergence point in a pre-trigger buffer and admits only verified recovery."
+    ],
+    [
+     "**Embodiment contract**",
+     "Every trajectory encodes the sensor geometry, timing, kinematic and torque limits, and compliance of the machine that produced it, so range normalization is cosmetic and borrowed data must pass an embodiment gate."
+    ],
+    [
+     "**Provenance record**",
+     "Schema-valid arrays can silently encode a shifted camera, a worn pad, a drifted operator, or a mismatched unit, so every archive is bound to an immutable provenance record of plant, calibration, wear, taps, timing, and denominators."
+    ],
+    [
+     "**Behavioral cloning**",
+     "Behavioral cloning fits actions to observations under the expert's occupancy, so a low held-out loss says nothing about closed-loop competence."
+    ],
+    [
+     "**Scenario coverage table**",
+     "A scenario table enumerates the cells the declared domain requires over low-dimensional task invariants, because a brute-force state grid is defeated by dimensionality."
+    ],
+    [
+     "**Effective sample size of telemetry**",
+     "Autocorrelated telemetry carries about N(1-rho)/(1+rho) independent samples, so a higher logger rate cannot populate an unvisited cell."
+    ],
+    [
+     "**Causal confusion**",
+     "A policy can learn a consequence of the action as its cause (a joint current, a brake light), which is a different failure from contamination by the learner's own actions."
+    ],
+    [
+     "**Teleoperation loop latency**",
+     "Teleoperation loop latency is display plus human plus command plus mechanics time, dominated by operator reaction, and it leaves step-and-wait artifacts in the labels."
+    ],
+    [
+     "**Kinematic topology mismatch**",
+     "Cartesian labels recorded on one arm can force a different arm through a singularity or drop a redundant degree of freedom, so action spaces transfer only through the embodiment contract."
+    ],
+    [
+     "**Rig-to-rig divergence**",
+     "Nominally identical units differ in transmission, mounts, and motor constants, so a failed attempt and a failed recording must be told apart per unit."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v4-05-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Endogenous covariate shift",
+     "back": "Because a physical machine's own executed actions choose its next states and observations, the learner visits a distribution its demonstrations never sampled, so more nominal demonstrations only densify the region the expert already covered."
+    },
+    {
+     "front": "Compounding error and recoverability",
+     "back": "Behavioral cloning's worst-case excess cost grows as T^2*eps because training error is weighted by the expert's occupancy, and labeling learner-visited states makes it linear only while a recovering action still exists."
+    },
+    {
+     "front": "Action-label semantics",
+     "back": "One command exists as four signals (requested, mapped, enforced, measured) and every pair must be dated at the exposure midpoint, because the tap chosen and the pairing lag decide what behavior the label teaches."
+    },
+    {
+     "front": "Demonstration yield and wear",
+     "back": "Physical data is bought in cell time and component life, so less than a quarter of a scheduled hour survives as retained demonstration and failed attempts wear parts like successful ones."
+    },
+    {
+     "front": "Operational design domain",
+     "back": "The operational design domain is declared before collection, and an archive's coverage is a join between its state-action occupancy and a scenario table derived from that domain, never a property the archive can measure alone."
+    },
+    {
+     "front": "Intervention curation",
+     "back": "A zero-count cell can mean unvisited, intercepted, cut short by takeover, or censored, and takeover logs are failure-conditioned, so curation locates the divergence point in a pre-trigger buffer and admits only verified recovery."
+    },
+    {
+     "front": "Embodiment contract",
+     "back": "Every trajectory encodes the sensor geometry, timing, kinematic and torque limits, and compliance of the machine that produced it, so range normalization is cosmetic and borrowed data must pass an embodiment gate."
+    },
+    {
+     "front": "Provenance record",
+     "back": "Schema-valid arrays can silently encode a shifted camera, a worn pad, a drifted operator, or a mismatched unit, so every archive is bound to an immutable provenance record of plant, calibration, wear, taps, timing, and denominators."
+    },
+    {
+     "front": "Behavioral cloning",
+     "back": "Behavioral cloning fits actions to observations under the expert's occupancy, so a low held-out loss says nothing about closed-loop competence."
+    },
+    {
+     "front": "Scenario coverage table",
+     "back": "A scenario table enumerates the cells the declared domain requires over low-dimensional task invariants, because a brute-force state grid is defeated by dimensionality."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v4-05-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Endogenous covariate shift**?",
+     "options": [
+      "Cartesian labels recorded on one arm can force a different arm through a singularity or drop a redundant degree of freedom, so action spaces transfer only through the embodiment contract.",
+      "Behavioral cloning fits actions to observations under the expert's occupancy, so a low held-out loss says nothing about closed-loop competence.",
+      "Autocorrelated telemetry carries about N(1-rho)/(1+rho) independent samples, so a higher logger rate cannot populate an unvisited cell.",
+      "Because a physical machine's own executed actions choose its next states and observations, the learner visits a distribution its demonstrations never sampled, so more nominal demonstrations only densify the region the expert already covered."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Endogenous covariate shift itself, not a neighbouring idea.",
+     "explanation": "**Endogenous covariate shift:** Because a physical machine's own executed actions choose its next states and observations, the learner visits a distribution its demonstrations never sampled, so more nominal demonstrations only densify the region the expert already covered."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Compounding error and recoverability**?",
+     "options": [
+      "Cartesian labels recorded on one arm can force a different arm through a singularity or drop a redundant degree of freedom, so action spaces transfer only through the embodiment contract.",
+      "Behavioral cloning's worst-case excess cost grows as T^2*eps because training error is weighted by the expert's occupancy, and labeling learner-visited states makes it linear only while a recovering action still exists.",
+      "Every trajectory encodes the sensor geometry, timing, kinematic and torque limits, and compliance of the machine that produced it, so range normalization is cosmetic and borrowed data must pass an embodiment gate.",
+      "The operational design domain is declared before collection, and an archive's coverage is a join between its state-action occupancy and a scenario table derived from that domain, never a property the archive can measure alone."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Compounding error and recoverability itself, not a neighbouring idea.",
+     "explanation": "**Compounding error and recoverability:** Behavioral cloning's worst-case excess cost grows as T^2*eps because training error is weighted by the expert's occupancy, and labeling learner-visited states makes it linear only while a recovering action still exists."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Action-label semantics**?",
+     "options": [
+      "Autocorrelated telemetry carries about N(1-rho)/(1+rho) independent samples, so a higher logger rate cannot populate an unvisited cell.",
+      "Physical data is bought in cell time and component life, so less than a quarter of a scheduled hour survives as retained demonstration and failed attempts wear parts like successful ones.",
+      "One command exists as four signals (requested, mapped, enforced, measured) and every pair must be dated at the exposure midpoint, because the tap chosen and the pairing lag decide what behavior the label teaches.",
+      "Cartesian labels recorded on one arm can force a different arm through a singularity or drop a redundant degree of freedom, so action spaces transfer only through the embodiment contract."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Action-label semantics itself, not a neighbouring idea.",
+     "explanation": "**Action-label semantics:** One command exists as four signals (requested, mapped, enforced, measured) and every pair must be dated at the exposure midpoint, because the tap chosen and the pairing lag decide what behavior the label teaches."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Demonstration yield and wear**?",
+     "options": [
+      "Physical data is bought in cell time and component life, so less than a quarter of a scheduled hour survives as retained demonstration and failed attempts wear parts like successful ones.",
+      "Behavioral cloning's worst-case excess cost grows as T^2*eps because training error is weighted by the expert's occupancy, and labeling learner-visited states makes it linear only while a recovering action still exists.",
+      "Schema-valid arrays can silently encode a shifted camera, a worn pad, a drifted operator, or a mismatched unit, so every archive is bound to an immutable provenance record of plant, calibration, wear, taps, timing, and denominators.",
+      "Behavioral cloning fits actions to observations under the expert's occupancy, so a low held-out loss says nothing about closed-loop competence."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Demonstration yield and wear itself, not a neighbouring idea.",
+     "explanation": "**Demonstration yield and wear:** Physical data is bought in cell time and component life, so less than a quarter of a scheduled hour survives as retained demonstration and failed attempts wear parts like successful ones."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Operational design domain**?",
+     "options": [
+      "A scenario table enumerates the cells the declared domain requires over low-dimensional task invariants, because a brute-force state grid is defeated by dimensionality.",
+      "The operational design domain is declared before collection, and an archive's coverage is a join between its state-action occupancy and a scenario table derived from that domain, never a property the archive can measure alone.",
+      "Physical data is bought in cell time and component life, so less than a quarter of a scheduled hour survives as retained demonstration and failed attempts wear parts like successful ones.",
+      "Every trajectory encodes the sensor geometry, timing, kinematic and torque limits, and compliance of the machine that produced it, so range normalization is cosmetic and borrowed data must pass an embodiment gate."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Operational design domain itself, not a neighbouring idea.",
+     "explanation": "**Operational design domain:** The operational design domain is declared before collection, and an archive's coverage is a join between its state-action occupancy and a scenario table derived from that domain, never a property the archive can measure alone."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Endogenous covariate shift: Because a physical machine's own executed actions choose its next states and observations, the learner visits a distribution its demonstrations never sampled, so more nominal demonstrations only densify the region the expert already covered.",
+    "Compounding error and recoverability: Behavioral cloning's worst-case excess cost grows as T^2*eps because training error is weighted by the expert's occupancy, and labeling learner-visited states makes it linear only while a recovering action still exists.",
+    "Action-label semantics: One command exists as four signals (requested, mapped, enforced, measured) and every pair must be dated at the exposure midpoint, because the tap chosen and the pairing lag decide what behavior the label teaches.",
+    "Demonstration yield and wear: Physical data is bought in cell time and component life, so less than a quarter of a scheduled hour survives as retained demonstration and failed attempts wear parts like successful ones."
+   ]
+  }
+ ],
+ "terms": []
+}

@@ -1,0 +1,62 @@
+{
+ "title": "Behavior at the Seam",
+ "summary": "Work through Behavior at the Seam.",
+ "source": {
+  "chapter": "v4-11",
+  "sections": [
+   "Behavior at the Seam",
+   "Replacement deadlines and commitment cutoffs",
+   "The C$^2$ stopping suffix and jerk-limited braking",
+   "Inevitable collision states",
+   "Base stopping budget under jerk-limited deceleration"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Behavior at the Seam** in *Trajectory Planning* (Vol IV)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Trajectory Planning, § Behavior at the Seam",
+   "md": "When the replacement does not arrive, because inference stalls on scheduling interference, a bus fault, or an unhandled exception, the arm reaches the end of its authority with no successor in hand. The runtime must then bring it to rest without violating the limits derived above or exhausting its stopping clearance. Three things decide the outcome: which deadline has passed, which stop the MCU runs, and how much clearance that stop consumes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Replacement deadlines and commitment cutoffs\n- The C$^2$ stopping suffix and jerk-limited braking\n- Inevitable collision states\n- Base stopping budget under jerk-limited deceleration"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Nonholonomic base planning matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A differential-drive base reaches the same configurations as a holonomic one but through a restricted velocity space, so it plans over controls."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-11-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Behavior at the Seam** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Splicing chunks that match only position or velocity leaves an acceleration step that reflected inertia turns into a torque step, so seams must be C2 and the replacement is planned from the projected seam state.",
+      "A differential-drive base reaches the same configurations as a holonomic one but through a restricted velocity space, so it plans over controls.",
+      "Clearance and tool limits live in tool space but drives enforce joint limits, so tool-space quantities pass through the configuration-dependent Jacobian, whose weak direction near a singularity demands unbounded joint rates unless damped least squares trades accuracy for bounded rates.",
+      "A stop that keeps acceleration continuous must ramp deceleration up and down, so constant-deceleration braking is unexecutable and understates distance, and every admitted trajectory carries a jerk-limited S-curve stop."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Nonholonomic base planning**: A differential-drive base reaches the same configurations as a holonomic one but through a restricted velocity space, so it plans over controls."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Behavior at the Seam."
+   ]
+  }
+ ]
+}

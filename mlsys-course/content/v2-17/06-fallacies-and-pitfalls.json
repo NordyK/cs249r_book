@@ -1,0 +1,83 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Identify the \"faster model is a better system\" fallacy and explain how local kernel optimizations can degrade fleet-level serving throughput and latency.",
+ "source": {
+  "chapter": "v2-17",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Conclusion* (Vol II). By the end you should be able to:\n\n- Identify the \"faster model is a better system\" fallacy and explain how local kernel optimizations can degrade fleet-level serving throughput and latency\n- Distinguish the pitfall of displaced overhead and diagnose how local layer optimizations can shift bottlenecks into adjacent, unmonitored subsystems\n- Distinguish between ephemeral hardware/software artifacts and durable physical/mathematical invariants in distributed ML systems\n- Evaluate how durable systems invariants persist across transitions in underlying physical hardware and software tools"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Conclusion, § Fallacies and Pitfalls",
+   "md": "The closing mistakes all come from optimizing the wrong unit of design. A model can improve while the fleet becomes slower, less reliable, more expensive, or harder to govern."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: the fallacy of isolated model speedups versus fleet system throughput; the pitfall of displaced overhead across stack layers; durable rate, failure, and tail latency invariants versus ephemeral technology names."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: The chapter cautions against the fallacy that fleet-scale lessons are tied to today's hardware and software stack.\n(a) Contrast ephemeral technologies with durable systems relationships using two concrete examples of each from the book.\n(b) Explain why rate-matching and failure scaling will remain mandatory principles even if future clusters transition from silicon GPUs to optical or neuromorphic hardware.",
+   "md": "(a) **Ephemeral Technologies vs. Durable Relationships**:\n- *Ephemeral Technologies*: Specific hardware parts (e.g., NVIDIA H100, TPU v5p), deep learning frameworks/APIs (e.g., PyTorch `torch.distributed`, DeepSpeed ZeRO), and physical interconnect protocols (e.g., RoCEv2, InfiniBand NDR). These implementations evolve and will be superseded over successive generations.\n- *Durable Relationships*: Mathematical and physical laws that govern distributed systems, including the single-machine iron law, the Fleet Law of distributed step time (DistributedStepTime), Little's law in serving queues (RequestConcurrency = ArrivalRate RequestTimeInSystem), and the Young-Daly optimal checkpoint cadence (OptimalCheckpointInterval = sqrt2 CheckpointWriteTime SystemMtbf).\n\n(b) **Why Invariants Persist Across New Substrates**:\n- *Rate-Matching*: Computation fundamentally requires data; whether processing is performed via electronic transistors, photonic circuits, or memristive crossbars, if memory and I/O channels cannot supply activations and weights at the rate compute consumes them, processing elements will stall.\n- *Failure Scaling*: Under the simplified identical independent failure-rate model where every accelerator failure interrupts the job, aggregate cluster mean time between failures scales inversely with accelerator count (SystemMtbf = ComponentMttf/DeviceCount), requiring automated checkpointing and fault recovery."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-17-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A performance engineering team rewrites an attention kernel to execute 40% faster on a microbenchmark by storing intermediate QK values in an uncompressed, custom shared-memory layout. When integrated into the full 2,048-GPU production serving fleet, however, end-to-end request throughput decreases by 15% and p99 tail latency doubles. Matched measurements show higher memory residency, lower feasible serving concurrency, and increased exposed tensor-parallel communication. Which closing fallacy from the chapter explains this outcome?",
+     "explanation": "The correct answer is C. Fallacy: \"A faster model is automatically a better system.\" The local kernel speedup increased memory footprint and communication serialization, degrading global serving throughput and tail latency under fleet constraints. A faster kernel or model component is only one term in the complete fleet equation. If a local optimization increases memory residency (reducing KV-cache capacity and forcing smaller batch sizes), introduces uncoalesced memory traffic, or creates network serialization bottlenecks in tensor parallelism, the total system performance degrades. Systems engineering requires evaluating optimizations against end-to-end throughput, memory capacity, tail latency, and failure recovery rather than isolated microbenchmarks. The automatic vectorization option is not one of the chapter's closing fallacies, and no fleet parallelizes a kernel across nodes for free. The privacy hypothesis is unrelated to memory and queueing bottlenecks. Blaming compiler versions ignores the fundamental trade-off between memory footprint and concurrency.",
+     "hint": "Think about: identify the \"faster model is a better system\" fallacy and explain how local kernel optimizations can degrade fleet-level serving throughput and latency.",
+     "type": "single",
+     "options": [
+      "Pitfall: \"Expecting the cluster to parallelize a kernel for free.\" The 2,048-GPU cluster should have automatically vectorized the kernel across nodes without memory transfers.",
+      "Pitfall: \"Treating governance as an external review.\" The custom layout violated data privacy compliance rules, causing the GPU scheduler to pause execution.",
+      "Fallacy: \"A faster model is automatically a better system.\" The local kernel speedup increased memory footprint and communication serialization, degrading global serving throughput and tail latency under fleet constraints.",
+      "Fallacy: \"Fleet-scale lessons are tied to today's software stack.\" The kernel failed solely because the team compiled it with an outdated version of CUDA."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "An infrastructure team notices that inter-node network bandwidth is saturated during distributed training. To relieve network congestion, they introduce an aggressive gradient compression algorithm that achieves a 10x reduction in transmitted bytes. However, the compression and decompression routines add substantial CPU overhead, causing worker nodes to fall behind and increasing overall training step time by 25%. Which pitfall does this engineering failure illustrate?",
+     "explanation": "The correct answer is A. Pitfall: \"Optimizing one layer while hiding the constraint it creates in another.\" Relieving network communication displaced the bottleneck into host CPU compute and synchronization, increasing end-to-end step time. The pitfall of displaced overhead occurs when an engineering team optimizes a metric in one layer (reducing network bytes transferred) without measuring the compensating cost created in an adjacent layer (host CPU compression time and serialization stalls). Because system layers are coupled, moving a constraint to an unmonitored resource often replaces a well-understood bottleneck with a worse one. Effective engineering keeps transferred constraints visible across the entire stack. Sustainability and carbon budgeting did not cause this CPU bottleneck. Gradient compression is a standard technical numerical optimization, not a legal violation. Assuming network switches automatically compress arbitrary payloads at zero CPU cost is technically unfounded.",
+     "hint": "Think about: distinguish the pitfall of displaced overhead and diagnose how local layer optimizations can shift bottlenecks into adjacent, unmonitored subsystems.",
+     "type": "single",
+     "options": [
+      "Pitfall: \"Optimizing one layer while hiding the constraint it creates in another.\" Relieving network communication displaced the bottleneck into host CPU compute and synchronization, increasing end-to-end step time.",
+      "Fallacy: \"Carbon budgets forbid lossy gradient encodings.\" Compressing gradients violated data-center carbon budgeting policies.",
+      "Pitfall: \"Treating governance as an external review.\" The compression algorithm altered gradient numerical representations without legal consent.",
+      "Fallacy: \"Network switches compress payloads in flight.\" The network switch hardware should have automatically compressed the packets in flight at zero CPU cost."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Because deep learning frameworks, accelerator instruction sets, and interconnect standards change every few years, fundamental distributed systems principles (such as Amdahl's law, Little's law, MTBF scaling, and rate matching) must be completely reinvented with each new hardware generation.",
+     "explanation": "False. Specific chip models, framework APIs, and network protocols change, while resource, failure, and queueing accounting remains necessary. Particular formulas retain their assumptions: inverse interruption scaling with accelerator count applies under identical independent constant failure rates with every accelerator required by the job (SystemMtbf = ComponentMttf/DeviceCount), Little's law (RequestConcurrency = ArrivalRate RequestTimeInSystem) relates consistent long-run averages under a stable queueing boundary, and the fan-out expression (\\$1 - (1 - IndependentEventProbability)^SeriesComponentCount, for SeriesComponentCount leaves that each exceed their latency threshold with probability IndependentEventProbability) assumes independent server-tail events with the same probability. New substrates do not remove the need for this accounting, but changed dependencies or operating boundaries require different models.",
+     "hint": "Think about: distinguish between ephemeral hardware/software artifacts and durable physical/mathematical invariants in distributed ML systems.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now identify the \"faster model is a better system\" fallacy and explain how local kernel optimizations can degrade fleet-level serving throughput and latency.",
+    "You can now distinguish the pitfall of displaced overhead and diagnose how local layer optimizations can shift bottlenecks into adjacent, unmonitored subsystems.",
+    "You can now distinguish between ephemeral hardware/software artifacts and durable physical/mathematical invariants in distributed ML systems.",
+    "You can now evaluate how durable systems invariants persist across transitions in underlying physical hardware and software tools."
+   ]
+  }
+ ]
+}

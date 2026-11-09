@@ -1,0 +1,69 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Analyze how compression techniques interact nonlinearly through shared physical resources and joint accuracy budgets.",
+ "source": {
+  "chapter": "v1-10",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Model Compression* (Vol I). By the end you should be able to:\n\n- Analyze how compression techniques interact nonlinearly through shared physical resources and joint accuracy budgets\n- Reject the assumption that parameter-count reduction guarantees proportional end-to-end latency improvement\n- Analyze how conversion overhead and irregular sparse execution can erase theoretical compression gains in deployment"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Compression, § Fallacies and Pitfalls",
+   "md": "A team deploying GPT-2 XL on a phone might find that an uncalibrated 4-bit quantization cuts weight memory by 4$\\times$ while generation quality collapses. Conversely, a vision team might achieve 70 percent weight sparsity through unstructured pruning only to find inference latency increases because commodity GPU kernels cannot execute irregular sparse indexing. Model compression presents numerous counterintuitive traps where theoretical parameter or FLOP reductions fail to produce wall-clock speedups. The following fallacies and pitfalls examine where standard engineering assumptions break down across the model-runtime interface."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: nonlinear interactions between compression techniques (shared hardware resources and error budgets); the fallacy that parameter compression ratio equals deployment latency speedup; hidden overheads: dynamic dequantization and uncoalesced sparse memory access."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain two distinct hidden runtime overheads—such as dynamic dequantization on unsupported hardware and uncoalesced memory access from unstructured sparsity—that can cause a model with an \\$8× theoretical compression ratio to exhibit virtually no wall-clock speedup when deployed in production.",
+   "md": "One hidden cost is conversion overhead: if an exported graph crosses unsupported low-precision boundaries, the runtime may insert extra quantize or dequantize work and additional launches, increasing traffic and synchronization instead of reducing them. A fused weight-only path may still save weight traffic, so the real question is what the deployed operator path actually does. A second cost is sparse-execution overhead: unstructured sparsity can require metadata, irregular memory access, and weak cache or SIMD utilization. The practical consequence is that theoretical compression must be validated against the actual exported kernel path, not inferred from bytes or nonzeros alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-10-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Which statement best captures the chapter's analysis regarding the interaction between multiple model compression techniques?",
+     "explanation": "The correct answer is C. The chapter emphasizes that compression techniques do not operate in a vacuum: they share physical hardware resources (memory bandwidth, cache capacity, register pressure) and draw from the same underlying model error tolerance. For instance, aggressive pruning reduces the numerical headroom available for subsequent quantization, and uncoalesced sparse memory access can negate quantization bandwidth savings. Therefore, techniques interact nonlinearly and must be evaluated and validated jointly. Claiming linear composition ignores hardware realities, while declaring multi-technique pipelines unviable contradicts proven multiplicative compounding.",
+     "hint": "Think about: analyze how compression techniques interact nonlinearly through shared physical resources and joint accuracy budgets",
+     "type": "single",
+     "options": [
+      "Compression techniques compose strictly linearly, so combining a \\$2× pruning gain and a \\$2× quantization gain always yields a \\$4× latency reduction regardless of hardware",
+      "Quantization is the only technique that interacts with other methods, while pruning and distillation can always be designed in isolation",
+      "Compression techniques interact nonlinearly through shared hardware bottlenecks (cache capacity, memory bandwidth) and competing accuracy budgets; their combined efficacy depends heavily on pipeline sequencing and joint on-target validation",
+      "Applying more than one compression technique is never recommended because accuracy degradation is always strictly additive"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "If a neural network's parameter count is reduced by \\$4\\times$ via magnitude pruning, its deployed end-to-end inference latency on a standard mobile CPU is guaranteed to improve by approximately \\$4\\times$.",
+     "explanation": "False. A \\$4\\times$ parameter reduction does not imply a \\$4\\times$ latency reduction because sparse execution depends on layout, kernel support, tensor shape, and device behavior. On a standard mobile CPU, unstructured sparsity may still incur dense-like traffic or sparse-format overhead, and end-to-end latency also includes work outside the pruned layers.",
+     "hint": "Think about: reject the assumption that parameter-count reduction guarantees proportional end-to-end latency improvement",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze how compression techniques interact nonlinearly through shared physical resources and joint accuracy budgets.",
+    "You can now reject the assumption that parameter-count reduction guarantees proportional end-to-end latency improvement.",
+    "You can now analyze how conversion overhead and irregular sparse execution can erase theoretical compression gains in deployment."
+   ]
+  }
+ ]
+}

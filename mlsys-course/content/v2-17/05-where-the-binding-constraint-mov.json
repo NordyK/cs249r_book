@@ -1,0 +1,90 @@
+{
+ "title": "Where the Binding Constraint Moves Next",
+ "summary": "Explain why test-time compute turns quality into a recurring per-request serving cost.",
+ "source": {
+  "chapter": "v2-17",
+  "sections": [
+   "Where the Binding Constraint Moves Next"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Where the Binding Constraint Moves Next** in *Conclusion* (Vol II). By the end you should be able to:\n\n- Explain why test-time compute turns quality into a recurring per-request serving cost\n- Identify which collective patterns make link energy a fleet-level cost for Archetype A\n- Bound the fleet dividend of a link-energy improvement by the affected share of fleet power\n- Evaluate what evidence a new substrate must supply before it is accepted as a fleet improvement\n- Recognize Amdahl's law as the bound on partial improvements to fleet energy"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Conclusion, § Where the Binding Constraint Moves Next",
+   "md": "When a reasoning model spends seconds of test-time compute on a single user prompt or an optical interconnect replaces copper across a switching tier, that test of transfer applies directly. The binding constraint shifts again. The same six principles govern workloads and substrates that are only now emerging. Test-time compute, introduced among the scaling regimes in a later section, already moves part of the scaling curve from the training cluster into the serving path, where a later section prices it as a per-request compute budget."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: the moving binding constraint: test-time compute in the serving path and new substrates beneath the fleet; why software and substrate choices must be evaluated together; diluting a link-energy improvement by the affected share of fleet power (Amdahl's law applied to energy); what a lower link-energy measurement does and does not establish."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A fabric team reports that a new optical link halves energy per bit at unchanged traffic and proposes it as a fleet energy saving. Explain what must be measured before the claim can be accepted, and state the largest fleet saving the link can deliver in terms of that measurement.",
+   "md": "The links' share of fleet power must be measured for the actual workload, because a link-energy gain reaches the fleet only in proportion to that share. Halving the links' energy per bit saves half of their share of fleet power, and even an unlimited link improvement saves at most the whole share. This is Amdahl's law applied to energy. The share depends on the workload's traffic volume and pattern, so a link-level measurement does not by itself establish a fleet-level saving, and facility overhead dilutes the saving further."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-17-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "The chapter states that test-time compute moves part of the scaling curve from the training cluster into the serving path. What changes about how that compute is paid for?",
+     "explanation": "The correct answer is B. Test-time compute is spent per query, so it is priced as a per-request compute budget inside the serving path and recurs with every request. A one-time training cost amortized across requests describes pretraining, not test-time compute. Nothing in the account moves the cost onto edge devices, and test-time compute adds to pretraining rather than replacing it.",
+     "hint": "Think about: explain why test-time compute turns quality into a recurring per-request serving cost.",
+     "type": "single",
+     "options": [
+      "It is paid once, during training, and then amortized across every later request at no added serving cost.",
+      "It is spent on each query inside the request's latency and resource budget, so its cost recurs with every request for the lifetime of the deployment.",
+      "It moves entirely onto edge devices, so the serving fleet's cost stays unchanged.",
+      "It replaces pretraining, so the training cluster can shrink by the same amount the serving fleet grows."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "For Archetype A, why does the chapter argue that lower-energy interconnects are a plausible fabric-efficiency lever?",
+     "explanation": "The correct answer is C. The pressure on the substrate comes from specific collective patterns: tensor parallelism issues frequent collectives across partitioned tensors, and mixture-of-experts routing issues an AllToAll dispatch at each expert layer. Link energy grows with that traffic, so lowering energy per bit is a candidate lever. Link energy is not fixed per accelerator, optics change the cost of each bit rather than removing the exchange, and the fleet dividend is diluted by the links' share of power rather than equal to the link ratio.",
+     "hint": "Think about: identify which collective patterns make link energy a fleet-level cost for Archetype A.",
+     "type": "single",
+     "options": [
+      "Because link energy is fixed per accelerator and does not depend on the workload's traffic.",
+      "Because optical links remove the need for collective communication altogether.",
+      "Because tensor-parallel collectives and mixture-of-experts AllToAll dispatch generate heavy collective traffic, and link energy accumulates with that traffic across thousands of accelerators.",
+      "Because every lower-energy link automatically reduces facility energy by the same ratio as the link improvement."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A substrate whose measured link energy per bit is lower than today's electrical links has thereby been shown to produce a better fleet.",
+     "explanation": "False. A lower link-energy measurement alone does not establish a better fleet. Each proposal needs a workload-specific comparison of useful work, data movement, power, and implementation cost, and a new substrate still needs fault tolerance and responsible governance. The dividend is also bounded by the share of fleet energy the links actually consume.",
+     "hint": "Think about: evaluate what evidence a new substrate must supply before it is accepted as a fleet improvement.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The chapter describes the fleet dividend of a link-energy improvement as the link ratio diluted by the affected share of energy, the same affected-share arithmetic that limits any partial speedup. It names this reasoning ____ applied to energy.",
+     "explanation": "The correct answer is Amdahl's law. An improvement confined to one part of a system can change the whole only in proportion to that part's share, whether the quantity is time or energy.",
+     "hint": "Think about: recognize Amdahl's law as the bound on partial improvements to fleet energy.",
+     "type": "fill",
+     "answer": [
+      "The correct answer is Amdahl's law"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain why test-time compute turns quality into a recurring per-request serving cost.",
+    "You can now identify which collective patterns make link energy a fleet-level cost for Archetype A.",
+    "You can now bound the fleet dividend of a link-energy improvement by the affected share of fleet power.",
+    "You can now evaluate what evidence a new substrate must supply before it is accepted as a fleet improvement."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,94 @@
+{
+ "title": "Economics and Planning",
+ "summary": "Evaluate CPU-versus-GPU serving cost effectiveness using SLO-qualified capacity, utilization, and cost per served query.",
+ "source": {
+  "chapter": "v1-13",
+  "sections": [
+   "Economics and Planning",
+   "Cost per inference across hardware",
+   "Capacity planning",
+   "Production case study: Serving 8-billion-parameter Llama 3"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Economics and Planning** in *Model Serving* (Vol I). By the end you should be able to:\n\n- Evaluate CPU-versus-GPU serving cost effectiveness using SLO-qualified capacity, utilization, and cost per served query\n- Justify why mission-critical serving clusters provision reserve capacity beyond forecast peak demand\n- Compare dynamic KV-cache growth against static model weights for a specified LLM architecture, batch size, and context length\n- Calculate a bandwidth-only lower bound on LLM decode TPOT from model size and HBM bandwidth\n- Explain why weight-only quantization can speed up memory-bound LLM decode even without increasing raw compute throughput"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Serving, § Economics and Planning",
+   "md": "A team that has raised an H100's ResNet-50 throughput several-fold through batching still faces a fleet-level question, namely whether serving a … target within the same p99 latency SLO costs less on a few H100s or on several times as many lower-cost T4s. Batching, precision tuning, kernel fusion, graph compilation, and the LLM levers that share each weight stream across sequences all improve single-node performance, but production deployment requires choosing how many machines to rent, of what type, and at what total bill."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Cost per inference across hardware\n- Capacity planning\n- Production case study: Serving 8-billion-parameter Llama 3\n\nPay attention to: Cost per inference formula and idle capacity economics; GPU vs. CPU serving economics across QPS regimes; Capacity planning: peak QPS, headroom multipliers (\\$1.5×--2.0×), autoscaling lag, N+1 redundancy; Production case study: 8B parameter Llama 3 serving."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In capacity planning for a mission-critical model serving cluster with a peak expected traffic of lambda_peak = 1,000 QPS and an individual replica capacity of R = 100 QPS at its target latency SLO, why would a capacity engineer provision 16 to 20 replicas (\\$1.6×--2.0× headroom multiplier) rather than exactly 10 replicas?",
+   "md": "Ten replicas cover only the forecast peak under the measured per-replica SLO-qualified capacity, leaving essentially no reserve for failures, burstiness, uneven load distribution, or slow scale-out. Provisioning 16 to 20 replicas is an illustrative way to preserve headroom so the system can keep meeting its latency target when real conditions deviate from the forecast. For example, if one zone loses capacity or traffic spikes above the expected peak, the extra replicas absorb the shock instead of pushing every remaining node immediately to its limit. The practical consequence is that capacity planning is a resilience decision, not just a division problem."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-13-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team evaluates deploying a small classification model with an average arrival rate of 5 QPS and a 200 ms latency SLA. Measurements at 5 QPS show that both a single CPU server instance and a single GPU server instance meet the matched quality target and the p99 latency target of 200 ms. The CPU instance costs \\$0.20/hour and sustains up to 20 QPS under the target latency; the GPU instance costs \\$2.00/hour and sustains up to 200 QPS under the target latency. Which deployment option is more cost-effective for this specific workload, and why?",
+     "explanation": "The correct answer is C. The measured requirement is simply 5 QPS at under 200 ms, and the CPU instance already satisfies that at 25% of its proven SLO-qualified capacity. At this traffic level, cost per served query is about \\$0.20 divided by \\$5 × 3600, which is approximately \\$0.0000111 for the CPU, versus \\$2.00 divided by \\$5 × 3600, which is approximately \\$0.000111 for the GPU, so the GPU is about \\$10× more expensive here. Comparing only peak throughput misses the idle-capacity waste of the GPU at such low load.",
+     "hint": "Think about: evaluate CPU-versus-GPU serving cost effectiveness using SLO-qualified capacity, utilization, and cost per served query.",
+     "type": "single",
+     "options": [
+      "The GPU server is more cost-effective because its 10x greater SLO-qualified peak throughput more than offsets its 10x higher hourly cost, making it the lower-cost choice even at 5 QPS.",
+      "The GPU server is more cost-effective because GPUs always have lower total cost of ownership regardless of arrival traffic.",
+      "The CPU server is more cost-effective because at 5 QPS, it already meets the SLA with adequate headroom at \\$0.20/hour, whereas the GPU server would use only 2.5% of its SLO-qualified capacity and cost about \\$10× more per served query at that traffic level.",
+      "Neither option is viable because 5 QPS requires at least a 10-node cluster for high availability."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "For an 8-billion-parameter LLM with 32 layers, 8 KV heads, and head dimension 128, deployed in FP16 precision with a 16 GB weight footprint on an 80 GB GPU, serving long-context requests with batch size $B = 8$ and context length $S = 32\\text{,}768$ tokens causes the KV cache to exceed the static weight footprint of the model itself.",
+     "explanation": "True. For this specific architecture, each token per sequence needs \\$2 × 32 × 8 × 128 × 2 = 131,072 bytes, which is \\$128\\ KiB, to store both Keys and Values in FP16. At B = 8 and S = 32,768, the KV-cache payload is \\$131,072 × 32,768 × 8 = 34,359,738,368 bytes, which is \\$32\\ GiB or about \\$34.36\\ GB in decimal units. That exceeds the 16 GB weight footprint, showing how long contexts can make dynamic KV memory dominate static weights.",
+     "hint": "Think about: compare dynamic KV-cache growth against static model weights for a specified LLM architecture, batch size, and context length.",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "An engineer serves an 8-billion parameter LLM on a GPU with 2 TB/s of High-Bandwidth Memory (HBM) bandwidth. Assume the model weights are 16 GB in FP16, the decode step effectively streams those 16 GB of weights from HBM each token at batch size $B = 1$, and ignore KV-cache traffic and compute time. What is the theoretical hardware-bandwidth lower bound on Time Per Output Token (TPOT)?",
+     "explanation": "The correct answer is A. Under the stated assumption that one decode step streams 16 GB of weights from HBM and the device provides an idealized 2 TB/s = 2,000 GB/s of bandwidth, the transfer-time floor is \\$16 GB / 2,000 GB/s = 0.008 s = 8.0 ms. That makes 8 ms a lower bound from weight movement alone in this simplified case. The smaller and larger numbers come from unit or arithmetic mistakes, and the setup intentionally ignores KV-cache traffic, compute, and other overheads.",
+     "hint": "Think about: calculate a bandwidth-only lower bound on LLM decode TPOT from model size and HBM bandwidth.",
+     "type": "single",
+     "options": [
+      "\\$8.0 ms (TPOT = 16 GB / 2,000 GB/s)",
+      "\\$0.8 ms (TPOT = 1.6 GB / 2,000 GB/s)",
+      "\\$80.0 ms (TPOT = 160 GB / 2,000 GB/s)",
+      "\\$0.08 ms (TPOT = 16 MB / 2,000 GB/s)"
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: When LLM decode at small batch sizes is dominated by moving model weights rather than by arithmetic throughput, why can INT4 weight-only quantization (e.g., AWQ or GPTQ) reduce Time Per Output Token (TPOT), and what limits the gain even if INT4 compute kernels provide no higher FLOP/s than FP16 Tensor Cores?",
+   "md": "At small batch sizes, decode is often dominated by moving model weights rather than by raw arithmetic throughput. Weight-only INT4 quantization cuts the raw weight payload by about \\$4\\times$ relative to FP16, so the memory system has fewer bytes to fetch each decode step even if the math units themselves are not any faster. For an 8B model, that can mean reading something closer to 4 GB of quantized weights instead of 16 GB of FP16 weights per step, excluding metadata and dequantization overhead. The practical consequence is lower TPOT when weight traffic is the bottleneck, although the realized gain is usually less than \\$4\\times$ once KV traffic, dequantization, launch overhead, and kernel details are included."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Calculate the total memory footprint (in bytes) required to store the KV cache for a batch of $B = 16$ requests, each with an active context length of $S = 2\\text{,}048$ tokens, for a model with $L = 32$ transformer layers, $H_{\\text{kv}} = 8$ key-value attention heads (Grouped-Query Attention), head dimension $D_{\\text{head}} = 128$, stored in FP16 precision ($P = 2\\text{ bytes}$).",
+   "md": "The KV-cache payload is Memory = 2 × L × H_kv × D_head × P × S × B bytes, where the factor of 2 accounts for both Keys and Values. Substituting gives \\$2 × 32 × 8 × 128 × 2 × 2048 × 16 = 4,294,967,296 bytes. That is exactly \\$4\\ GiB, or about \\$4.295\\ GB in decimal units. This is the KV-cache payload only; allocator overhead and runtime workspace would add more memory in a real serving system."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate CPU-versus-GPU serving cost effectiveness using SLO-qualified capacity, utilization, and cost per served query.",
+    "You can now justify why mission-critical serving clusters provision reserve capacity beyond forecast peak demand.",
+    "You can now compare dynamic KV-cache growth against static model weights for a specified LLM architecture, batch size, and context length.",
+    "You can now calculate a bandwidth-only lower bound on LLM decode TPOT from model size and HBM bandwidth."
+   ]
+  }
+ ]
+}

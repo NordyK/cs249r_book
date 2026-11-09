@@ -1,0 +1,77 @@
+{
+ "title": "Check-and-Verify Defenses Against Silent Data Corruption",
+ "summary": "Calculate how silent data corruption risk compounds across fleet-scale collective communication operations.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "Check-and-Verify Defenses Against Silent Data Corruption",
+   "The physics of silent corruption",
+   "Verification at fleet scale"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Check-and-Verify Defenses Against Silent Data Corruption** in *Fault Tolerance* (Vol II). By the end you should be able to:\n\n- Calculate how silent data corruption risk compounds across fleet-scale collective communication operations\n- Design check-and-verify mechanisms to detect silent data corruption during distributed collective reductions\n- Evaluate why full modular redundancy is uneconomic for fleet training and how selective redundancy replaces it\n- Apply Byzantine fault tolerance principles to protect parameter updates against silent data corruption"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, § Check-and-Verify Defenses Against Silent Data Corruption",
+   "md": "Of the hardware faults just classified, the costliest are the ones whose manifestation is silent. A corrupted value that raises no error passes every liveness check the fleet runs, and training keeps building on it. Defending against silent data corruption therefore requires checks that establish a correct result, not merely a live process, and choosing those checks starts with where the corruption comes from and how it surfaces in training."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The physics of silent corruption\n- Verification at fleet scale\n\nPay attention to: SDC cumulative risk across 100,000+ GPU fleets and repeated collective reductions; Check-and-verify invariants: CRC digests, gradient checksums, redundant reductions; Why full modular redundancy (DMR/TMR) does not transfer to fleet training and how fleets spend redundancy selectively; Transition from fail-stop crash detection to Byzantine verification in training pipelines."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain what gradient checksums and redundant computation can each detect during AllReduce, and why checksums alone cannot establish the arithmetic correctness of every worker contribution.",
+   "md": "Checksums can detect changed bytes in transport or storage, and digests of supposedly identical reduced buffers can expose disagreement. A worker can compute an incorrect gradient and then checksum those incorrect bytes successfully. Detecting that arithmetic fault requires independent recomputation, replay, invariants, or statistical evidence. Those checks can block suspect updates within their coverage; they are not a universal guarantee against arbitrary faulty workers."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In a 100,000-GPU training cluster where each device has an illustrative SDC probability of \\$10^-6 per GPU-hour, what is the expected SDC exposure and failure cadence during continuous AllReduce training with 2-second step times?",
+     "explanation": "The correct answer is A. For a 2-second step (\\$2/3600 = 1/1800 hours), 100,000 GPUs accumulate \\$100,000 / 1800 approx 55.56 GPU-hours of exposure per step. With an individual rate of \\$10^-6 per GPU-hour, the probability of at least one SDC per step is \\$1 - (1 - 10^-6)^55.56 approx 5.56 × 10^-5. The expected number of steps between SDC events is \\$1 / (5.56 × 10^-5) approx 18,000 steps, which equals \\$18,000 × 2 / 3600 = 10 hours. The single-step claim exaggerates probability by orders of magnitude. The 1,000-day and 50,000-hour options ignore the \\$100,000× fleet accumulation factor.",
+     "hint": "Think about: calculate how silent data corruption risk compounds across fleet-scale collective communication operations.",
+     "type": "single",
+     "options": [
+      "The cluster experiences roughly 55.6 GPU-hours of exposure per 2-second step, resulting in an expected SDC event approximately every 18,000 steps (every ~10 hours).",
+      "The cluster experiences an SDC event on every single step because 100,000 GPUs exceed the reliability threshold.",
+      "The cluster experiences an SDC event once every 1,000 days because \\$10^-6 is negligible for 2-second steps.",
+      "The cluster experiences an SDC event exactly every 50,000 hours regardless of cluster size."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A component that remains active but sends arbitrary, corrupted, or conflicting data requires ____ fault tolerance reasoning rather than only fail-stop detection.",
+     "explanation": "Byzantine. Such faults require explicit assumptions about faulty participants and independent validation; ordinary byte-integrity checks alone cannot prove that a local gradient was computed correctly.",
+     "hint": "Think about: apply Byzantine fault tolerance principles to protect parameter updates against silent data corruption.",
+     "type": "fill",
+     "answer": [
+      "Byzantine"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Safety-critical embedded systems use dual or triple modular redundancy to detect or mask hardware faults. Explain why the same approach does not transfer to a 10,000-GPU training fleet, and describe how fleets spend redundancy instead.",
+   "md": "Dual and triple modular redundancy run every computation two or three times, paying 100 or 200 percent hardware overhead so that a single wrong output is caught or outvoted within one control deadline. That price is reasonable for a small vehicle computer where one wrong output is dangerous. For fleet training it would double or triple the cost of the most expensive computation the organization runs, to guard against corruption events that arrive far less often than once per step and that rollback to a clean checkpoint can repair. Fleets therefore spend redundancy selectively: screening removes defective devices, cheap statistical checks run continuously, hot spares absorb drained nodes, and full recomputation is reserved for suspected corruption."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate how silent data corruption risk compounds across fleet-scale collective communication operations.",
+    "You can now design check-and-verify mechanisms to detect silent data corruption during distributed collective reductions.",
+    "You can now evaluate why full modular redundancy is uneconomic for fleet training and how selective redundancy replaces it.",
+    "You can now apply Byzantine fault tolerance principles to protect parameter updates against silent data corruption."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,69 @@
+{
+ "title": "Multi-Hop Retrieval",
+ "summary": "Work through Multi-Hop Retrieval.",
+ "source": {
+  "chapter": "v3-06",
+  "sections": [
+   "Multi-Hop Retrieval",
+   "Evidence paths",
+   "Maintained code graphs",
+   "Bounded expansion",
+   "Community summaries as derived memory"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Multi-Hop Retrieval** in *Long-Term Memory* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Long-Term Memory, § Multi-Hop Retrieval",
+   "md": "In the connection-pool repair, no single ranked passage delivers all the evidence the fix requires, because the core implementation in `src/pool.py`, the waiter-notification test, and the recorded test execution logs answer distinct questions. Examining the pool implementation in isolation cannot reveal which execution paths the test actually exercised, and inspecting a passing test log leaves unanswered whether the change preserved wider public interface guarantees. **Multi-hop retrieval** addresses this gap by traversing explicit relationships between evidence items, assembling an explanatory chain that no individual passage's retrieval score could justify alone."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Evidence paths\n- Maintained code graphs\n- Bounded expansion\n- Community summaries as derived memory"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Retrieval contract matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Every read is a bounded request answered by an envelope that reports scope, snapshot, completeness status, and per-item provenance, and an empty result proves nonexistence only for a complete search of the declared scope."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-06-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Multi-Hop Retrieval** develops one of the chapter's claims. Which one?",
+     "options": [
+      "The runtime, not the model, decides what persists: admission checks run before deduplication, same-scope updates supersede by compare-and-swap, and deletion (on request, on withdrawn consent, or at the end of a recorded retention period) is a lifecycle event the store must honor.",
+      "Neighborhoods grow geometrically with traversal depth, so multi-hop retrieval bounds edge types, direction, depth, and visited nodes before ranking.",
+      "An exact vector scan is bandwidth-bound with floor N*d*b/BW, which screens it against the search budget, while approximate indexes trade recall for bytes touched.",
+      "Every read is a bounded request answered by an envelope that reports scope, snapshot, completeness status, and per-item provenance, and an empty result proves nonexistence only for a complete search of the declared scope."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Retrieval contract**: Every read is a bounded request answered by an envelope that reports scope, snapshot, completeness status, and per-item provenance, and an empty result proves nonexistence only for a complete search of the declared scope."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Retrieval contract* returns bounded evidence into *Working-set partition*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Retrieval contract returns bounded evidence into Working-set partition."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Multi-Hop Retrieval."
+   ]
+  }
+ ]
+}

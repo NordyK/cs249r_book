@@ -1,0 +1,102 @@
+{
+ "title": "Explainability and Transparency",
+ "summary": "Calculate the computational complexity of exact vs approximate Shapley value attribution and analyze its serving-path latency impact.",
+ "source": {
+  "chapter": "v2-16",
+  "sections": [
+   "Explainability and Transparency",
+   "The need for transparency",
+   "Models of interpretability",
+   "Explanation placement",
+   "Transparency and contestability"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Explainability and Transparency** in *Responsible AI* (Vol II). By the end you should be able to:\n\n- Calculate the computational complexity of exact vs approximate Shapley value attribution and analyze its serving-path latency impact\n- Evaluate the axiomatic guarantees of Integrated Gradients over vanilla gradient attribution\n- Distinguish local and global explanation scopes and their infrastructure costs\n- Differentiate counterfactual explanations from actionable recourse\n- Evaluate when a model is inherently interpretable for its intended audience"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Responsible AI, § Explainability and Transparency",
+   "md": "A rejected loan applicant, a clinician questioning a risk score, and an auditor reconstructing a contested decision each need a different account of the same model output, on a different deadline. Serving them requires disclosure about the system as a whole, explanation methods whose cost and fidelity fit the deployment, and an appeal path through which the affected person can act on what is disclosed."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The need for transparency\n- Models of interpretability\n- Explanation placement\n- Transparency and contestability\n\nPay attention to: Local versus global explanation scope; Inherently interpretable models versus post-hoc attribution; Shapley values and computational complexity; Integrated Gradients axioms (Sensitivity and Implementation Invariance)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain the two fundamental axioms satisfied by Integrated Gradients (Sensitivity and Implementation Invariance) and why they make Integrated Gradients superior to vanilla input gradients.",
+   "md": "Sensitivity requires nonzero attribution when input and baseline differ in one feature and the prediction changes. Implementation Invariance requires functionally equivalent models to receive identical attributions. Integrated Gradients integrates gradients along a baseline-to-input path, addressing saturation that can make a vanilla input gradient zero despite a prediction change. Ordinary gradients can satisfy Implementation Invariance; their central failure in this example is Sensitivity. Baseline choice still affects interpretation."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-16-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A model-agnostic explanation service enumerates all feature coalitions for 20 input features, taking at least one microsecond per coalition. Why does this exhaustive Shapley calculation exceed a 100 ms inline serving budget?",
+     "explanation": "The correct answer is A. Exhaustive enumeration visits \\$2^20=1,048,576 coalitions; at one microsecond each, that exceeds one second. A coalition value may itself require multiple evaluations. This is not a universal cost for every exact SHAP algorithm: TreeSHAP exploits supported tree structure. Approximation, caching, selective generation, or asynchronous delivery may fit other budgets; arithmetic precision and client hardware access do not explain this count.",
+     "hint": "Think about: calculate the computational complexity of exact vs approximate Shapley value attribution and analyze its serving-path latency impact.",
+     "type": "single",
+     "options": [
+      "It evaluates \\$2^20 coalitions, requiring more than one second even at one microsecond per coalition; a cheaper method or separate explanation path is needed.",
+      "Because Shapley values can only be computed using double-precision arithmetic that crashes GPU tensor cores",
+      "Because cooperative game theory axioms prohibit computing feature contributions on tabular data",
+      "Because exact SHAP requires accessing the client's raw hardware registers during inference"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Why do local and global explanations place different demands on explanation infrastructure?",
+     "explanation": "The correct answer is A. Local explanation capacity depends on how many decisions are explained and whether results can be reused. Global explanations may use model structure, representative inputs, or aggregated decision evidence, with offline or updated analyses as appropriate. Scope does not fix execution timing; the method and delivery deadline determine cost and placement. Neither scope requires retraining per request.",
+     "hint": "Think about: distinguish local and global explanation scopes and their infrastructure costs.",
+     "type": "single",
+     "options": [
+      "Local explanations characterize an individual prediction; global explanations characterize broader model behavior using model structure, representative inputs, or aggregated evidence. Their methods and delivery deadlines determine execution and capacity needs.",
+      "Local explanations require no model access, whereas global explanations require retraining the model on every request.",
+      "Global explanations must run inline on every request, whereas local explanations can only be generated during training.",
+      "Local and global explanations have identical cost because both are computed from the same Shapley enumeration."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Any decision tree or linear model is inherently interpretable, so choosing one of those model families removes the need for explanation evidence.",
+     "explanation": "False. Interpretability depends on structure, feature meaning, and audience, not the model-family label. A very large tree or a high-dimensional linear model can be as hard to inspect as a neural network. High-stakes model selection should test whether a sufficiently accurate, inspectable model meets the task for its intended audience.",
+     "hint": "Think about: evaluate when a model is inherently interpretable for its intended audience.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "For an appeal workflow that retrieves decision evidence before explanation, then sends both to a reviewer and records the outcome, order these actions:",
+     "explanation": "The order in this specified workflow is (2), (4), (1), (3). The reviewer receives traceable decision and explanation evidence, and outcome tracking records and propagates an authorized remedy. This is one workflow arrangement, not a requirement to deploy four serial services; counterfactual generation alone does not establish recourse.",
+     "hint": "Think about: apply and sequence the workflow of the Contestability Stack for contested automated decisions.",
+     "type": "order",
+     "items": [
+      "Retrieve the decision record and governing model and policy versions",
+      "Generate explanation evidence, checking any proposed recourse for feasibility and policy validity.",
+      "Route the case and explanation to an authorized credit reviewer",
+      "Record the review outcome and propagate any authorized remedy"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A counterfactual explanation shows that a denied loan applicant would have been approved with a debt ratio below 40 percent. Explain why this output flip does not by itself give the applicant recourse.",
+   "md": "A counterfactual shows how the modeled output changes under a specified input change; it does not establish why the decision occurred. Recourse additionally requires that the change be feasible and within the applicant's control, respect feature dependencies and immutable attributes, and remain valid under the decision policy that will apply when the applicant returns. Supporting recourse therefore needs policy versioning, domain constraints, and an operational commitment to honor the promised action."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate the computational complexity of exact vs approximate Shapley value attribution and analyze its serving-path latency impact.",
+    "You can now evaluate the axiomatic guarantees of Integrated Gradients over vanilla gradient attribution.",
+    "You can now distinguish local and global explanation scopes and their infrastructure costs.",
+    "You can now differentiate counterfactual explanations from actionable recourse."
+   ]
+  }
+ ]
+}

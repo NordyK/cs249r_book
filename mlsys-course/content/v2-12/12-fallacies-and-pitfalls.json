@@ -1,0 +1,83 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Analyze the economic pitfalls of delaying ML platform investment.",
+ "source": {
+  "chapter": "v2-12",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *ML Operations at Scale* (Vol II). By the end you should be able to:\n\n- Analyze the economic pitfalls of delaying ML platform investment\n- Evaluate the risks of uniform deployment procedures across heterogeneous ML model portfolios\n- Explain why portfolio-level observability must supersede isolated per-model accuracy metrics\n- Evaluate quantitative metrics and warning thresholds for ML technical debt"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, ML Operations at Scale, § Fallacies and Pitfalls",
+   "md": "Most operational misconceptions at scale share one root. Practices sized for one model survive into a fleet whose models share features, pipelines, infrastructure, and alerts. The following fallacies and pitfalls show where those per-model practices fail once the interactions dominate."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: Fallacy of delaying platform investment until 100+ models; Pitfall of uniform rollout policies across heterogeneous risk profiles; Sufficiency of per-model metrics vs. system-level observability."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why per-model offline accuracy metrics (such as test loss or ROC-AUC) are insufficient for monitoring system-level health in a multi-model serving platform.",
+   "md": "Individual model accuracy metrics miss cascading cross-model latency regressions (e.g., an upstream retrieval model slowing down an entire ensemble), silent upstream embedding drift affecting multiple consumers, and end-to-end business KPI degradation."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-12-12-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why is the assumption that 'platform engineering investment can wait until an organization operates more than 100 models' an expensive operational fallacy?",
+     "explanation": "The correct answer is B. Duplicated pipelines and unvalidated configurations can make migration harder as dependencies accumulate. Evaluate platform investment using actual toil, risk, and implementation costs rather than waiting for 100 models. Neither a universal 20–50-model break-even point nor a fixed migration-cost multiplier follows from fleet size alone.",
+     "hint": "Think about: analyze the economic pitfalls of delaying ML platform investment.",
+     "type": "single",
+     "options": [
+      "GPU hardware vendors refuse to deliver accelerators to organizations with fewer than 100 models.",
+      "Waiting for an arbitrary model-count threshold can allow duplicated pipelines and brittle dependencies to accumulate, increasing later migration cost despite an earlier economic case for shared tooling.",
+      "Cloud service providers automatically delete model binaries if an organization does not deploy 100 models within six months.",
+      "Single-model deployments cannot run in Docker containers without a centralized platform."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Why is applying uniform, one-size-fits-all deployment procedures across all models in a portfolio considered an operational pitfall?",
+     "explanation": "The correct answer is C. Uniform procedures can overburden low-risk releases or under-protect high-risk ones. Release gates should reflect impact, delayed outcomes, adversarial pressure, and validation cost. Model family informs those decisions but does not determine a universal cadence, and a long observation period need not mean slow traffic rollback.",
+     "hint": "Think about: evaluate the risks of uniform deployment procedures across heterogeneous ML model portfolios.",
+     "type": "single",
+     "options": [
+      "It prevents the CI/CD pipeline from generating markdown documentation.",
+      "Kubernetes schedulers only allow one deployment strategy per cluster.",
+      "Different deployments have different risk profiles, observation windows, and rollback contracts; fraud and LLM services can therefore require different release gates.",
+      "Staged rollouts cannot be automated for recommendation systems."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Technical debt in ML platforms should remain qualitative and unmeasured because engineering toil cannot be quantified with concrete operational thresholds.",
+     "explanation": "False. Release lead time, incidents per deployment, rollback delay, and recurring toil make debt measurable. The chapter’s numerical escalation thresholds are illustrative policies; teams should calibrate them against their own baseline, risk, and remediation costs.",
+     "hint": "Think about: evaluate quantitative metrics and warning thresholds for ML technical debt.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the economic pitfalls of delaying ML platform investment.",
+    "You can now evaluate the risks of uniform deployment procedures across heterogeneous ML model portfolios.",
+    "You can now explain why portfolio-level observability must supersede isolated per-model accuracy metrics.",
+    "You can now evaluate quantitative metrics and warning thresholds for ML technical debt."
+   ]
+  }
+ ]
+}

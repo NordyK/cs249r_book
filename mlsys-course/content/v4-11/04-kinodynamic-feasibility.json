@@ -1,0 +1,63 @@
+{
+ "title": "Kinodynamic Feasibility",
+ "summary": "Work through Kinodynamic Feasibility.",
+ "source": {
+  "chapter": "v4-11",
+  "sections": [
+   "Kinodynamic Feasibility",
+   "Rigid-body dynamics and continuous collision checks",
+   "Overshoot between samples and contracted limits",
+   "Seam acceleration jumps and reflected rotor inertia",
+   "Quintic splines and C$^2$ boundary matching",
+   "Time parameterization under torque and jerk bounds"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Kinodynamic Feasibility** in *Trajectory Planning* (Vol IV)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Trajectory Planning, § Kinodynamic Feasibility",
+   "md": "A candidate trajectory that clears every obstacle in workspace and arrives before its deadline will still fault on the hardware if it asks a joint for more speed, torque, or current slew than the drive can supply. What an embodied model generates is a geometric and timed proposal, not permission to move. While high-level motion planners and learned policies navigate free configuration space FreeConfigurationSpace, physical actuators operate under fixed electromotive, thermal, and structural limits."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Rigid-body dynamics and continuous collision checks\n- Overshoot between samples and contracted limits\n- Seam acceleration jumps and reflected rotor inertia\n- Quintic splines and C$^2$ boundary matching\n- Time parameterization under torque and jerk bounds"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why C2 seam matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Splicing chunks that match only position or velocity leaves an acceleration step that reflected inertia turns into a torque step, so seams must be C2 and the replacement is planned from the projected seam state."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-11-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Kinodynamic Feasibility** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Splicing chunks that match only position or velocity leaves an acceleration step that reflected inertia turns into a torque step, so seams must be C2 and the replacement is planned from the projected seam state.",
+      "Clearance and tool limits live in tool space but drives enforce joint limits, so tool-space quantities pass through the configuration-dependent Jacobian, whose weak direction near a singularity demands unbounded joint rates unless damped least squares trades accuracy for bounded rates.",
+      "Replacement latency runs from capture to MCU admission (about 115 ms against a 50 ms renewal and a 60 ms lease), so renewal is sustainable only by overlapping requests and every record must carry its own handoff tail.",
+      "The planner hands over an immutable record naming frame, evidence epoch, seam state, parent intent-lease digest, and four MCU-clock deadlines in two tiers (high-rate chunk lease, hardware commitment cutoff) together with its latched stop."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **C2 seam**: Splicing chunks that match only position or velocity leaves an acceleration step that reflected inertia turns into a torque step, so seams must be C2 and the replacement is planned from the projected seam state."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Kinodynamic Feasibility."
+   ]
+  }
+ ]
+}

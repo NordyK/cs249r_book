@@ -1,0 +1,92 @@
+{
+ "title": "TinyML: Ubiquitous Sensing",
+ "summary": "Calculate the energy scale ratio between TinyML sensing and cloud LLM queries while distinguishing it from a matched efficiency comparison.",
+ "source": {
+  "chapter": "v1-02",
+  "sections": [
+   "TinyML: Ubiquitous Sensing",
+   "TinyML advantages and operational trade-offs",
+   "Environmental and health monitoring"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **TinyML: Ubiquitous Sensing** in *System Paradigms* (Vol I). By the end you should be able to:\n\n- Calculate the energy scale ratio between TinyML sensing and cloud LLM queries while distinguishing it from a matched efficiency comparison\n- Explain how training-state memory requirements constrain on-device learning on microcontrollers\n- Explain why sub-1 mW average power can enable energy-neutral TinyML operation only when harvested supply and stored energy cover the complete device load\n- Explain the qualitative architectural discontinuities in memory and power that differentiate TinyML from mobile ML\n- Explain the operational role of intermittent computing in energy-harvesting TinyML deployments"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, System Paradigms, § TinyML: Ubiquitous Sensing",
+   "md": "Instrumenting every pallet in a warehouse, every cable on a suspension bridge, or every beehive in an apiary means putting \"eyes and ears\" on tens of thousands to millions of physical objects. At that count, each device must cost dollars rather than hundreds of dollars and measure millimeters rather than centimeters. Smartphones are far too expensive and too large for the role; ubiquitous sensing at this scale requires unit costs under ten dollars."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- TinyML advantages and operational trade-offs\n- Environmental and health monitoring\n\nPay attention to: Eight-order-of-magnitude energy scale comparison across different tasks and accounting boundaries; Microcontroller memory constraints (kilobyte SRAM) and on-device training limits; Ambient energy harvesting and the 1 mW average power threshold."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why is the 1 mW average power threshold considered a transformative milestone in TinyML system deployment?",
+   "md": "Crossing below about 1 mW average power can make energy-harvesting deployment feasible, but only when the harvested source covers the device's complete long-term average load and stored energy can bridge interruptions in supply. For example, a sensor that averages under this threshold may shift from frequent battery replacement toward much longer unattended operation if its solar, thermal, or RF source is reliable enough and buffering handles dark or idle periods. The practical implication is that 1 mW is not an automatic deploy-and-forget guarantee; it is a systems crossover that still depends on source variability, storage, and the full device power budget."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-02-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Comparing a dedicated TinyML keyword spotting model (~\\$10\\ \\mu\\text{J}$ per inference) to a cloud foundation model query (~\\$1\\text{ kJ}$ per inference), by approximately what factor does energy consumption per inference differ?",
+     "explanation": "The correct answer is C. The energy ratio between a cloud LLM query (\\$1 kJ = 10^3 J) and an always-on TinyML keyword spotting inference (\\$10\\ muJ = 10^-5 J) is frac10^3 J10^-5 J = 10^8 = 100,000,000× (eight orders of magnitude). This is a scale comparison across different tasks and accounting boundaries, not a controlled hardware-efficiency comparison. TinyML lifetime still depends on inference cadence, sensing, communication, sleep power, and the complete device energy budget. The options citing 2 orders (\\$100×) or 4 orders (\\$10,000×) severely underestimate the energy gap between cloud data centers and microcontrollers. The option citing 14 orders (\\$10^14) overstates the ratio.",
+     "hint": "Think about: calculate the energy scale ratio between TinyML sensing and cloud LLM queries while distinguishing it from a matched efficiency comparison.",
+     "type": "single",
+     "options": [
+      "Approximately \\$100× (2 orders of magnitude)",
+      "Approximately \\$10,000× (4 orders of magnitude)",
+      "Approximately \\$100{,}000{,}000\\times$ (\\$10^8$, 8 orders of magnitude)",
+      "Approximately \\$10^14× (14 orders of magnitude)"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Why are microcontroller TinyML devices predominantly restricted to inference-only execution rather than full in-situ backpropagation training?",
+     "explanation": "The correct answer is D. During inference, an intermediate buffer can be reused only after its final consumer has finished; skip connections can extend that lifetime. Conventional training retains results needed for gradient calculations and adds gradients and optimizer state. Its memory demand depends on tensor shapes, model structure, checkpointing or recomputation, and which parameters are updated, rather than depth alone. Many microcontrollers cannot fit the full training state. Methods such as TinyTL reduce it by freezing weights and updating mainly biases, but constrained local adaptation is not categorically impossible. The other choices do not explain the memory requirement.",
+     "hint": "Think about: explain how training-state memory requirements constrain on-device learning on microcontrollers.",
+     "type": "single",
+     "options": [
+      "Microcontrollers use flash memory which permanently locks all transistor gates against state changes.",
+      "Backpropagation requires double-precision FP64 floating-point arithmetic which is mathematically impossible on 32-bit cores.",
+      "The speed of light inside microcontroller silicon is too slow to support backward gradient propagation.",
+      "Conventional training retains intermediate results needed for gradient calculations and adds gradient and optimizer state, which can exceed a microcontroller's working-memory budget."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "The power management paradigm in which a battery-less or energy-harvesting microcontroller sleeps in ultra-low-power states and wakes periodically to perform inference before energy reserves deplete is called ____ computing.",
+     "explanation": "intermittent (or duty-cycled). Intermittent computing enables microcontrollers powered by tiny batteries (like CR2032 coin cells) or ambient energy harvesters to achieve multi-year lifespans by keeping average active power consumption in the microwatt to milliwatt regime.",
+     "hint": "Think about: explain the operational role of intermittent computing in energy-harvesting TinyML deployments.",
+     "type": "fill",
+     "answer": [
+      "intermittent",
+      "intermittent (or duty cycled)",
+      "intermittent (or duty-cycled)"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Why is it a fallacy to treat TinyML as merely 'scaled-down mobile ML' that can be addressed simply by applying standard INT8 post-training quantization?",
+   "md": "TinyML constrains both storage and working memory: model weights and code generally reside in flash, while intermediate activations and runtime buffers must fit the smaller SRAM budget. FP32-to-INT8 conversion reduces the bytes of converted values by four, but does not guarantee that the artifact fits flash or that its peak working set fits SRAM. Power, operator support, and task quality must also meet the target envelope. Appropriate architectures and memory scheduling may therefore be needed in addition to quantization."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate the energy scale ratio between TinyML sensing and cloud LLM queries while distinguishing it from a matched efficiency comparison.",
+    "You can now explain how training-state memory requirements constrain on-device learning on microcontrollers.",
+    "You can now explain why sub-1 mW average power can enable energy-neutral TinyML operation only when harvested supply and stored energy cover the complete device load.",
+    "You can now explain the qualitative architectural discontinuities in memory and power that differentiate TinyML from mobile ML."
+   ]
+  }
+ ]
+}

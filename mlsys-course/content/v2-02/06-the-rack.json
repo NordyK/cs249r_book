@@ -1,0 +1,109 @@
+{
+ "title": "The Rack",
+ "summary": "Explain why liquid cooling can support higher rack density while cooling selection remains dependent on server and facility design.",
+ "source": {
+  "chapter": "v2-02",
+  "sections": [
+   "The Rack",
+   "Power and thermal envelopes",
+   "Cooling class and heat removal",
+   "Rack design considerations",
+   "Facility reliability and environmental controls"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Rack** in *Compute Infrastructure* (Vol II). By the end you should be able to:\n\n- Explain why liquid cooling can support higher rack density while cooling selection remains dependent on server and facility design\n- Analyze why synchronous training forces cooling provisioning to meet the sustained design envelope rather than only the average load and recognize the silent-throttling signature\n- Explain why synchronized training workloads create severe electrical power-delivery challenges ($di/dt$) that average-power analyses miss\n- Evaluate centralized 48V rack distribution using conversion efficiency, packaging volume, and shared failure boundaries\n- Compare a measured rack heat load with a qualified facility envelope before selecting a cooling intervention"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Compute Infrastructure, § The Rack",
+   "md": "A standard 42U server rack in a traditional data center draws about … and can be cooled by room-temperature air pushed through perforated floor tiles. The chapter's four-node DGX H100 rack scenario draws …, a figure that includes the rack's allocated cooling overhead. At this density, the engineering constraints shift from silicon and signal integrity to power delivery and thermodynamics. The rack is where the power wall and heat transfer become dominant design forces."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Power and thermal envelopes\n- Cooling class and heat removal\n- Rack design considerations\n- Facility reliability and environmental controls\n\nPay attention to: Cooling-media trade-offs and configuration-dependent selection of engineered air or liquid cooling; Synchronous training electrical transients (di/dt) and peak vs. average power provisioning; Cooling class: heat-removal physics, cold plates and CDUs, and qualified facility envelopes; 48V DC busbar distribution and rack failure domains."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A facilities team provisions its cooling and electrical infrastructure for the average GPU power observed during training (approx 500 W per GPU) rather than the \\$700 W sustained design target. Explain why this choice can silently degrade cluster training throughput even when no hardware errors or crashes occur.",
+   "md": "Synchronized compute phases can raise many devices toward the configured sustained envelope together. A cooling design based only on the \\$500\\text{ W}$ average may not sustain the intended \\$700\\text{ W}$ operating condition. If junction temperatures reach thermal limits, clock throttling can lower throughput while the application continues running. The design must check sustained thermal conditions separately from fast electrical transients; no fixed MFU penalty follows from average power alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-02-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A four-node DGX H100 rack draws approximately \\$33 kW of IT power. Which heat-transfer property can make direct-to-chip liquid cooling attractive as rack density rises, even though engineered air cooling remains possible in a suitable facility?",
+     "explanation": "The correct answer is B. Heat removal depends on mass flow, specific heat, and temperature rise. Liquid can transport the same heat with far less volumetric flow than air. Cooling choice still depends on the server and facility; rack power alone does not impose a universal cutoff. Cooling does not change algorithmic arithmetic intensity, and cold plates do conduct heat from the package.",
+     "hint": "Think about: explain why liquid cooling can support higher rack density while cooling selection remains dependent on server and facility design.",
+     "type": "single",
+     "options": [
+      "Liquid cooling increases GPU arithmetic intensity by lowering electrical resistance inside Tensor Cores.",
+      "Water has much higher volumetric heat capacity than air, so it can carry away the same heat with a much smaller volumetric flow for a comparable temperature rise.",
+      "Air cooling causes optical transceivers to melt when exposed to fan airflow velocities above 5 meters per second.",
+      "High-density racks require full dielectric immersion because cold plates cannot conduct heat from silicon heat spreaders."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Synchronous ML training can correlate accelerator power ramps across a cluster. How does this electrical behavior distinguish its power-delivery requirements from those of largely uncorrelated web-serving workloads?",
+     "explanation": "The correct answer is D. Synchronized workload transitions can correlate demand, but regulation and decoupling change the current waveform at each supply boundary. Local current slew is measured in amperes per second, not watts per second, and must be paired with the impedance of that same path. Average facility capacity cannot establish local voltage integrity. Synchronization neither eliminates UPS requirements nor implies purely reactive power.",
+     "hint": "Think about: explain why synchronized training workloads create severe electrical power-delivery challenges ($di/dt$) that average-power analyses miss.",
+     "type": "single",
+     "options": [
+      "ML clusters operate on direct current exclusively, eliminating the need for uninterruptible power supplies.",
+      "Web-serving data centers experience higher $di/dt$ transients because individual HTTP requests draw more peak current than matrix multiplications.",
+      "ML training consumes purely reactive power that causes step-down transformers to freeze mechanically.",
+      "Correlated demand changes require checking both local regulator and decoupling response and the aggregate demand seen by upstream supplies, rather than sizing solely for average power."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Replacing individual server AC supplies with a centralized 48V DC power shelf and busbar guarantees one fewer conversion stage and a 2--3% electrical efficiency gain.",
+     "explanation": "False. Rack-level distribution consolidates AC conversion and can recover chassis volume, but local DC-to-DC conversion remains. Compare the actual conversion stages and their efficiency at the intended loads rather than assume a fixed saving. Shared shelves and busbars also require redundancy and serviceability appropriate to their rack-level failure boundary.",
+     "hint": "Think about: evaluate centralized 48V rack distribution using conversion efficiency, packaging volume, and shared failure boundaries.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A facility aisle is qualified to remove a sustained 25 kW of IT heat per rack with its existing air-cooling design under the specified inlet temperature and airflow. The proposed AI workload measures 60 kW per rack over its sustained operating interval. Which observation establishes the need to change the cooling design or reduce the rack load?",
+     "explanation": "The correct answer is C. The proposed sustained heat load exceeds the particular facility's qualified envelope. This establishes a local feasibility problem, not a universal rack-power threshold at which air cooling fails. Liquid cooling is a candidate whose complete heat path, parasitic energy, and serviceability must be qualified. Neither memory-bandwidth comparisons nor numerical precision establishes the required heat-removal capacity.",
+     "hint": "Think about: compare a measured rack heat load with a qualified facility envelope before selecting a cooling intervention",
+     "type": "single",
+     "options": [
+      "Web workloads have higher peak memory bandwidth requirements, causing localized thermal spikes.",
+      "AI training generates bursty, millisecond-scale CPU spikes followed by long idle periods, creating thermal cycling fatigue.",
+      "The measured 60 kW rack load exceeds this aisle's qualified 25 kW air-cooling envelope; a qualified liquid, hybrid, or redesigned air system, or a lower rack load, must restore thermal feasibility.",
+      "AI models require lower ambient operating temperatures to maintain FP16 arithmetic precision."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Order the thermal stages of heat removal in a direct-to-chip liquid-cooled data center, from the silicon die to the external environment:",
+     "explanation": "The correct order is: (5) active switching in transistor junctions generates heat on the silicon die, (1) heat transfers through a thin thermal interface material (TIM) into a copper cold plate, (4) liquid coolant absorbs heat as it flows through microchannels directly above the accelerator package, (2) the Coolant Distribution Unit (CDU) heat exchanger transfers thermal energy from the closed rack loop to the facility secondary loop, (3) external cooling towers or dry coolers reject heat into the ambient outdoor atmosphere. Thermal conduction originates in the silicon junction, transfers across the TIM into the cold plate, is absorbed convectively by the rack liquid coolant, transfers across the CDU heat exchanger to the facility water loop, and is ultimately rejected to the ambient environment. Reversing any intermediate steps violates the physical conduction and convection path.",
+     "hint": "Think about: analyze the thermodynamic heat rejection path in direct-to-chip liquid-cooled AI infrastructure",
+     "type": "order",
+     "items": [
+      "active switching in transistor junctions generates heat on the silicon die.",
+      "liquid coolant absorbs heat as it flows through microchannels directly above the accelerator package",
+      "external cooling towers or dry coolers reject heat into the ambient outdoor atmosphere"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain why liquid cooling can support higher rack density while cooling selection remains dependent on server and facility design.",
+    "You can now analyze why synchronous training forces cooling provisioning to meet the sustained design envelope rather than only the average load and recognize the silent-throttling signature.",
+    "You can now explain why synchronized training workloads create severe electrical power-delivery challenges ($di/dt$) that average-power analyses miss.",
+    "You can now evaluate centralized 48V rack distribution using conversion efficiency, packaging volume, and shared failure boundaries."
+   ]
+  }
+ ]
+}

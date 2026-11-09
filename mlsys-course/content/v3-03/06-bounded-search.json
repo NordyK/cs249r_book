@@ -1,0 +1,64 @@
+{
+ "title": "Bounded Search",
+ "summary": "Work through Bounded Search.",
+ "source": {
+  "chapter": "v3-03",
+  "sections": [
+   "Bounded Search",
+   "Where each search structure prunes",
+   "How step pruning bounds tree growth",
+   "Isolating workspaces across search branches",
+   "Accounting for the whole search",
+   "Reserving budget before admitting work",
+   "When to stop searching early"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Bounded Search** in *Test-Time Compute* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Test-Time Compute, § Bounded Search",
+   "md": "The repair agent now holds several partial candidates at once, some freshly revised and some untouched. At each step it can sample a fresh patch from the root, extend an existing partial candidate by one segment, or run a diagnostic probe to separate competing explanations. Every choice draws from the same task budget while creating different scheduling dependencies. A probe that gates the next code extension sits on the critical path. Independent candidate extensions can run in parallel across worker slots."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Where each search structure prunes\n- How step pruning bounds tree growth\n- Isolating workspaces across search branches\n- Accounting for the whole search\n- Reserving budget before admitting work\n- When to stop searching early"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Search tree pruning matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A step check that rejects a fraction r of b children gives an effective branching factor b(1-r), so a tree stays finite on its own only when r > 1-1/b and otherwise needs hard caps."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-03-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Bounded Search** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Voting and learned ranking both return the best failure from a defective pool, so only selection by a check the candidate cannot modify justifies returning a candidate instead of abstaining.",
+      "A search tracks money, non-interchangeable work, wall time, and peak live state in separate accounts and reserves each request's maximum charge before dispatch, releasing it only on settlement.",
+      "Before admitting more work, apply hard ceilings, then satisficing, then marginal stopping, and an exhausted budget returns unresolved or escalates rather than lowering the acceptance threshold.",
+      "A step check that rejects a fraction r of b children gives an effective branching factor b(1-r), so a tree stays finite on its own only when r > 1-1/b and otherwise needs hard caps."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Search tree pruning**: A step check that rejects a fraction r of b children gives an effective branching factor b(1-r), so a tree stays finite on its own only when r > 1-1/b and otherwise needs hard caps."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Bounded Search."
+   ]
+  }
+ ]
+}

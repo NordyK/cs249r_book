@@ -1,0 +1,104 @@
+{
+ "title": "Model Parallelism",
+ "summary": "Analyze the column-then-row linear layer pairing in Megatron-LM tensor parallelism.",
+ "source": {
+  "chapter": "v2-06",
+  "sections": [
+   "Model Parallelism",
+   "Layer-wise partitioning",
+   "Pipeline parallelism",
+   "Tensor parallelism",
+   "Sequence and context parallelism",
+   "Expert parallelism (mixture of experts)",
+   "Sparse embedding sharding"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Model Parallelism** in *Distributed Training* (Vol II). By the end you should be able to:\n\n- Analyze the column-then-row linear layer pairing in Megatron-LM tensor parallelism\n- Calculate pipeline bubble overhead and explain the role of microbatch count in pipeline utilization\n- Order the four phases of token routing and execution in expert parallelism\n- Explain the function of the capacity factor and token dropping in distributed MoE routing\n- Compare dense model tensor parallelism against sparse embedding sharding communication patterns"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Distributed Training, § Model Parallelism",
+   "md": "Sharded data parallelism distributes stored state but still asks each worker to execute every layer on its local examples. If one layer's gathered parameters and working memory exceed device capacity, or its execution is too slow for the target schedule, splitting that computation becomes a candidate. Model parallelism addresses this form of the memory capacity gap (principle \\ref{pri-memory-capacity-gap}) by assigning different computations to different devices. Its value must be compared with offload, recomputation, and smaller local batches under the same throughput and quality requirements."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Layer-wise partitioning\n- Pipeline parallelism\n- Tensor parallelism\n- Sequence and context parallelism\n- Expert parallelism (mixture of experts)\n- Sparse embedding sharding\n\nPay attention to: Megatron column-then-row linear layer factoring saving AllReduce collectives; pipeline bubble mechanics: GPipe vs 1F1B activation residency and bubble formula; expert parallelism (MoE): gating, AllToAll dispatch/combine, capacity factor; sequence parallelism: Ring Attention circulating K/V blocks."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In a synchronous 1F1B pipeline-parallel training schedule with $p=8$ stages and $m=32$ microbatches, calculate the theoretical pipeline bubble fraction and explain how increasing the microbatch count $m$ affects bubble overhead and activation memory.",
+   "md": "The bubble fraction is $F_{\\text{bubble}} = \\frac{p-1}{m+p-1} = \\frac{8-1}{32+8-1} = \\frac{7}{39} \\approx 17.9\\%$. Increasing the microbatch count $m$ relative to stage count $p$ drives the bubble fraction down toward zero ($F_{\\text{bubble}} \\to 0$). Under 1F1B scheduling, with equal activation sizes per microbatch, peak activation memory per stage is bounded at $\\mathcal{O}(p)$ rather than GPipe's $\\mathcal{O}(m)$, making larger microbatch counts practical."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-06-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In Megatron-LM style tensor parallelism for a transformer layer, how are the linear projections in the multi-head attention block arranged to minimize cross-device collective communication?",
+     "explanation": "The correct answer is C. In Megatron-LM, the first linear layer (QKV projection) is column-parallel ($W = [W_1 | W_2]$), producing partitioned intermediate activations without communication. The second linear layer (Output projection) is row-parallel ($W = [W_1 ; W_2]$), taking those partitioned activations directly as inputs and generating partial sums. Only a single AllReduce at the end of the row-parallel projection is required to sum the partial outputs. Using column-parallel for both layers would require an intermediate AllGather. Using row-parallel for both layers would require an AllReduce before the second layer. Splitting QKV and Output across pipeline stages confuses intra-layer tensor parallelism with inter-layer pipelining.",
+     "hint": "Think about: analyze the column-then-row linear layer pairing in Megatron-LM tensor parallelism",
+     "type": "single",
+     "options": [
+      "Both QKV and Output projections are column-parallel, requiring an AllGather after each projection",
+      "Both QKV and Output projections are row-parallel, requiring an AllReduce before each projection",
+      "The QKV projection is column-parallel and the Output projection is row-parallel, requiring only a single AllReduce at the end of the attention block",
+      "The QKV projection is partitioned across pipeline stages while the Output projection is replicated across data-parallel ranks"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Order the four sequential phases of token routing and execution in Expert Parallelism (Mixture of Experts) across distributed workers:",
+     "explanation": "(3) -> (4) -> (2) -> (1). First, (3) Gating evaluates token representations to select destination experts. Next, (4) AllToAll Dispatch routes tokens across the interconnect to the GPUs hosting the chosen experts. Then, (2) Computation executes the local expert feed-forward layers on the received tokens. Finally, (1) AllToAll Combine routes the processed representations back to their originating devices.",
+     "hint": "Think about: order the four phases of token routing and execution in expert parallelism",
+     "type": "order",
+     "items": [
+      "Gating: A router network evaluates tokens and selects top-k destination experts",
+      "AllToAll Dispatch: Tokens are shuffled across the network fabric to the devices hosting their selected experts",
+      "Computation: Sharded expert feed-forward networks process their assigned token batches",
+      "AllToAll Combine: Processed token embeddings are routed back to their original source devices for residual connections"
+     ]
+    },
+    {
+     "q": "In a capacity-limited Mixture of Experts (MoE) system using top-1 routing and token dropping, what occurs when a hot expert receives more tokens than its allocated buffer capacity determined by the Capacity Factor $C$?",
+     "explanation": "The correct answer is A. To prevent memory overflow and load-imbalance stalls on devices hosting popular experts, the stated top-1 dropping implementation enforces a capacity limit $C \\cdot (B \\times S)/E$. When an expert's assigned token count exceeds this buffer, the excess tokens are dropped and bypass the feed-forward computation, flowing directly through the residual connection. Dynamically allocating host CPU memory would stall GPU execution. Collective communication does not pause dynamically for uneven token counts. Rerouting to random unselected experts would violate gating semantics.",
+     "hint": "Think about: explain the function of the capacity factor and token dropping in distributed MoE routing",
+     "type": "single",
+     "options": [
+      "Excess tokens are dropped and pass through the MoE layer unprocessed via the residual connection",
+      "The expert GPU dynamically allocates host CPU memory over PCIe, halting computation on other ranks",
+      "The AllToAll collective automatically pauses until all sibling experts process matching token counts",
+      "The extra tokens are rerouted to a random cold expert regardless of gating network weights"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Ring Attention scales context length beyond single-GPU memory capacity by circulating key/value blocks in an accelerator ring across $N-1$ communication rounds while overlapping transfer with block-level attention computation.",
+     "explanation": "True. Ring Attention partitions the query, key, and value sequences across $N$ GPUs so each device holds only $S/N$ tokens of key/value state. Each GPU evaluates its query block against all $N$ key/value blocks, including its local block, using $N-1$ transfers. Transfer can overlap block computation when the interconnect and compute budget permit; the distributed state capacity grows with worker count.",
+     "hint": "Think about: evaluate the memory and communication mechanism of Ring Attention for long-context sequence parallelism",
+     "type": "truefalse",
+     "answer": true
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Contrast the communication patterns and hardware interconnect requirements of dense LLM training (Megatron-style Tensor Parallelism) with large-scale Recommendation Systems (DLRM embedding sharding).",
+   "md": "Dense LLM tensor parallelism places frequent activation reductions on the layer critical path, favoring high-bandwidth, low-latency local fabrics. DLRM instead shards large embedding tables and exchanges the rows selected by each batch. Its memory-capacity and random-access constraints differ from dense arithmetic, but sparse lookup and redistribution traffic can still saturate network links under fan-out or skew."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the column-then-row linear layer pairing in Megatron-LM tensor parallelism.",
+    "You can now calculate pipeline bubble overhead and explain the role of microbatch count in pipeline utilization.",
+    "You can now order the four phases of token routing and execution in expert parallelism.",
+    "You can now explain the function of the capacity factor and token dropping in distributed MoE routing."
+   ]
+  }
+ ]
+}

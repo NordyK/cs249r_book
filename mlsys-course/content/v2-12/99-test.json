@@ -1,0 +1,148 @@
+{
+ "title": "Test: ML Operations at Scale",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-12-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "Arrange the four Platform Abstraction Levels in order from lowest level of abstraction",
+     "explanation": "The correct order is: (3) Infrastructure as a Service -> (2) Standardized Containers -> (4) ML Control Loops -> (1) Full Lifecycle Product. Level 1 provides raw infrastructure (3); Level 2 standardizes containers and storage (2); Level 3 automates ML control loops and distributed orchestration (4); Level 4 provides end-to-end full lifecycle managed capabilities (1).",
+     "hint": "Think about: order the progression of ML platform abstraction tiers.",
+     "type": "order",
+     "items": [
+      ":",
+      "to highest level of abstraction"
+     ]
+    },
+    {
+     "q": "Why should an ML incident response runbook check feature freshness and input distributions when business KPIs drop even though server health and latency remain normal?",
+     "explanation": "The correct answer is A. Stale features or distribution changes can degrade predictions while requests still return successfully. Healthy infrastructure metrics therefore do not establish healthy model behavior. Investigate semantic and data signals alongside infrastructure evidence, and contain user impact while attribution continues; no universal diagnostic sequence fits every incident.",
+     "hint": "Think about: explain why ML incident response must inspect semantic and data health in addition to infrastructure metrics.",
+     "type": "single",
+     "options": [
+      "ML systems fail silently: when feature pipelines stall or input distributions drift, models continue returning HTTP 200 responses with normal latency, rendering infrastructure checks falsely reassuring.",
+      "Inspecting GPU hardware metrics immediately triggers automated container restarts.",
+      "Data pipelines are not connected to production networks and cannot cause outages.",
+      "Infrastructure monitoring tools require 24 hours of latency to register server crashes."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "According to the ML technical debt taxonomy (Sculley et al.), which operational symptom specifically indicates dangerous *Configuration Debt* rather than Data Debt or Model Debt?",
+     "explanation": "The correct answer is C. Configuration debt manifests as unvalidated parameter surfaces, duplicated configuration blocks, and brittle YAML/JSON files that lack schema verification, directly leading to deployment failures. In contrast, upstream schema alterations represent data debt, glue code represents model debt, and feedback loops represent pipeline/system entanglement.",
+     "hint": "Think about: classify operational symptoms into distinct categories of ML technical debt.",
+     "type": "single",
+     "options": [
+      "Upstream database schema changes that silently alter categorical feature encodings.",
+      "Extensive glue code written to convert data between disparate third-party machine learning libraries.",
+      "Large, unvalidated configuration parameter files (e.g., exceeding 500 lines of ad-hoc YAML per model) causing frequent deployment failures.",
+      "Tangled feedback loops where a fraud detection model's historical outputs bias incoming training labels."
+     ],
+     "answer": 2
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Feature consistency contract**?",
+     "options": [
+      "Rollout risk is probability of regression times per-unit impact times exposed units, so a canary stage lasts at least its planned sample over traffic share, and the slowest outcome the release must observe sets the schedule.",
+      "A fleet release is accepted against one versioned record that pins, for the same artifact, offline, system, responsibility, online, and recovery evidence, each with an owner and an invalidation rule fixed before exposure.",
+      "A feature store makes training-serving consistency a testable platform invariant only if freshness SLOs name their timestamp contract and point-in-time joins filter on availability time rather than event time.",
+      "A release experiment's sample grows as one over the squared effect size, uncorrected multiple tests and peeking inflate false rejections, and interference between concurrent experiments must be budgeted like sample size."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Feature consistency contract itself, not a neighbouring idea.",
+     "explanation": "**Feature consistency contract:** A feature store makes training-serving consistency a testable platform invariant only if freshness SLOs name their timestamp contract and point-in-time joins filter on availability time rather than event time."
+    },
+    {
+     "q": "A federated ML platform organizational model can operate effectively without central governance authority to enforce architecture standards and prevent code forking.",
+     "explanation": "False. Without enforceable central governance and clear contribution models, a federated structure quickly degenerates into fragmented embedded silos with high coordination overhead and divergent platform forks.",
+     "hint": "Think about: explain the governance prerequisites for successful federated ML platform models.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "ML platform engineering is a variable cost that delivers immediate positive economic return regardless of the number of deployed models in an organization.",
+     "explanation": "False. Platform investment includes fixed team and tooling costs. Its economic case depends on the value of recovered engineering capacity and avoided incidents relative to those costs. The break-even fleet size depends on workload and organization; 20–50 models is not a universal threshold, and recovered time is not automatically cash savings.",
+     "hint": "Think about: evaluate the scaling threshold and fixed-vs-variable cost structure of centralized ML platforms.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The subtle difference in feature transformation logic between offline batch training pipelines and online real-time inference pipelines is known as ____.",
+     "explanation": "training-serving skew. Training-serving skew is the critical operational failure mode where differences in preprocessing logic between training and inference cause models to receive inputs formatted differently from what they learned, causing silent performance degradation.",
+     "hint": "Think about: identify the core operational failure mode solved by unified feature stores.",
+     "type": "fill",
+     "answer": [
+      "training serving skew",
+      "training-serving skew"
+     ]
+    },
+    {
+     "q": "What recurring coordination problem does the Michelangelo case illustrate?",
+     "explanation": "The correct answer is C. Shared feature and workflow contracts make model development repeatable across product teams. The case describes varied tools and custom production systems, rather than establishing a specific Python-to-C++/Java rewrite requirement. Standardizing delivery does not remove each team's responsibility for model behavior.",
+     "hint": "Think about: explain the historical engineering drivers behind early enterprise feature store platforms.",
+     "type": "single",
+     "options": [
+      "Cloud GPU instances were unsupported by Uber's container runtimes.",
+      "Data scientists were legally prohibited from executing SQL queries against production databases.",
+      "Varied modeling tools and custom production systems lacked a common deployment path and reproducible data pipelines.",
+      "Mobile device operating systems refused to display recommendation rankings with more than five items."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "The formal statistical assumption that an experimental unit's outcome is unaffected by the treatment assignments of other units is abbreviated as ____.",
+     "explanation": "SUTVA. The no-interference component of the Stable Unit Treatment Value Assumption requires an experimental unit’s outcome not to depend on other units’ treatment assignments. Network and market spillovers can violate that component; it is not a requirement that all observed outcomes be statistically independent.",
+     "hint": "Think about: identify the formal statistical assumption underlying independent A/B testing.",
+     "type": "fill",
+     "answer": [
+      "SUTVA"
+     ]
+    },
+    {
+     "q": "In the chapter's illustrative on-premises AI cluster cost stack, which cost center represents the largest ongoing Operational Expenditure (OpEx) component over the 3-year lifecycle?",
+     "explanation": "The correct answer is D. The illustrative planning stack assigns electricity 60--70% of OpEx. This share depends on power prices, utilization, staffing, maintenance, and the accounting boundary; it is not a universal cluster cost ratio. Accelerator and server procurement belong to CapEx.",
+     "hint": "Think about: analyze the cost breakdown of capital and operational expenditures in large-scale ML infrastructure.",
+     "type": "single",
+     "options": [
+      "InfiniBand optical transceiver replacements and network switch warranty contracts.",
+      "Commercial software licenses and distributed file system support subscriptions.",
+      "Hardware technician salaries and baseboard management controller maintenance.",
+      "Electricity for powering compute accelerators, host servers, and facility cooling plants (60--70% of OpEx)."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Arrange the standard stages of an end-to-end automated ML training and release pipeline in execution order:",
+     "explanation": "The correct order is: (3) Data validation and schema verification -> (5) Feature engineering and transformation -> (4) Distributed training execution with lineage logging -> (1) Automated evaluation against baseline and slice performance gates -> (2) Artifact packaging with serving configuration and registration in model registry. Data validation (3) prevents training on corrupt data, feature transformation (5) processes inputs, distributed training (4) generates parameters, evaluation gates (1) verify accuracy, and registration (2) commits the approved artifact.",
+     "hint": "Think about: order the sequence of stages in a robust ML CI/CD pipeline.",
+     "type": "order",
+     "items": [
+      "Data validation and schema verification",
+      "Feature engineering and transformation",
+      "Distributed training execution with lineage logging",
+      "Automated evaluation against baseline and slice performance gates",
+      "Artifact packaging with serving configuration and registration in model registry"
+     ]
+    },
+    {
+     "q": "Why are 'gray failures' (e.g., an accelerator whose GEMM arithmetic throughput drops by 20% or an NVLink connection suffering intermittent packet retries) exceptionally damaging in large synchronous distributed training runs?",
+     "explanation": "The correct answer is B. A gray failure can lengthen the step critical path without crashing a process. Gradient communication can overlap computation as buckets become ready; ranks need not finish all local computation before any collective begins. The effect depends on placement and the collective schedule, rather than implying a datacenter-wide power failure.",
+     "hint": "Think about: analyze the systemic impact of hardware gray failures on synchronous distributed training efficiency.",
+     "type": "single",
+     "options": [
+      "Gray failures trigger automatic emergency power-off sequences across the entire datacenter hall.",
+      "A degraded rank or link on the communication critical path can delay collective completion and the next training step while ordinary availability checks remain healthy.",
+      "Gray failures cause the training loss optimizer to invert gradient signs during backpropagation.",
+      "The Kubernetes control plane immediately unmounts shared file systems when a GPU runs slowly."
+     ],
+     "answer": 1
+    }
+   ]
+  }
+ ]
+}

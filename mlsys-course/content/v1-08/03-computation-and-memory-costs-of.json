@@ -1,0 +1,78 @@
+{
+ "title": "Computation and Memory Costs of Training",
+ "summary": "Compare GEMM and GEMV using arithmetic intensity and operand reuse in the accelerator memory hierarchy.",
+ "source": {
+  "chapter": "v1-08",
+  "sections": [
+   "Computation and Memory Costs of Training",
+   "Forward and backward computation",
+   "Optimizers and their memory",
+   "Backpropagation and activation memory",
+   "Arithmetic intensity"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Computation and Memory Costs of Training** in *Model Training* (Vol I). By the end you should be able to:\n\n- Compare GEMM and GEMV using arithmetic intensity and operand reuse in the accelerator memory hierarchy\n- Calculate whether SGD or Adam fits within a fixed HBM budget when common training state is already accounted for\n- Identify the definition and significance of the ridge point in roofline model analysis\n- Order the operations of a training iteration based on their mathematical and data dependencies\n- Use ridge-point comparison to classify an attention implementation and select the matching traffic-reduction optimization direction"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Training, § Computation and Memory Costs of Training",
+   "md": "@Sec-neural-computation established *what* neural network operations compute and *why* they enable learning; what they cost at scale depends on where their tensors live. In a model such as GPT-2, the tensors participating in a single training step far exceed the 30 to 50 MB of on-chip SRAM available on a modern accelerator. Executing a layer's matrix multiplication PreactivationMatrix= ActivationMatrixWeightMatrix therefore moves matrix tiles continuously between two tiers of memory."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Forward and backward computation\n- Optimizers and their memory\n- Backpropagation and activation memory\n- Arithmetic intensity\n\nPay attention to: BLAS Level 3 GEMM vs BLAS Level 2 GEMV arithmetic intensity and hardware efficiency; optimizer state memory accounting for Adam versus SGD; roofline ridge point definition and arithmetic intensity; causal dependencies of backpropagation operations."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A team trains a 7-billion-parameter model on accelerators with 80 GB of HBM each. Weights, gradients, activations, and common workspaces already occupy 64 GB per accelerator, and this total already includes any FP32 master weights if the recipe uses them. The model is unsharded per device. Using the section's optimizer-memory accounting, explain the systems trade-off between choosing plain SGD and Adam for this run.",
+   "md": "Adam adds two FP32 moment tensors, or 8 bytes per parameter, so a 7B-parameter model needs about 56 GB more optimizer state. That pushes the per-device total from 64 GB to about 120 GB, which exceeds an 80 GB accelerator before any sharding decision is considered, whereas plain SGD adds no auxiliary optimizer state and still fits at 64 GB. The practical consequence is that this choice is first a capacity question; once a feasible optimizer is chosen, the team should then measure time to target quality rather than assume one optimizer will always converge faster."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-08-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why do batched matrix-matrix multiplications (GEMM, BLAS Level 3) usually achieve much higher accelerator utilization in neural network training than matrix-vector operations (GEMV, BLAS Level 2)?",
+     "explanation": "The correct answer is B. Under the section's idealized traffic analysis, GEMM performs many more FLOPs per byte moved because tiles of weights and activations are reused across multiple outputs, so its arithmetic intensity can scale upward with problem size. GEMV offers far less reuse, so moving bytes can dominate execution. The claim that GEMM avoids gradients is wrong because training uses matrix multiplies heavily in backward as well as forward, and the CPU-synchronization explanation confuses low arithmetic intensity with an unsupported execution model.",
+     "hint": "Think about: compare GEMM and GEMV using arithmetic intensity and operand reuse in the accelerator memory hierarchy.",
+     "type": "single",
+     "options": [
+      "Matrix-matrix operations avoid gradient computation during backpropagation, so they save both memory traffic and arithmetic work.",
+      "Under the ideal traffic model in the section, GEMM reuses loaded operands across many outputs, so arithmetic intensity can grow with matrix size, whereas GEMV offers much less reuse and tends to stay near constant arithmetic intensity.",
+      "Matrix-vector operations cannot run efficiently on GPUs because every layer result must be synchronized back to the CPU before the next layer starts.",
+      "Batched matrix-matrix operations reduce the model's parameter count, which is why they keep more of the network in HBM."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "For a transformer with hidden dimension d_model = 768 and 12 heads (d_head = 64), the section's restricted accounting gives the materialized attention-score computation an arithmetic intensity of about d_head/2 = 32 FLOP/byte. If the target accelerator is the reference H100, whose ridge point is about \\$295 FLOP/byte, what does that imply and what optimization direction best matches the section?",
+     "explanation": "The correct answer is D. With an estimated intensity of \\$32\\text{ FLOP/byte}$ against the H100's ridge point of about \\$295\\text{ FLOP/byte}$, the roofline classifies this implementation as memory-bandwidth-limited under the stated traffic model. That does not prove a measured kernel already saturates bandwidth or that hardware upgrades can never help, but it does indicate that reducing score-matrix traffic is the matching optimization direction. The network answer is irrelevant because this is a local attention-kernel analysis, and shrinking batch size does not address the materialized-attention IO term the section highlights.",
+     "hint": "Think about: use ridge-point comparison to classify an attention implementation and select the matching traffic-reduction optimization direction.",
+     "type": "single",
+     "options": [
+      "The kernel is compute-bound, so increasing peak TFLOP/s is the main expected lever under this model.",
+      "The kernel is latency-bound, so shrinking the batch is the main way to move it onto the compute roof.",
+      "The kernel is network-bound, so the right first response is a faster inter-node AllReduce fabric.",
+      "The kernel falls on the memory-bandwidth side of the roofline under this accounting, so reducing materialized score traffic through IO-aware tiling is the appropriate optimization direction."
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare GEMM and GEMV using arithmetic intensity and operand reuse in the accelerator memory hierarchy.",
+    "You can now calculate whether SGD or Adam fits within a fixed HBM budget when common training state is already accounted for.",
+    "You can now identify the definition and significance of the ridge point in roofline model analysis.",
+    "You can now order the operations of a training iteration based on their mathematical and data dependencies."
+   ]
+  }
+ ]
+}

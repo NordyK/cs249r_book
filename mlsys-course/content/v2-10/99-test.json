@@ -1,0 +1,150 @@
+{
+ "title": "Test: Serving at Scale",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-10-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "Order the sequence of operations that occurs during token execution in an Expert-Parallel (MoE) transformer layer:",
+     "explanation": "The correct sequence is (2) -> (1) -> (4) -> (3) -> (5).\n- (2) The gating network evaluates token embeddings to select the top-$k$ experts per token.\n- (1) An AllToAll dispatch collective routes token representations to the devices hosting their assigned experts.\n- (4) Expert devices execute feed-forward matrix multiplications in parallel on received tokens.\n- (3) A second AllToAll gather collective transmits computed expert outputs back to originating devices.\n- (5) The host device performs a weighted summation of expert outputs using routing probabilities and adds residual connections.",
+     "hint": "Think about: structure the sequence of computation and communication steps in Expert-Parallel MoE token execution.",
+     "type": "order",
+     "items": [
+      "Gating network evaluates input representations and computes top-$k$ routing probabilities",
+      "AllToAll dispatch transmits token activation vectors to the specific GPUs hosting the selected experts",
+      "Selected expert sub-networks compute local feed-forward transformations on assigned tokens",
+      "AllToAll gather routes expert output activations back to the originating host devices",
+      "Weighted sum combines expert outputs with gating coefficients and adds residual connections"
+     ]
+    },
+    {
+     "q": "Because disaggregation removes prefill-decode interference, moving a deployment to separate prefill and decode pools lowers time to first token most for the longest prompts.",
+     "explanation": "False. The prefill pool must hand each request's KV cache to the decode pool, and that handoff costs at least a startup term plus KV bytes divided by link bandwidth. KV bytes grow linearly with prompt length, so the longest prompts pay the largest transfer, and it lands on time to first token. Disaggregation earns its transfer cost only when removing interference and balancing the two pools raises measured SLO goodput.",
+     "hint": "Think about: evaluate the KV-cache handoff cost that disaggregated serving adds to time to first token",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "When multiple tenants with unequal demand compete for a shared GPU pool, the fair-allocation algorithm that maximizes the minimum allocation by bounding per-tenant consumption using token generation rate (tokens/sec) is called ____ fairness.",
+     "explanation": "max-min (or Max-Min / max-min fairness). Max-min fairness allocates equal capacity up to each tenant's demand, redistributing unused headroom from low-demand tenants to high-demand tenants.",
+     "hint": "Think about: identify the max-min fairness principle applied to multi-tenant inference resource allocation.",
+     "type": "fill",
+     "answer": [
+      "max min (or Max Min / max min fairness)",
+      "max-min",
+      "max-min (or Max-Min / max-min fairness)"
+     ]
+    },
+    {
+     "q": "Why can tensor parallelism shorten a single forward pass, while pipeline parallelism alone does not provide the same intra-layer acceleration for one request?",
+     "explanation": "The correct answer is D. TP divides each layer's computation across devices but adds collective costs, so its latency gain depends on the workload and interconnect. PP places successive layers on different devices; one request still traverses them in order. PP primarily supplies capacity and concurrent-request throughput. It can alter memory placement or eliminate offload costs, so zero latency improvement is not a universal claim.",
+     "hint": "Think about: compare the latency and throughput mechanics of Tensor Parallelism versus Pipeline Parallelism during inference.",
+     "type": "single",
+     "options": [
+      "TP eliminates the need for activation storage, while PP doubles activation sizes across stages.",
+      "TP uses point-to-point transfers over Ethernet, while PP requires NVLink broadcast collectives.",
+      "TP relies on asynchronous CPU offloading, whereas PP executes purely on GPU Tensor Cores.",
+      "TP partitions intra-layer matrix multiplications across devices with per-layer AllReduce, whereas PP requires a single request to traverse all sequential stages in series."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "What cost does a colocated draft model impose on a speculative decoding replica, and how does it influence whether speculative decoding should be enabled for a specific serving endpoint?",
+     "explanation": "The correct answer is B. Draft weights and draft KV cache consume memory that could otherwise support target-model concurrency. Speculation is useful when lower latency or more accepted output per target pass outweighs that capacity cost and draft execution. The result depends on load, acceptance, and both models; a latency-oriented endpoint does not automatically benefit, nor is every throughput-oriented endpoint harmed.",
+     "hint": "Think about: evaluate the memory and throughput trade-offs of speculative decoding as an admission and scheduling policy under service-level agreements.",
+     "type": "single",
+     "options": [
+      "The latency penalty paid when draft models fail to generate valid UTF-8 token encodings.",
+      "The GPU memory allocated to draft model weights and draft KV cache, which reduces available HBM for batch concurrency.",
+      "The serialization overhead incurred when transmitting draft tokens across InfiniBand interconnects.",
+      "The loss in model generation accuracy caused by greedy sampling during draft token verification."
+     ],
+     "answer": 1
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Serving cost dominance**?",
+     "options": [
+      "Serving capacity is the rate of completed requests that meet stated TTFT and per-token targets for a fixed mix, and end-to-end latency adds network, serialization, coordination, and queueing to model time, so a 70 ms model in a 100 ms budget leaves 30 ms for everything else.",
+      "Lifetime cost is training once plus cost per query times traffic times deployment time, so at high volume serving overtakes training within days to weeks and the lever is cost per completed request at a fixed mix, quality, and SLO.",
+      "Two random probes cut the maximum load from log n / log log n to log log n in the static model, but serving needs a work signal (active tokens, remaining decode, KV pressure) and atomic admit-or-reject because probes go stale and requests differ fiftyfold in remaining work; across regions the balancer first filters by data-placement policy, artifact version, readiness, and capacity and only then chooses by measured latency or cost.",
+      "Serial reasoning tokens multiply latency by the ratio of reasoning tokens to answer tokens and extend KV residency, so test-time compute is a recurring serving cost per request whose budget must be stated in both time and capacity and justified by measured quality gain."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Serving cost dominance itself, not a neighbouring idea.",
+     "explanation": "**Serving cost dominance:** Lifetime cost is training once plus cost per query times traffic times deployment time, so at high volume serving overtakes training within days to weeks and the lever is cost per completed request at a fixed mix, quality, and SLO."
+    },
+    {
+     "q": "Serving cost always exceeds training cost once a model is large enough, because larger models cost more per query.",
+     "explanation": "False. Whether serving dominates depends on traffic, unit serving cost, deployment duration, and the training expense, not on model size alone. A low-traffic deployment or a short lifetime can leave training as the larger cost over the whole deployment.",
+     "hint": "Think about: identify the inputs that decide whether serving or training dominates a model's lifetime cost.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Why does speculative decoding accelerate autoregressive generation on modern GPUs without altering the target model's output probability distribution?",
+     "explanation": "The correct answer is C. The acceptance-and-resampling rule makes the emitted sequence follow the target model's distribution exactly, and verifying every drafted position in one target pass streams the target's weights once, the same reuse batching buys but drawn from one request's future tokens. Confidence thresholds or partial verification are approximate rules that do not inherit the guarantee, and verification runs at the target's own precision.",
+     "hint": "Think about: analyze how speculative decoding achieves latency speedups while preserving exact target model output distributions",
+     "type": "single",
+     "options": [
+      "It lets the draft model's tokens through whenever the draft model's own confidence exceeds a fixed threshold, so the target pass can be skipped for confident tokens",
+      "It runs the target model at lower precision during verification, so each verification pass streams fewer weight bytes than an ordinary decode step",
+      "It accepts each draft token with probability equal to the smaller of one and the ratio of the target model's probability to the draft model's probability, resamples a rejected position from the normalized positive difference between the two distributions, and verifies all drafts in one target pass for roughly the weight traffic of one token",
+      "It verifies only the first draft token and emits the remaining drafts unchecked, relying on the draft model's training to match the target"
+     ],
+     "answer": 2
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Batch formation trades waiting for reuse**?",
+     "options": [
+      "Pooling tenants raises utilization only with enforced isolation, so quotas bound request rate, concurrency, input and output tokens, KV pages, and accelerator time, checked and reserved atomically.",
+      "Fixed batch membership strands slots when output lengths differ, and admitting requests at iteration boundaries recovers that capacity only when requests are waiting, KV memory is free, and per-iteration scheduling is cheap relative to a decode step.",
+      "Contiguous maximum-length reservation strands most reserved KV memory, and paged allocation through per-sequence block tables bounds waste to the last block and lets compatible prefixes share physical blocks copy-on-write.",
+      "With batch service time t_0 + B t_req throughput saturates toward 1/t_req past a knee near t_0/t_req, and request latency is queueing plus formation plus execution, so a batching window caps formation but not queueing, while Little's law (in-flight work = arrival rate x mean latency) sizes the concurrency and replica count a target rate and latency imply."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Batch formation trades waiting for reuse itself, not a neighbouring idea.",
+     "explanation": "**Batch formation trades waiting for reuse:** With batch service time t_0 + B t_req throughput saturates toward 1/t_req past a knee near t_0/t_req, and request latency is queueing plus formation plus execution, so a batching window caps formation but not queueing, while Little's law (in-flight work = arrival rate x mean latency) sizes the concurrency and replica count a target rate and latency imply."
+    },
+    {
+     "q": "The architectural pattern that decouples LLM inference by executing the compute-bound prompt prefill phase and the bandwidth-bound autoregressive token decode phase on separate, specialized hardware pools is known as ____ serving.",
+     "explanation": "disaggregated. Separate pools specialize for prompt processing and token generation; transferring the KV cache between them adds a communication cost that the specialization must repay.",
+     "hint": "Think about: identify the architectural term for separating prefill and decode workloads across specialized hardware pools",
+     "type": "fill",
+     "answer": [
+      "disaggregated"
+     ]
+    },
+    {
+     "q": "In the precision dividend for the reference 70B replica, FP16 weights use 17.5 GB per GPU on eight 80 GB GPUs. Ignoring runtime reserves and quantization metadata, INT4 weights use about 4.4 GB per GPU and INT8 KV cache halves the per-request cache footprint. Why is the gain in maximum batch about 2.4 times rather than the fourfold weight reduction?",
+     "explanation": "The correct answer is C. Maximum batch is free memory divided by per-request cache. INT4 weights raise free memory by 75.6/62.5 ≈ 1.21, and INT8 cache halves per-request state, a factor of two, giving about 2.4 for either attention layout. The weight reduction is fourfold, but weights are only part of each GPU's budget. Runtime reserves, metadata, and the latency target lower the deployable batch below this bound.",
+     "hint": "Think about: synthesize how weight and KV-cache quantization interact multiplicatively to expand serving batch capacity",
+     "type": "single",
+     "options": [
+      "Because INT4 weights must be dequantized into a resident FP16 copy, so only part of the weight saving survives in HBM",
+      "Because the gain applies only to the eight-head GQA cache; the 64-head MHA baseline gains nothing from INT8 KV storage",
+      "Because the freed weight memory raises the KV budget from 62.5 GB to about 75.6 GB per GPU, a factor of about 1.21, and halving bytes per cached request doubles the count again, so the two effects multiply to about 2.4",
+      "Because quantizing the KV cache lengthens each decode step enough to cancel most of the extra capacity"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Order the steps for choosing and rolling out a quantization method for a serving system:",
+     "explanation": "The correct sequence is (2) -> (4) -> (3) -> (1).\n- (2) A quantization method helps only if it relaxes the resource that actually binds, so the bottleneck comes first.\n- (4) The bottleneck determines the representation change: weights only, fewer bytes per token, weights and activations, or a change of coordinate basis.\n- (3) The method family follows from that change (for example GPTQ or AWQ for fit, SmoothQuant W8A8 for prefill compute).\n- (1) Each family carries its own rollout risk, which must be tested on the deployment before traffic moves to it.",
+     "hint": "Think about: apply the serving quantization decision model from bottleneck to rollout test.",
+     "type": "order",
+     "items": [
+      "Identify which resource binds the serving system: memory fit, decode bandwidth, prefill compute, or outlier robustness",
+      "Choose the representation change that relaxes that resource",
+      "Choose the method family that makes that change"
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,68 @@
+{
+ "title": "Paged KV Allocation",
+ "summary": "Work through Paged KV Allocation.",
+ "source": {
+  "chapter": "v3-05",
+  "sections": [
+   "Paged KV Allocation",
+   "Token-to-block mapping",
+   "Block size and tail waste",
+   "Copy-on-write prefix sharing"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Paged KV Allocation** in *KV Cache Management* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, KV Cache Management, § Paged KV Allocation",
+   "md": "When an integration-test log extends an agent's repair context, the serving engine need not relocate the existing KV tensor to find a larger contiguous buffer. Instead, it allocates additional fixed-size physical blocks and appends their identifiers to the request's block table. The attention kernel dereferences that table when reading earlier token positions. PagedAttention demonstrated this combination of dynamic block allocation and noncontiguous attention over KV storage. Its lineage traces directly to paged virtual memory."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Token-to-block mapping\n- Block size and tail waste\n- Copy-on-write prefix sharing"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Copy-on-write block sharing matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-05-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Paged KV Allocation** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Fixed-size blocks mapped by a per-sequence block table remove the stranded memory of full-cap reservation and bound tail waste below one block.",
+      "Splitting an uncached prompt into chunks under a per-iteration token budget bounds the inter-token gap of ongoing streams to one iteration at a modest delay to the new request's first token.",
+      "During a tool wait the engine keeps, moves, or drops only uniquely reclaimable blocks, and offloading pays only when the wait exceeds the transfer round trip and memory is contested.",
+      "Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Copy-on-write block sharing**: Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Copy-on-write block sharing* reduces the physical cost of breadth in *KV footprint and resident fit*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Copy-on-write block sharing* reduces the physical cost of breadth in *Allocation axes*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Paged KV Allocation."
+   ]
+  }
+ ]
+}

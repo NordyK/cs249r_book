@@ -1,0 +1,90 @@
+{
+ "title": "Anatomy of an Accelerator",
+ "summary": "Calculate end-to-end acceleration speedups using Amdahl's Law given workload parallel fractions.",
+ "source": {
+  "chapter": "v1-11",
+  "sections": [
+   "Anatomy of an Accelerator"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Anatomy of an Accelerator** in *Hardware Acceleration* (Vol I). By the end you should be able to:\n\n- Calculate end-to-end acceleration speedups using Amdahl's Law given workload parallel fractions\n- Compare why a compute-focused hardware upgrade benefits high-reuse training kernels more than low-reuse batch-1 decoding\n- Analyze how hardware interventions redefine the accelerated versus unaccelerated components of execution time\n- Identify arithmetic intensity from its FLOP-per-byte definition and use it to reason about modeled hardware ceilings\n- Classify which part of the iron law is most directly affected by moving a GEMM onto a supported mixed-precision Tensor Core path"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Hardware Acceleration, § Anatomy of an Accelerator",
+   "md": "The same INT8 weights can run far faster on one execution path than on another, because the hardware that executes a model, not the model itself, determines how much of every compression saving survives execution. @Sec-model-compression closed on a deployment profile for ResNet-50 quantized to INT8 (a later section): a model four times smaller whose large-batch throughput rises severalfold on the reference H100 while its batch-one latency barely moves."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Iron law of ML systems decomposition into data transfer, compute, and latency; Amdahl's Law and the acceleration wall for compute vs memory bound workloads; Parallel fractions and speedup ceilings across workload archetypes; Arithmetic intensity diagnostic and hardware balance introduction."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why a compute-only accelerator upgrade can help high-reuse convolutional training more than batch-1 autoregressive decoding, even when the new device advertises much higher peak arithmetic throughput $R_{\\text{peak}}$.",
+   "md": "High-reuse convolutional training can often turn loaded weights and activations into many arithmetic operations before eviction, so raising supported compute throughput can materially lift the achievable ceiling when the profile is already near the compute side of the roofline. Batch-1 autoregressive decoding instead tends to stream large weights with little cross-sample reuse, so increasing $R_{\\text{peak}}$ alone may leave runtime dominated by memory traffic, host overhead, or other unaccelerated work. The practical implication is that the same hardware upgrade must be evaluated against the workload's measured baseline fractions and arithmetic intensity, not against peak FLOP/s alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-11-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An ML engineer upgrades a training cluster from baseline CPUs to NVIDIA H100 GPUs, providing an accelerator compute gain of G_accel = 250× on matrix operations. If data preprocessing, serialization, and CPU-GPU transfers constitute \\$10\\% of the baseline execution time (p = 0.90), what is the maximum achievable end-to-end speedup according to Amdahl's Law?",
+     "explanation": "The correct answer is A. By Amdahl's Law, total speedup is Speedup = frac1(1-p) + fracpG_accel = frac10.10 + frac0.90250 = frac10.10 + 0.0036 = frac10.1036 approx 9.65×. The theoretical ceiling as G_accel to infty is frac11-p = frac10.10 = 10×. The linear scaling choice overlooks the non-accelerated \\$10\\% serial fraction that dominates execution time once compute is accelerated. The intermediate values of \\$25× and \\$125× arbitrarily assume partial scaling without applying the (1-p) bottleneck constraint.",
+     "hint": "Think about: calculate end-to-end acceleration speedups using Amdahl's Law given workload parallel fractions.",
+     "type": "single",
+     "options": [
+      "Approximately \\$9.6\\times$ (bounded by the theoretical ceiling of \\$10\\times$)",
+      "Approximately \\$25× (bounded by the memory bandwidth ratio)",
+      "Approximately \\$125× (half of the matrix unit throughput multiplier)",
+      "Approximately \\$250× (scaling linearly with the raw compute gain)"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In the iron law of ML systems decomposition ($\\text{Time} = \\frac{D_{\\text{vol}}}{\\text{BW}} + \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}} + L_{\\text{lat}}$), the unaccelerated fraction $(1-p)$ is an immutable, fixed property of the model architecture regardless of the hardware intervention.",
+     "explanation": "False. The unaccelerated fraction $(1-p)$ is defined specifically by the hardware or system intervention rather than being an immutable architectural constant. For example, if an upgrade improves only the tensor computation unit ($R_{\\text{peak}}$), data transfer ($D_{\\text{vol}}/\\text{BW}$) acts as the unaccelerated fraction; however, if the memory subsystem or interconnect is also upgraded, data transfer time is reduced and the relative unaccelerated fraction shifts.",
+     "hint": "Think about: analyze how hardware interventions redefine the accelerated versus unaccelerated components of execution time.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The metric defined as the ratio of floating-point operations performed to bytes of memory traffic transferred across a specific memory hierarchy interface is called ____.",
+     "explanation": "arithmetic intensity. Arithmetic intensity is measured in FLOP/byte and, at a chosen memory interface, helps identify which modeled roofline ceiling is lower; profiling is still needed to confirm the actual bottleneck.",
+     "hint": "Think about: identify arithmetic intensity from its FLOP-per-byte definition and use it to reason about modeled hardware ceilings.",
+     "type": "fill",
+     "answer": [
+      "arithmetic intensity"
+     ]
+    },
+    {
+     "q": "In the iron law of ML systems, end-to-end execution latency is modeled as $\\text{Time} = \\frac{D_{\\text{vol}}}{\\text{BW}} + \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}} + L_{\\text{lat}}$. Which term is most directly improved when replacing standard FP32 GEMM instructions with a supported mixed-precision Tensor Core path for the same operation?",
+     "explanation": "The correct answer is D. A supported mixed-precision Tensor Core path raises the relevant arithmetic-throughput ceiling for that matrix operation, so it most directly improves the compute term via a higher applicable $R_{\\text{peak}}$. Realized efficiency can also improve if the kernel maps well, but that is not automatic. The PCIe answer confuses on-chip execution with host transfer volume, the HBM-bandwidth answer confuses compute units with memory-interface capability, and the driver-latency answer targets a fixed overhead rather than the matrix-multiply execution path.",
+     "hint": "Think about: classify which part of the iron law is most directly affected by moving a GEMM onto a supported mixed-precision Tensor Core path.",
+     "type": "single",
+     "options": [
+      "Only the data volume $D_{\\text{vol}}$ transferred over PCIe",
+      "Only the fixed invocation latency $L_{\\text{lat}}$ of the kernel driver",
+      "Only the memory interface bandwidth $\\text{BW}$ of the HBM subsystem",
+      "The compute term through higher relevant $R_{\\text{peak}}$, while realized $\\eta_{\\text{hw}}$ may improve but is not guaranteed"
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate end-to-end acceleration speedups using Amdahl's Law given workload parallel fractions.",
+    "You can now compare why a compute-focused hardware upgrade benefits high-reuse training kernels more than low-reuse batch-1 decoding.",
+    "You can now analyze how hardware interventions redefine the accelerated versus unaccelerated components of execution time.",
+    "You can now identify arithmetic intensity from its FLOP-per-byte definition and use it to reason about modeled hardware ceilings."
+   ]
+  }
+ ]
+}

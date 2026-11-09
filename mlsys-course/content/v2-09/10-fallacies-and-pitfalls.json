@@ -1,0 +1,101 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Evaluate why a high MFU does not establish efficient use of the fleet.",
+ "source": {
+  "chapter": "v2-09",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Fleet Efficiency* (Vol II). By the end you should be able to:\n\n- Evaluate why a high MFU does not establish efficient use of the fleet\n- Analyze the fallacy that more peak FLOP/s proportionally shortens a step\n- Evaluate the limits of lower-precision arithmetic on a communication-heavy fleet step\n- Explain why the step-time distribution, not the mean, reveals intermittent straggler losses\n- Distinguish a successful compilation from verified program goodput"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Efficiency, § Fallacies and Pitfalls",
+   "md": "An organization can report a fleet MFU above the best published flagship runs while its shared cluster turns little more than a quarter of its offered capacity into training progress. Each misconception below treats a single factor, a single observation window, or a single kernel as the entire efficiency story; the corresponding goodput boundary exposes what that narrow view leaves out."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: High MFU versus fleet-level goodput; Peak FLOP/s versus the exposed term of a step; Mean step time versus the step-time distribution; Compilation as hypothesis; largest loss versus largest recoverable gain."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how a job's mean step time can match its plan while intermittent stragglers lower its program goodput, and describe how the chapter's measurement approach exposes them.",
+   "md": "A synchronous step ends when its slowest rank finishes, so a rank that falls behind in short episodes, through thermal throttling, a degrading link, or a host pause, delays its whole communication group each time. The mean spreads those episodes into what looks like a small, uniform slowdown, and a trace taken between episodes shows nothing. Continuous per-rank step timers expose the episodes as outliers and trigger a trace of the slow rank beside a healthy peer, while the gray-failure regression tier watches the step-time distribution fleet-wide. Each wait lowers program goodput, whoever decides to replace the node."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-09-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team reports that its job's retained steps run at 48% MFU, above the 41% of Llama 3 405B, and concludes that the job uses the fleet well. Why is the conclusion unsupported?",
+     "explanation": "The correct answer is C. MFU divides by the time spent on retained steps, so it cannot see capacity the job never held or held time that kept no progress. Only the product of the three factors states how much of the fleet becomes useful work. MFU excludes recomputation, which hardware FLOPs utilization counts, and multiplying fleet MFU by scaling efficiency would charge exposed time twice.",
+     "hint": "Think about: evaluate why a high MFU does not establish efficient use of the fleet.",
+     "type": "single",
+     "options": [
+      "MFU above 45% is not achievable on these accelerators, so the measurement must be wrong",
+      "MFU overstates program goodput because it counts recomputation as useful work",
+      "MFU measures only program goodput; with the pool's scheduling goodput of 0.65 and the job's runtime goodput of 0.90, MPG is about 0.28",
+      "MFU must first be multiplied by the job's scaling efficiency before it can be compared with Llama 3"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A serving replica's batch-one decode step runs at about 0.3% of its FP16 peak against a bandwidth floor of about 5.2 ms per token. A new accelerator doubles peak FP16 arithmetic at the same memory bandwidth. What does the iron law predict for this step?",
+     "explanation": "The correct answer is D. A higher peak arithmetic rate shortens only the compute term of the iron law, and only where that term is exposed. At the bandwidth floor, the step's time is set by streaming the weight shard, so doubling the peak leaves the time and MBU unchanged and halves MFU. Placing the step's time against the roofline and the Fleet Law terms predicts what a faster device will buy.",
+     "hint": "Think about: analyze the fallacy that more peak FLOP/s proportionally shortens a step.",
+     "type": "single",
+     "options": [
+      "Decode time halves to about 2.6 ms per token",
+      "Decode time falls by about 0.3%, the share of peak the step uses",
+      "MBU halves, because more arithmetic capacity lowers bandwidth efficiency",
+      "The 5.2 ms floor is unchanged and MFU halves, because faster arithmetic shortens only the compute term, which is not exposed in this step"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Moving the running example's training to a lower-precision format with twice the arithmetic throughput would roughly halve its 245 ms fleet step.",
+     "explanation": "False. Faster arithmetic shortens only the local compute work it applies to. About 65 ms of each 245 ms illustrative fleet step lies beyond the node baseline, in what the constructed example assumes is per-microbatch cross-node synchronization and collective waits, which faster arithmetic does not touch, and matrix multiplications are only part of local execution. Lower precision can also shrink the bytes each value moves, but the end-to-end gain depends on which exposed intervals change, and the speed counts only if the contract's quality check still passes.",
+     "hint": "Think about: evaluate the limits of lower-precision arithmetic on a communication-heavy fleet step.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Why does a successful compilation not establish that a program is well optimized?",
+     "explanation": "The correct answer is A. A completed build does not say which transformations applied. Compiler-derived partitioning inserts a resharding collective wherever two derived layouts disagree, and frequent recompilation in steady operation is a program goodput loss rather than startup. A compiled step is therefore a hypothesis, checked by counting the trace's collectives against the layout's prediction and by measuring program goodput before and after under the contract.",
+     "hint": "Think about: distinguish a successful compilation from verified program goodput.",
+     "type": "single",
+     "options": [
+      "A compiler applies the transformations it implements under its own cost model; derived layouts can insert resharding collectives in every layer, and a shape distribution that forces recompilation shows up as slow retained steps",
+      "Compilers optimize only host code, so accelerator kernels are left unchanged",
+      "A completed build disables fusion to guarantee numerical safety",
+      "Compilation removes all communication, so any remaining loss must come from faulty hardware"
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: In the running example, scheduling loses 35% of fleet capacity and the program 31%. Explain why a perfect scheduler would add only about 15% of fleet capacity as useful work, and what should decide which lever comes first.",
+   "md": "Capacity recovered at the first boundary must still cross the runtime and program boundaries at their current rates, so recovering all 35% yields about \\$0.35 × 0.43 approx 0.15 of fleet capacity as useful work. At the owners' ceilings, the scheduling lever raises MPG from 0.28 to 0.35 and the program lever to 0.38. The value of one point of each factor, the product of the other two, together with each owner's reachable ceiling, decides the order, not the size of the loss."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate why a high MFU does not establish efficient use of the fleet.",
+    "You can now analyze the fallacy that more peak FLOP/s proportionally shortens a step.",
+    "You can now evaluate the limits of lower-precision arithmetic on a communication-heavy fleet step.",
+    "You can now explain why the step-time distribution, not the mean, reveals intermittent straggler losses."
+   ]
+  }
+ ]
+}

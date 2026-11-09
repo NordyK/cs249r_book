@@ -1,0 +1,108 @@
+{
+ "title": "Operational Data Health",
+ "summary": "Classify data pipeline issues into the four canonical categories of data debt (Documentation, Schema, Quality, and Freshness debt).",
+ "source": {
+  "chapter": "v1-04",
+  "sections": [
+   "Operational Data Health",
+   "Data drift detection and response",
+   "Categories of data debt",
+   "Measuring and projecting data debt",
+   "Remediation strategies",
+   "Debugging data pipelines"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Operational Data Health** in *Data Engineering* (Vol I). By the end you should be able to:\n\n- Classify data pipeline issues into the four canonical categories of data debt (Documentation, Schema, Quality, and Freshness debt)\n- Apply the chapter's debugging flow by prioritizing drift, skew, and evaluation-path checks before changing model architecture\n- Analyze the compounding nature of data debt and justify proactive remediation budgets and schema contracts\n- Evaluate common misconceptions that treat data debt as simple data cleanliness rather than a systemic architectural liability\n- Explain the operational risks and system characteristics of freshness debt in production ML systems"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Engineering, § Operational Data Health",
+   "md": "Suppose the keyword spotter passes that acceptance test and launches meeting its … detection target with verified training-serving consistency. Six months later, the measured detection rate has fallen four percentage points below that target, although no one has touched the model, the regression previewed in a later section. The decline traces to three silent changes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Data drift detection and response\n- Categories of data debt\n- Measuring and projecting data debt\n- Remediation strategies\n- Debugging data pipelines\n\nPay attention to: four categories of data debt (Documentation, Schema, Quality, Freshness); data pipeline debugging flowchart and diagnostic triage; strategic vs. unconscious data debt and compounding dynamics; systemic nature of data debt vs. simple data cleaning."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Distinguish between strategic data debt and unconscious data debt, and explain why schema contracts and data quality budgets are necessary to prevent debt compounding.",
+   "md": "Strategic data debt is an intentional, documented engineering trade-off (e.g., accepting a temporary manual script to meet a product launch deadline). Unconscious data debt accumulates untracked through undocumented schema changes, silent distribution drift, and unmitigated label errors. A planning heuristic projects data debt growth over time ($\\text{Debt}_n \\approx \\text{Debt}_0(1+r)^n$) when coupled pipelines propagate uncorrected defects. Explicit schema contracts and allocated quality remediation budgets reduce that risk; the geometric model is not an exact law."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-04-12-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An ML engineering team discovers three distinct issues in their pipeline: (1) An undocumented database schema change broke an upstream parser, requiring multiple nested `try/catch` fallback branches; (2) A 3% label error rate was identified in the training set but left uncorrected due to tight delivery deadlines; (3) Production conditions have changed over 12 months while a recommendation model's training data remains unrefreshed, leaving an unaddressed distribution mismatch ($\\text{PSI} > 0.25$). How are these issues classified under data debt categories?",
+     "explanation": "The correct answer is B. (1) Schema debt; (2) Quality debt; (3) Freshness debt. Accumulating fragile workarounds and parsing branches due to undocumented format changes constitutes Schema debt. Knowingly leaving uncorrected label errors and noise in the training corpus constitutes Quality debt. Allowing training datasets to become stale relative to evolving production distributions over time constitutes Freshness debt. Documentation debt involves missing datasheets, metadata, and column definitions.",
+     "hint": "Think about: classify data pipeline issues into the four canonical categories of data debt (Documentation, Schema, Quality, and Freshness debt).",
+     "type": "single",
+     "options": [
+      "(1) Freshness debt; (2) Documentation debt; (3) Schema debt.",
+      "(1) Schema debt; (2) Quality debt; (3) Freshness debt.",
+      "(1) Quality debt; (2) Freshness debt; (3) Documentation debt.",
+      "(1) Documentation debt; (2) Schema debt; (3) Quality debt."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A deployed fraud detection model suddenly exhibits a severe drop in production precision. The latest training run had near-zero training loss, and held-out validation loss was also low. Following the chapter's debugging guidance, what should an engineer investigate first?",
+     "explanation": "The correct answer is C. The chapter's debugging flow starts with data-side hypotheses when offline metrics look healthy but production performance drops: compare production artifacts against training baselines, test for distribution shift, and verify that training and serving compute equivalent features. The architecture-first answer skips the prescribed triage, while the label-only answer overcommits to one cause and incorrectly excludes code, hardware, and numerical issues that the section says data checks should precede, not permanently replace.",
+     "hint": "Think about: apply the chapter's debugging flow by prioritizing drift, skew, and evaluation-path checks before changing model architecture.",
+     "type": "single",
+     "options": [
+      "Immediately redesign the model with a much larger architecture, because low training and validation loss rules out the data pipeline.",
+      "Recompile the inference kernels first, because production metric regressions are usually caused by low-level accelerator code changes rather than data conditions.",
+      "Check data-side hypotheses first, such as drift, training-serving skew, or leakage in the evaluation setup, by comparing artifacts and feature distributions before changing the model.",
+      "Assume the root cause is almost certainly corrupted labels in production and ignore code, hardware, and numerical possibilities until retraining is complete."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Data debt is simply 'bad data' that can be permanently resolved by running a one-time automated data cleaning script.",
+     "explanation": "False. Data debt is a systemic architectural liability arising from unmanaged dependencies, missing documentation, lack of schema enforcement, and unmonitored distribution drift across an evolving ML system. A one-time data cleaning script does not fix the underlying upstream drift, missing contracts, or state synchronization failures that cause data debt to reaccumulate continuously.",
+     "hint": "Think about: evaluate common misconceptions that treat data debt as simple data cleanliness rather than a systemic architectural liability.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The silent divergence between the training data distribution and the live production distribution that accumulates when changing deployment conditions outpace validated data and model updates is termed ____.",
+     "explanation": "The correct answer is freshness debt. Freshness debt concerns unaddressed changes in deployment conditions; calendar age alone does not establish degraded quality. Drift monitoring prompts investigation, and outcomes determine whether updates are needed.",
+     "hint": "Think about: explain the operational risks and system characteristics of freshness debt in production ML systems.",
+     "type": "fill",
+     "answer": [
+      "The correct answer is freshness debt"
+     ]
+    },
+    {
+     "q": "A production monitoring system tracks feature distributions over time using the Population Stability Index (PSI). A key credit feature now yields $\\text{PSI}=0.28$ relative to the training baseline. Based on the chapter's discussion of PSI bands, what is the most appropriate pipeline response?",
+     "explanation": "The correct answer is B. The section presents bands such as $\\text{PSI}>0.25$ as common investigation triggers, but it also stresses that they are conventions to calibrate locally rather than universal laws. The automatic-retraining answer overclaims what PSI establishes: input divergence signals that the distribution moved, while labeled outcomes or validated proxies are still needed to confirm whether performance actually worsened and what intervention is appropriate.",
+     "hint": "Think about: apply PSI as an investigation trigger while distinguishing input-distribution shift from confirmed model-quality degradation.",
+     "type": "single",
+     "options": [
+      "Treat the feature as stable, because any PSI below \\$0.50 is operationally negligible.",
+      "Trigger an investigation and outcome checks, because a PSI above \\$0.25 is commonly used as a prompt that the live distribution has shifted substantially relative to baseline.",
+      "Automatically retrain the model immediately, because PSI alone proves that model accuracy has already degraded.",
+      "Drop the feature from all incoming records, because statistical drift means the data is mechanically invalid."
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify data pipeline issues into the four canonical categories of data debt (Documentation, Schema, Quality, and Freshness debt).",
+    "You can now apply the chapter's debugging flow by prioritizing drift, skew, and evaluation-path checks before changing model architecture.",
+    "You can now analyze the compounding nature of data debt and justify proactive remediation budgets and schema contracts.",
+    "You can now evaluate common misconceptions that treat data debt as simple data cleanliness rather than a systemic architectural liability."
+   ]
+  }
+ ]
+}

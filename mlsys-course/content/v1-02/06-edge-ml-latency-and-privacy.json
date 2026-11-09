@@ -1,0 +1,82 @@
+{
+ "title": "Edge ML: Latency and Privacy",
+ "summary": "Calculate aggregate sensor bandwidth demand and compare it against uplink limits to diagnose when edge processing is mandatory.",
+ "source": {
+  "chapter": "v1-02",
+  "sections": [
+   "Edge ML: Latency and Privacy",
+   "The data locality invariant: When the network is too slow",
+   "Edge ML deployment challenges",
+   "Real-time industrial and IoT systems"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Edge ML: Latency and Privacy** in *System Paradigms* (Vol I). By the end you should be able to:\n\n- Calculate aggregate sensor bandwidth demand and compare it against uplink limits to diagnose when edge processing is mandatory\n- Apply the data locality invariant equation to determine whether an application must run locally at the edge\n- Evaluate why high-bandwidth cellular networks (5G/6G) cannot eliminate the need for edge ML in sub-10 ms control loops\n- Calculate sustained accelerator requirements for edge deployments using hardware derating factors\n- Evaluate the control loop timing constraints governing real-time industrial IoT ML deployments"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, System Paradigms, § Edge ML: Latency and Privacy",
+   "md": "The robotic-arm safety monitor in napkin math \\ref{nbk-ml-systems-distance-penalty}, an industrial IoT (IIoT) control loop, left one option open: running the model beside the arm it protects. Edge ML is built on that move, trading elastic cloud capacity for shorter request paths and local data retention."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The data locality invariant: When the network is too slow\n- Edge ML deployment challenges\n- Real-time industrial and IoT systems\n\nPay attention to: Bandwidth bottleneck in local sensor aggregation vs. cloud streaming; The data locality invariant and remote deadline feasibility testing; Edge accelerator sizing, hardware derating, and real-time industrial IoT."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why cannot high-bandwidth wireless networking technologies (such as 5G or 6G) eliminate the need for edge ML in tight real-time control loops ($<10\\text{ ms}$)?",
+   "md": "While 5G and 6G technologies dramatically increase network bandwidth ($\\text{BW}_{\\text{network}}$) and reduce data transmission serialization time, they cannot alter the speed of light in optical fiber or eliminate physical geographic routing delays and protocol overhead ($L_{\\text{lat,network}}$). For tight real-time control loops ($<10\\text{ ms}$), physical round-trip propagation over geographic distances alone can consume the entire latency budget before any computation begins, making local edge execution physically mandatory."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-02-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A manufacturing facility deploys 100 cameras recording uncompressed 1080p video (\\$1920 × 1080 × 3 bytes/pixel) at 30 FPS. The factory has a dedicated 10 Gbps (~1.25 GB/s) fiber uplink. Why is streaming all raw video to a cloud ML server physically impossible?",
+     "explanation": "The correct answer is C. Each camera produces about \\$1920 \\times 1080 \\times 3 \\times 30 \\approx 186.6\\text{ MB/s}$, and multiplying by 100 cameras gives about \\$18.66\\text{ GB/s}$. The 10 Gbps uplink delivers only about \\$1.25\\text{ GB/s}$, so the raw stream is roughly \\$15\\times$ larger than the available link. The per-camera answer fails to multiply by all 100 cameras, the gigabits-versus-gigabytes answer compares unlike units without converting, and the compression answer assumes a reduction mechanism the scenario never grants. The physical impossibility here is for uncompressed raw streaming under the stated link budget.",
+     "hint": "Think about: calculate aggregate sensor bandwidth demand and compare it against uplink limits to diagnose when edge processing is mandatory.",
+     "type": "single",
+     "options": [
+      "The total is only about \\$186.6 MB/s because that is the per-camera rate, so the 10 Gbps uplink has ample headroom.",
+      "The aggregate is about \\$18.7 Gb/s because the camera output should be compared numerically to 10 Gbps without converting bytes to bits, so the link is close enough to be practical.",
+      "The aggregate raw video data rate is approximately \\$18.7 GB/s, which exceeds the \\$1.25 GB/s uplink capacity by roughly \\$15×.",
+      "The aggregate raw stream is large, but normal compression assumptions would make it fit within the 10 Gbps uplink in practice."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "An autonomous drone navigates at 60 FPS (16.7 ms per-frame budget) capturing uncompressed 4K frames (~24.9 MB per frame). The drone connects via a 100 Mbps uplink to a cloud server whose round-trip latency plus inference time is 110 ms. Applying the data locality invariant, what is the feasibility of offloading this obstacle avoidance system to the cloud?",
+     "explanation": "The correct answer is D. Under the data locality screen, the remote-path lower-bound estimate is RemotePathTime ge fracDataVolumeNetworkBandwidth + NetworkLatency + fracOperationsRemotePeakRate × RemoteHardwareEfficiency. Transmitting \\$24.9 MB = 199.2 Mbits over a \\$100 Mbps uplink requires frac199.2100 approx 1.992 s approx 2,000 ms. Adding the 110 ms network/compute delay yields RemotePathTime approx 1,992 + 110 approx 2,100 ms, vastly exceeding the 16.7 ms per-frame budget. Because transmission time alone exceeds the deadline, this raw-frame offload is infeasible. A lower-bound estimate below the deadline would instead require complete-path measurement, including remote memory movement, queues, preprocessing, runtime overhead, and response serialization. The options claiming feasibility ignore the two-second transmission bottleneck. The option blaming telemetry protocols misses the fundamental bandwidth-latency physics.",
+     "hint": "Think about: apply the data locality invariant equation to determine whether an application must run locally at the edge.",
+     "type": "single",
+     "options": [
+      "Feasible, because the cloud GPU computes inference in under 10 ms.",
+      "Feasible, provided 5G network slicing is enabled on the drone modem.",
+      "Infeasible, solely because cloud servers do not support drone telemetry protocols.",
+      "Infeasible, because transmitting a 24.9 MB frame over a 100 Mbps link requires ~2,000 ms, causing even the remote-path lower-bound estimate (~2,100 ms) to violate the 16.7 ms frame deadline by over two orders of magnitude."
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A retail store needs about 5.2 TOPS of sustained throughput. Why does the chapter's estimate call for three 4 TOPS boards rather than two, even though two boards' combined 8 TOPS peak exceeds the target?",
+   "md": "Hardware datasheets publish peak theoretical throughput ($R_{\\text{peak}}$), but real-world sustained workloads encounter thermal limits, memory bandwidth bottlenecks, and software overhead, so the peak rating alone does not establish sustained performance. Under the illustrative 50% derating assumption, each 4 TOPS board sustains about 2 TOPS, so the target needs 5.2 ÷ 2 ≈ 2.6 boards, which rounds up to three. Multiple boards or a higher-tier accelerator remain candidates only if the model's operators and numerical format are supported. A multi-board design additionally requires divisible work and manageable coordination overhead; measurements of the actual model and runtime must establish sustained performance and task quality."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate aggregate sensor bandwidth demand and compare it against uplink limits to diagnose when edge processing is mandatory.",
+    "You can now apply the data locality invariant equation to determine whether an application must run locally at the edge.",
+    "You can now evaluate why high-bandwidth cellular networks (5G/6G) cannot eliminate the need for edge ML in sub-10 ms control loops.",
+    "You can now calculate sustained accelerator requirements for edge deployments using hardware derating factors."
+   ]
+  }
+ ]
+}

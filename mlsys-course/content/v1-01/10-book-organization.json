@@ -1,0 +1,67 @@
+{
+ "title": "Book Organization",
+ "summary": "Explain the pedagogical progression and architectural logic of the textbook's four parts.",
+ "source": {
+  "chapter": "v1-01",
+  "sections": [
+   "Book Organization"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Book Organization** in *Introduction* (Vol I). By the end you should be able to:\n\n- Explain the pedagogical progression and architectural logic of the textbook's four parts\n- Distinguish between the physical constraints of the single-node regime and fleet-scale cluster orchestration\n- Identify the dependency ordering between model architecture fundamentals and performance optimization techniques"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Introduction, § Book Organization",
+   "md": "Production ML work divides into responsibilities that engineering teams own: data engineering, training systems, deployment infrastructure, operations and monitoring, and ethics and governance. Those boundaries leak. Upstream data pipelines limit what training can reach, training choices fix the memory and latency footprint at serving time, and governance constrains every stage, so the book does not follow an organization chart. Its four parts follow the order in which constraints must be understood. The organizing principle is *context before theory*."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: four-part book structure (Foundations, Build, Optimize, Deploy); context before theory pedagogical principle; single-node vs fleet-scale orchestration scope."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: What distinguishes the single-node execution regime covered in this volume from the fleet-scale orchestration regime addressed in advanced distributed systems?",
+   "md": "The single-node regime focuses on one host with 1 to 8 accelerators coordinating over high-speed on-node interconnects and local device memory (where bottlenecks include memory bandwidth, capacity, and compute throughput), whereas fleet scale coordinates thousands of nodes across data center networks where bisection bandwidth and cluster-wide network fabrics become the bottleneck."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-01-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "What is the primary pedagogical rationale behind organizing the textbook into the four sequential parts: Part I (Foundations of ML Systems), Part II (Development and Training), Part III (Optimization and Acceleration), and Part IV (Deployment and Operations)?",
+     "explanation": "The correct answer is C. The organizing principle is 'context before theory': establishing the physical constraints, deployment tiers, and diagnostic vocabulary in Part I (Foundations of ML Systems) provides the mental model needed before constructing models in Part II (Development and Training), tuning their arithmetic and memory efficiency in Part III (Optimization and Acceleration), and managing their lifecycle in Part IV (Deployment and Operations).",
+     "hint": "Think about: explain the pedagogical progression and architectural logic of the textbook's four parts.",
+     "type": "single",
+     "options": [
+      "To teach low-level CUDA kernel programming before introducing high-level machine learning concepts.",
+      "To ensure students deploy production systems in the cloud before learning how neural networks compute predictions.",
+      "To establish the systems landscape, constraints, and vocabulary (context before theory) before constructing models, optimizing their physical execution, and managing them in production.",
+      "To separate data science students who only read Part II from hardware engineering students who only read Part III."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In the textbook's pedagogical build order, model compression and hardware acceleration (Part III) are introduced before neural computation and network architectures (Part II).",
+     "explanation": "False. The curriculum follows 'context before theory': neural computation and network architectures are developed in Part II (Development and Training) to establish model mechanisms before Part III (Optimization and Acceleration) explores techniques like quantization, pruning, and hardware acceleration to optimize their execution.",
+     "hint": "Think about: identify the dependency ordering between model architecture fundamentals and performance optimization techniques.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the pedagogical progression and architectural logic of the textbook's four parts.",
+    "You can now distinguish between the physical constraints of the single-node regime and fleet-scale cluster orchestration.",
+    "You can now identify the dependency ordering between model architecture fundamentals and performance optimization techniques."
+   ]
+  }
+ ]
+}

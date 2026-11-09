@@ -1,0 +1,90 @@
+{
+ "title": "The Fuel Line",
+ "summary": "Distinguish storage input demand from internal HBM traffic when interpreting the bandwidth gap.",
+ "source": {
+  "chapter": "v2-04",
+  "sections": [
+   "The Fuel Line"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Fuel Line** in *Data Storage* (Vol II). By the end you should be able to:\n\n- Distinguish storage input demand from internal HBM traffic when interpreting the bandwidth gap\n- Analyze why ML storage architecture requires tiered placement that simultaneously satisfies bandwidth physics and capacity economics\n- Evaluate why compute and network benchmarks in isolation fail to guarantee scalable end-to-end training throughput without storage pipeline validation\n- Explain the systems consequences of compute throughput scaling significantly faster than persistent storage bandwidth\n- Explain the technical term for synchronized cluster-wide write bursts generated during distributed training state saves"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Data Storage, § The Fuel Line",
+   "md": "The dense accelerator nodes of a later section pack eight GPUs delivering petaFLOP/s of aggregate compute, and the InfiniBand fabrics of a later section connect thousands of such nodes at hundreds of gigabits per second. Within the multi-tier fleet stack of a later section, data storage completes that physical foundation, staging training data, model weights, optimizer state, and intermediate checkpoints at the right distance from the accelerator. An engine without fuel is expensive sculpture."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: HBM-to-NVMe bandwidth gap as the central constraint; checkpoint volume at frontier scale (2.45 TB resumable state, 10.6 PB lifetime traffic); physics-economics tradeoff forcing a tiered hierarchy; compute scaling outpacing storage bandwidth growth."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A 175B-parameter model trains for 30 days on 256 nodes, writing resumable mixed-precision Adam checkpoints of roughly \\$2.45\\text{ TB}$ (\\$350\\text{ GB}$ FP16 weights, \\$700\\text{ GB}$ FP32 master weights, and \\$1.4\\text{ TB}$ of Adam moments) every 10 minutes. Explain why ML storage design is fundamentally a joint physics-and-economics optimization problem.",
+   "md": "HBM supplies high local bandwidth for active tensors but cannot economically retain the corpus and checkpoint history. Shared durable storage pools capacity at lower cost, while interfaces, contention, and client allocation determine the rate and latency a consumer receives. Tier placement must satisfy input-delivery and checkpoint-recovery budgets at the lowest total delivery cost. Remote input reads can suffice when their sustained rate and buffered latency meet demand; local staging is useful when they do not. Compare capacity cost, transfers, and exposed accelerator wait rather than infer a stall from remote placement alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-04-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An H100 accelerator consumes data from its HBM at roughly \\$3.35\\text{ TB/s}$, while a single local NVMe drive delivers sequential reads at roughly \\$7\\text{ GB/s}$. A team is designing the storage infrastructure for a 1,000-accelerator training fleet. Which conclusion follows directly from this bandwidth ratio?",
+     "explanation": "The correct answer is B. HBM and NVMe serve different traffic: model state and intermediate tensors can be reused many times for each input batch. The roughly \\$479× ratio illustrates tier disparity, not a storage-rate requirement. Batch bytes, compute time, concurrency, and buffering determine whether inputs arrive in time; neither RAID aggregation nor a faster network alone establishes that condition.",
+     "hint": "Think about: distinguish storage input demand from internal HBM traffic when interpreting the bandwidth gap",
+     "type": "single",
+     "options": [
+      "The gap is easily bridged by standard NVMe RAID arrays because sequential read throughput scales without bound across drives.",
+      "The roughly \\$479× device-bandwidth gap motivates tiered staging, but required input bandwidth must be calculated from batch bytes and compute time rather than equated with HBM traffic.",
+      "The bandwidth gap is negligible because large-scale training is entirely compute-bound and rarely exercises HBM bandwidth.",
+      "The bandwidth gap disappears when high-speed InfiniBand fabrics deliver data directly into HBM from remote storage endpoints without local staging."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A cluster benchmark demonstrating that compute hardware achieves advertised peak TFLOP/s and network fabric achieves advertised bisection bandwidth is sufficient evidence that end-to-end training throughput will scale linearly with accelerator count.",
+     "explanation": "False. Isolated compute and fabric benchmarks evaluate floating-point throughput and inter-node communication in synthetic conditions without exercising the end-to-end data pipeline. Real training throughput requires continuously streaming input batches, loading model weights, and absorbing periodic checkpoint write storms; if the storage hierarchy cannot deliver input samples within the compute window (IronLawComputeTime), accelerators sit idle regardless of peak compute capability.",
+     "hint": "Think about: evaluate why compute and network benchmarks in isolation fail to guarantee scalable end-to-end training throughput without storage pipeline validation",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An accelerator upgrade reduces compute time per batch while the input representation and storage delivery time remain fixed. What is the primary systems consequence for training cluster design?",
+     "explanation": "The correct answer is D. Faster computation leaves less time to fetch the next batch. Overlap and prefetching hide latency within their buffering window, but cannot fix a sustained service-rate deficit. Automatic compression is not guaranteed, removing staging does not improve a slow source, and checkpoint frequency does not set input delivery throughput.",
+     "hint": "Think about: explain the systems consequences of compute throughput scaling significantly faster than persistent storage bandwidth",
+     "type": "single",
+     "options": [
+      "Training pipelines automatically increase data compression ratios to prevent accelerator starvation without requiring architectural adjustments.",
+      "Storage hierarchies can eliminate intermediate DRAM and NVMe caching tiers because modern network fabrics directly absorb the difference.",
+      "Checkpoint intervals must be decreased proportionally to the compute growth to keep local NVMe buffers from overflowing.",
+      "The compute window available to deliver each batch shrinks, so input I/O can become the bottleneck unless the measured delivery path keeps pace."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In large-scale distributed training, when hundreds of nodes simultaneously pause computation to write gigabytes of model weights and optimizer states to persistent storage, the resulting synchronized burst of write traffic is called a ____.",
+     "explanation": "The correct term is checkpoint storm. A checkpoint storm occurs when all data-parallel or model-parallel workers simultaneously flush their memory shards to local or remote storage, creating extreme write contention that must be absorbed via tiered staging (such as writing to local NVMe before asynchronously copying to a parallel file system).",
+     "hint": "Think about: explain the technical term for synchronized cluster-wide write bursts generated during distributed training state saves",
+     "type": "fill",
+     "answer": [
+      "The correct term is checkpoint storm"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now distinguish storage input demand from internal HBM traffic when interpreting the bandwidth gap.",
+    "You can now analyze why ML storage architecture requires tiered placement that simultaneously satisfies bandwidth physics and capacity economics.",
+    "You can now evaluate why compute and network benchmarks in isolation fail to guarantee scalable end-to-end training throughput without storage pipeline validation.",
+    "You can now explain the systems consequences of compute throughput scaling significantly faster than persistent storage bandwidth."
+   ]
+  }
+ ]
+}

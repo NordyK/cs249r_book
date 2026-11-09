@@ -1,0 +1,91 @@
+{
+ "title": "Adversarial Defenses",
+ "summary": "Explain the approximate inner attack search and outer update in adversarial training.",
+ "source": {
+  "chapter": "v2-14",
+  "sections": [
+   "Adversarial Defenses",
+   "Adversarial defense workflow"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Adversarial Defenses** in *Robust AI* (Vol II). By the end you should be able to:\n\n- Explain the approximate inner attack search and outer update in adversarial training\n- Evaluate the compute and accuracy trade-offs of the robustness penalty to guide deployment choices\n- Compare certified robustness with empirical robustness by guarantee type and inference computational cost\n- Order the stages of the adversarial defense workflow\n- Design a latency-aware adversarial defense portfolio under strict serving SLA constraints"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Robust AI, § Adversarial Defenses",
+   "md": "The classifier that called a panda a gibbon in a later section was not broken by random noise; a perturbation budget of 0.007 per pixel, spent along the gradient sign, was enough. Defending a deployed perception model against that attacker requires a threat model that names the attacker's access and a budget for testing and mitigation. The resulting robustness claim must state what the system pays in clean accuracy, training compute, inference latency, or operational coverage."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Adversarial defense workflow\n\nPay attention to: adversarial training mechanism: boundary hardening via attack-augmented batches; robustness penalty: training work and like-for-like clean and attacked accuracy comparisons; certified defenses via randomized smoothing versus empirical robustness; feature squeezing as a transformation-based detector suitable for real-time serving."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In the chapter’s equal-cost-pass PGD-7 work model, one update pass and seven attack-generation passes cost eight standard passes per batch. Standard-model clean accuracy is 76 percent, and robust-model accuracy under the specified attack is 50 percent. Explain what these quantities establish and what further measurements are needed to isolate a clean-accuracy penalty and elapsed-time cost.",
+   "md": "The eightfold estimate budgets training work under the equal-cost-pass and no-reuse assumptions; actual elapsed time also depends on implementation and fleet bottlenecks. The 26-percentage-point gap compares different models under different evaluation conditions, so it is not a clean-accuracy penalty. Measure both models on the same clean set and under the same attack protocol, and measure actual training duration and serving cost before choosing the defense budget."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-14-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "How does multi-step adversarial training (such as PGD-7) improve a neural network's robustness against evasion attacks during inference?",
+     "explanation": "The correct answer is A. PGD approximates the inner search for high-loss inputs within a specified norm and budget; the outer update reduces loss on the generated adversarial examples. The search need not find the true maximum, and training does not guarantee margin expansion or resistance outside the evaluated threat model. Weight encryption, removing nonlinearities, and inference-time weight sampling do not implement this training objective.",
+     "hint": "Think about: explain the approximate inner attack search and outer update in adversarial training",
+     "type": "single",
+     "options": [
+      "It approximately searches for high-loss perturbations within the threat set and trains the model to reduce loss on those perturbed inputs.",
+      "It encrypts the model's weight matrices so attackers cannot estimate loss gradients via backward passes.",
+      "It removes all non-linear activation functions from the architecture, ensuring the decision boundary is strictly linear.",
+      "It replaces model weights with random distributions at inference time without requiring any changes during training."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Which statement correctly distinguishes certified robustness (such as randomized smoothing) from empirical robustness (such as PGD adversarial training)?",
+     "explanation": "The correct answer is C. A certificate establishes local prediction stability for its stated input, norm, radius, and assumptions, not correctness or protection against arbitrary attacks. Empirical attack evaluation does not prove invariance across the full threat set. Randomized smoothing estimates probability bounds from repeated noisy predictions, but cost depends on sample budget and placement; asynchronous auditing or a selective interlock need not impose that work on every ordinary serving request. Other certificate methods need not use noise sampling.",
+     "hint": "Think about: compare certified robustness with empirical robustness by guarantee type and inference computational cost",
+     "type": "single",
+     "options": [
+      "Empirical robustness provides mathematical guarantees across all possible norm balls, whereas certified robustness is validated only against specific attacks.",
+      "Certified defenses require zero additional compute at inference time, making them ideal for high-throughput microservices.",
+      "A valid certificate bounds prediction stability within its stated set and assumptions; empirical attack tests supply evidence for tested cases, while randomized smoothing adds sampling cost on the inputs certified.",
+      "Certified robustness is applicable only to training data poisoning and cannot defend against test-time evasion."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Order the four stages of the chapter's adversarial defense workflow:",
+     "explanation": "The correct order is: (2) Define the threat model by specifying perturbation bounds ($\\epsilon$), norm constraints, and attacker access, (1) Choose the robustness budget across training-time, inference-time, and guardrail layers, (4) Measure the trade-off between clean accuracy, training compute, and serving latency, (3) Keep evaluation adversarial by testing defenses against adaptive and stronger optimization attacks. The engineering workflow begins by defining the threat model and access assumptions (2), selecting the architectural budget and defense mechanisms (1), measuring the dual trade-offs in clean utility, latency, and compute (4), and continuously auditing defenses against adaptive, stronger adversarial attacks (3).",
+     "hint": "Think about: order the stages of the adversarial defense workflow",
+     "type": "order",
+     "items": [
+      "Choose the robustness budget across training-time, inference-time, and guardrail layers",
+      "Measure the trade-off between clean accuracy, training compute, and serving latency.",
+      "Keep evaluation adversarial by testing defenses against adaptive and stronger optimization attacks"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A real-time image moderation service with a strict 50 ms p99 latency SLA cannot afford randomized smoothing, which requires thousands of forward passes. Design an adversarial defense portfolio that fits this latency budget and explain the trade-offs involved.",
+   "md": "Profile lightweight input checks, selective repeated evaluation, and asynchronous review under representative load. Put only checks that fit the measured critical-path budget inline; route suspicious inputs to a validated fallback or deferred review when the service permits it. Neither two extra forward passes nor selective sampling has a guaranteed millisecond cost. This portfolio supplies empirical protection, not a certificate for every request, and must be tested against adaptive attacks."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the approximate inner attack search and outer update in adversarial training.",
+    "You can now evaluate the compute and accuracy trade-offs of the robustness penalty to guide deployment choices.",
+    "You can now compare certified robustness with empirical robustness by guarantee type and inference computational cost.",
+    "You can now order the stages of the adversarial defense workflow."
+   ]
+  }
+ ]
+}

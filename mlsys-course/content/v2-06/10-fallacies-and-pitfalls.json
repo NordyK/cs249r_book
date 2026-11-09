@@ -1,0 +1,92 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Calculate distributed model-FLOP rate from a local MFU baseline and scaling efficiency without double-counting losses.",
+ "source": {
+  "chapter": "v2-06",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Distributed Training* (Vol II). By the end you should be able to:\n\n- Calculate distributed model-FLOP rate from a local MFU baseline and scaling efficiency without double-counting losses\n- Explain why scaling efficiency must be measured on the target workload rather than inherited from vendor benchmarks\n- Analyze the memory, latency, and numerical stability trade-offs of gradient accumulation\n- Identify the critical batch size as the statistical limit on useful data-parallel scale-out\n- Evaluate the performance pitfall of applying FSDP when memory capacity is not binding"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Distributed Training, § Fallacies and Pitfalls",
+   "md": "Even when a framework makes switching from single-node DDP to multi-node execution a one-line configuration change, the underlying physics still governs the step time. In the GPT-2 scale-out of notebook \\ref{nbk-distributed-training-gpt-2-data-parallel-scaling} and notebook \\ref{nbk-distributed-training-gpt-2-scale-out}, moving the same model from one NVLink node to four Ethernet-connected nodes quadrupled the GPU count but cut parallel efficiency from … to …. The following misconceptions generalize that error, each treating one term of the step-time accounting as if it were the whole budget."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: Amdahl's law and linear speedup fallacy; single-node MFU baseline vs measured distributed MFU and scaling efficiency; Scaling efficiency as a joint property of workload, parallelism strategy, topology, and software stack; gradient accumulation latency and live memory overhead."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A procurement team plans capacity for a graph neural network workload using a vendor benchmark that reports 85 percent scaling efficiency at 1,024 GPUs for large-language-model training. Explain why this figure cannot be treated as a property of the cluster and what the team should measure instead.",
+   "md": "Scaling efficiency is a joint property of the workload's communication-to-computation ratio, the parallelism strategy, the network topology, and the software stack (collective library version, kernel fusion, overlap quality). The benchmark fixes all four for a language model; a graph neural network with irregular communication changes the first and likely the second, so the same hardware can deliver much lower efficiency. The team should measure scaling on the target workload, at the intended device count and parallelism layout, and plan capacity from that measured curve rather than from a hero benchmark."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-06-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team achieves 50 percent Model Flops Utilization (MFU) on a single node, scales to 1,024 GPUs, and measures a scaling efficiency $(\\eta_{\\text{scaling}})$ of 50 percent on their communication-heavy workload. What is the cluster's realized model-FLOP rate during distributed execution as a fraction of peak hardware compute?",
+     "explanation": "The correct answer is A. Starting from the single-node MFU baseline, the distributed model-FLOP rate is \\$0.50×0.50=0.25 of fleet peak, or 256 peak-GPU equivalents. The scaling factor accounts for losses relative to that baseline. A measured distributed MFU would already include those losses and must not be multiplied by scaling efficiency again. Retained-progress goodput additionally requires accounting for replay and recovery outside this measurement.",
+     "hint": "Think about: calculate distributed model-FLOP rate from a local MFU baseline and scaling efficiency without double-counting losses",
+     "type": "single",
+     "options": [
+      "25 percent of peak compute (delivering 256 GPU-equivalents of model computation)",
+      "50 percent of peak compute (delivering 512 GPU-equivalents of useful work)",
+      "100 percent of peak compute (delivering 1,024 GPU-equivalents of useful work)",
+      "12.5 percent of peak compute (delivering 128 GPU-equivalents of useful work)"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Why is gradient accumulation NOT a cost-free substitute for true physical scale-out even though it reduces gradient AllReduce communication frequency by a factor of $k$?",
+     "explanation": "The correct answer is B. One optimizer update follows $k$ forward/backward microsteps, but this does not imply $k$ times the wall-clock update latency: saved synchronization and the comparison schedule affect elapsed time. A live gradient buffer remains resident during the window. Unscaled FP16 accumulation can overflow; accumulation precision and loss normalization must preserve the intended update. Changes in effective batch size must be evaluated at matched target quality. Accumulation is compatible with Adam and requires neither special CPU-GPU links nor mandatory cross-node batch normalization.",
+     "hint": "Think about: analyze the memory, latency, and numerical stability trade-offs of gradient accumulation",
+     "type": "single",
+     "options": [
+      "It is mathematically incompatible with the Adam optimizer",
+      "It keeps a live gradient buffer resident, spaces optimizer updates by $k$ microsteps, and requires appropriate accumulation precision and normalization",
+      "It requires dedicated InfiniBand links between CPU and GPU for each microstep",
+      "It forces batch normalization layers to synchronize across all nodes on every forward pass"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "The largest global batch size beyond which adding more samples per step yields diminishing reductions in the number of steps needed to reach target quality is called the ____.",
+     "explanation": "critical batch size. Beyond this workload-dependent point, larger global batches can raise hardware throughput without proportionally reducing the steps to target quality, so hardware scaling and statistical scaling must be evaluated separately.",
+     "hint": "Think about: identify the critical batch size as the statistical limit on useful data-parallel scale-out.",
+     "type": "fill",
+     "answer": [
+      "critical batch size"
+     ]
+    },
+    {
+     "q": "If a 7B-parameter model fits comfortably in single-GPU memory with high compute utilization under standard DDP, universally enabling ZeRO-3 / FSDP full sharding will always increase training throughput by reducing per-GPU memory consumption.",
+     "explanation": "False. FSDP trades memory capacity for parameter-gather and gradient-reduction traffic. If its memory savings do not enable a more efficient batch or layout, the exposed communication can lower throughput. The outcome depends on wrapping, resharding, overlap, and network capacity, so neither a universal gain nor a fixed percentage penalty follows from sharding.",
+     "hint": "Think about: evaluate the performance pitfall of applying FSDP when memory capacity is not binding",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate distributed model-FLOP rate from a local MFU baseline and scaling efficiency without double-counting losses.",
+    "You can now explain why scaling efficiency must be measured on the target workload rather than inherited from vendor benchmarks.",
+    "You can now analyze the memory, latency, and numerical stability trade-offs of gradient accumulation.",
+    "You can now identify the critical batch size as the statistical limit on useful data-parallel scale-out."
+   ]
+  }
+ ]
+}

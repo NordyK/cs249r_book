@@ -1,0 +1,83 @@
+{
+ "title": "Elastic Recovery",
+ "summary": "Explain how elastic training transforms hard capacity loss into temporary throughput degradation.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "Elastic Recovery",
+   "Recovery adaptation mechanisms",
+   "Model-specific training fault tolerance"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Elastic Recovery** in *Fault Tolerance* (Vol II). By the end you should be able to:\n\n- Explain how elastic training transforms hard capacity loss into temporary throughput degradation\n- Design mathematical adaptation rules for learning rate and gradient accumulation during worker group resizing\n- Evaluate the economic and architectural requirements of running distributed ML workloads on preemptible cloud instances\n- Compare recovery state invariants between dense foundation models and embedding-heavy recommendation architectures\n- Explain the role of the rendezvous protocol in elastic worker group management"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, § Elastic Recovery",
+   "md": "Suppose a …-GPU training job loses an …-GPU node to a hardware fault, but the cluster has no spare nodes available. A fixed-size recovery policy leaves the remaining … GPUs waiting until replacement capacity becomes available or the allocation is released. Elastic recovery allows the job to resize and continue with less compute, provided its state and parallel decomposition fit the smaller allocation."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Recovery adaptation mechanisms\n- Model-specific training fault tolerance\n\nPay attention to: Elastic training definition and transition from fixed-size checkpoint-restart; Recovery adaptation mechanisms: batch size rescaling, learning rate recalibration, gradient accumulation, data loader redistribution; Spot instance preemption economics and resilience; Framework support: PyTorch Elastic (TorchElastic), DeepSpeed, Ray Train, Horovod Elastic."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: When an elastic training job resizes from $N_{\\text{base}}$ to $N_{\\text{new}}$ workers, compare using gradient accumulation adjustment versus learning rate recalibration to preserve optimization dynamics.",
+   "md": "Increasing gradient accumulation can preserve examples per update when workers are lost; halving worker count requires doubling accumulation if the microbatch is unchanged. It does not guarantee identical updates because reduction order and microbatch-dependent statistics can change, and communication and overlap determine wall time. If the global batch changes, linear or square-root learning-rate scaling offers candidate policies that must be validated for the optimizer, schedule, and workload; neither guarantees convergence stability."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "When an 8-GPU node fails during a 1,024-GPU training run and no spare nodes are available, how does an elastic training framework enable the job to continue without idling the remaining 1,016 GPUs?",
+     "explanation": "The correct answer is C. Elastic recovery can resume at a changed worker count when the remaining allocation supports the model state and parallel decomposition. The runtime must recover missing shards, establish membership, and preserve the logical input stream; training code must preserve batch size or validate the changed optimization policy. A worker-group restart may still be required, and retained device count alone does not determine throughput. Fixed-size recovery instead waits to regain its required allocation. Ignoring the lost participant does not repair its collective or state dependencies.",
+     "hint": "Think about: explain how elastic training transforms hard capacity loss into temporary throughput degradation.",
+     "type": "single",
+     "options": [
+      "It automatically pauses the run and waits indefinitely until physical hardware repair replaces the defective node.",
+      "It shifts the missing 8 ranks of computation entirely to host CPU threads without changing the communication topology.",
+      "It can rebuild the worker group and restore valid state on the survivors when memory and parallelism permit, preserving data and batch invariants; 99.2% retained device count does not guarantee the same fraction of throughput.",
+      "It ignores the lost node and allows the remaining workers to continue training without synchronizing gradients."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "How does elastic recovery transform the economics of training large foundation models on preemptible cloud 'spot' instances?",
+     "explanation": "The correct answer is A. Fixed-size jobs can checkpoint and restart after reacquiring their required allocation; elasticity can reduce that waiting by resuming with fewer workers when memory, state, and parallelism constraints permit. Both paths pay for lost work, restoration, and group reconstruction. A discounted device-hour price therefore does not establish lower cost per retained training result: frequent preemption or expensive recovery can erase the apparent savings. The other choices invent guarantees or remove necessary synchronization.",
+     "hint": "Think about: evaluate the economic and architectural requirements of running distributed ML workloads on preemptible cloud instances.",
+     "type": "single",
+     "options": [
+      "It can resume at reduced scale after preemption when state and parallelism fit the survivors, reducing waiting for replacement capacity; net savings still depend on lost work, recovery cost, and preemption frequency.",
+      "It forces cloud providers to guarantee \\$100\\% uptime for spot instances by running redundant dummy processes.",
+      "It eliminates all network communication requirements, allowing spot instances to train completely independently without synchronizing weights.",
+      "It converts spot instances into dedicated on-demand instances at zero additional billing charge."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "For large recommendation systems with multi-terabyte embedding tables, checkpoint and recovery strategies must always prioritize strict full-state reproducibility over embedding freshness to avoid business revenue loss.",
+     "explanation": "False. Recovery must satisfy both the workload's state-validity contract and its measured tolerance for stale embeddings. Incremental checkpoints can reconstruct an exact generation from a base and required deltas, while tiered placement can shorten restoration. Neither technique inherently trades consistency for freshness; accepting approximate or stale state requires a separate validated recovery contract.",
+     "hint": "Think about: compare recovery state invariants between dense foundation models and embedding-heavy recommendation architectures.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain how elastic training transforms hard capacity loss into temporary throughput degradation.",
+    "You can now design mathematical adaptation rules for learning rate and gradient accumulation during worker group resizing.",
+    "You can now evaluate the economic and architectural requirements of running distributed ML workloads on preemptible cloud instances.",
+    "You can now compare recovery state invariants between dense foundation models and embedding-heavy recommendation architectures."
+   ]
+  }
+ ]
+}

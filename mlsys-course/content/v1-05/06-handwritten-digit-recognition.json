@@ -1,0 +1,106 @@
+{
+ "title": "Handwritten Digit Recognition",
+ "summary": "Interpret the reported error, rejection, and throughput figures from the 1989 digit-recognition study as a pipeline result rather than a claim of error-free deployment.",
+ "source": {
+  "chapter": "v1-05",
+  "sections": [
+   "Handwritten Digit Recognition",
+   "From scores to decisions",
+   "The document-recognition challenge",
+   "Shared pipeline architecture",
+   "Performance outcomes and operational impact",
+   "Key engineering lessons and design principles"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Handwritten Digit Recognition** in *Neural Computation* (Vol I). By the end you should be able to:\n\n- Interpret the reported error, rejection, and throughput figures from the 1989 digit-recognition study as a pipeline result rather than a claim of error-free deployment\n- Distinguish a structural historical comparison from an invalid direct performance comparison across unmatched data, models, software, and hardware\n- Analyze rejection-threshold setting as a cost-and-capacity trade-off rather than a goal of maximizing automation alone\n- Explain why document recognition is a complete pipeline problem rather than a standalone neural-classifier problem\n- Identify digit segmentation as the preprocessing step that isolates character images for later normalization and inference"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Neural Computation, § Handwritten Digit Recognition",
+   "md": "In the late 1980s, LeCun and colleagues demonstrated backpropagation-based recognition of handwritten ZIP-code digits from USPS-supplied images. Related convolutional document-recognition work later supported commercially deployed bank-check readers. These were distinct systems, but they exposed the same engineering pattern: preprocessing normalized variable handwriting, neural inference produced candidate digits, rejection thresholds sent uncertain predictions to human review, and downstream logic converted accepted predictions into operational decisions. That shared pipeline is the chapter's running digit task, deployed."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- From scores to decisions\n- The document-recognition challenge\n- Shared pipeline architecture\n- Performance outcomes and operational impact\n- Key engineering lessons and design principles\n\nPay attention to: Quantitative benchmarks of the 1989 USPS digit recognition prototype; Evolution of deployment hardware envelopes (Then vs Now); Economics and systems trade-offs of confidence-based rejection thresholds; Decomposition of the end-to-end document recognition pipeline."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In the document-recognition pipeline, explain why forcing an automated prediction on \\$100\\% of inputs is not the sole objective when setting the rejection threshold.",
+   "md": "A rejection threshold trades automated coverage against downstream error cost, review cost, and review capacity rather than maximizing automation for its own sake. For example, if uncertain digits are forced through the classifier, the system may reduce manual review volume but increase costly misreads and rework; if too many are rejected, the review queue can become the new bottleneck. The right threshold therefore comes from comparing empirical error and manual-review rates with their operational costs and capacity limits, using the fraction of all arriving items accepted in error for the error-cost term. An error rate measured only among accepted items must first be multiplied by the accepted fraction. Neither zero rejection nor a historical rejection rate is universally optimal."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-05-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Which interpretation of the reported 1989 handwritten-digit recognition results is justified by the chapter's document-recognition case study?",
+     "explanation": "The correct answer is D. The chapter presents these numbers as research results on USPS-supplied digit images, not as a claim of error-free deployed postal sorting. The distinction between 10–12 per second including acquisition and over \\$30$ per second after normalization shows that the measurement boundary matters, and the \\$12.1\\%$ rejection rate shows that low error depended on withholding uncertain cases rather than forcing every input through automatic classification. An interpretation based on the rejection policy being irrelevant misses exactly what made the reported error possible.",
+     "hint": "Think about: interpret the reported error, rejection, and throughput figures from the 1989 digit-recognition study as a pipeline result rather than a claim of error-free deployment",
+     "type": "single",
+     "options": [
+      "The low post-rejection error means the system's neural classifier was already accurate enough that the rejection policy was mostly irrelevant to interpreting the result.",
+      "Because throughput after normalization exceeded \\$30 classifications per second, individual classification latency must also have improved by the same factor even if other stages overlapped differently.",
+      "The reported rates should be interpreted as measurements of only the neural classification stage, because acquisition and normalization are outside the learned model itself.",
+      "The study reported \\$1\\% classification error after rejecting \\$12.1\\% of test digits, with 10–12 classifications per second including acquisition and over \\$30 per second after normalization, so the result must be read as a pipeline measurement with an explicit rejection policy rather than as error-free full automation."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "The chapter compares an early LeNet-class reader with the chapter's modern MNIST multilayer perceptron. What conclusion is actually justified by that comparison?",
+     "explanation": "The correct answer is B. The comparison is not a controlled benchmark, since the datasets, architectures, software stacks, machines, and operating targets differ. What carries over is the structural pattern of normalized pixels flowing through learned parameters into a decision pipeline, not a direct latency or energy ranking. An answer based only on parameter count confuses model state with end-to-end execution behavior, which also depends on workload, runtime, precision, and hardware.",
+     "hint": "Think about: distinguish a structural historical comparison from an invalid direct performance comparison across unmatched data, models, software, and hardware",
+     "type": "single",
+     "options": [
+      "The earlier system must have had lower latency and energy because smaller historical models usually required less computation.",
+      "The defensible comparison is structural continuity: both systems transform normalized pixels into digit scores inside a larger preprocessing-and-decision pipeline, but unmatched data, models, software, hardware, and operating targets mean latency or energy cannot be inferred from parameter count alone.",
+      "Because modern models usually have more parameters, parameter count alone is enough to infer which system is faster and more energy efficient.",
+      "Once two systems both classify handwritten digits, differences in preprocessing and deployment policy are no longer important to systems analysis."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In the composite document-recognition pipeline, the preprocessing step that isolates individual handwritten character images from a multi-digit region is called digit ____.",
+     "explanation": "segmentation. Digit segmentation separates the multi-character region into individual character images so later normalization and neural inference can operate on the intended units rather than on an undivided block.",
+     "hint": "Think about: identify digit segmentation as the preprocessing step that isolates character images for later normalization and inference",
+     "type": "fill",
+     "answer": [
+      "segmentation"
+     ]
+    },
+    {
+     "q": "Order the following stages of a composite document-recognition pipeline:",
+     "explanation": "The correct order is: (3) capture image, (5) locate, segment, and normalize digits, (4) run inference on normalized digits, (2) evaluate scores against validated acceptance thresholds, (1) pass accepted results to the application or defer uncertain cases to review. Image capture must happen first because the later stages need an input document; localization and normalization must happen before inference because the model expects prepared digit inputs; threshold evaluation follows inference because it operates on the model's scores; and only then can the system either accept the result or send an uncertain case to review. Swapping inference and normalization would feed the model the wrong representation, while acting before threshold evaluation would force a decision before confidence has been checked.",
+     "hint": "Think about: sequence the stages of a composite document-recognition pipeline from image capture through acceptance or review",
+     "type": "order",
+     "items": [
+      "capture image",
+      "locate, segment, and normalize digits.",
+      "run inference on normalized digits",
+      "evaluate scores against validated acceptance thresholds",
+      "pass accepted results to the application or defer uncertain cases to review"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Describe how the chapter's composite document-recognition architecture decomposes the task into a multi-stage pipeline, and explain why the neural classifier alone is not sufficient.",
+   "md": "The chapter's teaching pipeline separates image acquisition, conventional preprocessing, neural inference, score interpretation, postprocessing, and the final application decision into distinct stages. For example, raw scanner input must first be prepared into usable digit representations before a model can score them, and the resulting scores still need thresholding and routing logic to decide whether to accept or defer a case. The neural classifier alone is therefore not sufficient because end-to-end success depends on the complete pipeline meeting the relevant latency, reliability, and downstream-handling constraints, not just on the classifier's standalone accuracy."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now interpret the reported error, rejection, and throughput figures from the 1989 digit-recognition study as a pipeline result rather than a claim of error-free deployment.",
+    "You can now distinguish a structural historical comparison from an invalid direct performance comparison across unmatched data, models, software, and hardware.",
+    "You can now analyze rejection-threshold setting as a cost-and-capacity trade-off rather than a goal of maximizing automation alone.",
+    "You can now explain why document recognition is a complete pipeline problem rather than a standalone neural-classifier problem."
+   ]
+  }
+ ]
+}

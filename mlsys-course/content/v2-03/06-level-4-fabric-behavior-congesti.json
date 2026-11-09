@@ -1,0 +1,105 @@
+{
+ "title": "Level 4 Fabric Behavior, Congestion, and Routing",
+ "summary": "Analyze the mechanism and system risks of PFC congestion spreading in lossless Ethernet fabrics.",
+ "source": {
+  "chapter": "v2-03",
+  "sections": [
+   "Level 4 Fabric Behavior, Congestion, and Routing",
+   "Priority flow control (PFC)",
+   "Lossless fabric hazards and watchdog recovery",
+   "End-to-end congestion control with DCQCN and HPCC",
+   "Adaptive routing",
+   "The incast problem in ML"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Level 4 Fabric Behavior, Congestion, and Routing** in *Network Fabrics* (Vol II). By the end you should be able to:\n\n- Analyze the mechanism and system risks of PFC congestion spreading in lossless Ethernet fabrics\n- Compare telemetry-based end-to-end congestion control (HPCC) with binary ECN marking (DCQCN)\n- Calculate buffer overflow time during many-to-one incast bursts and explain the underlying traffic dynamics\n- Explain packet spraying load balancing and contrast transport-layer reordering requirements across InfiniBand and Ethernet\n- Order the escalation of link-layer backpressure from localized incast to cluster-wide PFC freeze"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Network Fabrics, § Level 4 Fabric Behavior, Congestion, and Routing",
+   "md": "A collective can finish late even when the topology provides full BisectionBandwidth. Levels 1 through 3 determine how long a transfer takes on an unloaded path; fabric behavior determines how much longer it takes once the job's own synchronized traffic loads that path. Competing flows can concentrate on one output path, and the BSP barrier introduced in a later section exposes any delay that extends the last required transfer."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Priority flow control (PFC)\n- Lossless fabric hazards and watchdog recovery\n- End-to-end congestion control with DCQCN and HPCC\n- Adaptive routing\n- The incast problem in ML\n\nPay attention to: Priority Flow Control (PFC) mechanisms and congestion spreading; DCQCN (ECN-based) vs HPCC (INT-based) end-to-end congestion control; Adaptive routing and packet spraying vs static ECMP hashing; The incast problem, switch buffer overflow kinetics, and mitigations."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: During a synchronized fan-in phase such as flat gradient aggregation, describe the physical conditions that create the 'incast problem' at a switch port, and calculate the time required to overflow a \\$32\\text{ MB}$ switch buffer when 256 GPUs each transmit at \\$50\\text{ GB/s}$ toward a single \\$50\\text{ GB/s}$ (\\$400\\text{ Gb/s}$) egress port.",
+   "md": "Incast occurs during synchronized fan-in phases (flat aggregation or synchronized reads, not bandwidth-optimal ring AllReduce) when multiple senders simultaneously transmit line-rate traffic to a single destination or aggregation port. With 256 senders at \\$50 GB/s, the aggregate offered load is \\$256 × 50 GB/s = 12.8 TB/s. The egress port drains data at \\$50 GB/s, resulting in a net buffer fill rate of \\$12.8 TB/s - 0.05 TB/s = 12.75 TB/s. The time to overflow a \\$32 MB buffer is: t_overflow = 32 MB / 12.75 TB/s approx 2.51\\,mus. This microsecond-scale overflow instantly triggers PFC pause cascades or packet drops."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-03-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In a RoCEv2 fabric, what is 'congestion spreading', which stalls victim flows, and what mechanism causes it?",
+     "explanation": "The correct answer is D. When a switch port experiences buffer buildup (e.g., from an incast burst), PFC emits PAUSE frames upstream to prevent packet loss. As upstream buffers fill with paused traffic, those switches in turn send PAUSE frames to their upstream neighbors. This backpressure cascade can propagate across multiple switch tiers, blocking unrelated traffic (victim flows) that happens to traverse the paused intermediate switches. The option citing optical dispersion confuses physical-layer fiber physics with link-layer flow control. The choice attributing slowdown to thermal SerDes throttling describes a hardware thermal response rather than network congestion. The option describing hypervisor packet duplication confuses virtualization routing with link backpressure.",
+     "hint": "Think about: analyze the mechanism and system risks of PFC congestion spreading in lossless Ethernet fabrics.",
+     "type": "single",
+     "options": [
+      "Optical dispersion in fiber cables causing packet corruption across adjacent wavelength channels",
+      "High ambient temperatures in switch chassis causing SerDes circuits to throttle line rates across all ports",
+      "Software hypervisors duplicating tenant packets across multiple Virtual Functions",
+      "Priority Flow Control (PFC) PAUSE frames propagating upstream from a single congested egress port, filling upstream switch buffers and pausing unrelated flows that share those intermediate switches"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "How does High Precision Congestion Control (HPCC) achieve faster convergence and lower queue buildup during incast bursts compared to DCQCN?",
+     "explanation": "The correct answer is B. DCQCN relies on coarse, binary Explicit Congestion Notification (ECN) marking and reactive Congestion Notification Packets (CNP), requiring multiple RTTs to converge via heuristic multiplicative decrease. HPCC leverages In-Network Telemetry (INT) where programmable switch ASICs embed precise metadata (exact queue depth, link load, timestamps) directly into packet headers, enabling senders to estimate available capacity and adjust rates rapidly rather than infer congestion from binary marks alone. The choice stating HPCC drops packets and falls back to TCP cubic contradicts RDMA design principles. The option claiming PFC is disabled with reliance on checkpointing misrepresents congestion control. The option suggesting \\$10 GB switch buffers is economically and physically infeasible on high-radix switch silicon.",
+     "hint": "Think about: compare telemetry-based end-to-end congestion control (HPCC) with binary ECN marking (DCQCN).",
+     "type": "single",
+     "options": [
+      "HPCC drops all out-of-order packets at the edge switch and forces senders to switch to TCP cubic",
+      "HPCC uses In-Network Telemetry (INT) to append precise switch queue depth, link utilization, and timestamps to packet headers, allowing senders to estimate available capacity and adjust rates rapidly",
+      "HPCC disables Priority Flow Control and relies exclusively on application-level checkpointing to tolerate packet loss",
+      "HPCC increases switch buffer sizes to \\$10 GB per port to eliminate the possibility of buffer overflows"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Why does packet spraying improve fabric bisection bandwidth utilization in InfiniBand networks, and why is standard Ethernet historically hesitant to use it?",
+     "explanation": "The correct answer is A. Packet spraying eliminates ECMP hot spots by distributing packets of a single elephant flow across multiple parallel paths. Suitable InfiniBand routing and endpoint implementations preserve the required ordering while using multiple paths; arbitrary packet spraying is not safe without that support. Standard Ethernet historically avoided packet spraying because out-of-order delivery triggers false packet loss assumptions in TCP or requires large on-chip reassembly buffers in RoCE NICs (prompting alternatives like flowlet switching or UEC next-gen transports). The option alleging encryption across paths confuses load balancing with cryptographic security. The choice mentioning wireless backup links is unrelated to data center fabrics. The option claiming header reduction from 40 to 4 bytes confuses routing with packet compression.",
+     "hint": "Think about: explain packet spraying load balancing and contrast transport-layer reordering requirements across InfiniBand and Ethernet.",
+     "type": "single",
+     "options": [
+      "Packet spraying distributes individual packets of an elephant flow across all available equal-cost paths to eliminate hash collisions; suitable InfiniBand implementations support this through routing and endpoint ordering mechanisms, whereas standard Ethernet avoids reordering due to the high software/NIC cost of reassembly",
+      "Packet spraying encrypts packets with unique keys across paths, which InfiniBand decrypts in hardware while Ethernet lacks AES accelerators",
+      "Packet spraying routes packets over wireless backup links, which Ethernet switches do not support",
+      "Packet spraying reduces packet header size from 40 bytes to 4 bytes, doubling Ethernet wire efficiency"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Place the following events in order to illustrate how an incast burst escalates into a cluster-wide PFC congestion storm in a RoCEv2 fabric:",
+     "explanation": "The correct sequence is: (3) Multiple GPU senders simultaneously initiate flat-aggregation transfers targeting a common aggregation node -> (5) The common destination switch egress queue is oversubscribed by the combined line-rate traffic -> (1) The downstream switch buffer reaches its high-water mark and emits PFC PAUSE frames upstream -> (2) Upstream switches pause their transmission queues, causing their own ingress buffers to fill with traffic destined for other ports -> (4) Second-tier upstream switches emit PAUSE frames to unrelated sender nodes, freezing victim flows across the fabric.",
+     "hint": "Think about: order the escalation of link-layer backpressure from localized incast to cluster-wide PFC freeze.",
+     "type": "order",
+     "items": [
+      "Multiple GPU senders simultaneously initiate flat-aggregation transfers targeting a common aggregation node",
+      "The common destination switch egress queue is oversubscribed by the combined line-rate traffic",
+      "The downstream switch buffer reaches its high-water mark and emits PFC PAUSE frames upstream",
+      "Upstream switches pause their transmission queues, causing their own ingress buffers to fill with traffic destined for other ports",
+      "Second-tier upstream switches emit PAUSE frames to unrelated sender nodes, freezing victim flows across the fabric"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the mechanism and system risks of PFC congestion spreading in lossless Ethernet fabrics.",
+    "You can now compare telemetry-based end-to-end congestion control (HPCC) with binary ECN marking (DCQCN).",
+    "You can now calculate buffer overflow time during many-to-one incast bursts and explain the underlying traffic dynamics.",
+    "You can now explain packet spraying load balancing and contrast transport-layer reordering requirements across InfiniBand and Ethernet."
+   ]
+  }
+ ]
+}

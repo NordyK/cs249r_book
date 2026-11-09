@@ -1,0 +1,101 @@
+{
+ "title": "Measuring Goodput",
+ "summary": "Order the localization records and explain what each can and cannot establish.",
+ "source": {
+  "chapter": "v2-09",
+  "sections": [
+   "Measuring Goodput",
+   "The measurement contract",
+   "Localizing the lost factor",
+   "Fleet profiling by sampling",
+   "Detecting regressions"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Measuring Goodput** in *Fleet Efficiency* (Vol II). By the end you should be able to:\n\n- Order the localization records and explain what each can and cannot establish\n- Choose a measurement window that matches the rate at which each goodput factor loses time\n- Match a regression to the testing tier and record that can detect it\n- Analyze how barrier synchronization turns one slow node into a job-wide program goodput loss and how it is detected\n- Justify hierarchical fleet profiling from trace-volume scaling and state a sampling coverage rule"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Efficiency, § Measuring Goodput",
+   "md": "Two measurements of the running Llama 2 70B job taken a week apart can report noticeably different program goodput because they traced different ranks, spanned a framework upgrade, started timing before compilation finished, or averaged across a failure recovery. The job's real efficiency on the cluster need not have changed at all. A goodput factor can guide engineering decisions only when repeated measurements are directly comparable and when a drop can be traced cleanly to the boundary that lost the capacity."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The measurement contract\n- Localizing the lost factor\n- Fleet profiling by sampling\n- Detecting regressions\n\nPay attention to: The measurement contract and its per-factor window; Localizing a loss with scheduler records, job timelines, and step traces; Fleet profiling by always-on metrics, targeted traces, and stratified sampling; Regression tiers by goodput factor."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In a synchronous data-parallel job on 1,000 GPUs, explain why one gray-failure node that delivers 10% less throughput can lower the whole job's MFU by about 10%, which goodput factor the loss is charged to, and what always-on evidence exposes it.",
+   "md": "Every rank must finish before a synchronized step advances, so a rank running at 90% of its normal throughput sets the step time of every rank that waits for it, and the job runs near 90% of its former rate when that rank lies on the critical path. The job still holds a complete allocation and keeps every step, so the loss is charged to program goodput, in the Fleet Law's synchronization term. Per-rank step timers and the fleet-wide step-time distribution expose the slow rank, and a timer past its threshold triggers a trace of that rank beside a healthy peer."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-09-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Order the three records used to localize a goodput shortfall, from first consulted to last:",
+     "explanation": "The correct order is (3) -> (2) -> (1). Scheduler records cover every job at no extra cost and settle scheduling goodput, but cannot see inside a held allocation. The job timeline settles runtime goodput and detects, without explaining, retained steps that run slower than planned. Step traces are costly, perturb the step, and cover only their window, so they are collected only after the cheaper records show that the retained steps themselves are slow. A trace taken first can call a job healthy while it loses a third of its held time to restarts that no trace window contained.",
+     "hint": "Think about: order the localization records and explain what each can and cannot establish.",
+     "type": "order",
+     "items": [
+      "scheduler records of allocation intervals and gang-complete times.",
+      "the job timeline from the gang-complete timestamp to release",
+      "step traces from selected ranks over a short window"
+     ]
+    },
+    {
+     "q": "A team measures runtime goodput over one day in which no failure occurs and reports a value near one. Why does the measurement contract reject this as the job's runtime goodput?",
+     "explanation": "The correct answer is C. A window shorter than the interval between failures can show almost no runtime loss; the running example on 128 GPUs meets a hardware failure only about once every 13 days. Program goodput loses time in every step, so warmed steady-state windows estimate it well, and scheduling goodput follows demand, so its window must span whole demand cycles. The three factors multiply into the job's MPG only when they describe the same calendar window.",
+     "hint": "Think about: choose a measurement window that matches the rate at which each goodput factor loses time.",
+     "type": "single",
+     "options": [
+      "Runtime goodput can be measured only on a dedicated allocation, so any shared-fleet measurement is invalid",
+      "Runtime goodput is defined only over warmed steady-state steps, so a one-day window contains too much startup",
+      "Runtime goodput charges rare, costly events such as failures that discard the steps since the last checkpoint, so its window must span many interruptions, which at fleet scale means days to weeks",
+      "Runtime goodput follows the daily demand cycle, so it must be measured overnight when queues drain"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Which regression tier is designed to catch a code change that looks harmless on one GPU but bends the scaling efficiency curve before a full-fleet launch?",
+     "explanation": "The correct answer is A. A program regression slows every step, so it shows up on a small allocation within minutes. Startup and recovery baselines watch runtime goodput, such as a compiler upgrade that adds minutes to every startup while leaving step time unchanged, and allocation baselines watch scheduling goodput across whole demand cycles. A single-GPU test cannot observe the collectives and synchronization that change with scale.",
+     "hint": "Think about: match a regression to the testing tier and record that can detect it.",
+     "type": "single",
+     "options": [
+      "Small-scale canaries that measure step time and MFU on one node and on a small multi-node allocation",
+      "Startup and recovery baselines kept in the job timelines",
+      "Allocation baselines kept in the scheduler records over whole demand cycles",
+      "Single-GPU unit tests run with debug assertions enabled"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Because a before-and-after measurement of one job runs on identical hardware, it isolates the effect of the change under test even if a framework or compiler upgrade occurred between the two runs.",
+     "explanation": "False. Software alone can move delivered performance by a large multiple on unchanged hardware. Across four MLPerf Inference rounds on the same eight-GPU DGX H100 system, GPT-J throughput rose 2.7$\\times$ and Llama 2 70B 1.4$\\times$ as the inference software moved from TensorRT 9.0 to 10.8. The contract therefore records software, compiler, and driver versions as part of the system state, and a measurement that spans an upgrade measures the upgrade along with the change.",
+     "hint": "Think about: explain why the measurement contract fixes software version as part of system state.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A 5-second Nsight Systems trace of one GPU occupies about 500 MB. Using the scaling of that trace to 1,024 GPUs, explain why production fleets pair always-on metrics with targeted or sampled traces, and name one coverage rule a sampling policy must follow.",
+   "md": "The same window across 1,024 GPUs produces about 512 GB, a rate no fleet can store or read continuously, and recording every launch perturbs the step it measures. Fleets therefore keep cheap always-on measures for every job, such as step time, MFU of retained steps, per-rank step timers, and device telemetry, to detect that a factor moved, then capture short traces from ranks chosen to test a hypothesis. Samples must be stratified across jobs, parallel groups, pipeline stages, step phases, and hours of the day rather than drawn only from rank 0 or a job's first minutes, and rare events need threshold-triggered capture."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now order the localization records and explain what each can and cannot establish.",
+    "You can now choose a measurement window that matches the rate at which each goodput factor loses time.",
+    "You can now match a regression to the testing tier and record that can detect it.",
+    "You can now analyze how barrier synchronization turns one slow node into a job-wide program goodput loss and how it is detected."
+   ]
+  }
+ ]
+}

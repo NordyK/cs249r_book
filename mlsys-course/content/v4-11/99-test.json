@@ -1,0 +1,106 @@
+{
+ "title": "Test: Trajectory Planning",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v4-11-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Replacement Timing and the Planning Horizon** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Sampling planners, trajectory optimization and MPC, and learned chunks differ in the work they do, not in what they must prove, and a solver's deadline, not its convergence, decides admission.",
+      "Replacement latency runs from capture to MCU admission (about 115 ms against a 50 ms renewal and a 60 ms lease), so renewal is sustainable only by overlapping requests and every record must carry its own handoff tail.",
+      "Clearance and tool limits live in tool space but drives enforce joint limits, so tool-space quantities pass through the configuration-dependent Jacobian, whose weak direction near a singularity demands unbounded joint rates unless damped least squares trades accuracy for bounded rates.",
+      "Planning searches the configuration space and its collision-free subset, and collision queries dominate a sampling planner's run time."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Replacement latency and handoff tail**: Replacement latency runs from capture to MCU admission (about 115 ms against a 50 ms renewal and a 60 ms lease), so renewal is sustainable only by overlapping requests and every record must carry its own handoff tail."
+    },
+    {
+     "type": "single",
+     "q": "The section **Historical Perspective and Further Reading** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A collision-free path is executable only if every joint's position, velocity, acceleration, jerk, torque, and current stay within limits along the continuous interpolant, its seams, and its stop, which time parameterization must check.",
+      "Receding-horizon MPC handles constraints explicitly and gains recursive feasibility only through a terminal invariant set, and its solve time against the period decides whether its output can be admitted.",
+      "Phase-plane time parameterization finds the fastest timing of a fixed path under velocity, acceleration, and torque bounds, and online generators compute jerk-limited profiles from arbitrary states.",
+      "A differential-drive base reaches the same configurations as a holonomic one but through a restricted velocity space, so it plans over controls."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Time parameterization**: Phase-plane time parameterization finds the fastest timing of a fixed path under velocity, acceleration, and torque bounds, and online generators compute jerk-limited profiles from arbitrary states."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Trajectory record* is transported through *Freshest-proposal mailbox*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Trajectory record is transported through Freshest-proposal mailbox."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Kinodynamic feasibility**?",
+     "options": [
+      "A stop that keeps acceleration continuous must ramp deceleration up and down, so constant-deceleration braking is unexecutable and understates distance, and every admitted trajectory carries a jerk-limited S-curve stop.",
+      "Splicing chunks that match only position or velocity leaves an acceleration step that reflected inertia turns into a torque step, so seams must be C2 and the replacement is planned from the projected seam state.",
+      "A collision-free path is executable only if every joint's position, velocity, acceleration, jerk, torque, and current stay within limits along the continuous interpolant, its seams, and its stop, which time parameterization must check.",
+      "A differential-drive base reaches the same configurations as a holonomic one but through a restricted velocity space, so it plans over controls."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Kinodynamic feasibility itself, not a neighbouring idea.",
+     "explanation": "**Kinodynamic feasibility:** A collision-free path is executable only if every joint's position, velocity, acceleration, jerk, torque, and current stay within limits along the continuous interpolant, its seams, and its stop, which time parameterization must check."
+    },
+    {
+     "type": "single",
+     "q": "The section **Kinodynamic Feasibility** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Splicing chunks that match only position or velocity leaves an acceleration step that reflected inertia turns into a torque step, so seams must be C2 and the replacement is planned from the projected seam state.",
+      "Clearance and tool limits live in tool space but drives enforce joint limits, so tool-space quantities pass through the configuration-dependent Jacobian, whose weak direction near a singularity demands unbounded joint rates unless damped least squares trades accuracy for bounded rates.",
+      "Replacement latency runs from capture to MCU admission (about 115 ms against a 50 ms renewal and a 60 ms lease), so renewal is sustainable only by overlapping requests and every record must carry its own handoff tail.",
+      "The planner hands over an immutable record naming frame, evidence epoch, seam state, parent intent-lease digest, and four MCU-clock deadlines in two tiers (high-rate chunk lease, hardware commitment cutoff) together with its latched stop."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **C2 seam**: Splicing chunks that match only position or velocity leaves an acceleration step that reflected inertia turns into a torque step, so seams must be C2 and the replacement is planned from the projected seam state."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Replacement latency and handoff tail**?",
+     "options": [
+      "Replacement latency runs from capture to MCU admission (about 115 ms against a 50 ms renewal and a 60 ms lease), so renewal is sustainable only by overlapping requests and every record must carry its own handoff tail.",
+      "The planner hands over an immutable record naming frame, evidence epoch, seam state, parent intent-lease digest, and four MCU-clock deadlines in two tiers (high-rate chunk lease, hardware commitment cutoff) together with its latched stop.",
+      "A differential-drive base reaches the same configurations as a holonomic one but through a restricted velocity space, so it plans over controls.",
+      "Sampling planners, trajectory optimization and MPC, and learned chunks differ in the work they do, not in what they must prove, and a solver's deadline, not its convergence, decides admission."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Replacement latency and handoff tail itself, not a neighbouring idea.",
+     "explanation": "**Replacement latency and handoff tail:** Replacement latency runs from capture to MCU admission (about 115 ms against a 50 ms renewal and a 60 ms lease), so renewal is sustainable only by overlapping requests and every record must carry its own handoff tail."
+    },
+    {
+     "type": "single",
+     "q": "The section **The Trajectory Record** develops one of the chapter's claims. Which one?",
+     "options": [
+      "The planner hands over an immutable record naming frame, evidence epoch, seam state, parent intent-lease digest, and four MCU-clock deadlines in two tiers (high-rate chunk lease, hardware commitment cutoff) together with its latched stop.",
+      "Receding-horizon MPC handles constraints explicitly and gains recursive feasibility only through a terminal invariant set, and its solve time against the period decides whether its output can be admitted.",
+      "Planning searches the configuration space and its collision-free subset, and collision queries dominate a sampling planner's run time.",
+      "Because the arm keeps moving during inference, a replacement is planned from the state projected to the seam and admitted against the measured state."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Trajectory record**: The planner hands over an immutable record naming frame, evidence epoch, seam state, parent intent-lease digest, and four MCU-clock deadlines in two tiers (high-rate chunk lease, hardware commitment cutoff) together with its latched stop."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Manipulator Jacobian* maps tool constraints into joints for *Kinodynamic feasibility*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Manipulator Jacobian maps tool constraints into joints for Kinodynamic feasibility."
+    }
+   ]
+  }
+ ]
+}

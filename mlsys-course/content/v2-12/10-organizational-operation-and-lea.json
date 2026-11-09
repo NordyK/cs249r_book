@@ -1,0 +1,85 @@
+{
+ "title": "Organizational Operation and Learning",
+ "summary": "Design an organizational structure for ML platform engineering that balances governance with domain velocity.",
+ "source": {
+  "chapter": "v2-12",
+  "sections": [
+   "Organizational Operation and Learning",
+   "Centralized platform team",
+   "Embedded ML engineers",
+   "Hybrid models",
+   "Organizational pattern selection"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Organizational Operation and Learning** in *ML Operations at Scale* (Vol II). By the end you should be able to:\n\n- Design an organizational structure for ML platform engineering that balances governance with domain velocity\n- Evaluate organizational factors that dictate centralized versus decentralized platform patterns\n- Analyze the systemic risks and failure modes of fragmented, embedded ML engineering teams\n- Explain the governance prerequisites for successful federated ML platform models"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, ML Operations at Scale, § Organizational Operation and Learning",
+   "md": "A shared feature change may pass platform checks yet still require approval from several model owners. The control plane becomes durable only when those technical interfaces align with organizational authority. Team structure determines who can approve the change, stop a rollout, or fund the repair when a shared dependency fails."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Centralized platform team\n- Embedded ML engineers\n- Hybrid models\n- Organizational pattern selection\n\nPay attention to: Centralized vs. embedded vs. hybrid platform structures; Decision factors for platform team design; Federated governance models and fragmentation risks."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Analyze the primary long-term operational risk when an organization relies exclusively on an 'Embedded ML Engineers' model as the model fleet expands beyond 50 models.",
+   "md": "An exclusively embedded model leads to severe fragmentation: each team implements slightly different deployment, monitoring, and feature pipelines, duplicating engineering effort, preventing shared economies of scale, and creating massive maintenance debt across incompatible infrastructure stacks."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-12-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Which organizational structure best balances platform standardization with domain-specific velocity for an enterprise operating 80 production models across diverse application domains (e.g., recommendation, fraud, search, ads)?",
+     "explanation": "The correct answer is D. A hybrid structure establishes a centralized platform team to standardize core infrastructure (compute, registries, feature stores, CI/CD, governance) while placing domain platform leads inside product teams to support specialized modeling needs without creating a centralized platform ticket bottleneck.",
+     "hint": "Think about: design an organizational structure for ML platform engineering that balances governance with domain velocity.",
+     "type": "single",
+     "options": [
+      "A pure decentralized model with no shared infrastructure where each team manages separate cloud clusters.",
+      "A pure centralized model where all model training, hyperparameter tuning, and deployment must be submitted as platform team tickets.",
+      "An outsourced contractor model where ML infrastructure is operated by third-party vendors.",
+      "A hybrid model where a centralized core platform team owns shared infrastructure while domain-specific platform engineers remain embedded within product teams."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "According to the decision criteria for ML organizational patterns, which combination of organizational factors most strongly favors adopting a *Centralized Platform Team*?",
+     "explanation": "The correct answer is A. Centralization is favored when model count is high (100+), models share architectural patterns, organizational scale is large, and regulatory compliance demands strict, auditable governance across all deployments.",
+     "hint": "Think about: evaluate organizational factors that dictate centralized versus decentralized platform patterns.",
+     "type": "single",
+     "options": [
+      "High model count (100+ models), homogeneous model architectures, large organization size, and strict regulatory compliance requirements.",
+      "Small team size (5 engineers), low model count (2 models), and exploratory unconstrained research projects.",
+      "Completely isolated business units with zero shared data sources and diverse, one-off computer vision models.",
+      "Organizations with late-stage, mature bespoke tooling where team-local customization takes precedence over shared standards."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A federated ML platform organizational model can operate effectively without central governance authority to enforce architecture standards and prevent code forking.",
+     "explanation": "False. Without enforceable central governance and clear contribution models, a federated structure quickly degenerates into fragmented embedded silos with high coordination overhead and divergent platform forks.",
+     "hint": "Think about: explain the governance prerequisites for successful federated ML platform models.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now design an organizational structure for ML platform engineering that balances governance with domain velocity.",
+    "You can now evaluate organizational factors that dictate centralized versus decentralized platform patterns.",
+    "You can now analyze the systemic risks and failure modes of fragmented, embedded ML engineering teams.",
+    "You can now explain the governance prerequisites for successful federated ML platform models."
+   ]
+  }
+ ]
+}

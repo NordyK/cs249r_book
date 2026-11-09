@@ -1,0 +1,246 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v4-15",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Adversarial Verification** (Vol IV). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Adversarial Verification, Purpose",
+   "md": "The claims that matter most in a physical machine describe what it does after something has already gone wrong, when the learned proposer stalls, an observation arrives old, a message is lost, or the supply sags while a loaded body moves toward a person. Normal operation almost never exercises those responses, so thousands of clean runs can coexist with a stopping mechanism that has never once been made to stop the machine."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Claim a Fault Trial Must Test",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "The Operating Envelope",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "One F1 Trial from Injection to Record",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Fault Oracles and Acceptance",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Extending the Trial to the Envelope",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Deriving the Fault List",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "The Qualification Ladder",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Operating envelope and coupled corners**",
+     "A protective claim holds only over a declared operating envelope that couples the external ODD with internal execution state (load, bus voltage, saturation, temperature), and its danger lives at the coupled corners, not the nominal center."
+    ],
+    [
+     "**Precommitted oracle**",
+     "A fault trial counts as evidence only against an oracle fixed before the run that returns signed margins, scored from the event the fault disrupts rather than from the start of the trial."
+    ],
+    [
+     "**Fault-list derivation**",
+     "Faults come from inverting each recorded design guarantee at its handoff and from working forward from the physical machine, each built as a five-element chain from cause to violated claim."
+    ],
+    [
+     "**Transduction and proposer attacks**",
+     "A transduction attack delivers a checksum-valid packet whose measurement is false, so packet integrity is never an oracle for perception, and a wrong action inside the envelope after prompt injection or a patch is a coverage deficit, never a pass."
+    ],
+    [
+     "**Qualification ladder**",
+     "Software-, processor-, and hardware-in-the-loop rigs and the physical fault rig each make a different part of the loop real while throughput falls by orders of magnitude, so a mechanism can fail only on a rung that contains it."
+    ],
+    [
+     "**Falsification by signed robustness**",
+     "Signed temporal-logic robustness turns testing into an optimization that searches for the smallest margin, and a simulated margin counts only after its sim-to-real transfer discount."
+    ],
+    [
+     "**Rare-event rates and tails**",
+     "Failure probability cannot be read from falsification runs or naive Monte Carlo, so rates need importance sampling with a tuned proposal and tail magnitudes need weighted extreme value fits."
+    ],
+    [
+     "**Fault-record set**",
+     "Each fault record binds a signed header (trial, claim, envelope point, injection, oracle digest, latencies, margins, verdict) to the independently retained trace, carrying evidence and its gaps to release."
+    ],
+    [
+     "**Four verdicts and independent witnesses**",
+     "Every trial returns pass, fail, invalid, or unobservable, unmeasured fields are recorded as unavailable rather than zero, and an independent witness keeps a pass from resting on the system under test."
+    ],
+    [
+     "**Extreme value theory**",
+     "Extreme value theory fits the distribution of block maxima or threshold exceedances, so a tail estimate needs many independent extremes and a justified tail family."
+    ],
+    [
+     "**Importance-sampling weight diagnostic**",
+     "Kish's effective sample size of the importance weights and a tail-coverage check reveal when a few heavy weights carry the estimate."
+    ],
+    [
+     "**Digital twin delusion**",
+     "A simulator never compared with a measured stop of this machine is a model, not a twin, and earns no evidential weight."
+    ],
+    [
+     "**Probe effect**",
+     "Timing the enforcer with on-target logging changes its timing, so verification uses non-intrusive hardware trace."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v4-15-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Operating envelope and coupled corners",
+     "back": "A protective claim holds only over a declared operating envelope that couples the external ODD with internal execution state (load, bus voltage, saturation, temperature), and its danger lives at the coupled corners, not the nominal center."
+    },
+    {
+     "front": "Precommitted oracle",
+     "back": "A fault trial counts as evidence only against an oracle fixed before the run that returns signed margins, scored from the event the fault disrupts rather than from the start of the trial."
+    },
+    {
+     "front": "Fault-list derivation",
+     "back": "Faults come from inverting each recorded design guarantee at its handoff and from working forward from the physical machine, each built as a five-element chain from cause to violated claim."
+    },
+    {
+     "front": "Transduction and proposer attacks",
+     "back": "A transduction attack delivers a checksum-valid packet whose measurement is false, so packet integrity is never an oracle for perception, and a wrong action inside the envelope after prompt injection or a patch is a coverage deficit, never a pass."
+    },
+    {
+     "front": "Qualification ladder",
+     "back": "Software-, processor-, and hardware-in-the-loop rigs and the physical fault rig each make a different part of the loop real while throughput falls by orders of magnitude, so a mechanism can fail only on a rung that contains it."
+    },
+    {
+     "front": "Falsification by signed robustness",
+     "back": "Signed temporal-logic robustness turns testing into an optimization that searches for the smallest margin, and a simulated margin counts only after its sim-to-real transfer discount."
+    },
+    {
+     "front": "Rare-event rates and tails",
+     "back": "Failure probability cannot be read from falsification runs or naive Monte Carlo, so rates need importance sampling with a tuned proposal and tail magnitudes need weighted extreme value fits."
+    },
+    {
+     "front": "Fault-record set",
+     "back": "Each fault record binds a signed header (trial, claim, envelope point, injection, oracle digest, latencies, margins, verdict) to the independently retained trace, carrying evidence and its gaps to release."
+    },
+    {
+     "front": "Four verdicts and independent witnesses",
+     "back": "Every trial returns pass, fail, invalid, or unobservable, unmeasured fields are recorded as unavailable rather than zero, and an independent witness keeps a pass from resting on the system under test."
+    },
+    {
+     "front": "Extreme value theory",
+     "back": "Extreme value theory fits the distribution of block maxima or threshold exceedances, so a tail estimate needs many independent extremes and a justified tail family."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v4-15-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Operating envelope and coupled corners**?",
+     "options": [
+      "Faults come from inverting each recorded design guarantee at its handoff and from working forward from the physical machine, each built as a five-element chain from cause to violated claim.",
+      "Extreme value theory fits the distribution of block maxima or threshold exceedances, so a tail estimate needs many independent extremes and a justified tail family.",
+      "A protective claim holds only over a declared operating envelope that couples the external ODD with internal execution state (load, bus voltage, saturation, temperature), and its danger lives at the coupled corners, not the nominal center.",
+      "Every trial returns pass, fail, invalid, or unobservable, unmeasured fields are recorded as unavailable rather than zero, and an independent witness keeps a pass from resting on the system under test."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Operating envelope and coupled corners itself, not a neighbouring idea.",
+     "explanation": "**Operating envelope and coupled corners:** A protective claim holds only over a declared operating envelope that couples the external ODD with internal execution state (load, bus voltage, saturation, temperature), and its danger lives at the coupled corners, not the nominal center."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Precommitted oracle**?",
+     "options": [
+      "Failure probability cannot be read from falsification runs or naive Monte Carlo, so rates need importance sampling with a tuned proposal and tail magnitudes need weighted extreme value fits.",
+      "A fault trial counts as evidence only against an oracle fixed before the run that returns signed margins, scored from the event the fault disrupts rather than from the start of the trial.",
+      "Faults come from inverting each recorded design guarantee at its handoff and from working forward from the physical machine, each built as a five-element chain from cause to violated claim.",
+      "Signed temporal-logic robustness turns testing into an optimization that searches for the smallest margin, and a simulated margin counts only after its sim-to-real transfer discount."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Precommitted oracle itself, not a neighbouring idea.",
+     "explanation": "**Precommitted oracle:** A fault trial counts as evidence only against an oracle fixed before the run that returns signed margins, scored from the event the fault disrupts rather than from the start of the trial."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Fault-list derivation**?",
+     "options": [
+      "Every trial returns pass, fail, invalid, or unobservable, unmeasured fields are recorded as unavailable rather than zero, and an independent witness keeps a pass from resting on the system under test.",
+      "Failure probability cannot be read from falsification runs or naive Monte Carlo, so rates need importance sampling with a tuned proposal and tail magnitudes need weighted extreme value fits.",
+      "Faults come from inverting each recorded design guarantee at its handoff and from working forward from the physical machine, each built as a five-element chain from cause to violated claim.",
+      "Software-, processor-, and hardware-in-the-loop rigs and the physical fault rig each make a different part of the loop real while throughput falls by orders of magnitude, so a mechanism can fail only on a rung that contains it."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Fault-list derivation itself, not a neighbouring idea.",
+     "explanation": "**Fault-list derivation:** Faults come from inverting each recorded design guarantee at its handoff and from working forward from the physical machine, each built as a five-element chain from cause to violated claim."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Transduction and proposer attacks**?",
+     "options": [
+      "A transduction attack delivers a checksum-valid packet whose measurement is false, so packet integrity is never an oracle for perception, and a wrong action inside the envelope after prompt injection or a patch is a coverage deficit, never a pass.",
+      "Signed temporal-logic robustness turns testing into an optimization that searches for the smallest margin, and a simulated margin counts only after its sim-to-real transfer discount.",
+      "Failure probability cannot be read from falsification runs or naive Monte Carlo, so rates need importance sampling with a tuned proposal and tail magnitudes need weighted extreme value fits.",
+      "A protective claim holds only over a declared operating envelope that couples the external ODD with internal execution state (load, bus voltage, saturation, temperature), and its danger lives at the coupled corners, not the nominal center."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Transduction and proposer attacks itself, not a neighbouring idea.",
+     "explanation": "**Transduction and proposer attacks:** A transduction attack delivers a checksum-valid packet whose measurement is false, so packet integrity is never an oracle for perception, and a wrong action inside the envelope after prompt injection or a patch is a coverage deficit, never a pass."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Qualification ladder**?",
+     "options": [
+      "Every trial returns pass, fail, invalid, or unobservable, unmeasured fields are recorded as unavailable rather than zero, and an independent witness keeps a pass from resting on the system under test.",
+      "Failure probability cannot be read from falsification runs or naive Monte Carlo, so rates need importance sampling with a tuned proposal and tail magnitudes need weighted extreme value fits.",
+      "Timing the enforcer with on-target logging changes its timing, so verification uses non-intrusive hardware trace.",
+      "Software-, processor-, and hardware-in-the-loop rigs and the physical fault rig each make a different part of the loop real while throughput falls by orders of magnitude, so a mechanism can fail only on a rung that contains it."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Qualification ladder itself, not a neighbouring idea.",
+     "explanation": "**Qualification ladder:** Software-, processor-, and hardware-in-the-loop rigs and the physical fault rig each make a different part of the loop real while throughput falls by orders of magnitude, so a mechanism can fail only on a rung that contains it."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Operating envelope and coupled corners: A protective claim holds only over a declared operating envelope that couples the external ODD with internal execution state (load, bus voltage, saturation, temperature), and its danger lives at the coupled corners, not the nominal center.",
+    "Precommitted oracle: A fault trial counts as evidence only against an oracle fixed before the run that returns signed margins, scored from the event the fault disrupts rather than from the start of the trial.",
+    "Fault-list derivation: Faults come from inverting each recorded design guarantee at its handoff and from working forward from the physical machine, each built as a five-element chain from cause to violated claim.",
+    "Transduction and proposer attacks: A transduction attack delivers a checksum-valid packet whose measurement is false, so packet integrity is never an oracle for perception, and a wrong action inside the envelope after prompt injection or a patch is a coverage deficit, never a pass."
+   ]
+  }
+ ],
+ "terms": []
+}

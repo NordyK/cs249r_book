@@ -1,0 +1,63 @@
+{
+ "title": "AllToAll Exchanges at Scale",
+ "summary": "Compare the scaling constraints of AllToAll and AllReduce by analyzing logical connection density and network bisection contention.",
+ "source": {
+  "chapter": "v2-05",
+  "sections": [
+   "AllToAll Exchanges at Scale",
+   "Dynamic routing and expert imbalance in MoE AllToAll",
+   "AllToAll schedule selection"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **AllToAll Exchanges at Scale** in *Collective Communication* (Vol II). By the end you should be able to:\n\n- Compare the scaling constraints of AllToAll and AllReduce by analyzing logical connection density and network bisection contention\n- Distinguish full-duplex bidirectional link capability from multi-destination injection bandwidth limits"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Collective Communication, § AllToAll Exchanges at Scale",
+   "md": "Hierarchy, in-network reduction, and rail alignment were all developed for AllReduce, whose uniform payload lets every rank follow the same schedule. In a mixture-of-experts model with 64 experts distributed across 8 GPUs (8 experts per GPU), or in the sharded embedding tables of a later section, a gating network or lookup table assigns each input to a specific destination rank."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Dynamic routing and expert imbalance in MoE AllToAll\n- AllToAll schedule selection\n\nPay attention to: AllToAll vs AllReduce scaling: logical peer count versus injection, reception, bisection, and startup bounds; Physical injection link sharing during concurrent peer transfers."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-05-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why can MoE token routing with AllToAll encounter contention and tail-latency limits even when its per-worker payload is smaller than that of a dense AllReduce?",
+     "explanation": "The correct answer is B. AllToAll has $N(N-1)$ potential directed peer relationships, so placement, routing, and load imbalance matter as well as total bytes. With a fixed total $M$-byte input per rank, uniform AllToAll sends $(N-1)M/N$ bytes per rank, not a quadratic volume. Traffic can still contend on a limited bisection or overloaded expert. The operation does not inherently require TCP or FP32.",
+     "hint": "Think about: compare the scaling constraints of AllToAll and AllReduce by analyzing logical connection density and network bisection contention.",
+     "type": "single",
+     "options": [
+      "AllToAll transfers more total bytes per GPU than AllReduce, requiring each GPU to send \\$2(N-1)M$ bytes instead of \\$2 \\frac{N-1}{N} M$ bytes.",
+      "AllToAll exchanges distinct payloads among many peers; routing skew and concurrent cross-fabric transfers can concentrate traffic on shared links and destinations.",
+      "AllToAll cannot execute over InfiniBand fabrics and must fall back to host CPU TCP/IP socket emulation.",
+      "AllToAll mandates single-precision FP32 representation, preventing BF16 or FP16 tensor transfers across remote experts."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In a mixture-of-experts (MoE) model where tokens are routed across 8 GPUs using full-duplex InfiniBand NDR (50 GB/s per port), issuing 7 concurrent peer transfers allows the GPU to achieve an aggregate outgoing transmission rate of \\$7 × 50 GB/s = 350 GB/s.",
+     "explanation": "False. Full-duplex communication allows a network interface card (NIC) to send and receive simultaneously at line rate (50 GB/s in each direction), but it does not multiply the physical injection bandwidth of a single port across multiple concurrent destinations. All concurrent outgoing peer streams share the same physical 50 GB/s injection link, meaning total outgoing data must serialize through that single port. The aggregate outgoing transmission rate remains bounded by the 50 GB/s link capacity.",
+     "hint": "Think about: distinguish full-duplex bidirectional link capability from multi-destination injection bandwidth limits.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare the scaling constraints of AllToAll and AllReduce by analyzing logical connection density and network bisection contention.",
+    "You can now distinguish full-duplex bidirectional link capability from multi-destination injection bandwidth limits."
+   ]
+  }
+ ]
+}

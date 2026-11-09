@@ -1,0 +1,232 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v1-06",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Network Architectures** (Vol I). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Network Architectures, Purpose",
+   "md": "Selecting a neural network architecture is both a modeling decision and a contract with physics. The commitment begins with the structure in the data. An architecture that matches that structure can learn with fewer parameters and examples, while a poor match spends additional data and machine time compensating for the wrong computational pattern. Convolution, attention, recurrence, and embedding lookup do not merely encode different assumptions about data; they create different patterns of computation, state, and data movement."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Architectural Principles",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "MLPs: Dense Pattern Processing",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "CNNs: Spatial Pattern Processing",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Skip Connections and Normalization",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "RNNs: Sequential Pattern Processing",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Attention: Dynamic Processing",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Transformers: Parallel Sequence Processi",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Inductive bias buys data and cost**",
+     "Each architecture is defined by a structural assumption fixed before training (locality and weight sharing, ordered recurrence, content-based routing), and a bias that matches the data cuts parameters, samples, and operations while weak priors pay off only at large data and compute."
+    ],
+    [
+     "**Every family lowers onto GEMM**",
+     "Convolution reaches matrix multiply through im2col or implicit GEMM, attention and LSTM gates fuse their projections into wide GEMMs, and pointwise convolutions and recommender MLPs are GEMMs, so GEMM dominates nearly every workload's operation count and the exceptions are the memory-bound remainder."
+    ],
+    [
+     "**Architectures as cost signatures**",
+     "Counting weights, multiply-accumulates, and resident bytes per building block predicts which iron-law term dominates: dense layers stream each weight once per batch, convolutions reuse each filter at every position, recurrence adds a serial floor, attention adds quadratic score work, and embedding lookups are copies."
+    ],
+    [
+     "**Quadratic attention**",
+     "Dense self-attention computes sequence-length-squared score interactions, so doubling context quadruples that work, while materializing the score matrix is optional storage that tiled kernels remove, and attention arithmetic dominates a block only past a context of about six times the hidden size."
+    ],
+    [
+     "**Autoregressive decode and the KV cache**",
+     "Prefill runs the whole prompt as weight-reusing GEMMs and is usually compute-bound, while decode emits one token per step at about 1 FLOP/byte, re-reading every weight plus a KV cache that grows linearly per token per request, so small-batch decode is bandwidth-bound."
+    ],
+    [
+     "**Embedding capacity wall**",
+     "Embedding lookups map high-cardinality IDs to learned rows read at data-dependent addresses, so a recommender is capacity-first: table size decides where tables live (shrink, move, or partition) and which bandwidth the data term pays before arithmetic matters."
+    ],
+    [
+     "**Architecture selection by workload profile**",
+     "The same accelerator is compute-, bandwidth-, or capacity-bound by architecture alone, so selection maps data symmetries to an operator family, filters candidates against storage, activation peak, intensity, latency, and power budgets, then validates on the target device."
+    ],
+    [
+     "**Skip connections and normalization**",
+     "Residual connections keep gradients alive through deep stacks and normalization steadies forward scale, but the skip input stays live through the branch, residual adds and normalization are bandwidth-bound and want fusion, and BatchNorm adds batch dependence and training-serving skew."
+    ],
+    [
+     "**Efficient architecture families**",
+     "Factoring a convolution into depthwise and pointwise stages cuts parameters and multiply-accumulates by about 8-9x for 3x3 filters, but the factored layers have low arithmetic intensity, so far fewer FLOPs need not mean proportionally faster execution."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$Convolution: $output[i,j,k] = \\sum_c \\sum_{di,dj} W[di,dj,c,k] X[i+di,j+dj,c]$$$\n\n$$RNN update: $h_t = f(W_{\\text{hh}}h_{t-1} + W_{\\text{hx}}x_t + b_h)$$$\n\n$$Scaled attention: $Attention(Q,K,V) = softmax(QK^T / \\sqrt{d_k})V$$$\n\n$$Self-attention: $SelfAttention(X) = softmax(XW_Q(XW_K)^T / \\sqrt{d_k})XW_V$$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v1-06-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Inductive bias buys data and cost",
+     "back": "Each architecture is defined by a structural assumption fixed before training (locality and weight sharing, ordered recurrence, content-based routing), and a bias that matches the data cuts parameters, samples, and operations while weak priors pay off only at large data and compute."
+    },
+    {
+     "front": "Every family lowers onto GEMM",
+     "back": "Convolution reaches matrix multiply through im2col or implicit GEMM, attention and LSTM gates fuse their projections into wide GEMMs, and pointwise convolutions and recommender MLPs are GEMMs, so GEMM dominates nearly every workload's operation count and the exceptions are the memory-bound remainder."
+    },
+    {
+     "front": "Architectures as cost signatures",
+     "back": "Counting weights, multiply-accumulates, and resident bytes per building block predicts which iron-law term dominates: dense layers stream each weight once per batch, convolutions reuse each filter at every position, recurrence adds a serial floor, attention adds quadratic score work, and embedding lookups are copies."
+    },
+    {
+     "front": "Quadratic attention",
+     "back": "Dense self-attention computes sequence-length-squared score interactions, so doubling context quadruples that work, while materializing the score matrix is optional storage that tiled kernels remove, and attention arithmetic dominates a block only past a context of about six times the hidden size."
+    },
+    {
+     "front": "Autoregressive decode and the KV cache",
+     "back": "Prefill runs the whole prompt as weight-reusing GEMMs and is usually compute-bound, while decode emits one token per step at about 1 FLOP/byte, re-reading every weight plus a KV cache that grows linearly per token per request, so small-batch decode is bandwidth-bound."
+    },
+    {
+     "front": "Embedding capacity wall",
+     "back": "Embedding lookups map high-cardinality IDs to learned rows read at data-dependent addresses, so a recommender is capacity-first: table size decides where tables live (shrink, move, or partition) and which bandwidth the data term pays before arithmetic matters."
+    },
+    {
+     "front": "Architecture selection by workload profile",
+     "back": "The same accelerator is compute-, bandwidth-, or capacity-bound by architecture alone, so selection maps data symmetries to an operator family, filters candidates against storage, activation peak, intensity, latency, and power budgets, then validates on the target device."
+    },
+    {
+     "front": "Skip connections and normalization",
+     "back": "Residual connections keep gradients alive through deep stacks and normalization steadies forward scale, but the skip input stays live through the branch, residual adds and normalization are bandwidth-bound and want fusion, and BatchNorm adds batch dependence and training-serving skew."
+    },
+    {
+     "front": "Efficient architecture families",
+     "back": "Factoring a convolution into depthwise and pointwise stages cuts parameters and multiply-accumulates by about 8-9x for 3x3 filters, but the factored layers have low arithmetic intensity, so far fewer FLOPs need not mean proportionally faster execution."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v1-06-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Inductive bias buys data and cost**?",
+     "options": [
+      "Prefill runs the whole prompt as weight-reusing GEMMs and is usually compute-bound, while decode emits one token per step at about 1 FLOP/byte, re-reading every weight plus a KV cache that grows linearly per token per request, so small-batch decode is bandwidth-bound.",
+      "Each architecture is defined by a structural assumption fixed before training (locality and weight sharing, ordered recurrence, content-based routing), and a bias that matches the data cuts parameters, samples, and operations while weak priors pay off only at large data and compute.",
+      "Residual connections keep gradients alive through deep stacks and normalization steadies forward scale, but the skip input stays live through the branch, residual adds and normalization are bandwidth-bound and want fusion, and BatchNorm adds batch dependence and training-serving skew.",
+      "Counting weights, multiply-accumulates, and resident bytes per building block predicts which iron-law term dominates: dense layers stream each weight once per batch, convolutions reuse each filter at every position, recurrence adds a serial floor, attention adds quadratic score work, and embedding lookups are copies."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Inductive bias buys data and cost itself, not a neighbouring idea.",
+     "explanation": "**Inductive bias buys data and cost:** Each architecture is defined by a structural assumption fixed before training (locality and weight sharing, ordered recurrence, content-based routing), and a bias that matches the data cuts parameters, samples, and operations while weak priors pay off only at large data and compute."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Every family lowers onto GEMM**?",
+     "options": [
+      "The same accelerator is compute-, bandwidth-, or capacity-bound by architecture alone, so selection maps data symmetries to an operator family, filters candidates against storage, activation peak, intensity, latency, and power budgets, then validates on the target device.",
+      "Factoring a convolution into depthwise and pointwise stages cuts parameters and multiply-accumulates by about 8-9x for 3x3 filters, but the factored layers have low arithmetic intensity, so far fewer FLOPs need not mean proportionally faster execution.",
+      "Counting weights, multiply-accumulates, and resident bytes per building block predicts which iron-law term dominates: dense layers stream each weight once per batch, convolutions reuse each filter at every position, recurrence adds a serial floor, attention adds quadratic score work, and embedding lookups are copies.",
+      "Convolution reaches matrix multiply through im2col or implicit GEMM, attention and LSTM gates fuse their projections into wide GEMMs, and pointwise convolutions and recommender MLPs are GEMMs, so GEMM dominates nearly every workload's operation count and the exceptions are the memory-bound remainder."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Every family lowers onto GEMM itself, not a neighbouring idea.",
+     "explanation": "**Every family lowers onto GEMM:** Convolution reaches matrix multiply through im2col or implicit GEMM, attention and LSTM gates fuse their projections into wide GEMMs, and pointwise convolutions and recommender MLPs are GEMMs, so GEMM dominates nearly every workload's operation count and the exceptions are the memory-bound remainder."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Architectures as cost signatures**?",
+     "options": [
+      "Convolution reaches matrix multiply through im2col or implicit GEMM, attention and LSTM gates fuse their projections into wide GEMMs, and pointwise convolutions and recommender MLPs are GEMMs, so GEMM dominates nearly every workload's operation count and the exceptions are the memory-bound remainder.",
+      "Embedding lookups map high-cardinality IDs to learned rows read at data-dependent addresses, so a recommender is capacity-first: table size decides where tables live (shrink, move, or partition) and which bandwidth the data term pays before arithmetic matters.",
+      "Factoring a convolution into depthwise and pointwise stages cuts parameters and multiply-accumulates by about 8-9x for 3x3 filters, but the factored layers have low arithmetic intensity, so far fewer FLOPs need not mean proportionally faster execution.",
+      "Counting weights, multiply-accumulates, and resident bytes per building block predicts which iron-law term dominates: dense layers stream each weight once per batch, convolutions reuse each filter at every position, recurrence adds a serial floor, attention adds quadratic score work, and embedding lookups are copies."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Architectures as cost signatures itself, not a neighbouring idea.",
+     "explanation": "**Architectures as cost signatures:** Counting weights, multiply-accumulates, and resident bytes per building block predicts which iron-law term dominates: dense layers stream each weight once per batch, convolutions reuse each filter at every position, recurrence adds a serial floor, attention adds quadratic score work, and embedding lookups are copies."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Quadratic attention**?",
+     "options": [
+      "Counting weights, multiply-accumulates, and resident bytes per building block predicts which iron-law term dominates: dense layers stream each weight once per batch, convolutions reuse each filter at every position, recurrence adds a serial floor, attention adds quadratic score work, and embedding lookups are copies.",
+      "Residual connections keep gradients alive through deep stacks and normalization steadies forward scale, but the skip input stays live through the branch, residual adds and normalization are bandwidth-bound and want fusion, and BatchNorm adds batch dependence and training-serving skew.",
+      "Convolution reaches matrix multiply through im2col or implicit GEMM, attention and LSTM gates fuse their projections into wide GEMMs, and pointwise convolutions and recommender MLPs are GEMMs, so GEMM dominates nearly every workload's operation count and the exceptions are the memory-bound remainder.",
+      "Dense self-attention computes sequence-length-squared score interactions, so doubling context quadruples that work, while materializing the score matrix is optional storage that tiled kernels remove, and attention arithmetic dominates a block only past a context of about six times the hidden size."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Quadratic attention itself, not a neighbouring idea.",
+     "explanation": "**Quadratic attention:** Dense self-attention computes sequence-length-squared score interactions, so doubling context quadruples that work, while materializing the score matrix is optional storage that tiled kernels remove, and attention arithmetic dominates a block only past a context of about six times the hidden size."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Autoregressive decode and the KV cache**?",
+     "options": [
+      "Residual connections keep gradients alive through deep stacks and normalization steadies forward scale, but the skip input stays live through the branch, residual adds and normalization are bandwidth-bound and want fusion, and BatchNorm adds batch dependence and training-serving skew.",
+      "Factoring a convolution into depthwise and pointwise stages cuts parameters and multiply-accumulates by about 8-9x for 3x3 filters, but the factored layers have low arithmetic intensity, so far fewer FLOPs need not mean proportionally faster execution.",
+      "The same accelerator is compute-, bandwidth-, or capacity-bound by architecture alone, so selection maps data symmetries to an operator family, filters candidates against storage, activation peak, intensity, latency, and power budgets, then validates on the target device.",
+      "Prefill runs the whole prompt as weight-reusing GEMMs and is usually compute-bound, while decode emits one token per step at about 1 FLOP/byte, re-reading every weight plus a KV cache that grows linearly per token per request, so small-batch decode is bandwidth-bound."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Autoregressive decode and the KV cache itself, not a neighbouring idea.",
+     "explanation": "**Autoregressive decode and the KV cache:** Prefill runs the whole prompt as weight-reusing GEMMs and is usually compute-bound, while decode emits one token per step at about 1 FLOP/byte, re-reading every weight plus a KV cache that grows linearly per token per request, so small-batch decode is bandwidth-bound."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Inductive bias buys data and cost: Each architecture is defined by a structural assumption fixed before training (locality and weight sharing, ordered recurrence, content-based routing), and a bias that matches the data cuts parameters, samples, and operations while weak priors pay off only at large data and compute.",
+    "Every family lowers onto GEMM: Convolution reaches matrix multiply through im2col or implicit GEMM, attention and LSTM gates fuse their projections into wide GEMMs, and pointwise convolutions and recommender MLPs are GEMMs, so GEMM dominates nearly every workload's operation count and the exceptions are the memory-bound remainder.",
+    "Architectures as cost signatures: Counting weights, multiply-accumulates, and resident bytes per building block predicts which iron-law term dominates: dense layers stream each weight once per batch, convolutions reuse each filter at every position, recurrence adds a serial floor, attention adds quadratic score work, and embedding lookups are copies.",
+    "Quadratic attention: Dense self-attention computes sequence-length-squared score interactions, so doubling context quadruples that work, while materializing the score matrix is optional storage that tiled kernels remove, and attention arithmetic dominates a block only past a context of about six times the hidden size."
+   ]
+  }
+ ],
+ "terms": []
+}

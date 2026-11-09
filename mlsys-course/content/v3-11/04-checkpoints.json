@@ -1,0 +1,61 @@
+{
+ "title": "Checkpoints",
+ "summary": "Work through Checkpoints.",
+ "source": {
+  "chapter": "v3-11",
+  "sections": [
+   "Checkpoints",
+   "Consistent recovery boundaries",
+   "Full and incremental snapshots",
+   "Checkpoint cadence"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Checkpoints** in *Durable Execution* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Durable Execution, § Checkpoints",
+   "md": "A durable intent informs a replacement worker that an operation such as the `r18` test may have begun, but it does not store the files that the test actually touched. An execution log stating that an edit succeeded cannot restore modified bytes unless those bytes, or reconstructible deltas against a known base, remain preserved in storage. Durable execution therefore requires the control record and the mutable workspace to share a common recovery boundary."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Consistent recovery boundaries\n- Full and incremental snapshots\n- Checkpoint cadence"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Checkpoint stride matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Young's interval prices checkpoints when a crash loses work to re-execute, and once each turn is logged the stride lengthens by the square root of the cost ratio because a crash costs reconstruction, not resampling."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-11-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Checkpoints** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A checkpoint binds the record snapshot, workspace snapshot, artifacts, and reducer versions to one committed log position, captured as a consistent cut and published only after the state it references is durable.",
+      "An acknowledgment is durable only against the faults its storage tier survives, so each write's durability is declared against a failure domain rather than assumed.",
+      "An admitted operation whose effect cannot be proven present or absent is in doubt and must be reconciled before any re-dispatch, the recovery-side view of an uncertain outcome.",
+      "Young's interval prices checkpoints when a crash loses work to re-execute, and once each turn is logged the stride lengthens by the square root of the cost ratio because a crash costs reconstruction, not resampling."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Checkpoint stride**: Young's interval prices checkpoints when a crash loses work to re-execute, and once each turn is logged the stride lengthens by the square root of the cost ratio because a crash costs reconstruction, not resampling."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Checkpoints."
+   ]
+  }
+ ]
+}

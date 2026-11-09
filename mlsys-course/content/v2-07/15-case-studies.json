@@ -1,0 +1,82 @@
+{
+ "title": "Case Studies",
+ "summary": "Analyze how optical circuit switching enables topology-preserving fault tolerance in tightly coupled accelerator pods.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "Case Studies",
+   "Large-scale LLM training at Meta",
+   "Google TPU pod resilience",
+   "Netflix chaos engineering for serving dependencies"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Case Studies** in *Fault Tolerance* (Vol II). By the end you should be able to:\n\n- Analyze how optical circuit switching enables topology-preserving fault tolerance in tightly coupled accelerator pods\n- Compare physical hardware fault recovery and algorithmic numerical divergence recovery in large-scale LLM training\n- Evaluate the role of chaos engineering and active failure injection in validating ML serving fallback paths\n- Analyze how fleet-scale failure statistics justify automated topology reconfiguration"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, § Case Studies",
+   "md": "Training a 175-billion-parameter language model across … GPUs for two months, keeping a 4,096-chip supercomputer slice routable despite daily hardware faults, and serving low-latency recommendations across dozens of microservices each stress a different layer of the fault-tolerance stack. Public operational reports from Meta, Google, and Netflix show how production fleets combine failure detection, state preservation, topology reconfiguration, and chaos testing at scale. Their reported numbers are operational magnitudes that expose the design pressure on each system rather than universal hardware constants."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Large-scale LLM training at Meta\n- Google TPU pod resilience\n- Netflix chaos engineering for serving dependencies\n\nPay attention to: Meta OPT-175B: 992 A100s, 35+ manual and ~70 automatic restarts, train-log freshness monitoring, loss spike rollbacks; Google TPUv4 Pod resilience: 4,096 chips, 64 cubes, OCS optical circuit switching, dynamic topology reconstitution; Netflix chaos engineering: continuous failure injection for ML serving dependencies and fallback validation; Google TPUv4 operating statistics and the case for automated reconfiguration."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: During the training of Meta's OPT-175B model on 992 A100 GPUs, describe how the team addressed both physical hardware failures and mathematical loss spikes.",
+   "md": "For physical hardware failures (at least 35 manual and an estimated 70+ automatic restarts over two months from ECC memory errors, network issues, and lost GPUs), the team relied on restart from the latest checkpoint, with train-log freshness monitoring (a 15-minute threshold, later relaxed to one hour) contributing to detection delay; polling and response could extend the idle window. For mathematical loss spikes (numerical divergence and gradient overflow), the team rolled back to an earlier clean checkpoint and resumed with a reduced learning rate (ultimately roughly two-thirds of GPT-3's rate). The two remedies differ, which is why the run had to retain checkpoint history rather than only its newest snapshot."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-15-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why does Google's TPUv4 recovery design combine OCS-based replacement of unhealthy cubes with fault-tolerant routing for supported link-outage patterns?",
+     "explanation": "The correct answer is C. OCS allows the recovery system to assemble job-sized slices from healthy spare cubes after machine outages. Fault-tolerant routing handles supported OCS outage patterns when alternate paths remain available. Replacing a participant and repairing a communication path are distinct responses; neither follows from the failed-device count alone. The other choices misrepresent memory architecture or economics, or incorrectly eliminate checkpointing.",
+     "hint": "Think about: analyze how optical circuit switching enables topology-preserving fault tolerance in tightly coupled accelerator pods.",
+     "type": "single",
+     "options": [
+      "Because TPU chips have zero local memory and cannot execute software routing algorithms.",
+      "Because optical circuit switches are cheaper than standard copper Ethernet cables for intra-rack links.",
+      "A machine outage can remove a required job participant, requiring a healthy replacement cube; a link outage can instead require a supported alternate communication path. The response must preserve the job's communication topology.",
+      "Because OCS switches completely eliminate the need for checkpointing during multi-month training jobs."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "What fundamental principle of ML serving resilience is demonstrated by Netflix's chaos engineering practice?",
+     "explanation": "The correct answer is A. Netflix's chaos engineering principles establish that fault tolerance mechanisms (such as model fallbacks, circuit breakers, and feature defaults) rot if left unexercised. Regularly injecting synthetic faults in production and staging verifies that fallback paths actually satisfy latency and availability SLOs when real dependencies fail. The other options contradict chaos engineering principles or assert false restrictions on ML systems.",
+     "hint": "Think about: evaluate the role of chaos engineering and active failure injection in validating ML serving fallback paths.",
+     "type": "single",
+     "options": [
+      "Resilience is an active practice of continuous verification: intentionally injecting latency, terminating feature caches, and simulating dependency outages under controlled conditions to empirically verify that fallback hierarchies function before real outages occur.",
+      "Fault tolerance code should only be executed during unplanned production disasters to minimize server load.",
+      "Machine learning models should never rely on external feature stores or databases.",
+      "Chaos testing is only applicable to CPU-based web servers and cannot be used in GPU inference clusters."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Google's TPUv4 study reports daily failure rates of 0.08 percent of TPU machines, 0.005 percent of ICI cables, and 0.04 percent of OCS units. Explain why such small daily fractions still require an automated reconfiguration control plane rather than manual repair.",
+   "md": "Small daily fractions multiply across thousands of machines, cables, and switches, so the pod meets a steady stream of failures rather than an occasional emergency. Each failure can interrupt a job that needs its slice's full communication topology, so the response must assemble a healthy slice from spare cubes or route around a failed link quickly and repeatedly. Health monitoring and topology software that run this loop automatically keep availability high; a manual repair process would leave jobs waiting for every routine event."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze how optical circuit switching enables topology-preserving fault tolerance in tightly coupled accelerator pods.",
+    "You can now compare physical hardware fault recovery and algorithmic numerical divergence recovery in large-scale LLM training.",
+    "You can now evaluate the role of chaos engineering and active failure injection in validating ML serving fallback paths.",
+    "You can now analyze how fleet-scale failure statistics justify automated topology reconfiguration."
+   ]
+  }
+ ]
+}

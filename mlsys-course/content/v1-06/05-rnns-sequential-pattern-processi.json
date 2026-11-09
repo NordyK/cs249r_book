@@ -1,0 +1,103 @@
+{
+ "title": "RNNs: Sequential Pattern Processing",
+ "summary": "Compare the memory complexity of RNN inference state with ordinary BPTT training memory, and distinguish retained activations from possible recomputation strategies.",
+ "source": {
+  "chapter": "v1-06",
+  "sections": [
+   "RNNs: Sequential Pattern Processing",
+   "Pattern processing needs",
+   "Algorithmic structure",
+   "Gated recurrence",
+   "Computational mapping",
+   "System implications"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **RNNs: Sequential Pattern Processing** in *Network Architectures* (Vol I). By the end you should be able to:\n\n- Compare the memory complexity of RNN inference state with ordinary BPTT training memory, and distinguish retained activations from possible recomputation strategies\n- Analyze why faster hardware can shorten recurrent step time without removing the sequential dependency chain, and contrast that with transformer prefill parallelism\n- Justify edge and streaming use cases where RNN constant-state memory is superior to transformer memory scaling\n- Explain the operational dataflow and matrix operations executed within a single RNN time step\n- Analyze how repeated Jacobian products in BPTT can contract or amplify gradients across long recurrent horizons"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Network Architectures, § RNNs: Sequential Pattern Processing",
+   "md": "An MLP requires a fixed-width input vector and a CNN sees only a bounded spatial window, so neither can process a continuous audio stream or a sentence of arbitrary length without padding, truncating, or stacking layers until activation memory overflows. Where convolutional networks exploit *spatial* structure, many real-world signals carry *temporal* structure, in which sequential order and prior context determine meaning. Recurrent networks process these variable-length streams within a fixed memory budget by carrying and updating a persistent state vector from one time step to the next."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Pattern processing needs\n- Algorithmic structure\n- Gated recurrence\n- Computational mapping\n- System implications\n\nPay attention to: Temporal inductive bias and hidden state recurrence $\\mathbf{h}_t = f(\\mathbf{W}_{\\text{hh}}\\mathbf{h}_{t-1} + \\mathbf{W}_{\\text{hx}}\\mathbf{x}_t + \\mathbf{b}_h)$; $\\mathcal{O}(1)$ inference state memory vs $\\mathcal{O}(S)$ serial latency critical path; Backpropagation through time (BPTT) and vanishing/exploding gradient products of Jacobians; Batch parallelism vs un-parallelizable sequence-dimension dependency."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why upgrading an accelerator from 10 TFLOP/s to 100 TFLOP/s can reduce the elapsed time per recurrent step in an RNN processing a single long sequence, but cannot reduce the number of ordered state updates on the critical dependency chain. Contrast this with the parallel sequence processing capability of a transformer.",
+   "md": "An RNN still has to execute the recurrence in order: step $t$ depends on the hidden state produced at step $t-1$, so the dependency chain still contains $S$ ordered state updates even if faster hardware shortens the wall-clock time of each step. Kernel fusion can cut launch overhead and within-step work such as input projections can exploit parallel hardware, but those improvements do not remove the ordered state-update chain or make the dependency depth collapse. By contrast, a transformer's full-sequence training or prefill path can process all positions together, replacing the recurrent time-step chain with parallel operations across sequence positions."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-06-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An RNN processes a sequence of length $S = 1{,}000$ tokens with hidden state dimension $d_{\\text{hidden}} = 128$. Which statement correctly describes the scaling of its inference state memory versus its training activation memory?",
+     "explanation": "The correct answer is A. During inference, the recurrent update only needs the current hidden state, so runtime state is constant with respect to sequence length. Under ordinary full BPTT, training retains intermediate activations across all $S$ steps so gradients can be propagated backward through time, which makes memory grow as $\\mathcal{O}(S \\cdot d_{\\text{hidden}})$. The quadratic answer confuses RNNs with dense attention, and saying this is a lower bound ignores that recomputation or checkpointing can trade extra work for less retained memory.",
+     "hint": "Think about: compare the memory complexity of RNN inference state with ordinary BPTT training memory, and distinguish retained activations from possible recomputation strategies.",
+     "type": "single",
+     "options": [
+      "Inference state memory is $\\mathcal{O}(d_{\\text{hidden}})$ (constant $\\mathcal{O}(1)$ with respect to sequence length $S$), whereas training with backpropagation through time (BPTT) requires storing activations across all steps, scaling as $\\mathcal{O}(S \\cdot d_{\\text{hidden}})$ under ordinary retained-state BPTT.",
+      "Both inference state memory and training activation memory scale quadratically as $\\mathcal{O}(S^2)$ due to recurrent hidden-to-hidden weight matrices.",
+      "Inference state memory scales linearly as $\\mathcal{O}(S \\cdot d_{\\text{hidden}})$, while training memory is constant because weights are shared across all time steps.",
+      "Inference requires zero memory because recurrent states are discarded immediately after computing output probabilities."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Because transformers offer superior parallelization and representational capacity for long-range dependencies, recurrent neural networks are entirely obsolete and have no valid deployment use cases in modern ML systems.",
+     "explanation": "False. For streaming inference on resource-constrained microcontrollers (TinyML) and always-on audio devices with strict power and memory budgets, an RNN's constant $\\mathcal{O}(1)$ state memory footprint (e.g., 2 KiB for a 512-dimensional FP32 state) is vastly superior to the linear KV-cache growth and quadratic attention requirements of transformers, making RNNs a systems-justified choice.",
+     "hint": "Think about: justify edge and streaming use cases where RNN constant-state memory is superior to transformer memory scaling.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the mathematical and dataflow operations executed during a single time-step forward pass of a standard Elman RNN cell:",
+     "explanation": "The correct order is (2) -> (1) -> (3) -> (4) -> (5) (or (1) and (2) computed in parallel -> (3) -> (4) -> (5)). Step 1 and 2 project the input $\\mathbf{x}_t \\mathbf{W}_{\\text{hx}}$ and previous hidden state $\\mathbf{h}_{t-1} \\mathbf{W}_{\\text{hh}}$. Step 3 is (3) Sum the projections with bias $\\mathbf{b}_h$. Step 4 is (4) Apply $\\tanh$ activation to produce $\\mathbf{h}_t$. Step 5 is (5) Project $\\mathbf{h}_t$ via $\\mathbf{W}_{\\text{yh}}$ to compute output $\\mathbf{y}_t$.",
+     "hint": "Think about: explain the operational dataflow and matrix operations executed within a single RNN time step.",
+     "type": "order",
+     "items": [
+      "Multiply the current input vector $\\mathbf{x}_t$ by the input weight matrix $\\mathbf{W}_{\\text{hx}}$",
+      "Multiply the previous hidden state vector $\\mathbf{h}_{t-1}$ by the recurrent weight matrix $\\mathbf{W}_{\\text{hh}}$",
+      "Sum the recurrent contribution, input contribution, and hidden bias vector $\\mathbf{b}_h$",
+      "Multiply the new hidden state $\\mathbf{h}_t$ by the output weight matrix $\\mathbf{W}_{\\text{yh}}$ to produce output $\\mathbf{y}_t$"
+     ]
+    },
+    {
+     "q": "In a standard RNN layer with input dimension $d_{\\text{in}} = 100$ and hidden state dimension $d_{\\text{hidden}} = 128$, how many total multiply-accumulate (MAC) operations are performed per sequence step to compute the unactivated hidden state?",
+     "explanation": "The correct answer is B. At each time step, the RNN performs two distinct matrix multiplications: the recurrent projection h_t-1 W_hh requires \\$128 × 128 = 16,384 MACs, and the input projection x_t W_hx requires \\$100 × 128 = 12,800 MACs. Together, these sum to \\$16,384 + 12,800 = 29,184 MACs per step per batch item. The choice of 12,800 MACs omits the recurrent projection. The choice of 1,280,000 MACs incorrectly assumes quadratic all-to-all history computation. The choice of 256 MACs confuses dimension addition with full matrix transformations.",
+     "hint": "Think about: calculate the per-step multiply-accumulate arithmetic cost of input and recurrent projections in an RNN layer.",
+     "type": "single",
+     "options": [
+      "12,800 MACs, because only the input projection performs matrix multiplication.",
+      "29,184 MACs, consisting of \\$128 \\times 128 = 16{,}384\\text{ MACs}$ for the recurrent projection plus \\$100 \\times 128 = 12{,}800\\text{ MACs}$ for the input projection.",
+      "1,280,000 MACs, because recurrence multiplies all hidden states across all past time steps simultaneously.",
+      "256 MACs, because an RNN updates only a single vector addition per step."
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: During backpropagation through time (BPTT) over $S$ time steps, the gradient of the loss with respect to the initial hidden state satisfies $\\frac{\\partial \\mathcal{L}}{\\partial \\mathbf{h}_0} \\propto \\prod_{t=1}^S \\frac{\\partial \\mathbf{h}_t}{\\partial \\mathbf{h}_{t-1}}$. Explain the mathematical mechanism that causes gradients to vanish or explode as $S$ grows large.",
+   "md": "The gradient is a product of Jacobians across many recurrent steps, and for the column-vector recurrence in the text one step has the form $\\mathbf{J}_t = \\operatorname{diag}(f'(\\mathbf{z}_t))\\,\\mathbf{W}_{\\text{hh}}$. If these repeated transformations contract the propagated directions, the product shrinks and long-range gradients vanish; if they repeatedly expand the propagated directions, the product grows and gradients can explode. The practical consequence is that simple RNNs can lose distant information or become numerically unstable over long horizons, even though a single step may look well behaved."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare the memory complexity of RNN inference state with ordinary BPTT training memory, and distinguish retained activations from possible recomputation strategies.",
+    "You can now analyze why faster hardware can shorten recurrent step time without removing the sequential dependency chain, and contrast that with transformer prefill parallelism.",
+    "You can now justify edge and streaming use cases where RNN constant-state memory is superior to transformer memory scaling.",
+    "You can now explain the operational dataflow and matrix operations executed within a single RNN time step."
+   ]
+  }
+ ]
+}

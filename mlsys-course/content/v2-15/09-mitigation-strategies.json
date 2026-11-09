@@ -1,0 +1,110 @@
+{
+ "title": "Mitigation Strategies",
+ "summary": "Explain Jevons paradox in AI systems and justify why engineering efficiency must be paired with usage governance.",
+ "source": {
+  "chapter": "v2-15",
+  "sections": [
+   "Mitigation Strategies",
+   "Multi-layer mitigation",
+   "Lifecycle-aware development",
+   "Infrastructure optimization",
+   "Carbon-aware placement and scheduling",
+   "Google sustainability framework case study"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Mitigation Strategies** in *Sustainable AI* (Vol II). By the end you should be able to:\n\n- Explain Jevons paradox in AI systems and justify why engineering efficiency must be paired with usage governance\n- Compare theoretical model compression techniques against hardware-realizable energy reductions on modern AI accelerators\n- Design architectural strategies that address data-movement dominance to mitigate the AI energy wall\n- Evaluate carbon-aware placement as a conditional mitigation candidate for feasible batch workloads\n- Distinguish attributional and consequential grid evidence and select evidence appropriate to a workload-shifting decision"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Sustainable AI, § Mitigation Strategies",
+   "md": "When a data center hits its absolute power ceiling, the operator cannot simply buy more GPUs. Supporting additional useful work requires reducing the power needed for that work, changing its schedule, or securing additional feasible capacity. Algorithmic optimization can reduce executed work and data movement; infrastructure changes can reduce overhead. Carbon-aware placement addresses a different constraint by changing the emissions associated with electricity use, even when energy demand stays fixed."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Multi-layer mitigation\n- Lifecycle-aware development\n- Infrastructure optimization\n- Carbon-aware placement and scheduling\n- Google sustainability framework case study\n\nPay attention to: Jevons paradox and demand rebound; hardware-realizable vs theoretical compression savings; event-driven and sparse architectures that avoid unneeded work; carbon-aware spatial and temporal scheduling."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A model compression team evaluates unstructured weight pruning, INT8 quantization, and knowledge distillation for serving a transformer. Explain the hardware mechanisms that can turn each technique into measured energy savings, and why theoretical compression alone is insufficient.",
+   "md": "INT8 can reduce weight-transfer bytes relative to FP16 and use supported integer kernels; distillation can reduce dense operations and stored state at the required quality. Unstructured pruning saves energy only when the implementation exploits sparsity instead of moving and processing zeros or spending the savings on indexing. Compare joules per completed task at matched quality, precision assumptions, utilization, and measurement boundaries; no universal cross-precision energy multiplier follows from the operation count alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-15-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An AI company deploys quantization and knowledge distillation, reducing the energy cost per user query by 50 percent. Over the following year, the company's total data center electricity consumption increases by 75 percent as lower per-query costs enable new product features and attract 3.5$\\times$ more queries. Which phenomenon explains this outcome?",
+     "explanation": "The correct answer is C. Jevons paradox, where technological efficiency improvements lower the effective cost of a resource, stimulating increased demand that outweighs per-unit efficiency gains. Jevons paradox (or the rebound effect) describes when per-unit efficiency gains make a service cheaper or faster, unlocking new use cases and user demand whose aggregate resource consumption exceeds the initial per-unit savings. This demonstrates why engineering efficiency alone cannot guarantee environmental sustainability without capacity governance or carbon budgets. Amdahl's law governs parallel compute speedup; Dennard scaling describes CMOS power physics; and the memory wall addresses processor-memory bandwidth disparities.",
+     "hint": "Think about: explain Jevons paradox in AI systems and justify why engineering efficiency must be paired with usage governance",
+     "type": "single",
+     "options": [
+      "Amdahl's law, which states that sequential execution limits parallel speedup.",
+      "Dennard scaling breakdown, where transistor power density increases with scaling.",
+      "Jevons paradox, where technological efficiency improvements lower the effective cost of a resource, stimulating increased demand that outweighs per-unit efficiency gains.",
+      "The memory wall, where DRAM bandwidth fails to keep pace with arithmetic throughput."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A systems team aims to overcome the energy wall for future foundation model architectures. Which design direction most directly targets the physical root cause of energy waste identified in the chapter?",
+     "explanation": "The correct answer is C. Event-driven and sparse-activation designs can avoid unnecessary computation and transfers when inputs or activations permit it. The saving depends on event rate, sensing and static power, sparse execution overhead, and achieved quality. Raising voltage increases dynamic power at fixed activity and frequency; keeping units active does not establish useful work per joule. Dense computation is not universally movement dominated.",
+     "hint": "Think about: design architectural strategies that address data-movement dominance to mitigate the AI energy wall",
+     "type": "single",
+     "options": [
+      "Increasing clock frequency and supply voltage to maximize compute throughput per unit silicon area.",
+      "Enforcing dense, synchronized execution across all model layers so accelerator execution units maintain 100 percent active duty cycles.",
+      "Adopting event-driven and sparse-activation architectures that execute compute only on salient tokens or state changes, minimizing dense data movement across memory hierarchies.",
+      "Replacing FP16 tensor cores with FP32 standard execution units to maximize numeric accuracy per memory access."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A platform team has recurring batch training jobs that can move across regions or time while preserving quality. Which intervention is a candidate for lowering operational carbon without changing the model, provided capacity, data access, deadlines, and net emissions are checked?",
+     "explanation": "The correct answer is D. Carbon-aware placement and scheduling can exploit lower-emissions windows for flexible jobs. Compare complete facility energy and compatible grid signals, including checkpoint, transfer, restart, and idle costs, after filtering infeasible candidates. Regional averages motivate investigation but do not guarantee an order-of-magnitude net saving. Changing batch size or activations changes the workload and may change its quality or convergence.",
+     "hint": "Think about: evaluate carbon-aware placement as a conditional mitigation candidate for feasible batch workloads",
+     "type": "single",
+     "options": [
+      "Replacing all ReLU activation functions with GELU activations across training scripts.",
+      "Increasing the batch size to maximize GPU execution unit occupancy.",
+      "Switching from PyTorch to a C++ inference engine for training loops.",
+      "Implementing carbon-aware spatial and temporal scheduling to route training jobs to data center regions and time windows with surplus renewable energy and low carbon intensity."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Order the following stages of a carbon-aware scheduler's decision:",
+     "explanation": "The correct order is: (2) obtain grid forecasts and workload requirements, (5) filter candidates by operational constraints, (1) compare complete projected emissions, (3) dispatch the selected feasible action, (4) monitor progress and re-evaluate. A lower-intensity region can be infeasible or lose its advantage once movement and waiting costs enter. Feasibility and net benefit must therefore precede dispatch, while progress monitoring can trigger another decision cycle.",
+     "hint": "Think about: analyze the operational execution pipeline of a carbon-aware workload scheduler managing distributed AI jobs",
+     "type": "order",
+     "items": [
+      "obtain documented grid forecasts and workload requirements",
+      "filter candidates by deadline, capacity, data access, power, cooling, and reliability requirements.",
+      "compare complete projected emissions of feasible candidates, including checkpoint, transfer, restart, and idle costs",
+      "dispatch the selected feasible action",
+      "monitor progress and re-evaluate against constraints"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain the difference between average and marginal grid emissions, and identify the evidence a scheduler needs to estimate the emissions effect of a proposed workload shift.",
+   "md": "An average factor attributes an electricity mix over a specified place and period; it can be annual or time-resolved. A marginal factor estimates the emissions response to changing demand. A scheduler evaluating a proposed shift needs consequential evidence matched to its region, forecast horizon, and workload, with uncertainty recorded. A marginal estimate need not identify one directly observable generator, and the full comparison must also include shifting costs."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain Jevons paradox in AI systems and justify why engineering efficiency must be paired with usage governance.",
+    "You can now compare theoretical model compression techniques against hardware-realizable energy reductions on modern AI accelerators.",
+    "You can now design architectural strategies that address data-movement dominance to mitigate the AI energy wall.",
+    "You can now evaluate carbon-aware placement as a conditional mitigation candidate for feasible batch workloads."
+   ]
+  }
+ ]
+}

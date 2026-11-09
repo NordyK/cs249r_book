@@ -1,0 +1,62 @@
+{
+ "title": "Sandbox Pools and Reset",
+ "summary": "Work through Sandbox Pools and Reset.",
+ "source": {
+  "chapter": "v3-08",
+  "sections": [
+   "Sandbox Pools and Reset",
+   "The reset contract",
+   "Provisioning from a trusted baseline",
+   "Sizing the standby pool for bursts",
+   "Sandboxes for evaluation and training rollouts"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Sandbox Pools and Reset** in *Agent Sandboxes* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Agent Sandboxes, § Sandbox Pools and Reset",
+   "md": "The workspace lease keeps the repair's edits, build artifacts, and helper processes alive across turns, and the egress controls bound what they can send. When the trajectory ends, a platform serving many tasks must provision the next tenant's environment without delay. The next tenant must inherit none of the modified files, background daemons, open sockets, or credentials the repair left behind, yet it should not wait for a cold boot either. Sandbox pooling reconciles these requirements."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The reset contract\n- Provisioning from a trusted baseline\n- Sizing the standby pool for bursts\n- Sandboxes for evaluation and training rollouts"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Sandbox pool sizing matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Mean active leases follow N_active = lambda * T_hold over the whole trajectory, so pool cost is driven by memory residency over the horizon, and the standby reserve is set by the replenishment window."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-08-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Sandbox Pools and Reset** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A used environment may serve a new tenant only after a reset that fences authority, quiesces owned work, exports permitted outputs, and clears four state domains in order.",
+      "Outbound reach is enforced on the host data path with a packet filter and an operation-aware mediator that cover each other's blind spots, never by guest proxy settings.",
+      "Authority that comes from where a program runs rather than from the request it serves is what an injected or buggy process inherits, and capabilities replace it with explicit grants.",
+      "Mean active leases follow N_active = lambda * T_hold over the whole trajectory, so pool cost is driven by memory residency over the horizon, and the standby reserve is set by the replenishment window."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Sandbox pool sizing**: Mean active leases follow N_active = lambda * T_hold over the whole trajectory, so pool cost is driven by memory residency over the horizon, and the standby reserve is set by the replenishment window."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Sandbox Pools and Reset."
+   ]
+  }
+ ]
+}

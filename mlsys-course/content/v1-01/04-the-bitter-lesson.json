@@ -1,0 +1,81 @@
+{
+ "title": "The Bitter Lesson",
+ "summary": "Explain why the bitter lesson prioritizes scalable computation and learning over hand-crafted human domain expertise.",
+ "source": {
+  "chapter": "v1-01",
+  "sections": [
+   "The Bitter Lesson"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Bitter Lesson** in *Introduction* (Vol I). By the end you should be able to:\n\n- Explain why the bitter lesson prioritizes scalable computation and learning over hand-crafted human domain expertise\n- Compare how Deep Blue and AlphaGo Zero balanced hardware acceleration, search scale, and learned representations\n- Justify why systems engineering is the prerequisite for realizing the benefits of the bitter lesson\n- Evaluate the long-term trade-off between domain-specific inductive biases and general scalable architectures under expanding compute budgets"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Introduction, § The Bitter Lesson",
+   "md": "Expert systems invested engineering effort in encoding domain knowledge; deep learning systems invest much of that effort in learning from data at scale. The **bitter lesson** captures the historical advantage of general methods, especially search and learning, that can make effective use of increasing computation. Richard Sutton crystallized this insight in his 2019 essay \"The Bitter Lesson\". Sutton wrote, \"The biggest lesson that can be read from 70 years of AI research is that general methods that leverage computation are ultimately the most effective, and by a large margin.\""
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Sutton's Bitter Lesson thesis (general methods + compute vs encoded human expertise); historical validation (Deep Blue, AlphaGo, LLMs); systems engineering as the prerequisite to absorb computational scale."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: If the bitter lesson states that computation-leveraging methods dominate over time, why does realizing this advantage depend primarily on systems engineering rather than pure algorithmic theory?",
+   "md": "Harnessing computation at scale requires solving physical systems bottlenecks: memory bandwidth, cluster interconnects, distributed fault tolerance, thermal dissipation, and gigawatt-hour energy budgets ($E_{\\text{move}} \\gg E_{\\text{compute}}$). An algorithm designed to scale with compute is ineffective if memory systems cannot supply weights fast enough or if infrastructure cannot coordinate thousands of accelerators without stalling."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-01-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why did Richard Sutton describe the fundamental finding of 70 years of AI research as a 'bitter' lesson for researchers and engineers?",
+     "explanation": "The correct answer is A. The lesson is 'bitter' because researchers persistently try to hand-craft human domain heuristics (such as chess evaluation tables, linguistic grammars, or hand-tuned visual filters), only to discover that general methods (search and learning) powered by massive computation consistently surpass hand-engineered representations as scale increases. Thermodynamic scaling limits describe hardware physical bounds rather than Sutton's philosophical thesis. Lack of formal verification concerns how learned systems are checked, not Sutton's thesis. The comparison between open-source and proprietary models is a market dynamic unrelated to Sutton's essay.",
+     "hint": "Think about: explain why the bitter lesson prioritizes scalable computation and learning over hand-crafted human domain expertise.",
+     "type": "single",
+     "options": [
+      "Human intuition naturally seeks to build intelligence by encoding domain expertise and linguistic rules into models, yet historical progress repeatedly demonstrates that general-purpose search and learning leveraging raw computation outperform hand-crafted human knowledge.",
+      "Hardware accelerators have reached physical thermodynamic scaling limits, preventing further increases in neural network parameter counts.",
+      "Stochastic gradient descent algorithms produce models whose internal mathematical representations cannot be formally proven correct.",
+      "Open-source models consistently match the performance of proprietary industrial foundation models trained at hundred-million-dollar compute budgets."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In comparing IBM's Deep Blue (1997) and DeepMind's AlphaGo Zero (2017), how do their designs reflect the progression toward Sutton's bitter lesson?",
+     "explanation": "The correct answer is B. Deep Blue paired custom hardware search (480 custom chess chips searching roughly 100 to 200 million positions per second) with chess-specific evaluation knowledge. AlphaGo Zero advanced this trajectory by learning through self-play without human game records or hand-engineered features, using neural networks to guide tree search so that computation, rather than encoded human knowledge, improved play. The claim that Deep Blue used deep reinforcement learning reverses the historical paradigms. The assertion that neither system used specialized compute contradicts the custom silicon of Deep Blue and the large-scale self-play computation of AlphaGo Zero. AlphaGo Zero used neural networks to guide tree search rather than eliminating search.",
+     "hint": "Think about: compare how Deep Blue and AlphaGo Zero balanced hardware acceleration, search scale, and learned representations.",
+     "type": "single",
+     "options": [
+      "Deep Blue relied entirely on deep reinforcement learning, whereas AlphaGo Zero returned to hand-coded expert evaluation tables.",
+      "Deep Blue combined custom silicon search (100 to 200 million positions/second) with hand-coded chess heuristics, whereas AlphaGo Zero learned through self-play without human game records or hand-engineered features, using neural networks to guide tree search.",
+      "Both systems avoided the use of custom silicon or GPUs, relying strictly on algorithmic elegance over compute scale.",
+      "AlphaGo Zero eliminated all tree search mechanisms in favor of pure single-step feedforward classification."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "According to the bitter lesson, building domain-specific linguistic or perceptual rules into deep neural network architectures provides a permanent, compounding advantage over general architectures as compute budgets expand.",
+     "explanation": "False. Sutton's bitter lesson demonstrates that domain-specific human heuristics are a depreciating asset; as computational scale increases by orders of magnitude, general architectures (such as transformers) that leverage raw compute and learning consistently surpass specialized, rule-infused designs.",
+     "hint": "Think about: evaluate the long-term trade-off between domain-specific inductive biases and general scalable architectures under expanding compute budgets.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain why the bitter lesson prioritizes scalable computation and learning over hand-crafted human domain expertise.",
+    "You can now compare how Deep Blue and AlphaGo Zero balanced hardware acceleration, search scale, and learned representations.",
+    "You can now justify why systems engineering is the prerequisite for realizing the benefits of the bitter lesson.",
+    "You can now evaluate the long-term trade-off between domain-specific inductive biases and general scalable architectures under expanding compute budgets."
+   ]
+  }
+ ]
+}

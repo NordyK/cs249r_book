@@ -1,0 +1,70 @@
+{
+ "title": "The Trajectory Saga Pattern",
+ "summary": "Work through The Trajectory Saga Pattern.",
+ "source": {
+  "chapter": "v3-12",
+  "sections": [
+   "The Trajectory Saga Pattern",
+   "Obligation registration",
+   "Semantic compensation",
+   "Cleanup failures",
+   "The cleanup graph",
+   "Branch-scoped compensation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Trajectory Saga Pattern** in *Failure Recovery* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Failure Recovery, § The Trajectory Saga Pattern",
+   "md": "When the repair worker dispatches its request to provision the temporary test environment, the remote service may allocate the virtual machine and start billing even if a network partition drops the return acknowledgment before it reaches the runtime. That lost reply breaks the binary assumption of a classical database saga, which coordinates a long-lived transaction across independent services by assuming that each local step either commits cleanly or aborts cleanly and reports which one happened."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Obligation registration\n- Semantic compensation\n- Cleanup failures\n- The cleanup graph\n- Branch-scoped compensation"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Compensation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-12-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Trajectory Saga Pattern** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A trajectory saga durably registers each effectful step's cleanup template before dispatch, not after the step returns, so a crash never leaves an effect without its compensator.",
+      "A looping trajectory is hyperactive, not dead, so a watchdog compares a declared task projection, verifier results, and repeated action-outcome pairs over a bounded window, and its window sets detection latency.",
+      "Transport retry, fresh proposal, feedback repair, compensation, and hold or escalate are chosen by evidence class first, then admission, then expected cost.",
+      "An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Compensation**: An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Compensation* is registered as recovery work by *Trajectory saga*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Compensation is registered as recovery work by Trajectory saga."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through The Trajectory Saga Pattern."
+   ]
+  }
+ ]
+}

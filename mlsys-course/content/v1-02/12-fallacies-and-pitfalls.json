@@ -1,0 +1,88 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Calculate end-to-end pipeline speedup using Amdahl's law when optimizing an isolated ML component.",
+ "source": {
+  "chapter": "v1-02",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *System Paradigms* (Vol I). By the end you should be able to:\n\n- Calculate end-to-end pipeline speedup using Amdahl's law when optimizing an isolated ML component\n- Explain why hardware-aware compilation and kernel fusion are essential for efficient edge deployment\n- Evaluate the pitfall of ignoring operational expenses and DevOps labor when calculating edge ML deployment costs\n- Explain the physical and statistical limits that prevent data quantity from guaranteeing deployment accuracy gains\n- Explain how kernel fusion reduces memory traffic and kernel launch overhead in inference pipelines"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, System Paradigms, § Fallacies and Pitfalls",
+   "md": "Most deployment misconceptions share one root. Each treats a physical envelope as a software detail that a later optimization can fix. Data movement, thermal dissipation, and hardware balance can invalidate otherwise reasonable optimization choices, and each fallacy and pitfall below records a system mismatched to its operating envelope."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: Amdahl's law applied to ML pipelines and end-to-end system speedup limits; Per-target binary compilation and kernel fusion vs. generic model artifacts; Total Cost of Ownership fallacies and training data scaling limitations."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why does choosing an on-premises edge deployment solely because its hardware amortizes to a lower monthly compute cost than a cloud VM often result in a higher Total Cost of Ownership (TCO)?",
+   "md": "Hardware compute cost is only one fraction of the total cost of ownership. Deploying on-premise edge fleets introduces substantial recurring operational expenses (OpEx), including distributed network engineering, on-site hardware maintenance, security patching, and DevOps reliability engineering, alongside extended development timelines. Adding these costs can erase an apparent hardware-only saving. A valid total-cost verdict requires the cloud and edge budgets to include comparable operating costs, capacity, availability, and accounting periods; the chapter's cloud-compute-only figure does not supply that matched comparison."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-02-12-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A smartphone camera pipeline takes 200 ms total: 100 ms for the image signal processor (ISP), 60 ms for ML scene classification, and 40 ms for postprocessing. If an engineering team optimizes the ML model to run \\$10× faster (reducing ML time from 60 ms to 6 ms), what is the overall system-level speedup?",
+     "explanation": "The correct answer is B. Prior to optimization, total latency is \\$100 ms + 60 ms + 40 ms = 200 ms. The ML model represents p = frac60200 = 0.30 (30%) of total pipeline execution time. Optimizing the ML stage by s = 10× reduces its latency to frac6010 = 6 ms, resulting in a new total latency of \\$100 ms + 6 ms + 40 ms = 146 ms. The overall system speedup is frac200 ms146 ms approx 1.37×. Even an infinite ML speedup (s = infty) would yield at most frac200140 approx 1.43× speedup because the remaining 70% of the pipeline is unoptimized. The option claiming a \\$10.00× system speedup commits the classic fallacy of assuming model-level speedup translates linearly to end-to-end system speedup. The options claiming \\$5.50× or \\$0.73× represent calculation errors.",
+     "hint": "Think about: calculate end-to-end pipeline speedup using Amdahl's law when optimizing an isolated ML component.",
+     "type": "single",
+     "options": [
+      "\\$10.00× speedup",
+      "\\$1.37× speedup",
+      "\\$5.50× speedup",
+      "\\$0.73× speedup (system becomes slower)"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Why does deploying a single generic FP32 model binary across diverse edge devices (e.g., Arm CPU, Apple Neural Engine, and Google Coral Edge TPU) result in suboptimal efficiency compared to per-target compilation?",
+     "explanation": "The correct answer is C. Different edge accelerators feature unique hardware architectures, such as specialized INT8 tensor systolic arrays, proprietary NPU delegates, and distinct on-chip memory hierarchies. A generic model binary fails to utilize kernel fusion (which avoids round-trip memory traffic between layers), cannot map operations to dedicated low-precision datapaths, and fails to align tensor dimensions with on-chip cache lines. The options claiming PCI Express signature violations, undefined mobile float math, or automatic OS weight deletion are entirely fabricated.",
+     "hint": "Think about: explain why hardware-aware compilation and kernel fusion are essential for efficient edge deployment.",
+     "type": "single",
+     "options": [
+      "Generic model binaries violate cryptographic signatures required by PCI Express buses.",
+      "Floating-point operations are mathematically undefined on mobile CPUs.",
+      "Generic binaries cannot exploit hardware-specific kernel fusion, dedicated fixed-point INT8 matrix datapaths, or accelerator-specific on-chip SRAM memory tiling.",
+      "The operating system automatically deletes untuned model weights to prevent memory fragmentation."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Increasing the quantity of training data is guaranteed to continuously improve deployed model performance regardless of model capacity, label noise, or domain distribution shift.",
+     "explanation": "False. Data scaling benefits are bounded by three critical constraints: model capacity (a small model saturates and cannot absorb more information), data quality (noisy, mislabeled, or redundant data harms accuracy), and distribution alignment (adding massive out-of-domain data does not improve, and can degrade, performance on target deployment distributions).",
+     "hint": "Think about: explain the physical and statistical limits that prevent data quantity from guaranteeing deployment accuracy gains.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: What is kernel fusion in ML compilers, and how does it optimize memory-bound inference pipelines?",
+   "md": "Kernel fusion is an optimization technique where a compiler merges multiple adjacent operations in a neural network graph (such as Conv2D, BatchNorm, and ReLU) into a single executed kernel. By computing intermediate values directly in high-speed processor registers or on-chip SRAM rather than writing them back to off-chip DRAM and reading them again for the next layer, kernel fusion drastically reduces off-chip memory traffic ($D_{\\text{vol}}/\\text{BW}$) and kernel launch overhead ($L_{\\text{lat}}$)."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate end-to-end pipeline speedup using Amdahl's law when optimizing an isolated ML component.",
+    "You can now explain why hardware-aware compilation and kernel fusion are essential for efficient edge deployment.",
+    "You can now evaluate the pitfall of ignoring operational expenses and DevOps labor when calculating edge ML deployment costs.",
+    "You can now explain the physical and statistical limits that prevent data quantity from guaranteeing deployment accuracy gains."
+   ]
+  }
+ ]
+}

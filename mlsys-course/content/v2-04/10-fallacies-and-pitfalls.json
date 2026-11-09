@@ -1,0 +1,88 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Evaluate RAID parity and striping trade-offs for disposable ML caches under explicit durability and availability requirements.",
+ "source": {
+  "chapter": "v2-04",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Data Storage* (Vol II). By the end you should be able to:\n\n- Evaluate RAID parity and striping trade-offs for disposable ML caches under explicit durability and availability requirements\n- Analyze training throughput regressions following accelerator compute upgrades using the I/O wall framework\n- Analyze the CPU-versus-I/O trade-offs of data compression and identify when decompression overhead degrades pipeline throughput\n- Evaluate why prefetch queues sized to average latency fail to prevent accelerator stalls under tail-latency variance\n- Compare naive full-copy dataset versioning against delta-encoded content-addressable snapshotting in terms of storage efficiency"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Data Storage, § Fallacies and Pitfalls",
+   "md": "Storage design errors are among the most expensive mistakes in ML infrastructure because they are discovered late, when training begins, and remediation requires either expensive hardware upgrades or time-consuming data reformatting. The following fallacies and pitfalls capture the most common errors that experienced storage engineers make when first encountering ML workloads."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: RAID parity versus striping under the cache tier's failure contract; accelerator compute upgrades exposing hidden storage bottlenecks; compression trade-offs on CPU-bound vs I/O-bound pipelines; prefetching limitations against P99 tail-latency spikes."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A training team upgrades its cluster from A100 to H100 GPUs, expecting a \\$3× end-to-end training speedup. However, wall-clock epoch time barely improves, and GPU utilization drops from \\$85\\% to \\$35\\%. Traces show shorter uninterrupted compute time, unchanged measured input-delivery rate, and increased time waiting for ready input batches, while communication and checkpoint pauses remain unchanged. Diagnose the measured bottleneck and explain why faster compute exposed it.",
+   "md": "The traces establish an input-delivery limit: compute finishes sooner, but the unchanged pipeline does not supply ready batches at the new consumption rate. More of the iteration is therefore exposed input wait. Prefetching can hide delays within its queue window but cannot overcome a sustained delivery-rate deficit. The utilization and epoch-time figures alone would not identify this cause; the supplied timing measurements distinguish it from communication or checkpoint pauses. Profile individual read, decode, and transfer stages before selecting a remedy."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-04-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team selects RAID 5 for a disposable local training-data cache whose immutable source is durably stored elsewhere. The fleet can tolerate restaging after drive failure. Why might RAID 0 be a better throughput-and-capacity trade-off under this failure contract?",
+     "explanation": "The correct answer is C. A disposable cache need not own durability when its source remains available. RAID 0 removes parity overhead but increases exposure to cache loss and restaging. RAID 5 can still be justified by availability requirements; checkpoints awaiting durable replication are not disposable. Filesystem support and DMA are not disabled by RAID 5, and the stated endurance multiplier is unsupported.",
+     "hint": "Think about: evaluate RAID parity and striping trade-offs for disposable ML caches under explicit durability and availability requirements",
+     "type": "single",
+     "options": [
+      "RAID 5 cannot be formatted with modern Linux filesystems such as ext4 or XFS.",
+      "RAID 5 disables hardware DMA transfers, preventing the GPU from accessing host DRAM.",
+      "The cache can be reconstructed from its durable source, so RAID 0 can aggregate drives without parity overhead when restaging disruption is acceptable.",
+      "RAID 5 increases drive endurance wear by \\$10× compared to single-drive configurations."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A team replaces a lighter codec with a denser codec on local-NVMe training shards. On this corpus, illustrative measurements give the lighter codec a 3:1 ratio and 1.5 GB/s decoded output per core, versus 4:1 and 0.5 GB/s for the denser codec. Before the change, worker profiles show decoding and augmentation saturating the host CPU and the ready-batch queue repeatedly draining. Afterward, decompression consumes more CPU time, the queue drains more often, and training step time increases although stored bytes decrease. What caused this measured regression?",
+     "explanation": "The correct answer is B. The supplied worker profiles and ready-batch queues establish a host-processing limit before the change; additional decompression work further reduces completed-batch delivery. The denser codec saves stored bytes but requires more CPU work for the same decoded output under these corpus-specific measurements. These illustrative rates are not fixed properties of named compression levels. Compare output-equivalent stage rates and input wait when choosing a representation.",
+     "hint": "Think about: analyze the CPU-versus-I/O trade-offs of data compression and identify when decompression overhead degrades pipeline throughput",
+     "type": "single",
+     "options": [
+      "Compressed shards cannot be read by NVMe controllers because flash drives require raw uncompressed binary blocks.",
+      "The pipeline was already CPU-bound on data decoding and augmentation, so adding heavy decompression work saturated the host CPU, starving the GPU of assembled batches.",
+      "The denser codec introduces non-deterministic bit flips that cause stochastic gradient descent to diverge.",
+      "The parallel file system rejects compressed shards larger than 1 GB due to POSIX file locking constraints."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Sizing a data loader's prefetch buffer depth based on average storage read latency ensures that training runs will not experience data stalls during multi-week training jobs on shared object storage.",
+     "explanation": "False. Average latency does not bound tail stalls. A starting buffer budget is $Q_{\\text{prefetch}} = \\lceil T_{\\text{I/O,p99}} / T_{\\text{compute}} \\rceil$ plus margin, but longer or correlated delays can still drain it; sustained delivery bandwidth must also keep pace with consumption.",
+     "hint": "Think about: evaluate why prefetch queues sized to average latency fail to prevent accelerator stalls under tail-latency variance",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A team creates full \\$10 TB copies of a pretraining dataset for every snapshot version, creating 20 versions over six months (\\$200 TB total storage). Explain how content-addressable storage or delta encoding optimizes this workflow when successive versions differ by only \\$5\\%.",
+   "md": "The first version requires \\$10 TB. Nineteen subsequent versions with \\$5\\% new content each add \\$0.5 TB, for \\$19.5 TB total before metadata and replication, saving \\$180.5 TB against 20 full copies. Content-addressable storage references unchanged blocks rather than copying them; the reduction assumes changes remain localized at the stored block or shard granularity."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate RAID parity and striping trade-offs for disposable ML caches under explicit durability and availability requirements.",
+    "You can now analyze training throughput regressions following accelerator compute upgrades using the I/O wall framework.",
+    "You can now analyze the CPU-versus-I/O trade-offs of data compression and identify when decompression overhead degrades pipeline throughput.",
+    "You can now evaluate why prefetch queues sized to average latency fail to prevent accelerator stalls under tail-latency variance."
+   ]
+  }
+ ]
+}

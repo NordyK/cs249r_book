@@ -1,0 +1,117 @@
+{
+ "title": "Test: Conclusion",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-16-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "The conservation-of-complexity heuristic is an exact physical conservation law of computer science that proves every simplification in an ML pipeline interface creates an identical, mathematically equal compensating burden in another component.",
+     "explanation": "False. The conservation-of-complexity heuristic (analogous to Tesler's Law in UI design) is a diagnostic design heuristic, not an exact physical conservation law. While simplifying one interface often displaces work elsewhere (e.g., shorter user prompts shifting parsing and retrieval burdens into system prompts and vector lookups, or INT8 quantization adding validation burden), good engineering design can eliminate accidental complexity outright without creating equal compensating costs. Its value is diagnostic: prompting engineers to trace where validation, state, or operational burdens move after simplifying a component.",
+     "hint": "Think about: distinguish the conservation-of-complexity diagnostic heuristic from exact physical conservation laws.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The thirteen quantitative principles are unified by a central meta-heuristic known as the ____ heuristic, which reminds engineers that simplifying one interface often displaces validation, state, or operational burdens to another part of the system.",
+     "explanation": "conservation of complexity (or conservation-of-complexity). The conservation-of-complexity heuristic serves as a diagnostic lens connecting Foundations, Build, Optimize, and Deploy. It prompts engineers to trace where costs land after optimizing or abstracting an individual component.",
+     "hint": "Think about: identify the conservation-of-complexity heuristic as the overarching diagnostic framework uniting the thirteen quantitative principles.",
+     "type": "fill",
+     "answer": [
+      "conservation of complexity",
+      "conservation of complexity (or conservation of complexity)",
+      "conservation of complexity (or conservation-of-complexity)"
+     ]
+    },
+    {
+     "q": "A production recommender workload is dominated by embedding tables larger than one accelerator's memory where engineers spend significant effort deciding where data physically resides across storage tiers rather than optimizing dense matrix math. Which lighthouse model embodies this constraint regime, and how does its primary bottleneck differ from low-batch GPT-2/Llama decoding?",
+     "explanation": "The correct answer is D. DLRM; it is capacity-bound by embedding tables larger than one accelerator's memory requiring physical data placement design, whereas low-batch LLM decode is memory-bandwidth-bound due to streaming weights with minimal arithmetic reuse per token. The five lighthouse models represent distinct home regimes across the systems spectrum: DLRM is capacity-bound because embedding tables larger than one accelerator's memory cannot fit in one accelerator's HBM, forcing the tables to be sharded across accelerators or memory tiers; low-batch autoregressive LLM decoding is bandwidth-bound because weights must be read from HBM for every token with an arithmetic intensity of $\\approx 1\\text{ FLOP/byte}$; ResNet-50 at large batch sizes is compute-bound; MobileNetV2 operates under mobile battery/thermal envelopes; and KWS operates under sub-megabyte SRAM and milliwatt constraints. The other options misclassify the workloads and their physical bottlenecks.",
+     "hint": "Think about: classify diverse ML workloads by their limiting physical constraints (capacity-bound vs. bandwidth-bound vs. compute-bound) using the lighthouse model framework.",
+     "type": "single",
+     "options": [
+      "MobileNetV2; it is capacity-bound on microcontrollers, whereas autoregressive decoding is bound by network packet round-trip times.",
+      "ResNet-50; it is capacity-bound by image batch activation footprints in host DRAM, whereas LLM decode is compute-bound.",
+      "Keyword Spotting (KWS); it is capacity-bound by microcontroller flash storage, whereas LLM decode is strictly compute-bound by tensor core peak FLOP/s.",
+      "DLRM; it is capacity-bound by embedding tables larger than one accelerator's memory requiring physical data placement design, whereas low-batch LLM decode is memory-bandwidth-bound due to streaming weights with minimal arithmetic reuse per token."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Consider serving one token at batch size 1 from a 70-billion-parameter Llama 2 model in FP16 ($D_{\\text{vol}} = 140\\text{ GB}$, $O \\approx 140\\text{ GFLOP}$) sharded across two NVIDIA H100 GPUs (aggregate $\\text{BW} = 6.70\\text{ TB/s}$, aggregate $R_{\\text{peak}} = 1,978\\text{ TFLOP/s}$). What are the idealized lower bounds for memory transfer ($T_{\\text{mem}}$) and peak compute ($T_{\\text{comp}}$), and what systems optimization strategy does this diagnostic suggest?",
+     "explanation": "The correct answer is C. Memory transfer time $T_{\\text{mem}} \\approx 20.9\\text{ ms}$ and compute time $T_{\\text{comp}} \\approx 0.07\\text{ ms}$; because the memory bound is $\\approx 295\\times$ larger than the compute bound, the modeled ceiling is bandwidth-bound, suggesting weight reuse and supported quantization as candidates whose latency effects require profiling. Applying the Iron Law and Arithmetic Intensity formulas: $T_{\\text{mem}} = \\frac{140\\text{ GB}}{6.70\\text{ TB/s}} = \\frac{140\\text{ GB}}{6,700\\text{ GB/s}} \\approx 20.9\\text{ ms}$, while $T_{\\text{comp}} = \\frac{140\\times 10^9\\text{ FLOP}}{1,978\\times 10^{12}\\text{ FLOP/s}} \\approx 0.07\\text{ ms}$. The ratio $\\frac{T_{\\text{mem}}}{T_{\\text{comp}}} = \\frac{20.9}{0.07} \\approx 295\\times$. Arithmetic intensity is $\\approx 1\\text{ FLOP/byte}$, which lies far to the left of the H100 ridge point ($I_{\\text{ridge}} = \\frac{1978\\text{ TFLOP/s}}{6.7\\text{ TB/s}} \\approx 295\\text{ FLOP/byte}$). This traffic model limits attainable arithmetic throughput relative to peak; it does not measure tensor-core busy or stalled cycles. Profiling must establish the realized bottleneck, including costs excluded from this calculation. Batching reuses weights across requests, and supported weight quantization reduces their byte volume, but their end-to-end latency effects depend on operator support, queueing, and the request path. Compute-only tuning cannot lower the modeled memory-transfer bound. Inverting the values confuses compute with memory; claiming equal time misplaces the ridge point; and doubling execution time misapplies sharding.",
+     "hint": "Think about: calculate idealized memory-transfer and compute lower bounds for autoregressive token decoding and use arithmetic intensity to select high-leverage serving optimizations.",
+     "type": "single",
+     "options": [
+      "Memory transfer time T_mem approx 0.07 ms and compute time T_comp approx 20.9 ms; because compute time dominates by \\$295×, the engineering team should prioritize hand-tuning tensor core matrix multiplication kernels.",
+      "Memory transfer time $T_{\\text{mem}} \\approx 2.09\\text{ ms}$ and compute time $T_{\\text{comp}} \\approx 2.09\\text{ ms}$; because the workload operates exactly at the roofline ridge point, compute optimizations and memory optimizations provide identical returns.",
+      "Memory transfer time $T_{\\text{mem}} \\approx 20.9\\text{ ms}$ and compute time $T_{\\text{comp}} \\approx 0.07\\text{ ms}$; because the memory bound is $\\approx 295\\times$ larger than the compute bound, the modeled ceiling is bandwidth-bound, suggesting weight reuse and supported quantization as candidates whose latency effects require profiling.",
+      "Memory transfer time T_mem approx 41.8 ms and compute time T_comp approx 0.14 ms; because sharding across two GPUs doubles the communication overhead, execution time increases by \\$2× relative to a single GPU."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Responsible AI metrics, such as subgroup error rates and bias feedback amplification, can be adequately handled as a post-hoc compliance audit after model serving is fully optimized, because fairness properties remain stable once offline validation passes.",
+     "explanation": "False. Responsible AI is a dynamic systems engineering constraint governed by the same measurement discipline as latency and throughput. High aggregate accuracy on an offline benchmark can easily conceal massive error rate disparities on underrepresented demographic cohorts. In production, algorithmic predictions influence future data collection, creating compounding feedback loops (principle 13: $\\Delta_g(k) \\approx \\Delta_g(0)\\alpha_{\\text{fb}}^k$) whose fitted amplification factor determines whether disparity grows or diminishes within the modeled regime. Treating fairness as an afterthought can leave harms undetected. Disaggregated metrics, subgroup monitoring, and fairness validation provide evidence for response, but detection and mitigation depend on outcome-label delays, monitoring cadence, and the response path; they are not guaranteed in real time.",
+     "hint": "Think about: justify why responsible AI monitoring and bias feedback mitigation are first-class operational systems constraints rather than post-hoc compliance audits.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A team serving GPT-2 at batch size one on an H100 proposes two investments: hand-tuning the matrix-multiply kernels to raise achieved FLOP/s, or batching concurrent requests and storing weights in fewer bytes. Using the chapter's lighthouse trace, which investment pays off, and why?",
+     "explanation": "The correct answer is B. Batching and fewer bytes per weight, because batch-one decode is bandwidth-bound: its data-movement term exceeds its compute term, so only levers that reuse each weight across more tokens or move fewer bytes per token shorten the step. The trace table pairs the bandwidth-bound regime of GPT-2/Llama decode with the data-movement term DataVolume/Bandwidth; raising peak arithmetic throughput is the lever wasted at batch one. GPT-2 training is compute-bound, which is why the regime belongs to the workload and phase rather than to the model name. GPT-2 weights fit comfortably on one H100, so capacity is not the limit, and a high ridge point makes low-intensity workloads more bandwidth-bound, not less.",
+     "hint": "Think about: use a lighthouse's home regime and limiting term to select the optimization lever that pays and reject the one that is wasted.",
+     "type": "single",
+     "options": [
+      "Kernel tuning, because GPT-2 is compute-bound at every batch size and phase.",
+      "Batching and fewer bytes per weight, because batch-one decode is bandwidth-bound: its data-movement term exceeds its compute term, so only levers that reuse each weight across more tokens or move fewer bytes per token shorten the step.",
+      "Neither, because GPT-2 decode is capacity-bound like DLRM and must first be sharded across several devices.",
+      "Kernel tuning, because a high ridge point means every workload gains more from compute than from bandwidth."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A single data center GPU has an estimated Mean Time To Failure (MTTF) of approximately 5.7 years (approx 50,000 hours). If an engineering team scales a distributed foundation model training run across a cluster of \\$1,024 identical GPUs, what is the expected cluster Mean Time Between Failures (MTBF_cluster) assuming independent constant-hazard failures, and what operational requirement does this impose?",
+     "explanation": "The correct answer is A. MTBF_cluster approx 48.8 hours (approx. \\$2 days); because cluster failure rate scales linearly with GPU count (MTBF = MTTF / N), multi-week training runs will routinely encounter hardware faults, making automated checkpointing and fast localized recovery an operational necessity. Under an independent constant-hazard model where any single GPU failure halts the synchronous training job, cluster failure rate is lambda_cluster = sum_i=1^N lambda_gpu = 1024 × frac150,000 hr approx 0.02048 failures/hr. Taking the inverse yields MTBF_cluster = frac50,0001024 approx 48.8 hours approx 2.03 days. Over a 30-day training run, the cluster is statistically guaranteed to experience approx 15 hardware failure events. Fault tolerance—via asynchronous non-blocking checkpointing to persistent storage and rapid worker node replacement—becomes a mandatory systems requirement rather than an optional safeguard. The alternative choices misapply basic reliability scaling laws.",
+     "hint": "Think about: calculate cluster MTBF from component MTTF across large-scale accelerator pools and evaluate the operational necessity of fault tolerance and automated checkpointing.",
+     "type": "single",
+     "options": [
+      "MTBF_cluster approx 48.8 hours (approx. \\$2 days); because cluster failure rate scales linearly with GPU count (MTBF = MTTF / N), multi-week training runs will routinely encounter hardware faults, making automated checkpointing and fast localized recovery an operational necessity.",
+      "$\\text{MTBF}_{\\text{cluster}} \\approx 5.7\\text{ years}$; hardware reliability is independent of the number of active nodes in the cluster.",
+      "$\\text{MTBF}_{\\text{cluster}} \\approx 50\\text{ minutes}$; network packet loss causes the entire cluster to crash once per hour.",
+      "$\\text{MTBF}_{\\text{cluster}} \\approx 5,800\\text{ years}$; distributed redundancy inherently increases total system reliability proportionally to cluster size."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A team selects Model Alpha over Model Beta because Alpha achieves 94.8% top-1 accuracy on a static benchmark versus Beta's 93.2%. When deployed, Model Alpha violates the 100 ms P99 serving latency SLO by taking 420 ms, consumes \\$4× more memory, and exhibits a 16% error rate on an underrepresented user demographic. Which systems concept explains why single-metric evaluation led to this production failure?",
+     "explanation": "The correct answer is A. The Pareto Frontier; production ML systems operate across a multi-dimensional objective space (accuracy, tail latency, memory, energy, cost, and subgroup fairness), where optimizing aggregate accuracy in isolation can select an infeasible, costly, or discriminatory operating point. Evaluating models solely along a single accuracy dimension inhabits a one-dimensional fantasy. In production, models must satisfy multi-objective constraints along the Pareto Frontier (principle 5): meeting P99 latency budgets (principle 12), fitting hardware memory capacity, respecting energy/cost limits, and ensuring equitable error rates across demographic subgroups (principle 13). A model with 1.6% higher aggregate accuracy that violates latency SLOs and exhibits extreme subgroup disparity is an engineering failure. The other options misapply unrelated systems concepts.",
+     "hint": "Think about: critique single-metric accuracy evaluation and apply the Pareto Frontier to assess production models across latency, memory, energy, and subgroup fairness.",
+     "type": "single",
+     "options": [
+      "The Pareto Frontier; production ML systems operate across a multi-dimensional objective space (accuracy, tail latency, memory, energy, cost, and subgroup fairness), where optimizing aggregate accuracy in isolation can select an infeasible, costly, or discriminatory operating point.",
+      "The Silicon Contract; models with higher accuracy automatically violate hardware execution contracts.",
+      "Data Gravity; higher accuracy models physically pull network packets away from edge caches.",
+      "Amdahl's Law; aggregate accuracy scales inversely with the number of parallel workers."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A production image classifier deployed across a mobile device fleet shows a 4-percentage-point drop in accuracy on specific handset cohorts. The weights file is unchanged, the compression team verified INT8 kernel speedups, and the serving team confirmed a P99 latency of 48 ms (under the 50 ms SLO). Which diagnostic posture is most consistent with the 'system is the model' thesis?",
+     "explanation": "The correct answer is B. Trace the interaction between INT8 quantization scaling factors and firmware-specific image preprocessing paths, because production behavior is defined by the weights combined with the data pipeline, runtime hardware, and monitoring loop. The central thesis of ML systems engineering is that 'the system is the model': the weights file is merely one component of a pipeline that includes data ingest, preprocessing, quantization scaling, hardware runtime execution, and drift monitoring. In the chapter's mobile deployment case study, no single component failed in isolation; rather, a subtle coupling between INT8 quantization assumptions and device-specific image preprocessing firmware caused the localized accuracy loss. Escalating solely to architecture ignores the physical substrate; dismissing the drop as noise ignores cohort-specific degradation; and blaming only the serving runtime overlooks upstream preprocessing and quantization interactions.",
+     "hint": "Think about: apply the 'system is the model' thesis to diagnose a production regression that emerges from cross-layer interactions between preprocessing, quantization, and hardware runtimes.",
+     "type": "single",
+     "options": [
+      "Focus the investigation exclusively on serving execution, because runtime inference is the only stage operating during production.",
+      "Trace the interaction between INT8 quantization scaling factors and firmware-specific image preprocessing paths, because production behavior is defined by the weights combined with the data pipeline, runtime hardware, and monitoring loop.",
+      "Escalate to the architecture team to train wider convolutional layers, because an unchanged weights file implies that any remaining error must stem from model capacity.",
+      "Treat the 4-point regression as acceptable random noise, because all engineering teams independently satisfied their local component metrics and the aggregate P99 latency is within budget."
+     ],
+     "answer": 1
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,67 @@
+{
+ "title": "Verifier Isolation",
+ "summary": "Work through Verifier Isolation.",
+ "source": {
+  "chapter": "v3-17",
+  "sections": [
+   "Verifier Isolation",
+   "Separate assessment workspaces",
+   "Repeated checks and noisy rewards"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Verifier Isolation** in *Reinforcement Learning from Verifiable Rewards* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Reinforcement Learning from Verifiable Rewards, § Verifier Isolation",
+   "md": "Consider the representative trial `rl_trial_01`, in which an agent submits a candidate patch after running local unit tests against an edited connection pool. The reinforcement learning loop requires an authoritative verdict under the evaluation specification `repair_accept_v1`, not an unverified self-report from the environment that generated the patch. As the METR evaluations in a later section illustrate, an agent capable of modifying its evaluation environment can bypass the intended task and rewrite its own scoring logic, and where the scorer is within reach it often does."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Separate assessment workspaces\n- Repeated checks and noisy rewards"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Reward hacking matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-17-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Verifier Isolation** develops one of the chapter's claims. Which one?",
+     "options": [
+      "GRPO replaces the learned critic with G rollouts per task and broadcasts one standardized coefficient to every sampled token of a rollout, and its clipping and KL estimator choices change how that signal is weighted.",
+      "Symmetric ratio clipping is asymmetric in probability space, so early successes sharpen the policy until groups converge and contrast vanishes, which outcome statistics can diagnose.",
+      "Grader isolation placed on the reward path protects the verdict from both the acting policy and the candidate code it submits, so a reward reflects executed tests rather than tampering.",
+      "Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Reward hacking**: Once a check is the objective, any trajectory with proxy reward at least the intended solution's but lower true utility gains weight, and cheap exploits usually have high probability."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Reward hacking* exploits errors in *Reward as measurement*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Reward hacking exploits errors in Reward as measurement."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Verifier Isolation."
+   ]
+  }
+ ]
+}

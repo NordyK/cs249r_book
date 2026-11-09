@@ -1,0 +1,93 @@
+{
+ "title": "Compute Primitives",
+ "summary": "Classify deep learning mathematical operations to their corresponding hardware execution units.",
+ "source": {
+  "chapter": "v1-11",
+  "sections": [
+   "Compute Primitives",
+   "Vector operations",
+   "Matrix operations",
+   "Special function units"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Compute Primitives** in *Hardware Acceleration* (Vol I). By the end you should be able to:\n\n- Classify deep learning mathematical operations to their corresponding hardware execution units\n- Explain the mechanism and memory trade-offs of the im2col transformation for accelerating convolutions\n- Compare the low arithmetic intensity of element-wise vector operations with the higher reuse available in matrix multiplication\n- Explain how implicit GEMM eliminates memory duplication overhead in convolution acceleration\n- Classify neural network layers based on operational reuse and hardware execution affinity"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Hardware Acceleration, § Compute Primitives",
+   "md": "A single forward pass through a neural network layer can issue millions or billions of MAC operations, and executing them one scalar instruction at a time would swamp the processor in instruction-fetch and register-access overhead. Across fully connected, convolutional, and attention layers, learned linear transformations reduce to these repeated MACs, whose regular tensor structure exposes the parallel work and operand reuse that hardware specialization requires."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Vector operations\n- Matrix operations\n- Special function units\n\nPay attention to: Vector operations: element-wise math, reductions, and memory boundedness; Matrix operations: dense GEMM, attention projections, and convolution mapping via im2col / implicit GEMM; Special Function Units (SFUs) for transcendental activations and normalizations; Mapping neural network computational graphs to appropriate execution primitives."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how the $\\text{im2col}$ (image-to-column) transformation allows standard 2D convolution operations to execute on high-throughput matrix multiplication hardware (GEMM engines), and describe the primary memory overhead associated with this approach.",
+   "md": "The $\\text{im2col}$ transformation extracts overlapping local receptive field patches from an input tensor and flattens each patch into a column (or row) of a 2D matrix, while flattening the convolution filters into a weight matrix. This converts the sliding-window convolution into a standard GEMM ($C = A \\cdot B$) that executes efficiently on Tensor Cores or systolic arrays. However, because receptive fields overlap, input pixel values are duplicated across multiple patches, expanding memory footprint by up to roughly the filter area ($K_h \\times K_w$) unless implemented via implicit-GEMM address calculation without physical materialization."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-11-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "When executing a Transformer layer containing attention projection ($Q = X W_q$), Softmax ($\\text{Softmax}(S)$), Layer Normalization ($\\text{LayerNorm}(X)$), and GeLU activation ($\\text{GeLU}(Z)$), which execution unit is specifically responsible for computing transcendental functions (exponential and error function approximations)?",
+     "explanation": "The correct answer is D. Special Function Units (SFUs) are specialized hardware pipelines designed to evaluate transcendental and nonlinear mathematical functions—such as exponentials in Softmax, reciprocal square roots in LayerNorm, and Gaussian error approximations in GeLU—using hardware lookup tables and polynomial approximations. Matrix units and Tensor Cores are dedicated to high-throughput matrix multiply-accumulate operations, not transcendental approximations. Vector Load-Store Memory Controllers handle memory address generation and data movement across caches and DRAM.",
+     "hint": "Think about: classify deep learning mathematical operations to their corresponding hardware execution units.",
+     "type": "single",
+     "options": [
+      "Systolic 2D Matrix Multiply Units",
+      "Dense Tensor Cores",
+      "Vector Load-Store Memory Controllers",
+      "Special Function Units (SFUs)"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In modern AI accelerators, element-wise vector operations such as residual additions ($Y = X_1 + X_2$) achieve higher arithmetic intensity than large matrix-matrix multiplications ($C = A \\cdot B$).",
+     "explanation": "False. A residual addition does very little arithmetic per byte moved; under a simple FP32 traffic model with two reads and one write, it is about \\$1/12 FLOP/byte. Large matrix multiplication can reuse loaded tiles many times, so its arithmetic intensity is much higher even though measured performance still depends on implementation and memory behavior.",
+     "hint": "Think about: compare the low arithmetic intensity of element-wise vector operations with the higher reuse available in matrix multiplication.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The hardware transformation technique that enables convolutional layers to execute as matrix multiplications without physically duplicating overlapping patch data in memory is known as ____ GEMM.",
+     "explanation": "implicit. Implicit GEMM computes input tensor memory addresses on-the-fly inside kernel index calculations during tile loading, avoiding the large $\\mathcal{O}(K_h \\cdot K_w)$ memory expansion of explicit im2col materialization while retaining matrix-unit execution efficiency.",
+     "hint": "Think about: explain how implicit GEMM eliminates memory duplication overhead in convolution acceleration.",
+     "type": "fill",
+     "answer": [
+      "implicit"
+     ]
+    },
+    {
+     "q": "Which of the following operations in a modern deep learning architecture exhibits the highest operational arithmetic reuse, making it most suitable for dense 2D systolic arrays and Tensor Cores?",
+     "explanation": "The correct answer is A. Batched linear layers multiply an activation matrix by a weight matrix, enabling each weight element to be reused across all batch elements and each activation element to be reused across multiple output features, yielding high arithmetic intensity suitable for 2D matrix units. Element-wise ReLU performs only one comparison per element load. Batch Normalization mean computation performs reduction passes over data with minimal arithmetic reuse per byte transferred. Embedding table lookups are gather operations with zero arithmetic operations per byte fetched.",
+     "hint": "Think about: classify neural network layers based on operational reuse and hardware execution affinity.",
+     "type": "single",
+     "options": [
+      "Batched linear layer matrix multiplication ($Y = X W$)",
+      "Element-wise ReLU activation ($\\max(0, x)$)",
+      "Channel-wise Batch Normalization mean computation",
+      "Token-wise embedding table lookup"
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify deep learning mathematical operations to their corresponding hardware execution units.",
+    "You can now explain the mechanism and memory trade-offs of the im2col transformation for accelerating convolutions.",
+    "You can now compare the low arithmetic intensity of element-wise vector operations with the higher reuse available in matrix multiplication.",
+    "You can now explain how implicit GEMM eliminates memory duplication overhead in convolution acceleration."
+   ]
+  }
+ ]
+}

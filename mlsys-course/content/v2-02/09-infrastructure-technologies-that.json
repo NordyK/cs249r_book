@@ -1,0 +1,84 @@
+{
+ "title": "Infrastructure Technologies That Move the Walls",
+ "summary": "Analyze how CXL relieves memory-capacity pressure without displacing HBM for bandwidth-critical computation.",
+ "source": {
+  "chapter": "v2-02",
+  "sections": [
+   "Infrastructure Technologies That Move the Walls",
+   "Compute express link (CXL)",
+   "Wafer-scale planning constraint",
+   "Reconfigurable topologies and optical circuit switching"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Infrastructure Technologies That Move the Walls** in *Compute Infrastructure* (Vol II). By the end you should be able to:\n\n- Analyze how CXL relieves memory-capacity pressure without displacing HBM for bandwidth-critical computation\n- Analyze the capacity and injection-bandwidth constraints introduced by wafer-scale integration when model size exceeds on-wafer memory\n- Explain how advanced packaging changes communication paths and power-density budgets without determining one universal binding constraint\n- Evaluate the principle that emerging technologies relocate rather than eliminate physical infrastructure bottlenecks"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Compute Infrastructure, § Infrastructure Technologies That Move the Walls",
+   "md": "A new data center will host several generations of accelerators over its facility life, which operators typically depreciate across 15--20 years, so future-facing technologies matter only when they change a durable planning constraint. The useful test is not whether a technology is novel, but which wall it moves, what new wall appears after the move, and which fleet-design decision changes as a result."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Compute express link (CXL)\n- Wafer-scale planning constraint\n- Reconfigurable topologies and optical circuit switching\n\nPay attention to: CXL memory pooling relieving capacity limits without replacing HBM bandwidth; Wafer-scale integration trading network communication for external weight injection bandwidth; Advanced packaging relocating bottlenecks from interconnect distance to thermal/power density."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A systems team proposes moving a 1.8-trillion parameter LLM training workload to a Wafer-Scale Engine (such as Cerebras WSE-3) to eliminate chip-to-chip network communication delays. Explain why this move changes rather than eliminates communication constraints and identify the resulting capacity and bandwidth budgets.",
+   "md": "Wafer-scale integration removes package- and board-level transfers for operations mapped onto one wafer, but communication remains. A 1.8-trillion-parameter model requires several terabytes for weights alone, exceeding \\$44 GB of on-wafer SRAM. External weight streaming introduces an injection-bandwidth constraint, while training must also schedule activations, gradients, and updates. The planner must budget external data movement and power density rather than assume that a larger chip eliminates the network or memory problem."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-02-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A representative CXL memory path over PCIe Gen5 x16 delivers roughly \\$64 GB/s of bandwidth, approximately \\$50× lower than an H100's \\$3.35 TB/s HBM3 bandwidth. Which infrastructure bottleneck is CXL memory pooling designed to relieve, and which bottleneck does it explicitly not solve?",
+     "explanation": "The correct answer is C. CXL memory expansion and pooling can relieve host capacity pressure; accelerator access requires a supported platform, device type, data path, and software placement. Phase-local optimizer shards are candidates only when their transfer schedule fits the update budget. The representative PCIe-based path remains far slower than local HBM and does not replace its bandwidth-critical working set. The other choices confuse memory capacity with arithmetic, cooling, or wafer-scale injection.",
+     "hint": "Think about: analyze how CXL relieves memory-capacity pressure without displacing HBM for bandwidth-critical computation.",
+     "type": "single",
+     "options": [
+      "It relieves peak Tensor Core throughput shortages, but does not solve the memory capacity limit.",
+      "It relieves rack cooling limits by eliminating electrical resistance, but does not solve chip-to-chip latency.",
+      "It relieves the memory capacity ceiling by holding phase-local optimizer state in shared pooled memory, but explicitly does not replace HBM for bandwidth-critical forward and backward pass weight streaming.",
+      "It relieves wafer-scale weight injection bottlenecks, but does not solve semiconductor yield."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Advanced packaging technologies (such as 2.5D silicon interposers and 3D chiplet stacking) enable dense die-to-die interconnects on a single package. According to systems engineering principles, how does advanced packaging alter the landscape of infrastructure bottlenecks?",
+     "explanation": "The correct answer is D. Dense package-level interconnects can reduce communication distance while concentrating compute and memory power. The resulting design must qualify power delivery, current transients, and cooling; which constraint binds still depends on workload and configuration. Packaging does not eliminate switching energy, permit uncooled operation, or make arbitrary model state fit in SRAM.",
+     "hint": "Think about: explain how advanced packaging changes communication paths and power-density budgets without determining one universal binding constraint.",
+     "type": "single",
+     "options": [
+      "It allows accelerators to run uncooled at ambient room temperature by eliminating electrical resistance across die boundaries.",
+      "It permanently eliminates both the memory wall and the power wall by integrating optical waveguides directly onto the silicon substrate.",
+      "It eliminates the need for distributed training frameworks because all model parameters can fit permanently in on-die SRAM caches.",
+      "It shortens die-to-die paths while requiring package power density, current transients, and heat removal to be checked against the intended configuration."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Emerging infrastructure technologies such as CXL memory pooling, wafer-scale integration, and 2.5D packaging eliminate physical infrastructure constraints, allowing data center operators to deploy dense ML clusters without modifying cooling or power delivery.",
+     "explanation": "False. Emerging infrastructure technologies do not eliminate physical constraints; they relocate them. CXL moves memory capacity into a shared fabric but leaves interconnect bandwidth as the limiting factor. Wafer-scale integration removes some inter-package transfers for mapped operations but leaves on-wafer communication, external streaming bandwidth, and power concentration as constraints. Advanced packaging compresses die-to-die distances but concentrates thermal flux, requiring cooling and power delivery qualified for the package and rack.",
+     "hint": "Think about: evaluate the principle that emerging technologies relocate rather than eliminate physical infrastructure bottlenecks.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze how CXL relieves memory-capacity pressure without displacing HBM for bandwidth-critical computation.",
+    "You can now analyze the capacity and injection-bandwidth constraints introduced by wafer-scale integration when model size exceeds on-wafer memory.",
+    "You can now explain how advanced packaging changes communication paths and power-density budgets without determining one universal binding constraint.",
+    "You can now evaluate the principle that emerging technologies relocate rather than eliminate physical infrastructure bottlenecks."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,67 @@
+{
+ "title": "The Physics of Data Movement",
+ "summary": "Classify a collective's cost as dominated by per-message overhead or per-byte transfer and select the lever that addresses it.",
+ "source": {
+  "chapter": "v2-05",
+  "sections": [
+   "The Physics of Data Movement"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Physics of Data Movement** in *Collective Communication* (Vol II). By the end you should be able to:\n\n- Classify a collective's cost as dominated by per-message overhead or per-byte transfer and select the lever that addresses it\n- Calculate the transfer energy of a collective from bytes sent and energy per bit, and explain why fewer bytes or more local placement reduces it\n- Explain why energy per bit depends on the components inside an accounting boundary rather than on distance alone"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Collective Communication, § The Physics of Data Movement",
+   "md": "Whenever a gradient shard leaves an accelerator, three limits bound its trip before any collective algorithm runs. The speed of light sets a propagation floor of roughly 5 MicroUnitPrefixs per kilometer in fiber. High-frequency signal loss limits how far copper traces can reach before the link must convert to optics (the bandwidth-distance product of a later section). Host-kernel networking stacks add tens of microseconds of software copy overhead, unless kernel-bypass transports such as remote direct memory access (RDMA) and GPUDirect RDMA strip per-message initiation down to a few microseconds."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Latency floor, bandwidth, and per-message protocol overhead as separate terms of a communication budget; Communication energy as bytes sent times the energy per bit of every boundary crossed; Accounting boundaries for energy-per-bit comparisons."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A 10,000-rank ring AllReduce reduces a 1 GB gradient buffer over a fabric path that costs about 35 pJ per bit. Set up the energy of one reduction and explain what the result implies for algorithm and placement choices.",
+   "md": "Each rank sends about twice the payload, so the ring moves roughly 20 TB, or about \\$1.6 × 10^14 bits, and at 35 pJ per bit one reduction costs about 5.6 kJ, paid again at every synchronous step. Communication energy is the bytes an algorithm sends multiplied by the energy per bit of every boundary those bytes cross, so an algorithm that sends fewer bytes, or a placement that keeps more traffic inside the node, saves energy as directly as it saves time. The 35 pJ figure charges only the fabric path, so it must not be compared with a whole-system estimate until both use the same boundary."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-05-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "On the same fabric, one collective exchanges thousands of 4 KB messages per step while another moves a single 1 GB fused buffer. Which term governs each cost, and which lever addresses it?",
+     "explanation": "The correct answer is B. Latency and protocol overhead are paid once per message, so thousands of small sends accumulate fixed costs that fusion and kernel-bypass transports such as RDMA reduce, while a 1 GB buffer spends nearly all its time on per-byte transfer. Treating both as bandwidth-bound misses the fixed per-message cost that a faster link cannot remove, and treating both as latency-bound ignores that the propagation floor is microseconds while the large transfer takes far longer.",
+     "hint": "Think about: classify a collective's cost as dominated by per-message overhead or per-byte transfer and select the lever that addresses it.",
+     "type": "single",
+     "options": [
+      "Both are bandwidth-bound, so a faster link shortens both by the same factor.",
+      "The small messages pay per-message latency and protocol overhead on every send, so fusing messages or using a kernel-bypass transport helps; the 1 GB buffer is governed by per-byte transfer, so moving fewer bytes or adding bandwidth helps.",
+      "The small messages are bandwidth-bound because there are many of them, while the 1 GB buffer is latency-bound because a large transfer takes the longest path.",
+      "Both are latency-bound, because the speed of light sets a floor on every message regardless of its size."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Energy per transferred bit grows in proportion to physical distance, so a transfer that travels twice as far costs about twice the energy.",
+     "explanation": "False. Each broader path activates different components, such as on-package links, intra-node crossbars, serializers, optical transceivers, and switches, so distance alone does not set energy per bit. Two energy estimates can be compared only after their endpoints, interfaces, switches, and utilization match.",
+     "hint": "Think about: explain why energy per bit depends on the components inside an accounting boundary rather than on distance alone.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify a collective's cost as dominated by per-message overhead or per-byte transfer and select the lever that addresses it.",
+    "You can now calculate the transfer energy of a collective from bytes sent and energy per bit, and explain why fewer bytes or more local placement reduces it.",
+    "You can now explain why energy per bit depends on the components inside an accounting boundary rather than on distance alone."
+   ]
+  }
+ ]
+}

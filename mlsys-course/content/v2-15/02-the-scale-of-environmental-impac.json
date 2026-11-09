@@ -1,0 +1,81 @@
+{
+ "title": "The Scale of Environmental Impact",
+ "summary": "Calculate attributed training emissions from facility energy and grid factor, and identify what a placement comparison does and does not establish.",
+ "source": {
+  "chapter": "v2-15",
+  "sections": [
+   "The Scale of Environmental Impact"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Scale of Environmental Impact** in *Sustainable AI* (Vol II). By the end you should be able to:\n\n- Calculate attributed training emissions from facility energy and grid factor, and identify what a placement comparison does and does not establish\n- Distinguish growth in training compute from growth in training energy\n- Identify the environmental costs that an electricity-only footprint omits\n- Explain why geographic and temporal carbon levers must be evaluated jointly rather than multiplied"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Sustainable AI, § The Scale of Environmental Impact",
+   "md": "A training run measured in megawatt-hours is hard to reason about, because few engineers carry an intuition for what a megawatt-hour of grid electricity costs the atmosphere. The introduction quoted GPT-3's training emissions as one of the costs that scaling imposes (a later section). The derivation behind that figure converts the run's energy into emissions with a grid factor and then into a familiar anchor, the CO~2~ of a trans-Atlantic flight, which turns an abstract number into one with physical stakes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Converting facility energy into attributed emissions with a grid factor; Geographic placement as a grid-factor lever at equal facility energy; Compute growth versus energy growth; Embodied manufacturing impact and burdens on host communities."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A Quebec-versus-Poland comparison shows a 41-fold emissions difference for the same 10,000 MWh run, and carbon-aware scheduling can also shift work to cleaner hours. Explain why the geographic and temporal gains cannot simply be multiplied, and how the decision should be evaluated.",
+   "md": "Both levers act on the same quantity, the emissions factor of the electricity that supplies a fixed amount of energy, and the 41-fold ratio already uses annual-average factors at equal facility energy. At a hydro-dominated site the hourly factor stays close to its low average, so waiting for cleaner hours there leaves little additional gain. The placement and the schedule must therefore be evaluated as one decision, using the hourly or marginal factors the schedule would actually see along with the job's power, deadline, and capacity constraints."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-15-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A 2,000 MWh training run can be placed at a site whose annual-average grid factor is 400 g CO~2~ per kWh or at one whose factor is 20 g CO~2~ per kWh, with facility electricity held equal. Which conclusion follows?",
+     "explanation": "The correct answer is B. Emissions equal facility energy times the grid factor, so 2,000,000 kWh gives about 800 tonnes at 400 g per kWh and about 40 tonnes at 20 g per kWh. The grid factor changes attributed emissions, not the energy the run consumes. A placement comparison isolates one factor and cannot rank an unmeasured algorithmic change, and a temporal gain cannot simply be multiplied onto an annual-average placement gain.",
+     "hint": "Think about: calculate attributed training emissions from facility energy and grid factor, and identify what a placement comparison does and does not establish.",
+     "type": "single",
+     "options": [
+      "The cleaner site also cuts the run's energy twentyfold, because low-carbon grids deliver electricity more efficiently.",
+      "Attributed emissions fall from about 800 tonnes to about 40 tonnes, a twentyfold difference that isolates the grid factor at equal facility energy.",
+      "This comparison alone ranks placement against an algorithmic change, because both reduce emissions.",
+      "Waiting for cleaner hours at the cleaner site would multiply the saving by a further twentyfold."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Because training compute for notable models has grown by many orders of magnitude, training energy has grown by the same multiplier.",
+     "explanation": "False. A compute multiplier becomes an energy multiplier only after dividing by realized work per joule at a stated boundary. Efficiency gains in hardware and execution can make energy grow more slowly than compute, so the energy trend must be measured rather than read off a compute curve.",
+     "hint": "Think about: distinguish growth in training compute from growth in training energy.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An operator reports its AI fleet's environmental footprint as metered electricity multiplied by the grid factor. What does this account leave out?",
+     "explanation": "The correct answer is D. Producing processors carries embodied carbon and consumes water, gases, and chemicals before any job runs, and hosting a fleet assigns land, water, grid capacity, and disposal burdens to communities. Grid factors describe electricity supply, not manufacturing. Retirement does not necessarily create waste, because equipment can be redeployed, resold, or recycled, so disposal must be estimated from the actual end-of-life route.",
+     "hint": "Think about: identify the environmental costs that an electricity-only footprint omits.",
+     "type": "single",
+     "options": [
+      "Nothing, because operational electricity is the only environmental cost of AI hardware.",
+      "Only facility overhead, because grid factors already include the cost of manufacturing.",
+      "A fixed disposal charge per device, because retiring any accelerator necessarily creates e-waste.",
+      "Manufacturing impacts that precede the first training run, such as embodied carbon, ultrapure water, and specialty gases, and the land, water, and grid capacity that host communities supply."
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate attributed training emissions from facility energy and grid factor, and identify what a placement comparison does and does not establish.",
+    "You can now distinguish growth in training compute from growth in training energy.",
+    "You can now identify the environmental costs that an electricity-only footprint omits.",
+    "You can now explain why geographic and temporal carbon levers must be evaluated jointly rather than multiplied."
+   ]
+  }
+ ]
+}

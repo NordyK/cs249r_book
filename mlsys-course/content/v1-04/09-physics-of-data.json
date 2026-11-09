@@ -1,0 +1,89 @@
+{
+ "title": "Physics of Data",
+ "summary": "Calculate ideal transfer time and egress cost, then evaluate what those numbers do and do not justify in a data-placement decision.",
+ "source": {
+  "chapter": "v1-04",
+  "sections": [
+   "Physics of Data",
+   "Data gravity",
+   "Task-relevant signal",
+   "The feeding problem"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Physics of Data** in *Data Engineering* (Vol I). By the end you should be able to:\n\n- Calculate ideal transfer time and egress cost, then evaluate what those numbers do and do not justify in a data-placement decision\n- Apply the simplified feeding-loss calculation to estimate how a storage-bandwidth shortfall reduces modeled throughput relative to the supplied sustained baseline\n- Analyze how deduplication can reduce data movement cost under a fixed training schedule while still requiring validation of retained coverage and model quality\n- Compare storage and compute operations across the memory hierarchy by their relative energy cost per bit\n- Explain the technical definition and systems impact of the feeding loss in ML data pipelines"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Engineering, § Physics of Data",
+   "md": "The throughput bound lives in the Data–Machine overlap, and it is physical. Moving a petabyte of training data across cloud regions incurs tens of thousands of dollars in egress fees and hours of network serialization delays. Source code is small enough to move freely, so the data-as-code principle explains what data does without explaining why moving it costs so much. The physics of data supplies that explanation by giving data measurable properties."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Data gravity\n- Task-relevant signal\n- The feeding problem\n\nPay attention to: data gravity and cross-region petabyte-scale transfer costs; the feeding problem and accelerator feeding loss; data selection gain and signal-to-gravity ratio; energy-movement hierarchy across the memory hierarchy."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Using the data selection gain relationship Gain propto fracTask-Relevant SignalData Gravity, explain why removing \\$50\\% redundant samples can have large systems value when the retained dataset still covers the task-relevant cases and the training schedule is held fixed in passes over the data. Why is quality validation still necessary?",
+   "md": "If deduplication removes \\$50\\% redundant volume while retaining the task-relevant coverage, then each pass moves about half as many bytes for essentially the same useful evidence, so the system can cut data movement and storage work substantially under the same pass-based schedule. For example, the loader, storage path, and preprocessing stack now handle half the volume each epoch, which lowers I/O pressure and repeated movement cost even if model execution was previously compute-bound. The practical implication is that deduplication is high-leverage only after validation confirms that the removed records were truly redundant rather than rare but important cases, so quality checks must verify coverage and downstream model behavior rather than assume unchanged accuracy."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-04-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A machine learning team maintains a \\$1 PB raw training corpus in a US East cloud storage bucket and provisions a dedicated compute cluster in US West. The regions are connected by a dedicated \\$100 Gbps network fabric. Cloud egress pricing is \\$0.02/GB, and the model training run takes \\$20 hours. Under the chapter's data-gravity reasoning, which conclusion is best supported by these numbers?",
+     "explanation": "The correct answer is D. Moving \\$1\\text{ PB}$ over a \\$100\\text{ Gbps}$ link takes about \\$22.2\\text{ hours}$ in the idealized calculation and costs about \\$20,000 in egress, so locality is a serious design consideration. The remote-streaming answer ignores that the wire time alone is comparable to the full \\$20\\text{ hour}$ training run, while the compression answer overclaims evidence the scenario does not provide: no compression ratio or feasibility constraint is given.",
+     "hint": "Think about: calculate ideal transfer time and egress cost, then evaluate what those numbers do and do not justify in a data-placement decision.",
+     "type": "single",
+     "options": [
+      "The team should stream the dataset remotely during training, because a \\$100 Gbps link guarantees that data movement cannot become the bottleneck.",
+      "The team should split the dataset evenly across regions, because cross-region placement automatically removes the need to evaluate transfer cost or placement constraints.",
+      "The team should first apply compression, because any realistic compression plan will make the transfer clearly cheaper and faster than colocating compute.",
+      "The ideal one-time transfer is about \\$22.2 hours and costs about \\$20,000, so colocating or relocating compute near the data is worth evaluating, but the final decision still depends on compute availability, cost, and other deployment constraints."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Assume decoded tensors must be read from storage at a sustained demand of \\$1.9\\text{ GB/s}$, while the attached baseline block-storage path can supply only \\$250\\text{ MB/s}$. Assume no compression or cache alternative changes this bound. Under this simplified feeding-loss model, what follows?",
+     "explanation": "The correct answer is A. Under the stated simplification, the supply rate is \\$0.25 GB/s against a demand of \\$1.9 GB/s, so the supply-to-demand ratio is \\$0.25/1.9 approx 0.132 and the modeled throughput loss relative to that baseline is about \\$1-0.132 approx 0.87, or \\$87\\%. This idealized steady-state overlap model does not measure all accelerator idle time or utilization relative to advertised peak. The compute-bound answer ignores pipeline starvation: if decoded tensors cannot arrive fast enough, execution units wait regardless of their arithmetic capability.",
+     "hint": "Think about: apply the simplified feeding-loss calculation to estimate how a storage-bandwidth shortfall reduces modeled throughput relative to the supplied sustained baseline.",
+     "type": "single",
+     "options": [
+      "The storage bound reduces the sustained baseline throughput by about \\$87\\% relative to its supplied demand, because the supply-to-demand ratio is \\$0.25/1.9 approx 0.132 and the feeding loss is about \\$1-0.132 approx 0.87.",
+      "The accelerator remains compute-bound, because storage throughput and tensor execution are independent once batches have been scheduled.",
+      "Increasing batch size alone removes the bottleneck, because larger steps always improve the ratio between storage supply and decoded-tensor demand.",
+      "The storage path is only modestly underprovisioned, so the waiting fraction must stay below \\$20\\%."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "According to the chapter's energy-movement hierarchy, arrange the following operations in ascending order of energy consumed per 32-bit value (from lowest energy to highest energy):",
+     "explanation": "The correct order is: (2) On-chip 32-bit FP multiply -> (4) Off-chip DRAM memory access -> (1) Local NVMe SSD access -> (3) Data-center network transfer. Using the chapter's figures, an on-chip 32-bit floating-point multiply costs about \\$3.7 pJ (baseline). Moving a 32-bit value from off-chip DRAM costs about \\$640 pJ (about \\$173×). Reading it from a local SSD costs about \\$4,000 pJ (about \\$1,081×). Sending it across a data-center network costs about \\$40,000 pJ (about \\$10,811×).",
+     "hint": "Think about: compare storage and compute operations across the memory hierarchy by their relative energy cost per bit.",
+     "type": "order",
+     "items": [
+      "On-chip 32-bit FP multiply",
+      "Off-chip DRAM memory access",
+      "Local NVMe SSD access",
+      "Data-center network transfer"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate ideal transfer time and egress cost, then evaluate what those numbers do and do not justify in a data-placement decision.",
+    "You can now apply the simplified feeding-loss calculation to estimate how a storage-bandwidth shortfall reduces modeled throughput relative to the supplied sustained baseline.",
+    "You can now analyze how deduplication can reduce data movement cost under a fixed training schedule while still requiring validation of retained coverage and model quality.",
+    "You can now compare storage and compute operations across the memory hierarchy by their relative energy cost per bit."
+   ]
+  }
+ ]
+}

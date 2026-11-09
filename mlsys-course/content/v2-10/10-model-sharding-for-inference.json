@@ -1,0 +1,107 @@
+{
+ "title": "Model Sharding for Inference",
+ "summary": "Compare the latency and throughput mechanics of Tensor Parallelism versus Pipeline Parallelism during inference.",
+ "source": {
+  "chapter": "v2-10",
+  "sections": [
+   "Model Sharding for Inference",
+   "Memory and latency triggers for model sharding",
+   "Tensor parallelism",
+   "Pipeline parallelism for inference",
+   "Expert parallelism for MoE models",
+   "Embedding sharding for recommendation systems",
+   "Hybrid sharding strategies",
+   "Interconnect latency and communication overhead",
+   "Selecting a sharding strategy"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Model Sharding for Inference** in *Serving at Scale* (Vol II). By the end you should be able to:\n\n- Compare the latency and throughput mechanics of Tensor Parallelism versus Pipeline Parallelism during inference\n- Analyze the memory capacity versus memory bandwidth trade-offs in serving large Mixture-of-Experts models\n- Classify the specific communication collective patterns required by Tensor Parallelism versus Expert Parallelism\n- Design a hybrid embedding sharding topology that balances access locality, network collectives, and memory tiering for trillion-parameter recommendation systems\n- Structure the sequence of computation and communication steps in Expert-Parallel MoE token execution"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Serving at Scale, § Model Sharding for Inference",
+   "md": "When a deployment must retain a 70B model's … of FP16 weights in accelerator memory, or when a 175B model's … INT4 weight payload still exceeds a single … GPU, no single accelerator can hold the replica. Where quantization shrinks the representation, sharding keeps it intact and divides it across multiple GPUs that execute together as one logical replica. The resulting design adapts tensor and pipeline parallelism from training, but must evaluate their communication and scheduling costs against per-request inference deadlines."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Memory and latency triggers for model sharding\n- Tensor parallelism\n- Pipeline parallelism for inference\n- Expert parallelism for MoE models\n- Embedding sharding for recommendation systems\n- Hybrid sharding strategies\n- Interconnect latency and communication overhead\n- Selecting a sharding strategy\n\nPay attention to: Weight memory formula and sharding triggers; Tensor Parallelism column-row partitioning and AllReduce synchronization; Pipeline Parallelism throughput scaling vs bubble latency; Expert Parallelism (MoE) AllToAll routing, capacity factors, and memory-bandwidth paradox."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why a 671B-parameter MoE model with 37B active parameters per token needs much more resident weight capacity than its per-token arithmetic suggests, and why sparse activation does not guarantee small-dense-model latency.",
+   "md": "All 671B parameters need about 1,342 GB in FP16 or 671 GB in FP8 before caches and runtime reserves. Only 37B active parameters contribute roughly 74 GB of FP16 weight reads per token under the simplified model. Two eight-GPU 80 GB nodes supply 1,280 GB, insufficient even for FP16 weights alone. Routing, expert imbalance, and network transfers further separate achieved latency from a small dense model's behavior."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-10-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why can tensor parallelism shorten a single forward pass, while pipeline parallelism alone does not provide the same intra-layer acceleration for one request?",
+     "explanation": "The correct answer is D. TP divides each layer's computation across devices but adds collective costs, so its latency gain depends on the workload and interconnect. PP places successive layers on different devices; one request still traverses them in order. PP primarily supplies capacity and concurrent-request throughput. It can alter memory placement or eliminate offload costs, so zero latency improvement is not a universal claim.",
+     "hint": "Think about: compare the latency and throughput mechanics of Tensor Parallelism versus Pipeline Parallelism during inference.",
+     "type": "single",
+     "options": [
+      "TP eliminates the need for activation storage, while PP doubles activation sizes across stages.",
+      "TP uses point-to-point transfers over Ethernet, while PP requires NVLink broadcast collectives.",
+      "TP relies on asynchronous CPU offloading, whereas PP executes purely on GPU Tensor Cores.",
+      "TP partitions intra-layer matrix multiplications across devices with per-layer AllReduce, whereas PP requires a single request to traverse all sequential stages in series."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In model sharding, Tensor Parallelism relies on AllToAll collective communication to route tokens between layers, whereas Expert Parallelism relies strictly on AllReduce to synchronize partial attention head outputs.",
+     "explanation": "False. The communication collectives are inverted. Tensor Parallelism relies on AllReduce collectives (two per transformer block: one after attention, one after MLP row-split) to sum partial activation results across all devices. Expert Parallelism (MoE) relies on AllToAll collectives (dispatch to route token activations to expert-hosting devices, and gather to retrieve expert outputs) because different tokens are dynamically routed to different target GPUs based on gating scores.",
+     "hint": "Think about: classify the specific communication collective patterns required by Tensor Parallelism versus Expert Parallelism.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An illustrative recommendation service has a resident embedding tier smaller than its full entity catalog. Within that admitted resident population, 1% of embeddings are hot, 10% warm, and 89% cold. Which hybrid placement matches the chapter's scenario while counting replicas against the resident memory budget?",
+     "explanation": "The correct answer is A. The supplied hot/warm/cold split describes the admitted resident population, not every entity in the catalog or a verified named-company deployment. Selected-group replication spends memory to reduce hot-entry lookup traffic; column sharding spreads warm-entry access; row sharding places the cold tail. Replicated bytes remain part of the resident budget. The layouts do not uniquely prescribe AllGather, AllToAll, or shard RPCs; the runtime and input/output placement determine transport.",
+     "hint": "Think about: design a hybrid embedding sharding topology that balances access locality, network collectives, and memory tiering for trillion-parameter recommendation systems.",
+     "type": "single",
+     "options": [
+      "Hot (1%) embeddings are replicated within selected shard groups; warm (10%) are column-sharded; cold (89%) are row-sharded by entity hash, with transport chosen for the runtime.",
+      "Hot embeddings are stored exclusively on remote cold storage; cold embeddings are replicated in HBM across all GPUs.",
+      "All embeddings are strictly column-sharded across all GPUs regardless of popularity to eliminate network communication.",
+      "Hot embeddings are sharded row-wise across CPUs; cold embeddings are broadcast via AllReduce to all GPU Tensor Cores."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Order the sequence of operations that occurs during token execution in an Expert-Parallel (MoE) transformer layer:",
+     "explanation": "The correct sequence is (2) -> (1) -> (4) -> (3) -> (5).\n- (2) The gating network evaluates token embeddings to select the top-$k$ experts per token.\n- (1) An AllToAll dispatch collective routes token representations to the devices hosting their assigned experts.\n- (4) Expert devices execute feed-forward matrix multiplications in parallel on received tokens.\n- (3) A second AllToAll gather collective transmits computed expert outputs back to originating devices.\n- (5) The host device performs a weighted summation of expert outputs using routing probabilities and adds residual connections.",
+     "hint": "Think about: structure the sequence of computation and communication steps in Expert-Parallel MoE token execution.",
+     "type": "order",
+     "items": [
+      "Gating network evaluates input representations and computes top-$k$ routing probabilities",
+      "AllToAll dispatch transmits token activation vectors to the specific GPUs hosting the selected experts",
+      "Selected expert sub-networks compute local feed-forward transformations on assigned tokens",
+      "AllToAll gather routes expert output activations back to the originating host devices",
+      "Weighted sum combines expert outputs with gating coefficients and adds residual connections"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Using the $\\alpha$-$\\beta$ communication model, explain why Tensor Parallelism across nodes linked via standard 100G Ethernet introduces prohibitive latency overhead compared to intra-node NVLink.",
+   "md": "TP invokes collectives repeatedly along the forward-pass critical path. In a ring model, both startup steps and transferred bytes matter: slower Ethernet links can expose far more time than intra-node NVLink. Use per-direction bandwidth consistently, specify message size and rank count, and include both collectives per layer where required. For decode, the per-collective latency column of the interconnect table, not the bandwidth column, decides placement, because that fixed cost is paid twice per layer for every generated token."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare the latency and throughput mechanics of Tensor Parallelism versus Pipeline Parallelism during inference.",
+    "You can now analyze the memory capacity versus memory bandwidth trade-offs in serving large Mixture-of-Experts models.",
+    "You can now classify the specific communication collective patterns required by Tensor Parallelism versus Expert Parallelism.",
+    "You can now design a hybrid embedding sharding topology that balances access locality, network collectives, and memory tiering for trillion-parameter recommendation systems."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,56 @@
+{
+ "title": "Serving Workloads and the Serving Hierarchy",
+ "summary": "Classify inference optimization levers according to their respective tiers in the Serving Hierarchy.",
+ "source": {
+  "chapter": "v2-10",
+  "sections": [
+   "Serving Workloads and the Serving Hierarchy",
+   "Inference beyond LLMs",
+   "The serving hierarchy"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Serving Workloads and the Serving Hierarchy** in *Serving at Scale* (Vol II). By the end you should be able to:\n\n- Classify inference optimization levers according to their respective tiers in the Serving Hierarchy\n- Structure the hierarchy of inference optimization tiers from individual request processing to global platform management"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Serving at Scale, § Serving Workloads and the Serving Hierarchy",
+   "md": "An optimization tuned for one model family or one layer of the stack can miss the active bottleneck when applied to another. Paging a key-value cache does nothing for an embedding-heavy recommendation model, and fusing a GPU kernel cannot rescue a service whose requests stall in a load balancer. Controlling serving cost therefore requires separating the workload mix from the system layer that owns each bottleneck."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Inference beyond LLMs\n- The serving hierarchy\n\nPay attention to: The four-level serving hierarchy."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-10-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In the four-level Serving Hierarchy (Request, Replica, Service, Platform), which level and primary optimization lever are correctly matched to their target bottleneck?",
+     "explanation": "The correct answer is C. The Service level coordinates multiple replicas of the same model to deliver aggregate capacity through load balancing, request routing, and autoscaling. The proposal linking the Platform level to kernel fusion confuses fleet-wide multi-tenancy with intra-device execution; the proposal placing fair-share tenant quotas at the Request level incorrectly attributes platform governance to per-request transformations; and the proposal placing edge CDN caching at the Replica level confuses single-device execution with edge routing infrastructure.",
+     "hint": "Think about: classify inference optimization levers according to their respective tiers in the Serving Hierarchy.",
+     "type": "single",
+     "options": [
+      "Platform level: Minimizing single-forward-pass latency via kernel fusion and memory layout",
+      "Request level: Ensuring fair-share GPU quotas and tenant isolation across organizations",
+      "Service level: Managing aggregate capacity across multiple replicas via load balancing and autoscaling",
+      "Replica level: Reducing client-side network RTT via edge caching and CDN routing"
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify inference optimization levers according to their respective tiers in the Serving Hierarchy.",
+    "You can now structure the hierarchy of inference optimization tiers from individual request processing to global platform management."
+   ]
+  }
+ ]
+}

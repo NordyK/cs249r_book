@@ -1,0 +1,67 @@
+{
+ "title": "The Loop and the Harness",
+ "summary": "Work through The Loop and the Harness.",
+ "source": {
+  "chapter": "v3-10",
+  "sections": [
+   "The Loop and the Harness",
+   "The anatomy of an unmanaged loop",
+   "One turn under supervision"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Loop and the Harness** in *The Agent Harness* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Agent Harness, § The Loop and the Harness",
+   "md": "When the `r18` repair agent runs inside a bare execution loop, an operator pause during the test suite or an unconstrained retry cycle immediately exposes the lack of an external control plane. A control plane is a path, separate from the one that performs model calls and tool work, that decides whether that work may proceed. An unmanaged loop treats model completions as direct execution instructions; a harness treats them as untrusted proposals, evaluating every action against explicit admission policies, budget constraints, and external supervisory signals."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The anatomy of an unmanaged loop\n- One turn under supervision"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Trajectory record matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-10-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Loop and the Harness** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Operator control takes effect at turn boundaries, so a harness that checks only when a reply ends lets one call postpone a pause by K_max x t_dec, and pause, interrupt, cancel, kill, and budget stop change admission differently.",
+      "Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan.",
+      "A runaway retry loop is locally compliant at every step, so the harness bounds turns, tokens, wall time, and dollars as one vector, reads the largest used fraction, and escalates through steer, restrict, and finalize.",
+      "Withdrawing a result's eligibility to inform the model never clears the operation's obligation, and no trajectory reaches a terminal state until every obligation is settled or explicitly transferred."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Trajectory record**: Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Trajectory record* is controlled by *Harness owns continuation*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Trajectory record is controlled by Harness owns continuation."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through The Loop and the Harness."
+   ]
+  }
+ ]
+}

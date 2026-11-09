@@ -1,0 +1,83 @@
+{
+ "title": "Mobile ML: Offline Intelligence",
+ "summary": "Compare the battery tax and the thermal wall as distinct energy and thermodynamic constraints in mobile ML.",
+ "source": {
+  "chapter": "v1-02",
+  "sections": [
+   "Mobile ML: Offline Intelligence",
+   "Mobile ML benefits and resource constraints",
+   "Personal assistant and media processing"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Mobile ML: Offline Intelligence** in *System Paradigms* (Vol I). By the end you should be able to:\n\n- Compare the battery tax and the thermal wall as distinct energy and thermodynamic constraints in mobile ML\n- Analyze the system scheduling and thermal constraints of multi-stage computational photography pipelines on mobile SoCs\n- Analyze why desktop-trained models fail on mobile devices due to activation memory, thermal budgets, and unsupported operations\n- Evaluate how dedicated hardware enclaves (e.g., Secure Enclave) provide biometric privacy while recognizing holistic system threat models\n- Explain the physical sequence of events during mobile thermal throttling under unoptimized compute workloads"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, System Paradigms, § Mobile ML: Offline Intelligence",
+   "md": "Carrying edge-style locality into a user's pocket changes which budget runs out first. A phone must deliver responsive, private inference all day from a pocket-sized battery, inside a thin chassis with no fan to carry heat away. Mobile ML integrates machine learning directly into smartphones and tablets to meet that envelope. It fits workloads where data locality, offline operation, and immediate response matter more than computational scale, such as voice recognition, computational photography, health monitoring, and navigation or translation that must keep working without a network."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Mobile ML benefits and resource constraints\n- Personal assistant and media processing\n\nPay attention to: Battery tax vs. thermal wall on passively cooled smartphones; Multi-stage computational photography pipeline scheduling; Pitfalls of deploying unoptimized desktop-trained models to mobile SoCs."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why does deploying an unoptimized desktop-trained vision model (such as an FP32 ResNet-50 pipeline) directly onto a mobile device frequently fail, even when the model's FP32 weights (~102.2 MB) appear smaller than the phone's total RAM?",
+   "md": "While the raw FP32 weights are ~102.2 MB, a complete desktop pipeline requires gigabytes of memory once intermediate activation tensors, input/output preprocessing buffers, runtime framework overhead, and batch buffers are allocated. Furthermore, unoptimized desktop models execute billions of FLOPs (e.g., 8.2 GFLOP per inference) using unsupported float operations or desktop-specific layers. Even where the weights fit in RAM, a low-end edge processor then takes seconds per inference, a latency failure rather than a capacity one, while the full multi-gigabyte pipeline can still cause out-of-memory crashes."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-02-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "How do the **battery tax** and the **thermal wall** differ as physical constraints on mobile ML systems?",
+     "explanation": "The correct answer is A. The battery tax represents the depletion of finite electrochemical energy ($E = P \\cdot t$) over a full day, meaning a model running continuously draws down the daily battery budget. The thermal wall represents the maximum rate of heat that a phone's passive chassis can continuously dissipate (typically 3–5 W TDP). Adding a larger battery extends runtime but cannot prevent thermal throttling if the workload exceeds the thermal dissipation ceiling. The option dividing the constraints by mobile operating system is factually baseless. The option suggesting higher clock frequencies to beat the thermal wall violates the cubic power law ($\\text{Power} \\propto f^3$). The option conflating the terms with SRAM leakage and modem power misdefines both concepts.",
+     "hint": "Think about: compare the battery tax and the thermal wall as distinct energy and thermodynamic constraints in mobile ML.",
+     "type": "single",
+     "options": [
+      "The battery tax is an energy budget problem bounding total operations over time ($\\int \\text{Power} \\cdot dt$), whereas the thermal wall is a heat dissipation ceiling bounding instantaneous sustained power ($\\text{Power} \\le 3\\text{--}5\\text{ W}$) regardless of battery size.",
+      "The battery tax applies only to iOS devices, while the thermal wall applies only to Android devices.",
+      "The battery tax can be resolved by lowering clock frequency, but the thermal wall requires increasing the clock frequency to finish calculations faster.",
+      "The battery tax represents static memory leakage in SRAM, while the thermal wall represents network transmission power in 5G modems."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Why does deploying a mobile computational photography feature (such as Portrait Mode or Night Mode) present a pipeline scheduling challenge rather than a single-model optimization problem?",
+     "explanation": "The correct answer is B. Mobile computational photography does not rely on a single isolated model; it executes a sequence of specialized real-time models (such as depth estimation, segmentation, and denoising) alongside the ISP. All stages must execute within the user's perceived shutter delay (tens to hundreds of milliseconds) while sharing the phone's tight 3–5 W thermal envelope across heterogeneous SoC cores (CPU, GPU, NPU) without triggering thermal throttling. The option claiming one network per charge cycle is absurd. The option claiming optics prevent INT8 quantization is false, as mobile vision pipelines routinely use quantized models. The option claiming ISPs reject ML tensor inputs misrepresents modern mobile SoC architectures where ISPs and NPUs share memory.",
+     "hint": "Think about: analyze the system scheduling and thermal constraints of multi-stage computational photography pipelines on mobile SoCs.",
+     "type": "single",
+     "options": [
+      "Mobile cameras can only run one neural network per battery charge cycle.",
+      "The feature executes a multi-stage pipeline (depth estimation, semantic segmentation, alignment, and HDR tone mapping) that must all complete within a perceived shutter delay while sharing a 3–5 W thermal budget across CPU, GPU, and NPU.",
+      "Computational photography models cannot use quantized INT8 representations due to mathematical rounding artifacts in lens optics.",
+      "Camera image signal processors (ISPs) operate asynchronously from the operating system and reject all external ML tensor inputs."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Running biometric matching (such as Face ID) inside a dedicated on-device Secure Enclave reduces data disclosure risks by keeping mathematical representations isolated in encrypted hardware, but it does not automatically eliminate all security or privacy risks without rigorous end-to-end system design.",
+     "explanation": "True. Hardware isolation mechanisms like the Secure Enclave restrict biometric mathematical representations to dedicated encrypted memory on-device, preventing remote transmission and unauthorized operating system access. However, overall system security and privacy still depend on the complete threat model, authentication policies, and software implementation.",
+     "hint": "Think about: evaluate how dedicated hardware enclaves (e.g., Secure Enclave) provide biometric privacy while recognizing holistic system threat models.",
+     "type": "truefalse",
+     "answer": true
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare the battery tax and the thermal wall as distinct energy and thermodynamic constraints in mobile ML.",
+    "You can now analyze the system scheduling and thermal constraints of multi-stage computational photography pipelines on mobile SoCs.",
+    "You can now analyze why desktop-trained models fail on mobile devices due to activation memory, thermal budgets, and unsupported operations.",
+    "You can now evaluate how dedicated hardware enclaves (e.g., Secure Enclave) provide biometric privacy while recognizing holistic system threat models."
+   ]
+  }
+ ]
+}

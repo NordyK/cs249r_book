@@ -1,0 +1,83 @@
+{
+ "title": "The Cost of Failure",
+ "summary": "Apply the marginal investment criterion to decide whether an added fault-tolerance mechanism lowers expected run cost.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "The Cost of Failure",
+   "Failure cost by workload",
+   "Investing in protection"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Cost of Failure** in *Fault Tolerance* (Vol II). By the end you should be able to:\n\n- Apply the marginal investment criterion to decide whether an added fault-tolerance mechanism lowers expected run cost\n- Explain why the cost of a single failure varies by orders of magnitude across workloads\n- Calculate the break-even recovery-time saving for a hot-spare node and identify the assumption it depends on\n- Evaluate how cluster scale changes the return on the same fault-tolerance investment"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, § The Cost of Failure",
+   "md": "Losing an uncheckpointed day on a 10,000-GPU foundation-model run burns hundreds of thousands of dollars in accelerator time, whereas losing an hour on a small vision job costs a few hundred dollars and a failed update in an online recommender costs live revenue rather than batch rework. Hardware, silent corruption, and software together set how often a fleet fails, but the work a failure destroys determines what each incident costs. A defense is worth buying only where it removes more of that expected loss than it adds in standing overhead."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Failure cost by workload\n- Investing in protection\n\nPay attention to: Failure cost by workload: allocation cost per hour, recoverable state, and recovery time; Expected cost per training run and the marginal investment criterion; Hot-spare break-even on the chapter's 10,000-GPU cluster; Scale reversing the verdict on the same protection."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: On the 10,000-GPU cluster, about 6.2 failures per day each stall every GPU during recovery, at about \\$2 per GPU-hour. An idle eight-GPU hot-spare node costs about \\$384 per day. Estimate how much recovery time the spare must save per failure to pay for itself, and state the condition attached to that estimate.",
+   "md": "Shaving one minute from each recovery is worth about 6.2 failures times 10,000 GPUs times \\$2 per hour divided by 60, or roughly \\$2,100 per day, so each second saved per failure is worth about \\$34 per day and the spare breaks even near 11 seconds saved per failure. The estimate holds only if the spare is refilled before the next failure arrives, about 3.9 hours later, and if the time saved is real recovery time while the fleet waits. At fleet scale, idle capacity that shortens recovery is cheap relative to the GPU-time it protects."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "The expected cost of a training run is modeled as base compute, plus expected failures times the cost per failure, plus the cost of fault-tolerance mechanisms. Under this model, when does one more unit of fault-tolerance investment lower the total expected cost?",
+     "explanation": "The correct answer is C. The investment criterion compares the marginal cost of protection with the marginal reduction in expected failure cost; additional protection pays while the second exceeds the first. Reducing failures at any price ignores that protection itself adds cost, and a large, frequently failing cluster usually satisfies the criterion but does not define it. Comparing protection with base compute is not the test, because base compute is held fixed.",
+     "hint": "Think about: apply the marginal investment criterion to decide whether an added fault-tolerance mechanism lowers expected run cost.",
+     "type": "single",
+     "options": [
+      "Whenever it reduces the expected number of failures, regardless of what it costs.",
+      "Whenever the cluster is large enough to fail several times per day.",
+      "While the reduction in expected failure cost it buys exceeds its own marginal cost.",
+      "Whenever total fault-tolerance spending stays below the base compute cost of the run."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A 175B-parameter language model trains on 10,000 GPUs at about \\$2 per GPU-hour, and a ViT-Large model trains for two days on a much smaller allocation. Both checkpoint once a day. Why can one failure cost the language model run roughly \\$0.5M of compute but the vision run only tens of thousands of dollars?",
+     "explanation": "The correct answer is B. At 10,000 GPUs and about \\$2 per GPU-hour, a day of lost progress costs about \\$0.5M before schedule delay, while a smaller vision allocation burns far less per hour. The per-device failure rate is the same physics in both runs, so the gap comes from what each hour of the allocation costs. The checkpoint-size claim is reversed, since the 175B checkpoint is terabytes against a single-digit-gigabyte vision checkpoint, and vision runs still carry augmentation and data-order state.",
+     "hint": "Think about: explain why the cost of a single failure varies by orders of magnitude across workloads.",
+     "type": "single",
+     "options": [
+      "Each GPU in the language model run fails more often, so every failure destroys more work.",
+      "Lost progress is priced by what the allocation costs per hour and how much state must be recovered, so up to a day of rework on a 10,000-GPU allocation costs about \\$0.5M while a smaller allocation loses far less per day.",
+      "Vision checkpoints are larger than language model checkpoints, which shortens vision recovery.",
+      "Vision runs carry no state beyond their weights, so they can resume from any data position at no cost."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A hot-spare node that pays for itself beside a 10,000-GPU training cluster is also a sound investment beside an eight-GPU job, because the node and its daily cost are identical.",
+     "explanation": "False. The spare's benefit scales with how often failures occur and how many GPUs wait during each recovery. An eight-GPU job fails rarely and idles few GPUs per recovery, so the spare would sit idle far longer than it could save. Scale reverses the verdict on the same hardware.",
+     "hint": "Think about: evaluate how cluster scale changes the return on the same fault-tolerance investment.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the marginal investment criterion to decide whether an added fault-tolerance mechanism lowers expected run cost.",
+    "You can now explain why the cost of a single failure varies by orders of magnitude across workloads.",
+    "You can now calculate the break-even recovery-time saving for a hot-spare node and identify the assumption it depends on.",
+    "You can now evaluate how cluster scale changes the return on the same fault-tolerance investment."
+   ]
+  }
+ ]
+}

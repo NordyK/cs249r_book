@@ -1,0 +1,99 @@
+{
+ "title": "Six Principles of Distributed ML Systems",
+ "summary": "Diagnose how communication and synchronization terms that are negligible on a small cluster come to dominate step time at fleet scale, a qualitative change that small-cluster profiling cannot predict.",
+ "source": {
+  "chapter": "v2-17",
+  "sections": [
+   "Six Principles of Distributed ML Systems"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Six Principles of Distributed ML Systems** in *Conclusion* (Vol II). By the end you should be able to:\n\n- Diagnose how communication and synchronization terms that are negligible on a small cluster come to dominate step time at fleet scale, a qualitative change that small-cluster profiling cannot predict\n- Apply the memory wall and roofline principles to diagnose low decode throughput and identify batching and quantization as the appropriate remedies\n- Justify why large-cluster failure rates (e.g. Llama 3's 3.1-hour MTBF) make automated checkpointing and fault-tolerant architecture mandatory\n- Explain why hardware efficiency gains do not automatically reduce aggregate fleet energy consumption under the Jevons paradox of AI\n- Apply the Fleet Law to explain distributed scaling limits and identify architectural mitigations to reduce communication and synchronization overhead"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Conclusion, § Six Principles of Distributed ML Systems",
+   "md": "When those inherited constraints surface in production, as a training run that stalls every few hours on a failed component or a serving pool whose tail latency spikes across a fan-out query, the failure comes from the fleet's physical and institutional structure rather than an operator mistake."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: the six principles of distributed ML systems, their governing questions, and key metrics; the Fleet Law and C3 decomposition; empirical failure rates at scale (Llama 3 MTBF); the memory wall and roofline bounds in decode."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Under the Fleet Law (DistributedStepTime(DeviceCount) = fracIronLawComputeTimeDeviceCount + CommunicationTime(DeviceCount) + SynchronizationTime(DeviceCount) - OverlappedTime), explain why adding accelerators to a distributed training cluster eventually produces diminishing returns (distributed Amdahl's law), and state three concrete architectural techniques that reduce CommunicationTime(DeviceCount) + SynchronizationTime(DeviceCount) or increase OverlappedTime.",
+   "md": "In the Fleet Law, while per-rank computation IronLawComputeTime/DeviceCount scales down inversely with accelerator count DeviceCount, communication CommunicationTime(DeviceCount) and synchronization SynchronizationTime(DeviceCount) remain constant or increase with cluster size due to network diameter, bisection bandwidth limits, and straggler tail effects. As DeviceCount becomes large, CommunicationTime(DeviceCount) + SynchronizationTime(DeviceCount) dominates total step time, causing added compute units to sit idle at barriers.\n\nThree concrete architectural mitigations are:\n1. **Gradient Accumulation & Compression**: Accumulating gradients over multiple microbatches to reduce communication frequency, or applying quantization/sparsification with error feedback to reduce transfer volume in CommunicationTime(DeviceCount).\n2. **Topology-Aware Collective Algorithms**: Using Ring or Tree AllReduce mapped to physical node topologies (e.g., NVLink within nodes, rail-optimized fat-trees across nodes) to maximize bandwidth utilization.\n3. **Computation-Communication Overlapping**: Pipelining collective transfers behind backward-pass gradient computations to maximize OverlappedTime."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-17-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A synchronous distributed training job achieves 94% linear scaling efficiency on 8 GPUs. When scaled to 8,000 GPUs on the same network fabric without changing hyperparameters, scaling efficiency plummets to 38%. Cluster telemetry reveals that per-device arithmetic execution speed remained constant, but workers spend over 55% of step time waiting at collective barriers. Which of the six principles best explains why small-scale profiling failed to forecast this collapse?",
+     "explanation": "The correct answer is A. Communication can dominate, because collective synchronization, fabric contention, and straggler waiting grow with worker count while each device's share of the compute shrinks. In the Fleet Law, IronLawComputeTime/DeviceCount falls as DeviceCount grows from 8 to 8,000, but CommunicationTime(DeviceCount) and SynchronizationTime(DeviceCount) do not; fabric contention and arrival skew can expose communication and synchronization costs at the larger scale. Barrier waiting alone does not distinguish those causes; aligned rank traces and fabric measurements are needed. Profiling at 8 GPUs therefore does not establish the regime that 8,000 GPUs enter, which is the qualitative change of scale that all six principles share. The telemetry supports exposed synchronization cost, but it does not establish silent corruption as its cause. The downclocking option is refuted by the constant per-device arithmetic speed, and the thermal-throttling option is likewise inconsistent with unchanged local kernel speeds.",
+     "hint": "Think about: diagnose how communication and synchronization terms that are negligible on a small cluster come to dominate step time at fleet scale, a qualitative change that small-cluster profiling cannot predict.",
+     "type": "single",
+     "options": [
+      "Communication can dominate, because collective synchronization, fabric contention, and straggler waiting grow with worker count while each device's share of the compute shrinks, so the exposed communication and synchronization time that is negligible on 8 GPUs becomes most of the step on 8,000.",
+      "Failure is routine, because the cluster experiences silent hardware data corruption that forces the optimizer to recalculate gradient steps.",
+      "Infrastructure determines capability, because 8,000-GPU clusters automatically downclock GPU core frequencies by 60% to comply with data-center power capping.",
+      "Sustainability is a first-order cost, because thermal throttling occurs only when aggregate cluster power exceeds one megawatt."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An inference optimization team profiles an autoregressive LLM decode engine on an H100 GPU and finds that realized throughput is only 12% of theoretical FP16 tensor core peak FLOP/s, even though `nvidia-smi` reports 98% GPU utilization. The execution profile shows that execution time is dominated by matrix-vector kernels (one weight matrix times one activation vector) with a batch size of 1, and measured HBM traffic approaches sustainable bandwidth with stable clocks. Applying the chapter's memory wall and serving principles, what is the root cause of this behavior, and what is the proper engineering response?",
+     "explanation": "The correct answer is D. Decode is memory-bandwidth bound because loading the full parameter matrix for a single token yields an arithmetic intensity well below the hardware roofline ridge; the team should evaluate batching to reuse weights, quantization to reduce weight bytes, or tensor parallelism to distribute work and memory traffic, subject to latency, quality, and communication costs. In single-token autoregressive decode, each parameter weight is transferred from High-Bandwidth Memory (HBM) to on-chip registers to perform only 2 FLOPs per parameter, yielding an arithmetic intensity of approx 1 FLOP/byte (for 16-bit floats). Since the H100 roofline ridge point is around \\$150--300 FLOP/byte, the compute cores remain stalled waiting for memory transfers, while `nvidia-smi` reports high utilization because a kernel is executing during most sampling intervals, which does not measure tensor-core saturation. Mitigations include batching requests (reusing loaded weights across multiple tokens) and quantization (halving the bytes transferred per parameter). Upgrading peak arithmetic TFLOP/s does nothing to accelerate an HBM bandwidth bottleneck. Stable measured clocks do not support the thermal-throttling diagnosis. Tensor parallelism distributes work and memory traffic but adds collectives; it does not inherently raise arithmetic intensity. Each mitigation requires end-to-end measurement under the service contract. Converting to FP32 doubles memory traffic per parameter, worsening the memory wall bottleneck.",
+     "hint": "Think about: apply the memory wall and roofline principles to diagnose low decode throughput and identify batching and quantization as the appropriate remedies.",
+     "type": "single",
+     "options": [
+      "The GPU arithmetic units are saturated; the team must upgrade to an accelerator with higher FP16 peak TFLOP/s to unblock the matrix kernels.",
+      "The low realized throughput indicates severe GPU thermal throttling; the team should increase cooling fan speeds and lower clock targets.",
+      "High `nvidia-smi` utilization proves compute saturation; the team should convert model weights to FP32 to ensure the arithmetic units perform more floating-point work per cycle.",
+      "Decode is memory-bandwidth bound because loading the full parameter matrix for a single token yields an arithmetic intensity well below the hardware roofline ridge; the team should evaluate batching to reuse weights, quantization to reduce weight bytes, or tensor parallelism to distribute work and memory traffic, subject to latency, quality, and communication costs."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Meta documented that training Llama 3 on 16,384 GPUs over 54 days experienced 419 unexpected interruptions, corresponding to an average Mean Time Between Failures (MTBF) of approximately 3.1 hours. Which systems invariant does this empirical data establish for frontier training?",
+     "explanation": "The correct answer is B. In synchronous distributed training across thousands of devices, cluster-wide failure is routine and continuous; checkpointing cadence, multi-tier storage offload, and automated recovery must be designed into the architecture from inception. Under the simplified model of identical independent constant component failure rates, each interrupting the job, aggregate job MTBF decreases inversely with the number of required accelerators (SystemMtbf = ComponentMttf/DeviceCount). Under full-job checkpoint recovery, a failure that interrupts the synchronous job stalls its participating ranks and rolls that job back to its last checkpoint; unrelated jobs need not roll back. For the same lost wall-clock progress, wasted accelerator-time scales with the size of the affected job. Checkpoint cadence and recovery speed therefore require explicit budgets; Young-Daly supplies an approximation when its assumptions hold. Demanding multi-month zero-fault operation across tens of thousands of complex accelerators and transceivers violates statistical physical realities. Attributing large-cluster failures to Python syntax bugs ignores the reality of hardware faults (HBM ECC errors, GPU silent drops, NVLink/optical transceiver degradations). Manual restarts add recovery delay; the effective training fraction depends on restart duration, rollback, checkpoint cost, and other overheads, which the interruption count alone does not determine.",
+     "hint": "Think about: justify why large-cluster failure rates (e.g. Llama 3's 3.1-hour MTBF) make automated checkpointing and fault-tolerant architecture mandatory.",
+     "type": "single",
+     "options": [
+      "Frontier clusters are poorly engineered, and hardware reliability should be improved until a 16,384-GPU cluster operates for months without interruption before training begins.",
+      "In synchronous distributed training across thousands of devices, cluster-wide failure is routine and continuous; checkpointing cadence, multi-tier storage offload, and automated recovery must be designed into the architecture from inception.",
+      "Failures at this scale are primarily caused by software syntax bugs in user-level Python code, so rewriting training scripts in C++ eliminates the need for fault tolerance.",
+      "Checkpoint overhead can be ignored because a 3.1-hour failure cadence leaves sufficient time for manual cluster inspection and restart by human operators."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "According to the Jevons paradox of AI, doubling the energy efficiency of accelerator silicon (halving the joules consumed per token generated) guarantees a 50% reduction in total data center energy consumption for an enterprise ML fleet.",
+     "explanation": "False. Higher efficiency can lower the marginal resource cost per token or training step and encourage expanded use. The Jevons argument identifies a possible rebound in total consumption, not a guaranteed demand response. Usage growth can offset per-unit efficiency gains or raise total consumption. Whether it does so depends on demand and deployment decisions; an absolute carbon budget constrains emissions over its accounting boundary, while an energy budget constrains consumption.",
+     "hint": "Think about: explain why hardware efficiency gains do not automatically reduce aggregate fleet energy consumption under the Jevons paradox of AI.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Perform the quantitative calculations for the two scaling phenomena analyzed in the chapter:\n(a) An inference service fans out each user request across 100 independent leaf servers. If each server independently has a p99 tail latency of $\\ge 200\\text{ ms}$ (a 1% chance of being slow), calculate the probability that the user request hits at least one slow server.\n(b) In an equal-work, barrier-dominated synchronous training run of 8,000 GPUs with negligible other overhead, explain why a single straggler GPU running at 80% speed drops overall cluster throughput by 20% rather than by $\\frac{1}{8,000} \\approx 0.0125\\%$.",
+   "md": "(a) The probability that an individual server responds in normal time is \\$1 - 0.01 = 0.99. For 100 independent servers, the probability that *all* 100 servers respond normally is (0.99)^100 approx 0.3660 (or 36.6%). Therefore, the probability that the request encounters at least one slow server is:\nPr(at least one slow server) = 1 - (0.99)^100 = 1 - 0.3660 = 0.6340 approx 63.4\\%\nEven with 99% per-server reliability, nearly two out of three fanned-out requests experience tail latency.\n\n(b) In this synchronous scenario, each step waits for all required worker results. Under the stated equal-work, barrier-dominated assumptions, the slowest worker determines step time, which becomes \\$1/0.80 = 1.25 times the nominal step time. This 25% increase in step time causes a throughput reduction of \\$1 - frac11.25 = 1 - 0.80 = 20\\%. The barrier couples all 8,000 workers to the slowest worker."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now diagnose how communication and synchronization terms that are negligible on a small cluster come to dominate step time at fleet scale, a qualitative change that small-cluster profiling cannot predict.",
+    "You can now apply the memory wall and roofline principles to diagnose low decode throughput and identify batching and quantization as the appropriate remedies.",
+    "You can now justify why large-cluster failure rates (e.g. Llama 3's 3.1-hour MTBF) make automated checkpointing and fault-tolerant architecture mandatory.",
+    "You can now explain why hardware efficiency gains do not automatically reduce aggregate fleet energy consumption under the Jevons paradox of AI."
+   ]
+  }
+ ]
+}

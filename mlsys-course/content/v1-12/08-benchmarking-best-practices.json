@@ -1,0 +1,107 @@
+{
+ "title": "Benchmarking Best Practices",
+ "summary": "Analyze how distributional narrowness in a benchmark dataset can make strong held-out accuracy fail to transfer to a different deployment environment.",
+ "source": {
+  "chapter": "v1-12",
+  "sections": [
+   "Benchmarking Best Practices",
+   "Statistical and methodological issues",
+   "Reproducibility",
+   "System design challenges",
+   "Organizational and strategic issues"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Benchmarking Best Practices** in *Benchmarking* (Vol I). By the end you should be able to:\n\n- Analyze how distributional narrowness in a benchmark dataset can make strong held-out accuracy fail to transfer to a different deployment environment\n- Evaluate how MLPerf uses run rules, reference equivalence, and audits to discourage and detect benchmark-specific gaming\n- Explain how the hardware lottery influences AI research trajectories and architectural preferences\n- Evaluate why statistical rigor and repeatability do not by themselves guarantee valid or deployment-representative benchmark conclusions\n- Explain the concept of the hardware lottery as a structural bias favoring algorithms that align with prevailing hardware architectures"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Benchmarking, § Benchmarking Best Practices",
+   "md": "Those sources of error, bias, and misalignment explain why an inference stack that passes a steady-state MLPerf run in the lab can still miss its latency target when production traffic arrives in correlated bursts, or why a two-point leaderboard gain can sit entirely inside test-set sampling noise. Training throughput, inference latency, and power efficiency each have established measurement protocols, yet those protocols rely on simplifying assumptions that diverge from production reality."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Statistical and methodological issues\n- Reproducibility\n- System design challenges\n- Organizational and strategic issues\n\nPay attention to: Distributional narrowness and incomplete coverage; MLPerf closed division rules against benchmark gaming; Hardware lottery (Hooker 2021); Statistical rigor vs deployment alignment."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain the fundamental tension between benchmark stability and benchmark evolution, and describe how benchmark consortia manage this trade-off.",
+   "md": "Benchmark design faces an inherent tension: (1) Benchmark stability is required to enable longitudinal tracking, allowing engineers to compare new hardware generations against historical baselines over multiple years; (2) Benchmark evolution is necessary because static benchmarks eventually saturate (models reach ceiling accuracy), get gamed by over-specialized compilers, and become obsolete as model architectures evolve (e.g., from CNNs to Transformers). Consortia like MLCommons manage this by maintaining fixed benchmark version numbers (e.g., MLPerf v3.0 vs v4.0) with deprecation schedules, retiring saturated tasks, and introducing new representative workloads in scheduled versioned releases."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-12-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An image classification model achieves \\$95\\%$ accuracy on the CIFAR-10 benchmark test set, but when deployed on a mobile robot operating in a warehouse, its accuracy drops to \\$70\\%$. Assume the warehouse images are verified to use the same class definitions and preprocessing contract but differ substantially in lighting, motion blur, and camera noise. Which benchmarking limitation most plausibly explains the gap?",
+     "explanation": "The correct answer is C. Given the stated assumptions that the task definition and preprocessing contract are aligned, the most plausible explanation is that the benchmark distribution was too narrow to represent the deployment environment. Clean, centered benchmark images do not prepare the model for warehouse-specific variation such as blur, noise, and lighting changes. Hardware details or seed choices can matter in some cases, but they are not the best explanation for the stated benchmark-to-deployment mismatch.",
+     "hint": "Think about: analyze how distributional narrowness in a benchmark dataset can make strong held-out accuracy fail to transfer to a different deployment environment.",
+     "type": "single",
+     "options": [
+      "The mobile robot CPU lacked 64-bit floating-point registers",
+      "The CIFAR-10 evaluation used too few random seeds during training",
+      "Incomplete benchmark coverage and distributional narrowness: the benchmark dataset contained clean, centered, low-resolution images that failed to represent warehouse camera noise, lighting variations, and motion blur",
+      "The benchmark harness executed the test set in the wrong order"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Which set of governance and methodological rules does the MLPerf consortium implement to discourage and detect benchmark gaming through benchmark-specific shortcuts?",
+     "explanation": "The correct answer is D. MLPerf uses reference-equivalent workloads and quality targets in the Closed Division, bans benchmark-specific detection or special-case code paths, and requires audit and review procedures that make shortcuts easier to catch. These mechanisms discourage and detect gaming, even though no governance process can guarantee perfect prevention. Secret datasets, silent undisclosed precision changes, and peak-only reporting would recreate the very benchmarking failures MLPerf was designed to reduce.",
+     "hint": "Think about: evaluate how MLPerf uses run rules, reference equivalence, and audits to discourage and detect benchmark-specific gaming.",
+     "type": "single",
+     "options": [
+      "Allowing submitters to create proprietary synthetic test datasets that are kept secret from competitors",
+      "Permitting compilers to silently lower numerical precision below IEEE standards without reporting the accuracy impact",
+      "Evaluating systems solely on peak theoretical arithmetic operations per second without measuring execution time",
+      "Enforcing strict Closed Division rules (requiring reference-equivalent workloads under defined allowances), prohibiting benchmark detection code branching, and requiring open peer-review log audits"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "What is the core insight of the 'Hardware Lottery' concept (coined by Sara Hooker in 2021) regarding the relationship between ML benchmarks and research progress?",
+     "explanation": "The correct answer is A. The Hardware Lottery describes how research directions are heavily shaped by hardware availability: algorithms that match prevailing hardware architectures (e.g. dense matrix multiplications on GPUs) achieve high benchmark scores and attract funding, while alternative algorithms (e.g. dynamic sparse graphs, spiking networks) appear slow simply because hardware and software ecosystems are not optimized for them. Claiming hardware performance is random misinterprets the metaphor; lotteries for purchasing hardware is a literal confusion; algorithms vary drastically across hardware architectures.",
+     "hint": "Think about: explain how the hardware lottery influences AI research trajectories and architectural preferences.",
+     "type": "single",
+     "options": [
+      "An algorithmic research idea often succeeds not because it is universally superior, but because existing hardware accelerators and software compilers happen to be highly optimized for its specific computational pattern (such as dense GEMM)",
+      "Hardware performance is purely random and cannot be measured with scientific accuracy",
+      "Researchers should purchase computer hardware using randomized government lotteries",
+      "Deep neural networks perform identically across all hardware architectures regardless of compiler support"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "If a benchmark measurement is conducted with flawless statistical rigor—using 1,000 independent runs, narrow confidence intervals, and controlled thermal states—its results are guaranteed to predict real-world production system performance.",
+     "explanation": "False. Narrow confidence intervals quantify uncertainty under the benchmark protocol, but they do not guarantee that the measurement is unbiased, internally valid, or representative of production. A benchmark can be highly repeatable and still miss the real workload, arrival pattern, or input distribution.",
+     "hint": "Think about: evaluate why statistical rigor and repeatability do not by themselves guarantee valid or deployment-representative benchmark conclusions.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The structural phenomenon where a machine learning algorithm achieves prominence primarily because specialized hardware and software compilers were already co-optimized for its execution pattern is called the ____.",
+     "explanation": "hardware lottery. The hardware lottery is the structural advantage enjoyed by methods that align well with the dominant hardware and software stack, even when alternative algorithms might fare better under different execution assumptions.",
+     "hint": "Think about: explain the concept of the hardware lottery as a structural bias favoring algorithms that align with prevailing hardware architectures.",
+     "type": "fill",
+     "answer": [
+      "hardware lottery"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze how distributional narrowness in a benchmark dataset can make strong held-out accuracy fail to transfer to a different deployment environment.",
+    "You can now evaluate how MLPerf uses run rules, reference equivalence, and audits to discourage and detect benchmark-specific gaming.",
+    "You can now explain how the hardware lottery influences AI research trajectories and architectural preferences.",
+    "You can now evaluate why statistical rigor and repeatability do not by themselves guarantee valid or deployment-representative benchmark conclusions."
+   ]
+  }
+ ]
+}

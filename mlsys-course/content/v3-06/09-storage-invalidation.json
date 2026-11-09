@@ -1,0 +1,61 @@
+{
+ "title": "Storage Invalidation",
+ "summary": "Work through Storage Invalidation.",
+ "source": {
+  "chapter": "v3-06",
+  "sections": [
+   "Storage Invalidation",
+   "Source generations",
+   "Source and index coordination",
+   "Retrieval during index refresh"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Storage Invalidation** in *Long-Term Memory* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Long-Term Memory, § Storage Invalidation",
+   "md": "The connection-pool repair has reached revision `r18`, yet a subsequent search can still return an excerpt of `src/pool.py` indexed at `r17`. Consider how a single stale read unravels an otherwise systematic debugging trajectory:"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Source generations\n- Source and index coordination\n- Retrieval during index refresh"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Memory write policy matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: The runtime, not the model, decides what persists: admission checks run before deduplication, same-scope updates supersede by compare-and-swap, and deletion (on request, on withdrawn consent, or at the end of a recorded retention period) is a lifecycle event the store must honor."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-06-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Storage Invalidation** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Exact lookup, lexical ranking, structural indexes, and dense similarity answer different information needs and fail in different places, and hybrid retrieval joins candidates on full identity.",
+      "The runtime, not the model, decides what persists: admission checks run before deduplication, same-scope updates supersede by compare-and-swap, and deletion (on request, on withdrawn consent, or at the end of a recorded retention period) is a lifecycle event the store must honor.",
+      "An exact vector scan is bandwidth-bound with floor N*d*b/BW, which screens it against the search budget, while approximate indexes trade recall for bytes touched.",
+      "A session must observe its own committed memory writes on later reads, which a lagging index or replica silently violates unless reads are pinned to a generation at or after the write."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Memory write policy**: The runtime, not the model, decides what persists: admission checks run before deduplication, same-scope updates supersede by compare-and-swap, and deletion (on request, on withdrawn consent, or at the end of a recorded retention period) is a lifecycle event the store must honor."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Storage Invalidation."
+   ]
+  }
+ ]
+}

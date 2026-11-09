@@ -1,0 +1,61 @@
+{
+ "title": "Batching Variable-Length Trajectories",
+ "summary": "Work through Batching Variable-Length Trajectories.",
+ "source": {
+  "chapter": "v3-16",
+  "sections": [
+   "Batching Variable-Length Trajectories",
+   "Loss normalization across variable-length examples",
+   "Example isolation in packed buffers",
+   "Position conventions and equivalence checks"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Batching Variable-Length Trajectories** in *Trajectory Fine-Tuning* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Trajectory Fine-Tuning, § Batching Variable-Length Trajectories",
+   "md": "Consider a batch where a 30-turn debugging and code-repair trace shares a training buffer with a brief, one-turn file lookup. Under an ordinary lower-triangular causal mask, the lookup can attend directly to the repair trace's intermediate file contents and tool outputs, context that the lookup policy will never have at serving time. Under token averaging, the multi-turn repair trace also outweighs the brief lookup by the ratio of their active target tokens."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Loss normalization across variable-length examples\n- Example isolation in packed buffers\n- Position conventions and equivalence checks"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Loss normalization matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-16-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Batching Variable-Length Trajectories** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A disagreement rate measured on reference prefixes bounds excess task cost only by min(H, H^2 eps), while the same rate on learner states with bounded recovery cost gives a linear bound, so where imitation error is measured sets the horizon penalty.",
+      "Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed.",
+      "LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation.",
+      "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Loss normalization**: Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Batching Variable-Length Trajectories."
+   ]
+  }
+ ]
+}

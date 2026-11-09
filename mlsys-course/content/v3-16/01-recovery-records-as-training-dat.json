@@ -1,0 +1,59 @@
+{
+ "title": "Recovery Records as Training Data",
+ "summary": "Work through Recovery Records as Training Data.",
+ "source": {
+  "chapter": "v3-16",
+  "sections": [
+   "Recovery Records as Training Data"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Recovery Records as Training Data** in *Trajectory Fine-Tuning* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Trajectory Fine-Tuning, § Recovery Records as Training Data",
+   "md": "Consider a recovery demonstration admitted by the curation pipeline for the repair agent (a later section) into `repair_demonstrations_v1`. During the recorded session, the agent generated a malformed edit proposal that the runtime validator refused prior to tool dispatch. In response to the failure notification, the model inspected the tool schema, generated a corrected edit, and produced candidate patch `ws_r20`. From this multi-turn trajectory, the target-selection policy `recovery_targets_v1` marks three assistant turns as supervised targets: the schema inspection request (`e3`), the corrected edit (`e4`), and the scoped final summary (`e6`)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Loss masking matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-16-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Recovery Records as Training Data** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Packing is only a memory layout, so block-diagonal attention, per-example label shifts, and position handling must leave each packed example's logits equal to its unpacked logits, a property tested rather than assumed.",
+      "A training example reconstructs each selected response's input exactly as the model received it, truncations and redactions included, under a recorded tokenizer and template configuration.",
+      "LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation.",
+      "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Loss masking**: Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Loss masking* selects response positions within *Delivered-prefix serialization*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Loss masking selects response positions within Delivered-prefix serialization."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Recovery Records as Training Data."
+   ]
+  }
+ ]
+}

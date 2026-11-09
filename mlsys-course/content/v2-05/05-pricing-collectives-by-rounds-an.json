@@ -1,0 +1,59 @@
+{
+ "title": "Pricing Collectives by Rounds and Chunks",
+ "summary": "Apply the critical message size $n^* = \\alpha \\cdot \\beta$ to classify communication workloads into latency-bound and bandwidth-bound regimes.",
+ "source": {
+  "chapter": "v2-05",
+  "sections": [
+   "Pricing Collectives by Rounds and Chunks"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Pricing Collectives by Rounds and Chunks** in *Collective Communication* (Vol II). By the end you should be able to:\n\n- Apply the critical message size $n^* = \\alpha \\cdot \\beta$ to classify communication workloads into latency-bound and bandwidth-bound regimes\n- Explain the NCCL reality gap by contrasting software stack launch overheads in small messages with wire saturation in large payloads"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Collective Communication, § Pricing Collectives by Rounds and Chunks",
+   "md": "A gradient bucket, the group of gradient tensors reduced in one call, can reach tens of megabytes, large enough to saturate a single network link. Yet when a thousand-GPU ring divides that bucket into a thousand shards, each hop moves only tens of kilobytes and can spend more time starting the transfer than sending its bytes. Pricing a collective therefore requires separating the fixed time to initiate each message from the rate at which bytes move once in transit."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: The alpha-beta price charged once per schedule round on a chunk; The critical message size n* = alpha * beta separating latency-bound from bandwidth-bound steps; Why small-message collectives diverge most from bare-wire predictions; The ordered hierarchy of cost models through calibration."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why small-message collective timings can exceed a bare-wire prediction by a much larger relative factor than large-message timings. Which measurements are needed before using this difference in a cluster capacity plan?",
+   "md": "Small transfers can spend most of their time in launch, descriptor preparation, registration, proxy processing, and synchronization rather than serialization. For large transfers, the payload-over-bandwidth term can dominate those fixed costs. Benchmark effective startup latency and sustained bandwidth for the intended message sizes, placement, and concurrent traffic. The discrepancy is configuration-dependent, so an illustrative overhead ratio is not a measured hardware guarantee."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-05-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A single-transfer model uses effective startup cost $\\alpha=1.5\\,\\mu\\text{s}$ and per-direction bandwidth $\\beta=50\\text{ GB/s}$. Which conclusion follows for a 4 KB transfer, and what must be added before classifying a complete gradient AllReduce?",
+     "explanation": "The correct answer is A. The single-transfer terms are equal at alphabeta=75 KB. A 4 KB transfer therefore spends more modeled time in startup than in byte transfer. Fusion of compatible ready messages or a lower-overhead path are candidates, with packing and readiness costs included. For a ring AllReduce of an M-byte tensor over N ranks, compare each M/N chunk with the knee and count \\$2(N-1) rounds; the full tensor’s size alone does not classify the schedule. Compression only removes byte-transfer work and must also win against encoding, aggregation, and quality costs.",
+     "hint": "Think about: apply the critical message size $n^* = \\alpha \\cdot \\beta$ to classify communication workloads into latency-bound and bandwidth-bound regimes.",
+     "type": "single",
+     "options": [
+      "The single-transfer knee is 75 KB, so startup dominates the 4 KB transfer. A complete AllReduce additionally requires the schedule’s round count and chunk size, then calibration for its placement.",
+      "The 4 KB transfer is bandwidth-bound because adding ranks makes every individual transfer saturate its port.",
+      "The 75 KB knee is a maximum buffer size, so larger messages cannot be sent over this link.",
+      "The critical message size defines the maximum possible buffer size that can be transferred in a single CUDA stream without host CPU intervention."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the critical message size $n^* = \\alpha \\cdot \\beta$ to classify communication workloads into latency-bound and bandwidth-bound regimes.",
+    "You can now explain the NCCL reality gap by contrasting software stack launch overheads in small messages with wire saturation in large payloads."
+   ]
+  }
+ ]
+}

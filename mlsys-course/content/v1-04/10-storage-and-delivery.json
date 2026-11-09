@@ -1,0 +1,85 @@
+{
+ "title": "Storage and Delivery",
+ "summary": "Evaluate storage systems (databases, data warehouses, data lakes) based on IOPS, sequential throughput, and schema flexibility requirements.",
+ "source": {
+  "chapter": "v1-04",
+  "sections": [
+   "Storage and Delivery",
+   "Storage system options",
+   "Storage tiers and cost",
+   "The storage bandwidth budget",
+   "The dataloader",
+   "Formats, compression, and partitioning"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Storage and Delivery** in *Data Engineering* (Vol I). By the end you should be able to:\n\n- Evaluate storage systems (databases, data warehouses, data lakes) based on IOPS, sequential throughput, and schema flexibility requirements\n- Analyze the bandwidth and cost trade-offs between cloud object storage and local NVMe SSD caching in ML training pipelines\n- Explain the I/O reduction mechanisms (column projection and filter pushdown) of columnar storage formats\n- Design a release-preparation sequence that aligns storage paths with training access, serving access, feature versioning, and final correctness checks"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Engineering, § Storage and Delivery",
+   "md": "Delivery is where the throughput bound is met or missed. On baseline cloud block storage, the ResNet-50 scenario of a later section already loses about … of its sustained training rate. Following that scenario to its end means choosing a storage tier that can sustain the accelerator's rate, keeping the host processor between storage and accelerator from becoming the next bottleneck, and cutting the bytes each sample costs to move."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Storage system options\n- Storage tiers and cost\n- The storage bandwidth budget\n- The dataloader\n- Formats, compression, and partitioning\n\nPay attention to: storage architecture matching (OLTP databases vs. OLAP warehouses vs. Data Lakes); feature stores and point-in-time correctness / time-travel joins; storage bandwidth hierarchy (NVMe SSD vs. Cloud Object Storage); columnar storage format I/O reduction (Parquet/Arrow)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain the storage-bandwidth bottleneck when feeding accelerators directly from cloud object storage versus local NVMe SSDs, and describe the common architectural caching pattern used to resolve it.",
+   "md": "A dated scenario compares a single cloud object-storage stream at ~\\$100 MB/s with local NVMe at ~\\$5 GB/s, a \\$50× bandwidth ratio for those paths. Whether object storage starves training depends on aggregate concurrency, caching, sample size, and the limiting pipeline stage. A common tiered design retains corpora in object storage (~\\$23/TB/month) and prefetches active tranches onto local NVMe (~\\$100--300/TB/month in the chapter's dated scenario) for repeated scans. Staging helps only when the storage path is the bottleneck and its cost is justified."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-04-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An ML systems architect must select storage backends for three distinct workloads: (1) Millisecond point lookups of user feature vectors during real-time online serving; (2) High-throughput sequential scans over tabular fraud features during batch training; (3) Storing petabytes of raw, unstructured multi-modal audio and video recordings. Which mapping of storage architectures to workloads is optimal?",
+     "explanation": "The correct answer is A. (1) Low-latency transactional database / key-value store; (2) Columnar data warehouse; (3) Scalable cloud data lake (object storage). Storage architectures optimize for specific access patterns: online serving requires high IOPS and millisecond random access provided by transactional key-value databases; batch training over structured tables requires high sequential read throughput and column projection provided by columnar data warehouses; and petabyte-scale multi-modal raw data requires the cheap capacity and schema-on-read flexibility of cloud data lakes (object storage). The other mappings mismatch access patterns to storage strengths, causing high latency or extreme costs.",
+     "hint": "Think about: evaluate storage systems (databases, data warehouses, data lakes) based on IOPS, sequential throughput, and schema flexibility requirements.",
+     "type": "single",
+     "options": [
+      "(1) Low-latency transactional database / key-value store; (2) Columnar data warehouse; (3) Scalable cloud data lake (object storage).",
+      "(1) Cloud object storage (S3); (2) Key-value database; (3) Columnar data warehouse.",
+      "(1) Columnar data warehouse; (2) Cloud data lake; (3) Low-latency transactional database.",
+      "(1) Scalable cloud data lake; (2) Low-latency transactional database; (3) Columnar data warehouse."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In a columnar storage format like Apache Parquet, reading 10 columns out of a 100-column table requires scanning the entire uncompressed row payload from disk.",
+     "explanation": "False. Parquet organizes data by column, so column projection can avoid unselected columns. With equal-sized uncompressed columns, selecting 10 of 100 gives an illustrative 90% payload-I/O reduction, ignoring metadata and other overhead. Compression and unequal column sizes change the byte ratio. Predicate pushdown is a separate mechanism that can skip data based on filters and available statistics; it is not required for column projection.",
+     "hint": "Think about: explain the I/O reduction mechanisms (column projection and filter pushdown) of columnar storage formats.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the following release-preparation steps for a storage design that must support both model training and online serving:",
+     "explanation": "The correct order is: (2) define the training and serving access requirements, (4) fix the versioned feature definitions and fitted transformation state, (3) materialize the appropriate offline training path and online serving path, (1) validate point-in-time training retrieval together with serving freshness and latency. The sequence matters because storage choices follow from access requirements, and the offline and online paths cannot be materialized safely until the feature definitions and state they must serve are fixed. Swapping validation earlier would test an unstable design, while treating the offline and online paths as one serial traversal would miss the chapter's point that they are parallel responsibilities with different access patterns.",
+     "hint": "Think about: design a release-preparation sequence that aligns storage paths with training access, serving access, feature versioning, and final correctness checks.",
+     "type": "order",
+     "items": [
+      "define the training and serving access requirements",
+      "fix the versioned feature definitions and fitted transformation state.",
+      "materialize the appropriate offline training path and online serving path",
+      "validate point-in-time training retrieval together with serving freshness and latency"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate storage systems (databases, data warehouses, data lakes) based on IOPS, sequential throughput, and schema flexibility requirements.",
+    "You can now analyze the bandwidth and cost trade-offs between cloud object storage and local NVMe SSD caching in ML training pipelines.",
+    "You can now explain the I/O reduction mechanisms (column projection and filter pushdown) of columnar storage formats.",
+    "You can now design a release-preparation sequence that aligns storage paths with training access, serving access, feature versioning, and final correctness checks."
+   ]
+  }
+ ]
+}

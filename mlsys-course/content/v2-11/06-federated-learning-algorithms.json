@@ -1,0 +1,85 @@
+{
+ "title": "Federated Learning Algorithms",
+ "summary": "Analyze the trade-off between local computation epochs (LocalEpochCount) and communication rounds in FedAvg under non-IID data.",
+ "source": {
+  "chapter": "v2-11",
+  "sections": [
+   "Federated Learning Algorithms",
+   "Cross-device and cross-silo federations",
+   "Learning protocols"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Federated Learning Algorithms** in *Edge Intelligence* (Vol II). By the end you should be able to:\n\n- Analyze the trade-off between local computation epochs (LocalEpochCount) and communication rounds in FedAvg under non-IID data\n- Apply algorithmic regularizers (FedProx proximal term) to mitigate client drift in non-IID federated optimization\n- Compare cross-silo and cross-device federated learning across infrastructure, reliability, and governance characteristics\n- Explain the mechanism and consequences of client drift in federated optimization"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Edge Intelligence, § Federated Learning Algorithms",
+   "md": "The voice assistant of the chapter's opening, now deployed to millions of homes whose intermittently available devices contribute updates when local conditions permit, shows what local adaptation alone cannot do. One household pronounces \"data\" as \"DAY-tuh\" and another as \"DA-tuh\"; a third, a technical household, says \"machine learning\" every day, while a fourth never has. Local adaptation can specialize each model to its own household, but nothing it learns travels."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Cross-device and cross-silo federations\n- Learning protocols\n\nPay attention to: FedAvg weighted aggregation and local step mechanics; Communication vs computation trade-off (local epochs E vs client drift); Non-IID convergence dynamics and client drift penalties; FedProx proximal regularization and SCAFFOLD control variates."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Contrast cross-silo federated learning and cross-device federated learning across three dimensions: participant scale/reliability, network connectivity, and client incentive/governance.",
+   "md": "1. Participant scale and reliability: Cross-silo FL involves a small, fixed number of known, highly reliable institutional organizations (e.g., 2–100 hospitals or banks) that participate in almost every round. Cross-device FL involves massive fleets of millions of anonymous, unreliable mobile or IoT devices with high dropout and churn rates.\n2. Network connectivity: Cross-silo participants connect via high-speed, reliable data-center or enterprise WAN connections. Cross-device clients connect over unmetered/metered mobile Wi-Fi or cellular networks with asymmetric bandwidth and frequent disconnects.\n3. Incentive and governance: Cross-silo systems operate under formal legal data-sharing agreements and regulatory audits (e.g., BAA/HIPAA consortia). Cross-device systems operate under consumer platform operating policies (e.g., opt-in telemetry, strict opportunistic gating when idle/charging)."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-11-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In the Federated Averaging (FedAvg) algorithm, what is the primary algorithmic trade-off when tuning the number of local training epochs (LocalEpochCount) on client devices?",
+     "explanation": "The correct answer is A. More local epochs can reduce communication frequency, but do not guarantee fewer rounds or less time to a fixed quality target. Non-IID local updates can increase client drift. Compare candidate LocalEpochCount values under matched data and participation conditions, recording validated target quality, elapsed round times, bytes, and energy. More epochs neither transfer raw data nor change the parameter vector dimension.",
+     "hint": "Think about: analyze the trade-off between local computation epochs (LocalEpochCount) and communication rounds in FedAvg under non-IID data.",
+     "type": "single",
+     "options": [
+      "Increasing local work can amortize communication, but may increase client drift on non-IID data; rounds and elapsed time to the same quality target must be measured.",
+      "Increasing LocalEpochCount forces the central server to store full training datasets from all participating clients in server DRAM.",
+      "Increasing LocalEpochCount eliminates the need for clients to compute backward passes during local training.",
+      "Increasing LocalEpochCount increases the size (in megabytes) of the transmitted model parameter vector by a factor of LocalEpochCount^2."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A mobile federated learning deployment encounters severe client drift due to extreme non-IID typing patterns across users, causing standard FedAvg to oscillate and fail to converge. Which algorithmic modification directly addresses client drift by constraining local updates to stay close to the global model?",
+     "explanation": "The correct answer is B. FedProx adds $\\frac{\\mu}{2}\\|w-w_t\\|^2$ to penalize departure from the current global reference. This can mitigate client drift, but does not guarantee convergence for every workload or hyperparameter choice; evaluate matched quality and resource budgets. Raising the learning rate can worsen drift, while isolated training abandons the federated objective.",
+     "hint": "Think about: apply algorithmic regularizers (FedProx proximal term) to mitigate client drift in non-IID federated optimization.",
+     "type": "single",
+     "options": [
+      "Switching from 32-bit floating-point to 1-bit stochastic sign quantization without error compensation.",
+      "Adding a proximal regularization term $\\frac{\\mu}{2} \\|w - w_t\\|^2$ to the local client objective (as in FedProx) to penalize excessive deviation from the global server model $w_t$.",
+      "Increasing the local learning rate by \\$10× to accelerate convergence on outlier devices.",
+      "Dropping the central aggregation server and allowing devices to train purely in isolation without synchronization."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In federated optimization, the phenomenon where multiple local gradient steps on non-identically distributed client data cause local models to diverge toward disparate local optima is called client ____.",
+     "explanation": "drift. Repeated local steps on different client distributions move models toward different objectives, making their aggregated update less aligned with the global objective.",
+     "hint": "Think about: explain the mechanism and consequences of client drift in federated optimization.",
+     "type": "fill",
+     "answer": [
+      "drift"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the trade-off between local computation epochs (LocalEpochCount) and communication rounds in FedAvg under non-IID data.",
+    "You can now apply algorithmic regularizers (FedProx proximal term) to mitigate client drift in non-IID federated optimization.",
+    "You can now compare cross-silo and cross-device federated learning across infrastructure, reliability, and governance characteristics.",
+    "You can now explain the mechanism and consequences of client drift in federated optimization."
+   ]
+  }
+ ]
+}

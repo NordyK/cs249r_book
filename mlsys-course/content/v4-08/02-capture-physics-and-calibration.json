@@ -1,0 +1,71 @@
+{
+ "title": "Capture Physics and Calibration",
+ "summary": "Work through Capture Physics and Calibration.",
+ "source": {
+  "chapter": "v4-08",
+  "sections": [
+   "Capture Physics and Calibration",
+   "Rolling shutter distortion and motion compensation",
+   "Camera calibration",
+   "Choosing metric depth for the aisle",
+   "Event cameras and asynchronous contrast",
+   "LiDAR and radar ranging",
+   "Tactile contact sensing"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Capture Physics and Calibration** in *Sensor Perception* (Vol IV)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Sensor Perception, § Capture Physics and Calibration",
+   "md": "When photons from a warehouse rack upright strike the navigation camera's silicon detector, they do not become an instantaneous feature tensor in host memory. Before a neural backbone or state observer ever reads the frame, the photodiode array must accumulate charge over a finite exposure window, serialize rows off the sensor die, and move bytes across the interconnect, while the robot keeps moving through every millisecond of that process. In CMOS active-pixel sensors, incident photons generate electron-hole pairs through the photoelectric effect according to a wavelength-dependent quantum efficiency PhotodiodeQuantumEfficiency(OpticalWavelength)."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Rolling shutter distortion and motion compensation\n- Camera calibration\n- Choosing metric depth for the aisle\n- Event cameras and asynchronous contrast\n- LiDAR and radar ranging\n- Tactile contact sensing"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Observation age matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Observation age runs from the exposure midpoint to dispatch, accumulates stage by stage (exposure, readout, transport, DMA, ISP, backbone, dispatch), and is paid in blind travel that no later stage returns."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-08-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Capture Physics and Calibration** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Observation age runs from the exposure midpoint to dispatch, accumulates stage by stage (exposure, readout, transport, DMA, ISP, backbone, dispatch), and is paid in blind travel that no later stage returns.",
+      "Per-row pose interpolation for rolling shutters and per-point de-skew for LiDAR sweeps remove the motion a finite capture interval smears into geometry.",
+      "Each oscillator stamps time in its own clock domain, so a capture time can be checked only after conversion to the consumer's clock, and that conversion carries a measured bound (offset tail, path asymmetry, drift between syncs) that every age check adds.",
+      "Each observation is wrapped with capture time, clock id, clock-conversion bound, frame, payload, covariance, clearance inset, health bits, and CRC so a consumer can refuse it before reading a payload byte."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Observation age**: Observation age runs from the exposure midpoint to dispatch, accumulates stage by stage (exposure, readout, transport, DMA, ISP, backbone, dispatch), and is paid in blind travel that no later stage returns."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Observation age* spends the freshness budget set by *Measurement freshness deadline*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Observation age spends the freshness budget set by Measurement freshness deadline."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Capture Physics and Calibration."
+   ]
+  }
+ ]
+}

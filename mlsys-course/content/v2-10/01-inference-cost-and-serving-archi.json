@@ -1,0 +1,67 @@
+{
+ "title": "Inference Cost and Serving Architecture",
+ "summary": "Distinguish offered load from admitted load when judging whether a service meets its contract.",
+ "source": {
+  "chapter": "v2-10",
+  "sections": [
+   "Inference Cost and Serving Architecture"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Inference Cost and Serving Architecture** in *Serving at Scale* (Vol II). By the end you should be able to:\n\n- Distinguish offered load from admitted load when judging whether a service meets its contract\n- Justify why serving capacity must be compared at a fixed request mix and SLO rather than by raw request rate\n- Analyze how queueing before prefill and contention during decode consume the TTFT and TPOT budgets independently of kernel speed"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Serving at Scale, § Inference Cost and Serving Architecture",
+   "md": "A language model that costs millions of dollars to train over two months can, once deployed to a global user base at thousands of queries per second, consume a comparable sum in inference compute within weeks. Inference is then no longer a temporary batch job. It is a continuous, latency-sensitive service."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Offered versus admitted load and the service contract; Capacity comparison at a fixed request mix and SLO; TTFT and TPOT as the budgets consumed before prefill and during decode; Serving policy decisions that a faster decode step does not settle."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In a streaming language-model service, explain which latency budget is consumed by waiting before prefill and which by contention during decode, and why a faster decode kernel alone cannot settle either problem.",
+   "md": "Everything up to the end of prefill, including routing, admission, tokenization, queueing, and the prefill pass, counts against time to first token, while contention among sequences sharing decode steps stretches the gaps between streamed tokens and so consumes the TPOT budget. A faster decode step raises the service rate, but it does not decide how long a request waits to join a batch, which replica receives it, which requests get scarce KV-cache space, or when the fleet adds a replica. A request queued 400 ms behind a burst misses a 300 ms TTFT target however fast decode runs, so the scheduler must budget waiting and contention alongside execution time."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-10-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A service that meets its latency SLO on every admitted request is serving all of its offered load.",
+     "explanation": "False. Offered load counts all arriving work, including requests the service rejects or sheds, while admitted load counts only the work it accepts. A service can meet its latency target on admitted requests by refusing others, so capacity must be judged by how much offered work completes within the targets.",
+     "hint": "Think about: distinguish offered load from admitted load when judging whether a service meets its contract.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Configuration X reports 900 requests per second on a benchmark of short prompts, and configuration Y reports 700 requests per second on the production prompt and output mix, both at the same TTFT and TPOT targets. Which conclusion is justified?",
+     "explanation": "The correct answer is B. For language models, request rate alone is insufficient because prompt and output lengths determine how much work each request carries, so a benchmark of short prompts inflates the rate. Ranking by raw rate repeats that error, and assuming production traffic is always longer replaces measurement with a guess. Meeting the same targets on different mixes does not make the configurations equivalent.",
+     "hint": "Think about: justify why serving capacity must be compared at a fixed request mix and SLO rather than by raw request rate.",
+     "type": "single",
+     "options": [
+      "X has more capacity, because request rate is the capacity metric for a serving system.",
+      "Neither can be ranked yet, because prompt and output lengths change the work per request, so capacity must be compared at the same request mix and SLO by counting offered work that completes within the targets.",
+      "Y has more capacity, because production traffic always contains longer requests than a benchmark.",
+      "The two are equivalent, because both meet the same latency targets."
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now distinguish offered load from admitted load when judging whether a service meets its contract.",
+    "You can now justify why serving capacity must be compared at a fixed request mix and SLO rather than by raw request rate.",
+    "You can now analyze how queueing before prefill and contention during decode consume the TTFT and TPOT budgets independently of kernel speed."
+   ]
+  }
+ ]
+}

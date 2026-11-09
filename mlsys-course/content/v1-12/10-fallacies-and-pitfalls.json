@@ -1,0 +1,88 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Analyze why peak arithmetic-throughput specifications do not directly predict sustained serving capacity.",
+ "source": {
+  "chapter": "v1-12",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Benchmarking* (Vol I). By the end you should be able to:\n\n- Analyze why peak arithmetic-throughput specifications do not directly predict sustained serving capacity\n- Calculate how a throughput increase can still represent an efficiency regression when power rises disproportionately under a fixed quality target and measurement boundary\n- Evaluate whether high rankings on public benchmark leaderboards guarantee superior production performance\n- Explain why saturated capability benchmarks become less discriminative and why they should be complemented with dynamic, robustness, and systems-oriented evaluations\n- Explain how optimizing a benchmark metric in isolation can degrade the deployment objective it was supposed to approximate"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Benchmarking, § Fallacies and Pitfalls",
+   "md": "Benchmarking creates false confidence when standardized measurement obscures deployment realities. Teams assume controlled evaluations predict production performance, but real systems face variability, resource constraints, and multi-objective trade-offs that benchmarks cannot capture. The result is engineering effort spent on systems optimized for evaluation rather than deployment."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: Fallacies of ML systems benchmarking; Throughput vs power/cost trade-offs; Saturated benchmarks and metric gaming; Research vs production benchmarking scope."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why an accuracy-saturated capability benchmark becomes less discriminative as a progress indicator for ML systems, and describe which complementary evaluations can preserve its usefulness as a regression baseline.",
+   "md": "Once a static benchmark becomes saturated, small score differences become less informative about real capability because they can reflect benchmark-specific tuning, narrow artifacts, or limited remaining headroom. For example, a leaderboard gain on a mature benchmark may say less about deployment robustness than about optimization to a familiar test set. The practical response is not to discard static benchmarks entirely, since they remain useful for stable latency or energy regression tracking, but to complement them with dynamic benchmarks, robustness and distribution-shift evaluations, and multi-objective measurements that include system costs."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-12-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "What is the primary fallacy in using an accelerator's peak advertised TFLOP/s to estimate the serving capacity of an ML inference deployment?",
+     "explanation": "The correct answer is A. Peak TFLOP/s is a ceiling for a particular arithmetic path under favorable execution conditions, not a prediction of whole-service throughput. Real serving capacity also depends on memory traffic, launch and dispatch overhead, preprocessing and postprocessing, and the actual batch and shape regime. The other answers are wrong because vendors do publish TFLOP/s, there is no universal 50% limiter, and GPUs and TPUs absolutely use throughput units of this form.",
+     "hint": "Think about: analyze why peak arithmetic-throughput specifications do not directly predict sustained serving capacity.",
+     "type": "single",
+     "options": [
+      "Peak TFLOP/s assumes a specific arithmetic path, precision, and favorable shapes, while ignoring memory bandwidth bottlenecks, runtime overhead, non-model pipeline stages, and batch-shape variation",
+      "Peak TFLOP/s is an obsolete metric that is no longer measured by hardware vendors",
+      "Accelerators always run at exactly 50% of their peak TFLOP/s due to hardware safety limiters",
+      "Peak TFLOP/s applies only to CPU floating-point units and has no meaning for GPUs or TPUs"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An engineering team modifies an inference server configuration, increasing throughput from \\$1,000\\text{ QPS}$ at \\$1.8\\text{ W}$ to \\$1,200\\text{ QPS}$ at \\$4.2\\text{ W}$ for the same quality target and measurement boundary. What is the systems consequence of this change?",
+     "explanation": "The correct answer is B. Energy efficiency fell from \\$1,000/1.8 = 555.6 QPS/W to \\$1,200/4.2 = 285.7 QPS/W, a \\$48.6\\% drop. That is a clear regression if the deployment is constrained by battery, power, or thermal limits. A team might still choose the new operating point for capacity or latency reasons, but the efficiency trade-off must be stated explicitly rather than hidden behind the throughput increase.",
+     "hint": "Think about: calculate how a throughput increase can still represent an efficiency regression when power rises disproportionately under a fixed quality target and measurement boundary.",
+     "type": "single",
+     "options": [
+      "It is an unambiguous improvement because throughput is \\$20\\% higher",
+      "The system suffered a \\$48.6\\% reduction in energy efficiency (dropping from \\$556 QPS/W to \\$286 QPS/W), which is a major regression under power-constrained objectives",
+      "The system will run cooler because queries complete faster",
+      "Operating cost is reduced because higher throughput always decreases data center power bills"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "If a newly released open-source model ranks #1 on a public benchmark leaderboard, an enterprise can deploy it into production with confidence that it will outperform existing models on company workloads.",
+     "explanation": "False. Leaderboard rankings reflect performance under specific, static benchmark conditions that often reward test-set overfitting, excessive compute scaling, and uncalibrated predictions. Production deployments operate under different data distributions, strict latency SLAs, cost constraints, and safety requirements that public leaderboards do not capture.",
+     "hint": "Think about: evaluate whether high rankings on public benchmark leaderboards guarantee superior production performance.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain how Goodhart's Law manifests when teams optimize exclusively for benchmark scores, using a concrete systems example where metric chasing degrades production quality.",
+   "md": "Goodhart's Law appears when the benchmark metric stops acting as a proxy for the real deployment goal and becomes the goal itself. For example, a serving team can tune for high offline batch throughput by using very large batches when all benchmark inputs are already available upfront. If the same batching policy is imposed on live arrivals, requests must wait for batch assembly before execution, which can worsen user-visible latency even though the offline throughput score improved. The benchmark must preserve the deployment's latency objective instead of rewarding throughput in isolation."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze why peak arithmetic-throughput specifications do not directly predict sustained serving capacity.",
+    "You can now calculate how a throughput increase can still represent an efficiency regression when power rises disproportionately under a fixed quality target and measurement boundary.",
+    "You can now evaluate whether high rankings on public benchmark leaderboards guarantee superior production performance.",
+    "You can now explain why saturated capability benchmarks become less discriminative and why they should be complemented with dynamic, robustness, and systems-oriented evaluations."
+   ]
+  }
+ ]
+}

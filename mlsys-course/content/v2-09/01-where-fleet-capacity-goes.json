@@ -1,0 +1,93 @@
+{
+ "title": "Where Fleet Capacity Goes",
+ "summary": "Estimate the share of held capacity that becomes progress from effective training time and MFU, and identify where most of the loss lies.",
+ "source": {
+  "chapter": "v2-09",
+  "sections": [
+   "Where Fleet Capacity Goes"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Where Fleet Capacity Goes** in *Fleet Efficiency* (Vol II). By the end you should be able to:\n\n- Estimate the share of held capacity that becomes progress from effective training time and MFU, and identify where most of the loss lies\n- Explain the three places fleet capacity is lost and why allocation accounting cannot see them\n- Apply the boundary test that separates fleet-efficiency losses from serving losses\n- Distinguish allocated capacity from capacity that becomes useful work\n- Sequence a job's life against the scheduling, runtime, and program boundaries"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Efficiency, § Where Fleet Capacity Goes",
+   "md": "A fleet can be fully allocated and visibly busy while most of its capacity never becomes training progress or completed service. When thousands of accelerators run a single workload, losses accumulate before a job starts, between the steps it executes, and inside the steps it keeps. The size of that gap is clearest in a run whose engineering is not in doubt."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Held capacity versus progress in the Llama 3 405B run; The three places a job loses capacity, in the order it meets them; Allocated capacity as the start of the accounting, not evidence of use; The serving replica's boundary test (a loss that remains with requests switched off)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Name the three places a fleet job can lose capacity, in the order the job meets them, and explain why a dashboard that counts allocated accelerators as used cannot see most of them.",
+   "md": "First, before the job holds a complete allocation: capacity that sits unallocated, is fragmented where no queued group fits, or is held by a group still waiting for its remaining members produces nothing. Second, while it holds devices without keeping progress: startup, input waits, checkpoint pauses, recovery, and rework leave no retained step. Third, inside kept steps that run below the hardware's rate because of exposed communication, stragglers, memory stalls, or long chains of small kernels. An allocation dashboard counts a partial group as allocated and every held hour as used, so it misses the partial-group loss and all of the second and third losses."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-09-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Meta's Llama 3 405B run kept more than 90% of its elapsed time as effective training time and ran its kept steps at about 41% MFU. What does multiplying the two figures show about where its held capacity went?",
+     "explanation": "The correct answer is D. The product \\$0.90 × 0.41 approx 0.37 is the share of held peak-rate capacity that became progress. Interruptions cost at most a tenth of held time, while the kept steps left more than half of their capacity unused, so one of the most carefully engineered runs on record lost most of its gap to steps that ran below the hardware's rate. The product is only an estimate, because the two figures come from different measurement windows.",
+     "hint": "Think about: estimate the share of held capacity that becomes progress from effective training time and MFU, and identify where most of the loss lies.",
+     "type": "single",
+     "options": [
+      "Roughly 90% became progress, because MFU describes kernel quality and does not reduce useful output",
+      "Roughly 41% became progress, because effective training time already includes the MFU loss",
+      "Roughly 37% became progress, and most of the loss came from the hundreds of unexpected interruptions the job survived",
+      "Roughly 37% of the peak-rate capacity it held became training progress, and most of the loss came from kept steps running below the hardware's rate rather than from interruptions"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "The chapter counts a serving replica's loss in its accounting only if the loss would remain with the request stream switched off. Which loss belongs to the serving analysis instead?",
+     "explanation": "The correct answer is C. A request waiting behind a long batch exists only because arrivals are uneven, so it fails the boundary test and belongs to serving. Weight loading and warmup, a decode step below its bandwidth limit, and reserved headroom all remain with requests switched off, so they are counted here, averaged over windows of hours to weeks. How much headroom a latency target requires is still a serving decision.",
+     "hint": "Think about: apply the boundary test that separates fleet-efficiency losses from serving losses.",
+     "type": "single",
+     "options": [
+      "Time the replica spends loading weights and warming up before it serves",
+      "A decode step that streams weights more slowly than the node's memory bandwidth allows",
+      "A request that waits behind a long batch because requests arrive unevenly",
+      "Capacity the replica holds in reserve for bursts, running below its ideal rate"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A shared fleet whose accelerators are fully allocated is, by that fact, using its capacity well, so fleet efficiency accounting can start from the busy count.",
+     "explanation": "False. Allocated capacity is where the accounting of fleet efficiency starts, not evidence that the capacity was used well. Devices can be held by a group still waiting for its remaining members, held by a job that is starting up or recovering, or busy in steps that run far below the hardware's rate. The orchestrator's accounting separates allocated from productive capacity but cannot say where inside a job the missing work went.",
+     "hint": "Think about: distinguish allocated capacity from capacity that becomes useful work.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the following events in the life of the running example's training job, from first to last:",
+     "explanation": "The correct order is (3) -> (2) -> (4) -> (1). The queue wait comes first and, while other jobs hold the capacity, costs only time to result. Formation of the complete allocation is the first boundary, after which startup and compilation consume held time without retained steps, a runtime loss. Only then do kept steps run, and their exposed collectives are a program loss. The order matters because each factor divides by what the previous boundary passed.",
+     "hint": "Think about: sequence a job's life against the scheduling, runtime, and program boundaries.",
+     "type": "order",
+     "items": [
+      "it waits in the queue while other teams' jobs hold the capacity",
+      "its group of 16 nodes becomes a complete allocation",
+      "it starts up, compiles, and loads its initial state before the first step.",
+      "its kept steps run below the hardware's rate because collectives are exposed"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now estimate the share of held capacity that becomes progress from effective training time and MFU, and identify where most of the loss lies.",
+    "You can now explain the three places fleet capacity is lost and why allocation accounting cannot see them.",
+    "You can now apply the boundary test that separates fleet-efficiency losses from serving losses.",
+    "You can now distinguish allocated capacity from capacity that becomes useful work."
+   ]
+  }
+ ]
+}

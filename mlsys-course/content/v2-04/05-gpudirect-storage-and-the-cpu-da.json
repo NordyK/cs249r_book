@@ -1,0 +1,94 @@
+{
+ "title": "GPUDirect Storage and the CPU Data-Copy Bypass",
+ "summary": "Explain the architectural data-path modification introduced by GPUDirect Storage compared to traditional CPU-mediated I/O.",
+ "source": {
+  "chapter": "v2-04",
+  "sections": [
+   "GPUDirect Storage and the CPU Data-Copy Bypass",
+   "The complete data path"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **GPUDirect Storage and the CPU Data-Copy Bypass** in *Data Storage* (Vol II). By the end you should be able to:\n\n- Explain the architectural data-path modification introduced by GPUDirect Storage compared to traditional CPU-mediated I/O\n- Analyze the technical preconditions and workload characteristics required for GPUDirect Storage to deliver throughput gains\n- Evaluate the architectural boundaries of GPUDirect Storage and distinguish local DMA acceleration from remote network latency\n- Calculate the CPU core savings delivered by GPUDirect Storage and evaluate its impact on host preprocessing capacity\n- Analyze the multi-hop data movement and CPU mediation steps in the traditional storage I/O path"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Data Storage, § GPUDirect Storage and the CPU Data-Copy Bypass",
+   "md": "Even when the storage tier has enough raw bandwidth, the traditional data path for loading training data routes every shard read from storage $\\to$ host DRAM $\\to$ GPU HBM in three hops, one of them a CPU copy inside host DRAM. Data is first read from NVMe into a kernel buffer in host DRAM by a DMA transfer, then copied by the CPU into the data loader's user-space buffer, and finally transferred over PCIe to GPU memory by the GPU's DMA engine."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The complete data path\n\nPay attention to: DMA-based bypass mechanism vs traditional 3-hop bounce-buffer path; latency reduction (\\$120\\ mus to 30\\ mus) and CPU core savings; workload suitability (high transfer rate, GPU-decodable data) vs CPU-bound decode pipelines; GDS scope boundaries (accelerates local/RDMA NVMe, does not eliminate cloud object store latency)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A computer vision training pipeline uses complex CPU-based JPEG decompression and multi-step data augmentations (color jitter, affine warping). Explain why adopting GPUDirect Storage (GDS) without moving decompression to the GPU yields minimal end-to-end throughput improvement.",
+   "md": "GDS optimizes the payload data transfer path by enabling direct DMA from storage to GPU memory, eliminating host DRAM bounce copies. However, if the data is stored in compressed formats (like JPEG) that must be decoded and transformed by host CPU cores, the raw bytes must still pass through CPU registers and host memory for decompression before tensor assembly; bypassing host DRAM with GDS is only beneficial if the data is already in GPU-consumable format (uncompressed/tokenized tensors) or if decoding and augmentation are offloaded to GPU hardware decoders (such as NVIDIA DALI)."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-04-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Which statement precisely describes the architectural data-path modification introduced by GPUDirect Storage (GDS)?",
+     "explanation": "The correct answer is D. GDS establishes a direct DMA transfer path between NVMe storage (local or NVMe-oF) and GPU memory, eliminating the CPU-mediated bounce buffer in host DRAM while retaining CPU control-plane coordination. In the traditional path, data is copied from NVMe to a kernel buffer, copied by the CPU to user space, and then transferred to the GPU via PCIe DMA; GDS programs a direct peer-to-peer DMA between the NVMe controller and GPU HBM, skipping host DRAM payload copies while the CPU continues to issue and manage I/O control requests. The HBM caching option is physically impossible given dataset-to-HBM capacity ratios. The flash compression claim mischaracterizes GDS as in-storage compute. The bounce-buffer routing option describes the exact traditional bottleneck GDS was designed to eliminate.",
+     "hint": "Think about: explain the architectural data-path modification introduced by GPUDirect Storage compared to traditional CPU-mediated I/O",
+     "type": "single",
+     "options": [
+      "GDS caches the entire training corpus in GPU HBM to eliminate all storage I/O operations during training epochs.",
+      "GDS compresses training tensors directly inside the NVMe flash controller using hardware acceleration.",
+      "GDS routes network packets through host DRAM bounce buffers to perform real-time data integrity checksumming.",
+      "GDS establishes a direct DMA transfer path between NVMe storage (local or NVMe-oF) and GPU memory, eliminating the CPU-mediated bounce buffer in host DRAM while retaining CPU control-plane coordination."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Enabling GPUDirect Storage (GDS) eliminates the physical round-trip network latency and P99 tail-latency spikes associated with fetching shards directly from remote cloud object storage endpoints.",
+     "explanation": "False. GDS optimizes the local or RDMA-attached PCIe/NVMe-over-Fabrics data transfer path by eliminating CPU-mediated bounce-buffer copies. It has no effect on the underlying physical network latency, cross-datacenter transit times, or multi-tenant congestion inherent in remote cloud object storage services like Amazon S3 or Google Cloud Storage, which still require tiered prefetch buffering or local caching.",
+     "hint": "Think about: evaluate the architectural boundaries of GPUDirect Storage and distinguish local DMA acceleration from remote network latency",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In a high-throughput vision training node with 8 GPUs processing a combined 64,000 images per second, traditional CPU-mediated I/O requires \\$120\\ mus of CPU time per image (consuming approx 7.68 CPU seconds per wall-clock second, or approx 8 dedicated CPU cores). GDS reduces CPU overhead to \\$30\\ mus per image (\\$1.92 CPU seconds per second, or approx 2 cores). What is the primary systems benefit of this 'CPU bypass dividend'?",
+     "explanation": "The correct answer is B. It frees approximately 6 CPU cores per node that can be reallocated to computationally intensive data augmentation and pipeline orchestration without adding hardware. By offloading raw memory-copy and interrupt-handling work to hardware DMA engines, GDS reduces per-transfer CPU overhead by \\$75\\% (from \\$120\\ mus to \\$30\\ mus), freeing CPU cores to perform complex data augmentations that improve model convergence without throttling the input pipeline. The tape archive option is absurd for active training feeds. The GPU power reduction claim is false because GDS changes storage transfer overhead, not GPU arithmetic energy. The PCIe bus bandwidth claim confuses hardware physical link capacity with software transfer efficiency.",
+     "hint": "Think about: calculate the CPU core savings delivered by GPUDirect Storage and evaluate its impact on host preprocessing capacity",
+     "type": "single",
+     "options": [
+      "It enables the cluster to eliminate all local NVMe SSDs in favor of remote tape archives.",
+      "It frees approximately 6 CPU cores per node that can be reallocated to computationally intensive data augmentation and pipeline orchestration without adding hardware.",
+      "It reduces GPU power consumption by \\$75\\% during tensor matrix multiplication.",
+      "It doubles the physical PCIe bus bandwidth between the CPU socket and the GPU accelerators."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Order the sequence of operations that occurs in the traditional (non-GDS) storage I/O path when an accelerator requests a batch from local NVMe:",
+     "explanation": "The correct order is: (1) The data loader process issues a POSIX read() system call traversing the VFS and filesystem drivers, (2) The NVMe controller initiates a DMA transfer of raw blocks into an OS kernel buffer in host DRAM, (3) The host CPU copies payload bytes from kernel space to user-space pinned memory, (4) The CPU programs a PCIe DMA transfer from host DRAM to GPU HBM, (5) The accelerator launches compute kernels on the newly arrived tensor resident in HBM. The traditional path begins with a file-system read call (1), stages data into an OS kernel buffer via storage DMA (2), requires a CPU-mediated memory copy into user space (3), executes a second DMA transfer over PCIe to GPU memory (4), and finally enables GPU computation (5).",
+     "hint": "Think about: analyze the multi-hop data movement and CPU mediation steps in the traditional storage I/O path",
+     "type": "order",
+     "items": [
+      "The NVMe controller initiates a DMA transfer of raw blocks into an OS kernel buffer in host DRAM",
+      "The host CPU copies payload bytes from kernel space to user-space pinned memory",
+      "The CPU programs a PCIe DMA transfer from host DRAM to GPU HBM",
+      "The accelerator launches compute kernels on the newly arrived tensor resident in HBM."
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the architectural data-path modification introduced by GPUDirect Storage compared to traditional CPU-mediated I/O.",
+    "You can now analyze the technical preconditions and workload characteristics required for GPUDirect Storage to deliver throughput gains.",
+    "You can now evaluate the architectural boundaries of GPUDirect Storage and distinguish local DMA acceleration from remote network latency.",
+    "You can now calculate the CPU core savings delivered by GPUDirect Storage and evaluate its impact on host preprocessing capacity."
+   ]
+  }
+ ]
+}

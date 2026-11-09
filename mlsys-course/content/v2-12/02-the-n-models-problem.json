@@ -1,0 +1,96 @@
+{
+ "title": "The N-Models Problem",
+ "summary": "Distinguish benefit-cost ratio, net ROI, and recovered engineering-capacity value in platform investment analysis.",
+ "source": {
+  "chapter": "v2-12",
+  "sections": [
+   "The N-Models Problem",
+   "Single-model vs. platform operations at scale",
+   "Release policies across model archetypes",
+   "Quantifying platform economics",
+   "Quantifying and managing ML technical debt",
+   "When to form a dedicated platform team"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The N-Models Problem** in *ML Operations at Scale* (Vol II). By the end you should be able to:\n\n- Distinguish benefit-cost ratio, net ROI, and recovered engineering-capacity value in platform investment analysis\n- Classify operational symptoms into distinct categories of ML technical debt\n- Analyze the long-term economic trade-offs of paying down ML technical debt versus enduring continuous manual toil\n- Compare operational deployment cadences and risk profiles across diverse ML model types\n- Evaluate the scaling threshold and fixed-vs-variable cost structure of centralized ML platforms"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, ML Operations at Scale, § The N-Models Problem",
+   "md": "The five engineers of the opening example do not acquire five hundred models overnight, and the path from one model to many explains where a control plane becomes necessary. An organization's first homepage recommender, search ranker, and fraud detector can each run on a bespoke, team-local pipeline for data processing, training, validation, and deployment that lets each group optimize for its immediate requirements. As the fleet grows, those independent pipelines begin sharing features, embeddings, and GPU pools, until one uncoordinated upstream change breaks five downstream models at once."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Single-model vs. platform operations at scale\n- Release policies across model archetypes\n- Quantifying platform economics\n- Quantifying and managing ML technical debt\n- When to form a dedicated platform team\n\nPay attention to: Quantifying platform economics and ROI scaling threshold; ML technical debt taxonomy (Sculley et al.) and debt-cleanup payback; Model-type operations diversity and deployment risk profiles."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: How does the debt-cleanup payback calculation quantitatively justify investing 160 engineering hours upfront to refactor and automate brittle pipeline plumbing over a 3-year model lifecycle?",
+   "md": "Refactoring reduces recurring manual toil from 40 hours/month down to 8 hours/month. Over 36 months at \\$150/hour, status quo toil costs \\$216,000, whereas the proactive path costs \\$67,200 (including the 160-hour setup), yielding a cost ratio ratio of approximately \\$3.2×."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-12-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An organization operates 50 models. A platform team costs \\$120,000 per month and recovers 20 engineering hours per model monthly, valued at \\$150 per hour. What are the benefit-cost ratio and net ROI based on this recovered-capacity value?",
+     "explanation": "The correct answer is B. Recovered capacity is valued at \\$50×20×\\$150=\\$150,000 monthly. Dividing by \\$120,000 gives a benefit-cost ratio of \\$1.25; net ROI is \\$1.25-1=25\\%, or \\$30,000 above cost. Recovered engineering time is not automatic cash savings: realizing that value requires productive redeployment or avoided expenditure.",
+     "hint": "Think about: distinguish benefit-cost ratio, net ROI, and recovered engineering-capacity value in platform investment analysis.",
+     "type": "single",
+     "options": [
+      "Benefit-cost ratio 0.80 and net ROI of -20%.",
+      "Benefit-cost ratio 1.25 and net ROI of 25%, with \\$30,000 in net monthly capacity value above platform cost.",
+      "Benefit-cost ratio 2.50 and net ROI of 150%, with \\$180,000 in net monthly capacity value above platform cost.",
+      "Benefit-cost ratio 0.50 and net ROI of -50%."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "According to the ML technical debt taxonomy (Sculley et al.), which operational symptom specifically indicates dangerous *Configuration Debt* rather than Data Debt or Model Debt?",
+     "explanation": "The correct answer is C. Configuration debt manifests as unvalidated parameter surfaces, duplicated configuration blocks, and brittle YAML/JSON files that lack schema verification, directly leading to deployment failures. In contrast, upstream schema alterations represent data debt, glue code represents model debt, and feedback loops represent pipeline/system entanglement.",
+     "hint": "Think about: classify operational symptoms into distinct categories of ML technical debt.",
+     "type": "single",
+     "options": [
+      "Upstream database schema changes that silently alter categorical feature encodings.",
+      "Extensive glue code written to convert data between disparate third-party machine learning libraries.",
+      "Large, unvalidated configuration parameter files (e.g., exceeding 500 lines of ad-hoc YAML per model) causing frequent deployment failures.",
+      "Tangled feedback loops where a fraud detection model's historical outputs bias incoming training labels."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "ML platform engineering is a variable cost that delivers immediate positive economic return regardless of the number of deployed models in an organization.",
+     "explanation": "False. Platform investment includes fixed team and tooling costs. Its economic case depends on the value of recovered engineering capacity and avoided incidents relative to those costs. The break-even fleet size depends on workload and organization; 20–50 models is not a universal threshold, and recovered time is not automatically cash savings.",
+     "hint": "Think about: evaluate the scaling threshold and fixed-vs-variable cost structure of centralized ML platforms.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Contrast the deployment frequency and rollback latency requirements of an adversarial fraud detection model with those of a frontier large language model (LLM).",
+   "md": "Fraud systems facing active adaptation may need frequent releases and rapid traffic rollback, while a frontier LLM release may require longer shadow and safety evaluation. These are deployment contracts shaped by risk, label delay, and validation cost, not fixed cadences for each model family. Long observation windows do not justify slow rollback once a harmful release is detected."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A portfolio has shared embeddings, cross-team feature pipelines, and cascading latency regressions. Which coordination and diagnostic controls become necessary, and why does model count alone not determine when to introduce them?",
+   "md": "Recorded dependencies identify consumers to re-evaluate when a shared embedding changes. Compatible version sets and rollback targets govern release, while cross-model traces localize latency along the request path. These controls respond to coupling and failure consequences: a small tightly coupled portfolio can need them before a larger collection of isolated models. Fleet size informs capacity planning but does not prescribe a universal maturity sequence."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now distinguish benefit-cost ratio, net ROI, and recovered engineering-capacity value in platform investment analysis.",
+    "You can now classify operational symptoms into distinct categories of ML technical debt.",
+    "You can now analyze the long-term economic trade-offs of paying down ML technical debt versus enduring continuous manual toil.",
+    "You can now compare operational deployment cadences and risk profiles across diverse ML model types."
+   ]
+  }
+ ]
+}

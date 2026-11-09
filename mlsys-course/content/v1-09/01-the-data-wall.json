@@ -1,0 +1,73 @@
+{
+ "title": "The Data Wall",
+ "summary": "Analyze the systems implications of the compute-to-data scaling asymmetry and diagnose the data wall regime.",
+ "source": {
+  "chapter": "v1-09",
+  "sections": [
+   "The Data Wall"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Data Wall** in *Data Selection* (Vol I). By the end you should be able to:\n\n- Analyze the systems implications of the compute-to-data scaling asymmetry and diagnose the data wall regime\n- Evaluate the misconception that information value scales linearly with raw corpus volume\n- Identify the chapter's conceptual ordering of the three main data-selection intervention points"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Selection, § The Data Wall",
+   "md": "Every example a training run processes costs the same forward pass, backward pass, and optimizer update, whether it teaches the model something new or repeats what the model already knows. A duplicated image, a mislabeled record, and a rare boundary case cost the same arithmetic while contributing very different learning signals. @Sec-model-training made each of those steps as cheap as one machine allows and accounted for a whole run as roughly \\$6ParametersDatasetSize floating-point operations for Parameters parameters and DatasetSize tokens."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Scaling asymmetry between compute and data; The data wall and diminishing returns from raw corpus growth; The three selection levers and when they act."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-09-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In an ML infrastructure scaling scenario where available GPU compute grows by approximately \\$10\\times$ every 3 years while high-quality web data grows by only \\$2\\times$ every 5 years, what primary systems regime emerges, and what is the appropriate systems response?",
+     "explanation": "The correct answer is A. Compute throughput growing faster than accessible high-quality human data creates a compute-to-data imbalance known as the data wall. In this regime, additional raw compute yields diminishing returns on uncurated corpora, making data selection essential to maximize the Information-Compute Ratio (ICR). Shifting model parallelism addresses parameter memory limits rather than data scarcity, scaling disk bandwidth solves I/O stalls rather than token information quality, and eliminating synthetic generation ignores a key strategy for expanding scarce data pools.",
+     "hint": "Think about: analyze the systems implications of the compute-to-data scaling asymmetry and diagnose the data wall regime.",
+     "type": "single",
+     "options": [
+      "A compute-rich, data-constrained data wall regime where intelligent data selection and curation must maximize the learning signal extracted per token",
+      "A memory bandwidth-bound regime where model parallel sharding must replace data parallelism across all training clusters",
+      "An I/O ingestion bottleneck where disk read bandwidth must be quadrupled to keep GPUs saturated",
+      "A compute-starved regime where synthetic data generation should be eliminated to avoid wasting accelerator cycles"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Doubling the amount of raw, deduplicated web data will always double the total information learned by the model.",
+     "explanation": "False. The section argues for diminishing returns, not a universal doubling law: additional data can add much less marginal signal than its extra compute cost. That is why teams must evaluate learning curves and target quality empirically instead of assuming linear gains from corpus size.",
+     "hint": "Think about: evaluate the misconception that information value scales linearly with raw corpus volume.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the following stages as they are presented in this chapter's conceptual map of the data-selection pipeline:",
+     "explanation": "The correct order is: (2) Static Pruning, (1) Dynamic Selection, (3) Synthetic Data Generation. This is the chapter's presentation order: prune low-value data before target training, adapt sample usage during training, then create missing coverage when needed. The sequence is a conceptual map rather than a mandatory runtime chronology, because synthetic data can also be created earlier and then pruned or selected before final training.",
+     "hint": "Think about: identify the chapter's conceptual ordering of the three main data-selection intervention points.",
+     "type": "order",
+     "items": [
+      "Static Pruning",
+      "Dynamic Selection",
+      "Synthetic Data Generation."
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the systems implications of the compute-to-data scaling asymmetry and diagnose the data wall regime.",
+    "You can now evaluate the misconception that information value scales linearly with raw corpus volume.",
+    "You can now identify the chapter's conceptual ordering of the three main data-selection intervention points."
+   ]
+  }
+ ]
+}

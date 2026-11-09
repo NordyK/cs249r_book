@@ -1,0 +1,242 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v1-12",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Benchmarking** (Vol I). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Benchmarking, Purpose",
+   "md": "Every optimization claim must eventually face deployment-representative conditions, and many do not survive the encounter. Each decision targets one dimension (latency, accuracy, throughput, or energy), but an ML system is the product of all these dimensions simultaneously: a pruned model may run faster on one accelerator yet slower on another, while a larger batch size improves accelerator utilization at the cost of missing a latency target."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Benchmark–Production Gap",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Benchmark Carpentry",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Benchmarking Granularity",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Benchmark Suites",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Training Benchmarks",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Inference Benchmarks",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Power and Energy Measurement",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Measurement validity**",
+     "Every speed, size, or energy number holds only for the conditions the measurement fixed (warm or cold, batch size, curated or deployed inputs, burst or sustained), so a benchmark is a proxy and the first question is what it does not measure."
+    ],
+    [
+     "**Benchmark specification**",
+     "A claim becomes testable only when the benchmark fixes the input and output boundary, a quality floor, the model and runtime, the metrics, an open-loop synchronized harness, and recorded run rules, and a number reported without them cannot be reproduced or refuted."
+    ],
+    [
+     "**Benchmark granularity**",
+     "Micro-benchmarks isolate kernels, macro-benchmarks expose composition across a model, and end-to-end benchmarks time the full request path, and a component speedup is diluted by every stage it does not touch."
+    ],
+    [
+     "**Latency distribution and the SLO**",
+     "Mean latency hides the tail, so serving benchmarks report percentiles under a stated offered load and judge them against an SLO (a target for a named indicator, distinct from a contractual SLA), and generative workloads report time to first token and time per output token together."
+    ],
+    [
+     "**Differences beyond noise**",
+     "Run-to-run variance and finite test sets give every measurement an uncertainty, so a comparison needs repeated, order-randomized runs with a stated interval and a prespecified minimum effect, accuracy comparisons need paired tests, and nonsignificance never establishes equivalence."
+    ],
+    [
+     "**Quality beyond accuracy**",
+     "Compression and deployment can leave top-1 accuracy nearly unchanged while degrading calibration and accuracy on rare slices, so a model is accepted against absolute thresholds set in advance (aggregate accuracy, calibration error, deployment-critical slices)."
+    ],
+    [
+     "**Verification gap**",
+     "A finite evaluation certifies behavior only on the population it sampled and only within the uncertainty its sample size allows, because a test set covers an effectively zero fraction of the input space, so evaluation is statistical evidence and never proof."
+    ],
+    [
+     "**Time to quality target**",
+     "A training benchmark scores wall-clock time until validation quality first reaches a fixed target, and scaling efficiency across accelerators reveals a loss without attributing it."
+    ],
+    [
+     "**Energy measurement boundary**",
+     "Energy is integrated power over a matched window inside a stated boundary (chip, node, or facility through PUE), so efficiency belongs to one operating point and a duty-cycled device's idle floor can set battery life."
+    ],
+    [
+     "**Standardized benchmark suites**",
+     "Comparable evidence needs a shared reference workload, quality target, and run rules, as in MLPerf's closed and open divisions and its arrival scenarios, which is why one accelerator reports very different Offline and Server throughput."
+    ],
+    [
+     "**Data benchmarks**",
+     "A data benchmark fixes a deployment slice, a leakage-resistant holdout, coverage minimums, label-quality audits, and drift thresholds before aggregate scores mean anything, and saturated static benchmarks stop discriminating."
+    ],
+    [
+     "**Throughput-latency measurement**",
+     "Throughput and latency are measured together because batching raises throughput while adding latency, so a throughput number without its latency percentile and offered load says nothing about a serving deadline."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v1-12-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Measurement validity",
+     "back": "Every speed, size, or energy number holds only for the conditions the measurement fixed (warm or cold, batch size, curated or deployed inputs, burst or sustained), so a benchmark is a proxy and the first question is what it does not measure."
+    },
+    {
+     "front": "Benchmark specification",
+     "back": "A claim becomes testable only when the benchmark fixes the input and output boundary, a quality floor, the model and runtime, the metrics, an open-loop synchronized harness, and recorded run rules, and a number reported without them cannot be reproduced or refuted."
+    },
+    {
+     "front": "Benchmark granularity",
+     "back": "Micro-benchmarks isolate kernels, macro-benchmarks expose composition across a model, and end-to-end benchmarks time the full request path, and a component speedup is diluted by every stage it does not touch."
+    },
+    {
+     "front": "Latency distribution and the SLO",
+     "back": "Mean latency hides the tail, so serving benchmarks report percentiles under a stated offered load and judge them against an SLO (a target for a named indicator, distinct from a contractual SLA), and generative workloads report time to first token and time per output token together."
+    },
+    {
+     "front": "Differences beyond noise",
+     "back": "Run-to-run variance and finite test sets give every measurement an uncertainty, so a comparison needs repeated, order-randomized runs with a stated interval and a prespecified minimum effect, accuracy comparisons need paired tests, and nonsignificance never establishes equivalence."
+    },
+    {
+     "front": "Quality beyond accuracy",
+     "back": "Compression and deployment can leave top-1 accuracy nearly unchanged while degrading calibration and accuracy on rare slices, so a model is accepted against absolute thresholds set in advance (aggregate accuracy, calibration error, deployment-critical slices)."
+    },
+    {
+     "front": "Verification gap",
+     "back": "A finite evaluation certifies behavior only on the population it sampled and only within the uncertainty its sample size allows, because a test set covers an effectively zero fraction of the input space, so evaluation is statistical evidence and never proof."
+    },
+    {
+     "front": "Time to quality target",
+     "back": "A training benchmark scores wall-clock time until validation quality first reaches a fixed target, and scaling efficiency across accelerators reveals a loss without attributing it."
+    },
+    {
+     "front": "Energy measurement boundary",
+     "back": "Energy is integrated power over a matched window inside a stated boundary (chip, node, or facility through PUE), so efficiency belongs to one operating point and a duty-cycled device's idle floor can set battery life."
+    },
+    {
+     "front": "Standardized benchmark suites",
+     "back": "Comparable evidence needs a shared reference workload, quality target, and run rules, as in MLPerf's closed and open divisions and its arrival scenarios, which is why one accelerator reports very different Offline and Server throughput."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v1-12-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Measurement validity**?",
+     "options": [
+      "A finite evaluation certifies behavior only on the population it sampled and only within the uncertainty its sample size allows, because a test set covers an effectively zero fraction of the input space, so evaluation is statistical evidence and never proof.",
+      "Micro-benchmarks isolate kernels, macro-benchmarks expose composition across a model, and end-to-end benchmarks time the full request path, and a component speedup is diluted by every stage it does not touch.",
+      "A claim becomes testable only when the benchmark fixes the input and output boundary, a quality floor, the model and runtime, the metrics, an open-loop synchronized harness, and recorded run rules, and a number reported without them cannot be reproduced or refuted.",
+      "Every speed, size, or energy number holds only for the conditions the measurement fixed (warm or cold, batch size, curated or deployed inputs, burst or sustained), so a benchmark is a proxy and the first question is what it does not measure."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Measurement validity itself, not a neighbouring idea.",
+     "explanation": "**Measurement validity:** Every speed, size, or energy number holds only for the conditions the measurement fixed (warm or cold, batch size, curated or deployed inputs, burst or sustained), so a benchmark is a proxy and the first question is what it does not measure."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Benchmark specification**?",
+     "options": [
+      "Compression and deployment can leave top-1 accuracy nearly unchanged while degrading calibration and accuracy on rare slices, so a model is accepted against absolute thresholds set in advance (aggregate accuracy, calibration error, deployment-critical slices).",
+      "Every speed, size, or energy number holds only for the conditions the measurement fixed (warm or cold, batch size, curated or deployed inputs, burst or sustained), so a benchmark is a proxy and the first question is what it does not measure.",
+      "Micro-benchmarks isolate kernels, macro-benchmarks expose composition across a model, and end-to-end benchmarks time the full request path, and a component speedup is diluted by every stage it does not touch.",
+      "A claim becomes testable only when the benchmark fixes the input and output boundary, a quality floor, the model and runtime, the metrics, an open-loop synchronized harness, and recorded run rules, and a number reported without them cannot be reproduced or refuted."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Benchmark specification itself, not a neighbouring idea.",
+     "explanation": "**Benchmark specification:** A claim becomes testable only when the benchmark fixes the input and output boundary, a quality floor, the model and runtime, the metrics, an open-loop synchronized harness, and recorded run rules, and a number reported without them cannot be reproduced or refuted."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Benchmark granularity**?",
+     "options": [
+      "Every speed, size, or energy number holds only for the conditions the measurement fixed (warm or cold, batch size, curated or deployed inputs, burst or sustained), so a benchmark is a proxy and the first question is what it does not measure.",
+      "Mean latency hides the tail, so serving benchmarks report percentiles under a stated offered load and judge them against an SLO (a target for a named indicator, distinct from a contractual SLA), and generative workloads report time to first token and time per output token together.",
+      "A finite evaluation certifies behavior only on the population it sampled and only within the uncertainty its sample size allows, because a test set covers an effectively zero fraction of the input space, so evaluation is statistical evidence and never proof.",
+      "Micro-benchmarks isolate kernels, macro-benchmarks expose composition across a model, and end-to-end benchmarks time the full request path, and a component speedup is diluted by every stage it does not touch."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Benchmark granularity itself, not a neighbouring idea.",
+     "explanation": "**Benchmark granularity:** Micro-benchmarks isolate kernels, macro-benchmarks expose composition across a model, and end-to-end benchmarks time the full request path, and a component speedup is diluted by every stage it does not touch."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Latency distribution and the SLO**?",
+     "options": [
+      "Every speed, size, or energy number holds only for the conditions the measurement fixed (warm or cold, batch size, curated or deployed inputs, burst or sustained), so a benchmark is a proxy and the first question is what it does not measure.",
+      "Energy is integrated power over a matched window inside a stated boundary (chip, node, or facility through PUE), so efficiency belongs to one operating point and a duty-cycled device's idle floor can set battery life.",
+      "Mean latency hides the tail, so serving benchmarks report percentiles under a stated offered load and judge them against an SLO (a target for a named indicator, distinct from a contractual SLA), and generative workloads report time to first token and time per output token together.",
+      "Comparable evidence needs a shared reference workload, quality target, and run rules, as in MLPerf's closed and open divisions and its arrival scenarios, which is why one accelerator reports very different Offline and Server throughput."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Latency distribution and the SLO itself, not a neighbouring idea.",
+     "explanation": "**Latency distribution and the SLO:** Mean latency hides the tail, so serving benchmarks report percentiles under a stated offered load and judge them against an SLO (a target for a named indicator, distinct from a contractual SLA), and generative workloads report time to first token and time per output token together."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Differences beyond noise**?",
+     "options": [
+      "Every speed, size, or energy number holds only for the conditions the measurement fixed (warm or cold, batch size, curated or deployed inputs, burst or sustained), so a benchmark is a proxy and the first question is what it does not measure.",
+      "Run-to-run variance and finite test sets give every measurement an uncertainty, so a comparison needs repeated, order-randomized runs with a stated interval and a prespecified minimum effect, accuracy comparisons need paired tests, and nonsignificance never establishes equivalence.",
+      "A data benchmark fixes a deployment slice, a leakage-resistant holdout, coverage minimums, label-quality audits, and drift thresholds before aggregate scores mean anything, and saturated static benchmarks stop discriminating.",
+      "A finite evaluation certifies behavior only on the population it sampled and only within the uncertainty its sample size allows, because a test set covers an effectively zero fraction of the input space, so evaluation is statistical evidence and never proof."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Differences beyond noise itself, not a neighbouring idea.",
+     "explanation": "**Differences beyond noise:** Run-to-run variance and finite test sets give every measurement an uncertainty, so a comparison needs repeated, order-randomized runs with a stated interval and a prespecified minimum effect, accuracy comparisons need paired tests, and nonsignificance never establishes equivalence."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Measurement validity: Every speed, size, or energy number holds only for the conditions the measurement fixed (warm or cold, batch size, curated or deployed inputs, burst or sustained), so a benchmark is a proxy and the first question is what it does not measure.",
+    "Benchmark specification: A claim becomes testable only when the benchmark fixes the input and output boundary, a quality floor, the model and runtime, the metrics, an open-loop synchronized harness, and recorded run rules, and a number reported without them cannot be reproduced or refuted.",
+    "Benchmark granularity: Micro-benchmarks isolate kernels, macro-benchmarks expose composition across a model, and end-to-end benchmarks time the full request path, and a component speedup is diluted by every stage it does not touch.",
+    "Latency distribution and the SLO: Mean latency hides the tail, so serving benchmarks report percentiles under a stated offered load and judge them against an SLO (a target for a named indicator, distinct from a contractual SLA), and generative workloads report time to first token and time per output token together."
+   ]
+  }
+ ],
+ "terms": []
+}

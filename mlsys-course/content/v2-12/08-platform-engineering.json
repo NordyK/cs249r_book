@@ -1,0 +1,102 @@
+{
+ "title": "Platform Engineering",
+ "summary": "Apply portfolio goodput accounting to route fleet efficiency losses to their owners.",
+ "source": {
+  "chapter": "v2-12",
+  "sections": [
+   "Platform Engineering",
+   "Abstraction levels",
+   "Platform lifecycle and adoption",
+   "Self-service model deployment",
+   "Resource management",
+   "ML productivity goodput across the portfolio",
+   "Multi-tenancy and isolation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Platform Engineering** in *ML Operations at Scale* (Vol II). By the end you should be able to:\n\n- Apply portfolio goodput accounting to route fleet efficiency losses to their owners\n- Analyze the architectural causes of the noisy neighbor problem in multi-tenant GPU infrastructure\n- Interpret capacity-weighted platform utilization and its unit requirements\n- Apply cluster utilization metrics and economic principles to diagnose ML capacity bottlenecks\n- Evaluate resource management and scheduling invariants between training and serving workloads"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, ML Operations at Scale, § Platform Engineering",
+   "md": "Retiring the recurring toil surfaced by on-call rotations requires turning ad-hoc operational fixes into shared infrastructure. Organizations where every data science team independently provisions GPU clusters, configures model registries, and wires up alerting dashboards duplicate that infrastructure work across the fleet. **Platform engineering** addresses this by treating the ML infrastructure itself as an internal product, providing supported paths that absorb recurring operational complexity while exposing the controls model teams need."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Abstraction levels\n- Platform lifecycle and adoption\n- Self-service model deployment\n- Resource management\n- ML productivity goodput across the portfolio\n- Multi-tenancy and isolation\n\nPay attention to: ML productivity goodput as portfolio accounting; Noisy neighbor problem and physical GPU memory isolation; Capacity-weighted platform utilization and training vs. serving resource policy."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A platform reports utilization as the simple average across its resources. Why does the chapter weight each resource's utilization by its capacity instead, and what must be true of the capacity units before the weighted average is meaningful?",
+   "md": "Capacity weighting makes the metric track where stranded work actually lives: an idle eight-GPU node wastes more than an idle single GPU, so a small underused resource should not pull the platform average down as hard as a large idle pool. The capacities must be expressed in a common unit over the same interval; heterogeneous accelerators need a declared workload normalization, and CPU cores, device counts, and bytes cannot be added directly."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-12-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A platform computes ML productivity goodput per team and workload class from scheduler records, job timelines, and step traces. What does charging each lost hour to exactly one goodput factor let a portfolio dashboard show?",
+     "explanation": "The correct answer is B. Because scheduling, runtime, and program goodput each charge a loss once, their product says how much useful output was lost and which layer lost it, so the dashboard routes the problem to its owner. Busy GPU-hours are only an upper bound on useful work, and capacity-weighted utilization and the platform break-even answer different questions.",
+     "hint": "Think about: apply portfolio goodput accounting to route fleet efficiency losses to their owners.",
+     "type": "single",
+     "options": [
+      "The dollar value of every busy GPU-hour, independent of whether the job later fails",
+      "Which layer (orchestration, the runtime, or the program) limits each team's useful output, and therefore which owner must act",
+      "The capacity-weighted average utilization across heterogeneous accelerators",
+      "The number of models a platform needs before its benefit-cost ratio passes one"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Which shared-resource path can allow a training tenant to violate the latency SLO of a co-located inference tenant?",
+     "explanation": "The correct answer is A. Host isolation alone does not bound contention for device memory or the shared communication fabric. A training tenant can exhaust available HBM or saturate fabric capacity, delaying inference. Containers do not require shared model weights; device partitioning and network admission controls must match the isolation contract.",
+     "hint": "Think about: analyze the architectural causes of the noisy neighbor problem in multi-tenant GPU infrastructure.",
+     "type": "single",
+     "options": [
+      "Competition for finite GPU High Bandwidth Memory (HBM) or shared RDMA fabric bandwidth can stall the inference tenant even when host CPU resources are isolated.",
+      "Linux kernel cgroups and container namespaces cannot be instantiated on systems containing GPU accelerators.",
+      "CPUs cannot run multi-tenant virtualization or container runtimes.",
+      "Multi-tenant GPU clusters require all tenant models to share the exact same weights in memory."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Batch training workloads and live online serving workloads share the same operational constraints and should be managed under an identical cluster scheduling and preemption policy.",
+     "explanation": "False. Batch training is interruptible, checkpointable, and optimizes for long-term throughput and high GPU utilization, whereas online serving is latency-critical (strict p99 latency SLOs), non-preemptible, and requires reserved headroom capacity to absorb traffic spikes.",
+     "hint": "Think about: evaluate resource management and scheduling invariants between training and serving workloads.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Arrange the four Platform Abstraction Levels in order from lowest level of abstraction",
+     "explanation": "The correct order is: (3) Infrastructure as a Service -> (2) Standardized Containers -> (4) ML Control Loops -> (1) Full Lifecycle Product. Level 1 provides raw infrastructure (3); Level 2 standardizes containers and storage (2); Level 3 automates ML control loops and distributed orchestration (4); Level 4 provides end-to-end full lifecycle managed capabilities (1).",
+     "hint": "Think about: order the progression of ML platform abstraction tiers.",
+     "type": "order",
+     "items": [
+      ":",
+      "to highest level of abstraction"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: In a 100-GPU training cluster operating at \\$65\\%$ average compute utilization and \\$80\\%$ memory utilization with 4-hour queue waits and a cost of $\\$2.50$/GPU-hour, evaluate whether buying more GPUs or optimizing data-loading pipelines is the superior operational intervention.",
+   "md": "These aggregate metrics do not uniquely identify a data-loading bottleneck. Profile input stalls, memory traffic, communication, kernels, and placement before choosing an intervention. Busy time is also only an upper bound on useful work: if a verified repair raises busy compute from \\$65\\% to \\$80\\%, the added busy capacity is \\$100×24×0.15×\\$2.50=\\$900 per day at the chargeback rate, and goodput accounting must still remove failed jobs and lost work before calling it productive. The cluster bill does not change; the capacity becomes cash only if it avoids a purchase, and expansion depends on remaining queue demand."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply portfolio goodput accounting to route fleet efficiency losses to their owners.",
+    "You can now analyze the architectural causes of the noisy neighbor problem in multi-tenant GPU infrastructure.",
+    "You can now interpret capacity-weighted platform utilization and its unit requirements.",
+    "You can now apply cluster utilization metrics and economic principles to diagnose ML capacity bottlenecks."
+   ]
+  }
+ ]
+}

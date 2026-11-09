@@ -1,0 +1,69 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Evaluate the fallacy of monotonic scaling with uncurated or synthetic data using diminishing returns and domain gaps.",
+ "source": {
+  "chapter": "v1-04",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Data Engineering* (Vol I). By the end you should be able to:\n\n- Evaluate the fallacy of monotonic scaling with uncurated or synthetic data using diminishing returns and domain gaps\n- Analyze the hidden engineering and validation overheads in large-scale dataset migration beyond raw network wire transfer time\n- Evaluate why high validation accuracy is insufficient to guarantee production reliability without drift and skew monitoring"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Engineering, § Fallacies and Pitfalls",
+   "md": "Data engineering pipelines rarely fail with immediate runtime crashes; instead, they silently distort feature distributions, corrupt training state, or starve expensive accelerator clusters. The nine fallacies and pitfalls that follow collect the recurring assumptions behind those failures, pairing each with the pipeline measurement or contract that prevents it."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: diminishing returns of dataset volume scaling and synthetic domain gaps; hidden engineering and validation costs in petabyte data migration; limits of validation accuracy for production readiness."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why planning a petabyte-scale dataset migration solely as a network wire transfer ($T = D_{\\text{vol}}/\\text{BW}$) is a major systems pitfall.",
+   "md": "Treating a petabyte-scale migration as a simple network transfer overlooks the massive systemic overhead of data gravity: updating transformation pipelines, re-engineering feature stores, revalidating data quality and schema contracts across environments, re-establishing lineage tracking, and synchronizing dependent downstream training jobs. The non-network engineering and validation time often exceeds the raw wire transfer time by weeks or months."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-04-13-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An engineering team assumes that doubling their raw dataset volume by web scraping uncurated text and generating synthetic speech samples will automatically improve downstream model accuracy. According to the chapter's fallacies and pitfalls, why is this assumption flawed?",
+     "explanation": "The correct answer is A. Because scaling laws exhibit diminishing returns (power-law test loss flattening), and adding uncurated or synthetic data can increase data gravity and transport energy while introducing generator domain gaps and noise. The chapter highlights the fallacy that 'more data always improves performance': empirical loss follows power-law curves where marginal gains diminish, and redundant or uncurated data increases data gravity ($D_{\\text{vol}}$) and processing costs without adding task-relevant signal. Furthermore, synthetic data inherits generator domain gaps that fail to represent real deployment conditions. The other options invent false mathematical limits, legal bans, or automatic file format conversions.",
+     "hint": "Think about: evaluate the fallacy of monotonic scaling with uncurated or synthetic data using diminishing returns and domain gaps.",
+     "type": "single",
+     "options": [
+      "Because scaling laws exhibit diminishing returns (power-law test loss flattening), and adding uncurated or synthetic data can increase data gravity and transport energy while introducing generator domain gaps and noise.",
+      "Because neural networks cannot mathematically process more than one million training records without floating-point overflow.",
+      "Because synthetic data is legally prohibited from being combined with real-world sensor captures.",
+      "Because web scraping always converts binary audio files into plain text formats, corrupting feature representations."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Achieving high accuracy on a randomly split validation set during model development proves that the system will perform reliably after deployment.",
+     "explanation": "False. High validation accuracy only measures performance on data sampled from the historical distribution under development conditions. It does not account for production distribution shifts, training-serving skew, adversarial inputs, unrepresented deployment subgroups, or leakage across train/validation splits.",
+     "hint": "Think about: evaluate why high validation accuracy is insufficient to guarantee production reliability without drift and skew monitoring.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate the fallacy of monotonic scaling with uncurated or synthetic data using diminishing returns and domain gaps.",
+    "You can now analyze the hidden engineering and validation overheads in large-scale dataset migration beyond raw network wire transfer time.",
+    "You can now evaluate why high validation accuracy is insufficient to guarantee production reliability without drift and skew monitoring."
+   ]
+  }
+ ]
+}

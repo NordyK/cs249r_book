@@ -1,0 +1,97 @@
+{
+ "title": "Serving System Architecture",
+ "summary": "Design the end-to-end request pipeline of a modern inference server by ordering its architectural stages.",
+ "source": {
+  "chapter": "v1-13",
+  "sections": [
+   "Serving System Architecture",
+   "Internal architecture and request flow",
+   "Interface protocols and serialization",
+   "The load balancer layer"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Serving System Architecture** in *Model Serving* (Vol I). By the end you should be able to:\n\n- Design the end-to-end request pipeline of a modern inference server by ordering its architectural stages\n- Evaluate interface protocols and serialization formats (REST/JSON vs. gRPC/Protobuf) for latency-critical serving pipelines\n- Analyze the conditions under which serialization overheads dominate model inference execution in serving architectures\n- Evaluate transport/serialization layer optimizations and distinguish them from accelerator computation in model serving pipelines\n- Explain the function of queue decoupling and dynamic batching in inference server design"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Serving, § Serving System Architecture",
+   "md": "Inside each replica, user requests arrive in irregular bursts (milliseconds apart one moment and silent for seconds the next), whereas accelerator compute engines demand steady streams of uniform, dense batches to saturate memory bandwidth and arithmetic units. Reconciling these two incompatible rhythms at the system boundary requires a serving architecture that decouples network ingress from execution scheduling, absorbing arrival bursts and packing irregular inputs into dense batches without violating latency SLOs."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Internal architecture and request flow\n- Interface protocols and serialization\n- The load balancer layer\n\nPay attention to: Internal 6-stage inference server pipeline; Decoupling network ingress, request queue, dynamic batcher, and execution runner; Interface protocols and serialization: REST/JSON vs. gRPC/Protobuf; The serialization bottleneck in high-QPS lightweight models."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: What is the 'serialization bottleneck' in model serving, and under what operational conditions (model size, request payload, query rate) does it become the dominant factor in the end-to-end latency budget?",
+   "md": "The serialization bottleneck appears when packing or unpacking request payloads on the host CPU takes enough time that it rivals or exceeds the model's own execution time. This is most likely with lightweight or highly optimized models, large tensor payloads or feature vectors, and high query rates where repeated parsing and allocation consume a noticeable share of CPU time. The practical implication is that teams should confirm the bottleneck with per-stage timing before changing protocols or formats, rather than assuming serialization dominates every serving path."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-13-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In a microservices architecture where measurements show JSON serialization and parsing are a visible bottleneck in an internal fraud detection service processing \\$10^5 queries per second under a 5 ms SLA, why is gRPC with Protocol Buffers preferred over HTTP/1.1 with JSON?",
+     "explanation": "The correct answer is D. When serialization is a visible part of the latency budget, compact binary messages and generated parsers can cut host CPU overhead relative to JSON, and gRPC's HTTP/2 transport supports multiplexing over long-lived connections. HTTP/1.1 can also use persistent connections, so the point is reduced host-side overhead and better transport behavior under this workload, not an inherent handshake on every request. JSON parsing happens on host CPUs, not Tensor Cores, and batching behavior is a serving-engine decision rather than a transport feature.",
+     "hint": "Think about: evaluate interface protocols and serialization formats (REST/JSON vs. gRPC/Protobuf) for latency-critical serving pipelines.",
+     "type": "single",
+     "options": [
+      "JSON text parsing is performed directly inside GPU Tensor Cores, whereas Protocol Buffers require host CPU preprocessing.",
+      "HTTP/1.1 provides automatic iteration-level continuous batching, whereas gRPC only supports static batching.",
+      "Protocol Buffers eliminate the need for schema definitions, enabling zero-copy dynamic typing across heterogeneous languages.",
+      "Protocol Buffers use compact binary encoding with pre-compiled schema parsers that can reduce CPU serialization overhead, and gRPC multiplexes requests over persistent HTTP/2 connections."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Replacing HTTP/1.1 REST endpoints with gRPC automatically accelerates the GPU kernel execution time of deep learning models by \\$2\\times$ to \\$4\\times$.",
+     "explanation": "False. Changing the transport protocol does not automatically make the model's GPU kernels run faster; with the same tensors and backend, the underlying math kernels are unchanged. Protocol changes can still improve end-to-end behavior by reducing CPU and transport overhead or by easing contention elsewhere in the serving stack.",
+     "hint": "Think about: evaluate transport/serialization layer optimizations and distinguish them from accelerator computation in model serving pipelines.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In an inference server architecture, what is the primary role of decoupling the request queue from the dynamic batcher?",
+     "explanation": "The correct answer is B. Separating the request queue from the batcher gives the system a bounded buffer between arrival and execution, so short bursts can be absorbed and the batcher can choose when to dispatch based on queue depth and timeout. That does not guarantee no drops under overload, and it does not guarantee an optimal batch every time. Queueing also does not eliminate compilation work or imply a specific zero-copy network path to the GPU.",
+     "hint": "Think about: explain the function of queue decoupling and dynamic batching in inference server design.",
+     "type": "single",
+     "options": [
+      "It allows the server to permanently cache all intermediate GPU activations across independent client requests.",
+      "It allows the system to buffer irregular arrivals and present the batcher with pending work so it can form batches within a timeout budget.",
+      "It eliminates the need for GPU kernel compilation by converting dynamic input shapes into fixed static tensors in the queue.",
+      "It bypasses host RAM by streaming network packets directly from the NIC into the accelerator's L2 cache via PCIe peer-to-peer transfers."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A high-throughput model serving cluster sits behind a Layer 7 load balancer. Which routing approach is most appropriate for reducing p99 tail latency when inference times vary significantly across requests due to variable input sequence lengths?",
+     "explanation": "The correct answer is A. When request service times vary, routing should account for current load or backlog so new work is less likely to land behind long-running requests. A load-aware policy can reduce tail latency if its load and health signals are accurate. Round-robin ignores current queue depth, sticky hashing can trap traffic on a slow replica, and intentionally saturating one node drives the exact queue growth that serving tries to avoid.",
+     "hint": "Think about: design load balancing and request routing strategies to mitigate tail latency under variable service-time distributions.",
+     "type": "single",
+     "options": [
+      "A load-aware policy such as least-connections or least-loaded routing, which steers new requests away from replicas that already appear busy or backlogged.",
+      "Static round-robin routing, which deterministically rotates incoming connections across all healthy replicas regardless of current queue depths.",
+      "Random routing with hash-based sticky IP assignment, which pins client IP addresses permanently to specific backends without monitoring load.",
+      "Maximum-throughput greedy allocation, which concentrates all incoming traffic onto a single primary replica until its memory is completely saturated before spilling over."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now design the end-to-end request pipeline of a modern inference server by ordering its architectural stages.",
+    "You can now evaluate interface protocols and serialization formats (REST/JSON vs. gRPC/Protobuf) for latency-critical serving pipelines.",
+    "You can now analyze the conditions under which serialization overheads dominate model inference execution in serving architectures.",
+    "You can now evaluate transport/serialization layer optimizations and distinguish them from accelerator computation in model serving pipelines."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,81 @@
+{
+ "title": "Three Framework Problems",
+ "summary": "Classify a concrete framework failure into the execution, differentiation, or hardware abstraction problem.",
+ "source": {
+  "chapter": "v1-07",
+  "sections": [
+   "Three Framework Problems"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Three Framework Problems** in *ML Frameworks* (Vol I). By the end you should be able to:\n\n- Classify a concrete framework failure into the execution, differentiation, or hardware abstraction problem\n- Explain how the compiler analogy changes an engineer's expectations of what framework choice determines\n- Evaluate the misconception that matching tensor APIs imply matching compiler optimization capabilities\n- Analyze why framework selection functions as a long-term infrastructure commitment rather than a reversible tooling choice"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Frameworks, § Three Framework Problems",
+   "md": "A few lines of Python can express one decoding step of a language model: embed the newest token, pass it through every transformer block, and project the result onto the vocabulary. The accelerator never sees those lines. It sees a stream of kernels, the compiled routines it executes one launch at a time, together with memory allocations and copies, and the machine learning framework is the software that turns the first into the second. @Sec-network-architectures fixed *what* work each architecture performs."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Execution, differentiation, and hardware abstraction as the three universal problems every ML framework must solve; Viewing the ML framework as a compiler that lowers a model to hardware rather than a passive numerical library; Framework selection as a long-term infrastructure commitment that constrains reachable hardware and deployment paths."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how viewing an ML framework as a compiler that lowers a model graph to hardware, rather than merely a numerical library like NumPy, changes an engineer's expectations regarding framework selection and optimization under the systems iron law.",
+   "md": "An ML framework does more than provide convenient tensor syntax: it can capture or defer execution, organize computational graphs, and expose whole regions of work to compiler optimizations such as fusion, memory planning, and hardware-specific lowering. Numerical libraries also rely on optimized kernels, but framework choice additionally determines how much larger-scale structure is visible for reducing avoidable data movement and launch overhead. For example, two frameworks may both call fast GEMM kernels yet differ substantially in whether they can optimize a chain of surrounding operations together. The practical consequence is that framework selection affects achievable efficiency under the iron law, not just coding style."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-07-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team reports that their model executes correctly on CPU but produces mismatched tensor shapes and silent numerical corruption when switched to a GPU backend because some operators silently default to a different memory layout (such as NCHW versus NHWC). Which of the three fundamental framework problems does this failure most directly expose?",
+     "explanation": "The correct answer is A. The hardware abstraction problem requires providing a unified interface across diverse hardware backends (CPUs, GPUs, TPUs) while ensuring consistent semantics, memory layouts, and numerical behaviors; a silent layout mismatch between backends is a direct failure of this abstraction. Blaming the execution problem confuses when operations are dispatched with how backends interpret tensor memory layouts. Attributing the issue to differentiation is incorrect because forward shape and layout divergences break before gradient propagation occurs. Dismissing it as a data pipeline defect overlooks that tensor layout conversion across backends is a core runtime responsibility.",
+     "hint": "Think about: classify a concrete framework failure into the execution, differentiation, or hardware abstraction problem",
+     "type": "single",
+     "options": [
+      "The hardware abstraction problem, because one unified model interface must preserve consistent semantic behavior, memory layouts, and numerical behavior across diverse hardware backends",
+      "The execution problem, because the operators were evaluated eagerly instead of being captured into a static graph",
+      "The differentiation problem, because the backward pass failed to propagate gradients through non-contiguous strides",
+      "A data engineering pipeline defect unrelated to framework runtime responsibilities"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Two frameworks that expose nearly identical user-facing Python tensor APIs and target the same GPU hardware will necessarily provide equivalent graph-level operator fusion and ahead-of-time compilation capabilities.",
+     "explanation": "False. Syntactic API similarity does not imply compiler equivalence: one framework may support aggressive whole-graph intermediate representation lowering and kernel fusion via JIT/AOT compilers, whereas another may only perform eager single-kernel dispatch on the same GPU backend, resulting in substantial workload-dependent throughput gaps.",
+     "hint": "Think about: evaluate the misconception that matching tensor APIs imply matching compiler optimization capabilities",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An engineering organization chose a specialized research framework for rapid prototyping, only to discover later that the framework lacks export paths to their production edge accelerators, requiring months of manual re-implementation. Applying the chapter's infrastructure-commitment principle, what is the key systems insight?",
+     "explanation": "The correct answer is B. Framework decisions constrain reachable hardware targets, optimization passes, and deployment toolchains, meaning migration costs extend far beyond model code to include checkpoints, serving systems, CI/CD pipelines, and team expertise. Treating framework choice as freely reversible ignores the substantial engineering friction of cross-runtime translation. Blaming model capacity misidentifies the root cause, which is export toolchain incompatibility. Claiming hardware abstraction eliminates all deployment differences ignores real-world operator coverage gaps and runtime constraints.",
+     "hint": "Think about: analyze why framework selection functions as a long-term infrastructure commitment rather than a reversible tooling choice",
+     "type": "single",
+     "options": [
+      "Framework choice is easily reversible because weight arrays can be loaded into any runtime with zero engineering overhead",
+      "Framework selection functions as a durable infrastructure commitment whose reversal cost compounds across model checkpoints, serving runtimes, CI/CD pipelines, and hardware access",
+      "The primary failure was selecting an overly compact model architecture that failed to saturate edge accelerator memory",
+      "Hardware abstraction layers eliminate all differences between training frameworks and production inference engines"
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify a concrete framework failure into the execution, differentiation, or hardware abstraction problem.",
+    "You can now explain how the compiler analogy changes an engineer's expectations of what framework choice determines.",
+    "You can now evaluate the misconception that matching tensor APIs imply matching compiler optimization capabilities.",
+    "You can now analyze why framework selection functions as a long-term infrastructure commitment rather than a reversible tooling choice."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,76 @@
+{
+ "title": "Versioned Data and Commit Boundaries",
+ "summary": "Apply stable, idempotent writes at the output commit boundary to make replay after a worker failure effectively exactly-once.",
+ "source": {
+  "chapter": "v2-04",
+  "sections": [
+   "Versioned Data and Commit Boundaries",
+   "Replay and commit boundaries in data pipelines",
+   "The synthetic fuel line"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Versioned Data and Commit Boundaries** in *Data Storage* (Vol II). By the end you should be able to:\n\n- Apply stable, idempotent writes at the output commit boundary to make replay after a worker failure effectively exactly-once\n- Distinguish persistent storage amplification from read and write traffic in a verified synthetic-data pipeline\n- Justify retaining synthetic-sample provenance to support audits and filtering when recursive training degrades model quality\n- Explain the mechanism of model collapse caused by recursive training on uncurated synthetic data"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Data Storage, § Versioned Data and Commit Boundaries",
+   "md": "If a multi-week training run suffers a sudden loss spike or a deployed model regresses, an engineering team that did not record which shard versions, preprocessing code, and shuffle seeds fed each step cannot tell a model bug from a silent change in the input data. A checkpoint manifest provides one commit boundary per save. The data pipeline that built the training corpus has many, one at every stage that turns raw inputs into processed shards."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Replay and commit boundaries in data pipelines\n- The synthetic fuel line\n\nPay attention to: output commit boundaries and effectively exactly-once replay through stable, idempotent writes; the Data Wall and the shift from human to synthesized training data; provenance chain requirements (generator, filters, judge models, scores); synthetic-data capacity (\\$1.4\\times$) versus pipeline traffic (\\$4.4\\times$)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why synthetic training data pipelines must treat storage as an active 'provenance engine' by recording the generating model, filters, and verifier scores for each accepted sample, rather than storing plain text files.",
+   "md": "If synthetic data is stored as unverified plain text without lineage, future models risk recursively training on uncurated, erroneous synthetic outputs produced by prior generations, triggering 'model collapse' where model diversity and output quality progressively degrade. Storing an immutable provenance chain (generating model ID, prompt template, rejection filters, and verifier reward scores) supports auditing so data can be filtered, re-weighted, or purged when a generator or judge model is found to possess systematic errors or biases."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-04-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A feature-pipeline worker writes the output row for click event `e42`, then crashes before it records that the write succeeded. Its replacement cannot tell whether the row was committed. Which design lets the replacement reprocess `e42` without losing the event or counting it twice?",
+     "explanation": "The correct answer is A. The duplicate comes from the worker's own replay, not from message delivery, so it must be removed at the output commit boundary: a replayed write under a stable key leaves the same result however many times it repeats. At-most-once processing loses `e42` instead of duplicating it, a reliable transport cannot see the worker's replay, and a watermark governs event-time completeness rather than replay correctness.",
+     "hint": "Think about: apply stable, idempotent writes at the output commit boundary to make replay after a worker failure effectively exactly-once",
+     "type": "single",
+     "options": [
+      "Write each output row under a stable key such as `(feature_version, e42)`, so a replay overwrites the same row instead of appending a second one.",
+      "Switch the stage to at-most-once processing, so uncertain events are never replayed.",
+      "Deliver messages between workers over a reliable transport, so every message arrives exactly once.",
+      "Lengthen the watermark delay, so late events have more time to arrive before the window closes."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A team generates a \\$1\\text{ TB}$ synthetic text dataset. Retained provenance adds \\$40\\%$ metadata overhead, and 3 verifier models each read the payload once without materializing another full copy. What persistent capacity and total pipeline traffic are required?",
+     "explanation": "The correct answer is A. Persistent capacity is \\$1.4\\text{ TB}$: the \\$1\\text{ TB}$ payload plus \\$0.4\\text{ TB}$ of provenance. Pipeline traffic is \\$4.4\\text{ TB}$: those \\$1.4\\text{ TB}$ of writes plus three \\$1\\text{ TB}$ verifier reads. Verification passes do not multiply capacity unless their outputs are materialized as additional full datasets.",
+     "hint": "Think about: distinguish persistent storage amplification from read and write traffic in a verified synthetic-data pipeline",
+     "type": "single",
+     "options": [
+      "\\$1.4 TB of persistent capacity and \\$4.4 TB of traffic: \\$1 TB payload write, \\$0.4 TB metadata write, and \\$3 TB of verifier reads.",
+      "Exactly \\$1.0 TB, because verifier models run entirely in GPU registers without generating persistent storage artifacts.",
+      "Roughly \\$0.4 TB, because synthetic data compresses more efficiently than natural language text.",
+      "Roughly \\$14\\text{ TB}$, because every verifier model stores a full \\$350\\text{ GB}$ copy of its internal neural activations for every sample."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply stable, idempotent writes at the output commit boundary to make replay after a worker failure effectively exactly-once.",
+    "You can now distinguish persistent storage amplification from read and write traffic in a verified synthetic-data pipeline.",
+    "You can now justify retaining synthetic-sample provenance to support audits and filtering when recursive training degrades model quality.",
+    "You can now explain the mechanism of model collapse caused by recursive training on uncurated synthetic data."
+   ]
+  }
+ ]
+}

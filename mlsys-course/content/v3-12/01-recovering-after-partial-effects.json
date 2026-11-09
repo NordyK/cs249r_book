@@ -1,0 +1,52 @@
+{
+ "title": "Recovering After Partial Effects",
+ "summary": "Work through Recovering After Partial Effects.",
+ "source": {
+  "chapter": "v3-12",
+  "sections": [
+   "Recovering After Partial Effects"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Recovering After Partial Effects** in *Failure Recovery* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Failure Recovery, § Recovering After Partial Effects",
+   "md": "When a replacement worker takes over the repair agent's failed connection-pool repair (a later section), it reconstructs the execution log and restores the candidate workspace snapshot `ws_r18`. The surviving history records an intent to run `test_r18`, but contains no evidence confirming whether the test passed, failed, or ever ran. As a later section demonstrated, the worker cannot treat missing evidence as a clean slate; it must retain that uncertainty alongside the unresolved liability."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Trajectory saga matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A trajectory saga durably registers each effectful step's cleanup template before dispatch, not after the step returns, so a crash never leaves an effect without its compensator."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-12-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Recovering After Partial Effects** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Scoped circuit breakers, a single retry owner, and bulkheads bound three different quantities when many trajectories share one dependency.",
+      "Recovery order is a DAG of admitted cleanup operations rather than a reverse stack, and an unresolved node blocks only its transitive dependents.",
+      "Reversibility is relative to a subsystem and a grant, so a plan is organized into compensable preparation, a single pivot, and owned follow-up duties, with every check that can precede the pivot hoisted ahead of it.",
+      "A trajectory saga durably registers each effectful step's cleanup template before dispatch, not after the step returns, so a crash never leaves an effect without its compensator."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Trajectory saga**: A trajectory saga durably registers each effectful step's cleanup template before dispatch, not after the step returns, so a crash never leaves an effect without its compensator."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Recovering After Partial Effects."
+   ]
+  }
+ ]
+}

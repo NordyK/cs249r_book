@@ -1,0 +1,97 @@
+{
+ "title": "Topology-Aware Scheduling",
+ "summary": "Justify a feasible topology mapping of tensor-, pipeline-, and data-parallel groups under their communication budgets.",
+ "source": {
+  "chapter": "v2-08",
+  "sections": [
+   "Topology-Aware Scheduling",
+   "The topology hierarchy",
+   "Placement algorithms",
+   "Rail-optimized scheduling",
+   "Topology discovery and dynamic adaptation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Topology-Aware Scheduling** in *Fleet Orchestration* (Vol II). By the end you should be able to:\n\n- Justify a feasible topology mapping of tensor-, pipeline-, and data-parallel groups under their communication budgets\n- Evaluate scheduler diagnostic mechanisms and migration economics for degraded network hardware\n- Explain how rail alignment reduces cross-rail traffic and why contention can remain\n- Compare static topology configuration files with dynamic runtime topology introspection in distributed ML orchestration\n- Explain how feasibility constraints and an illustrative locality score guide topology-aware placement without guaranteeing minimum communication time"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Orchestration, § Topology-Aware Scheduling",
+   "md": "A scattered allocation can place frequent collective traffic on shared cross-rack paths, exposing latency or bandwidth limits that a more compact allocation avoids. The penalty is set by how much of the job's traffic crosses those paths and how much capacity the fabric provisions there, not by the rack count itself. The earlier feasibility rules already required compatible topology; topology-aware scheduling makes that requirement explicit in the placement objective, accounting for communication paths as well as raw compute."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The topology hierarchy\n- Placement algorithms\n- Rail-optimized scheduling\n- Topology discovery and dynamic adaptation\n\nPay attention to: Intra-node NVLink vs. Inter-node InfiniBand bandwidth hierarchy; Mapping 3D parallelism (TP, PP, DP) onto cluster topology; Rail-aware shard placement and remaining contention limits; Dynamic topology discovery via runtime introspection."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In an 8-GPU-per-node cluster with eight network rails, how should rail-aware placement map corresponding model shards across replicas, and what contention limits remain?",
+   "md": "Keep corresponding model shard $j$ at local GPU index $j$ across replicas so its data-parallel group follows the matching GPU-to-NIC rail. A global rank modulo eight is insufficient unless the rank layout already encodes that shard mapping. Rail alignment reduces avoidable cross-rail traffic, but concurrent jobs, oversubscribed links, and skew can still contend for bandwidth."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-08-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "When scheduling a 3D-parallel large language model across a multi-rack GPU cluster, how should Tensor Parallelism (TP), Pipeline Parallelism (PP), and Data Parallelism (DP) be mapped across the topology hierarchy to maximize throughput?",
+     "explanation": "The correct answer is C. Frequent tensor-parallel exchanges favor the highest-bandwidth domain, which is not universally limited to one node. Pipeline boundaries and data-parallel groups must then be mapped to the actual topology and traffic pattern. Same-rack placement and rail alignment can help, but neither guarantees uncongested bandwidth. Reversing bandwidth priorities or choosing random placement ignores the communication requirements.",
+     "hint": "Think about: justify a feasible topology mapping of tensor-, pipeline-, and data-parallel groups under their communication budgets.",
+     "type": "single",
+     "options": [
+      "Map DP strictly within intra-node NVLink domains, TP across inter-rack spine switches, and PP across rail-aligned network switches.",
+      "Map PP strictly within intra-node NVLink domains, DP across Top-of-Rack switches, and TP across multi-hop spine switches.",
+      "Map TP to the highest-bandwidth domain, place PP stages along suitable low-contention paths, and align corresponding DP shards with network rails while checking available capacity.",
+      "Map TP, PP, and DP uniformly at random across all available nodes to balance switch thermal loads across the datacenter fabric."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A persistent degraded switch path lowers measured end-to-end training throughput by 30 percent. A checkpoint-and-migration pause would take 10 minutes, healthy replacement capacity is available, and days of training remain. What is the appropriate orchestration response?",
+     "explanation": "The correct answer is C. Quarantine the degraded path and migrate onto verified healthy capacity. At a measured 30-percent end-to-end throughput loss, recovering the work forgone during a 10-minute pause takes about 23 minutes of subsequent healthy execution relative to staying on the degraded placement, or about 33 minutes counting the pause. This payback uses job throughput, not merely a collective microbenchmark, and assumes the slowdown would persist.",
+     "hint": "Think about: evaluate scheduler diagnostic mechanisms and migration economics for degraded network hardware.",
+     "type": "single",
+     "options": [
+      "Continue running the job indefinitely because a 10-minute checkpoint-and-reschedule migration would cost more compute than a 30% slowdown over a multi-week run.",
+      "Rely on the GPU driver to disable NVLink and route all tensor-parallel traffic through host memory over PCIe.",
+      "Trigger a performance-aware topology quarantine via taints or drain states, checkpoint the running job, and migrate it to healthy nodes where the break-even time is under an hour.",
+      "Terminate the job and permanently de-allocate all 10,000 GPUs in the datacenter until all network transceivers are manually replaced."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In cloud orchestration environments such as AWS and GCP, a user specifies a ____ to request close placement of virtual machine instances for high-bandwidth, low-latency communication.",
+     "explanation": "placement group. A cluster placement policy requests nearby, high-bandwidth placement under the provider’s documented contract. It is not a universal guarantee of identical bisection bandwidth or a substitute for measuring collective performance.",
+     "hint": "Think about: identify the cloud-native abstraction used to enforce low-latency, high-bandwidth network proximity.",
+     "type": "fill",
+     "answer": [
+      "placement group"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Why are static topology configuration files (such as Slurm's `topology.conf` or static Kubernetes node labels) insufficient on their own for optimal collective placement in large-scale ML clusters?",
+   "md": "Static files represent nominal design schematics rather than operational reality; they cannot reflect dynamic runtime anomalies such as degraded transceiver link widths, PCIe bus renegotiations, blown spine switch links, or thermal throttling. Runtime introspection supplements reported connectivity, while health tests and measured traffic performance establish whether the paths deliver the required communication budget."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: For the illustrated eight-GPU-per-node fleet, explain how a scheduler combines tensor-parallel locality, pipeline paths, and data-parallel rail alignment when selecting a placement. Why does minimizing the chapter's illustrative locality score not establish minimum communication time?",
+   "md": "Filter candidates by resource capability and health, then retain only complete allocations admitting the required tensor-, pipeline-, and data-parallel rank mappings. Within the illustrated topology, tensor groups use NVLink domains, pipeline stages use suitable rack-local paths, and corresponding data-parallel shards align with available rails where feasible. These constraints must hold together rather than in one universal serial ordering. The dimensionless pairwise score ranks locality under assumed weights; it omits traffic volumes, overlap, and concurrent contention, so measured communication and end-to-end completion still require validation."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now justify a feasible topology mapping of tensor-, pipeline-, and data-parallel groups under their communication budgets.",
+    "You can now evaluate scheduler diagnostic mechanisms and migration economics for degraded network hardware.",
+    "You can now explain how rail alignment reduces cross-rail traffic and why contention can remain.",
+    "You can now compare static topology configuration files with dynamic runtime topology introspection in distributed ML orchestration."
+   ]
+  }
+ ]
+}

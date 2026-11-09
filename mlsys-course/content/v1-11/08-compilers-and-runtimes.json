@@ -1,0 +1,108 @@
+{
+ "title": "Compilers and Runtimes",
+ "summary": "Explain the role of tensor lifetime analysis in static memory planning.",
+ "source": {
+  "chapter": "v1-11",
+  "sections": [
+   "Compilers and Runtimes",
+   "ML compiler design",
+   "ML compilation pipeline",
+   "Runtime support"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Compilers and Runtimes** in *Hardware Acceleration* (Vol I). By the end you should be able to:\n\n- Explain the role of tensor lifetime analysis in static memory planning\n- Sequence the illustrative end-to-end stages of an ML compiler from graph ingestion through target code generation\n- Compare compiler-driven auto-tuning search with the expert-tuned implementation strategy emphasized by vendor libraries\n- Explain how asynchronous queues and device events preserve dependencies without blocking the host after each kernel launch, enabling overlap in repeated accelerator workflows\n- Analyze the non-blocking execution model of asynchronous GPU runtime streams"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Hardware Acceleration, § Compilers and Runtimes",
+   "md": "The roofline gives each ResNet-50 layer a ceiling, and hardware mapping showed which schedules can approach it, but neither reaches the silicon by itself. Every layer needs a tiling, a stationary operand, a tensor layout, a precision for the activations it reads and writes, and a fusion boundary. The resulting plan must then run on a device whose input shapes, free memory, and clock rate change while it serves. Across a whole model these choices number in the thousands, which is why compilers and runtimes, not engineers, make them."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- ML compiler design\n- ML compilation pipeline\n- Runtime support\n\nPay attention to: ML compilation pipeline: High-Level IR -> Low-Level Loop IR -> Code Generation; Graph optimizations: Operator fusion, constant folding, dead code elimination; Memory planning and buffer reuse via tensor lifetime analysis; Kernel selection: Template libraries vs auto-tuning (TVM, Ansor, Triton)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how host command queues, asynchronous streams, and device events preserve execution dependencies without forcing the host to block after each kernel launch, and how that permits overlap in repeated training or inference iterations on accelerators.",
+   "md": "The host can enqueue kernel launches and memory copies onto asynchronous streams so dependencies are enforced by device events and queue ordering rather than by making the CPU wait for each completion. For a repeated workflow, this allows copies and kernels to overlap when dependencies permit, while the host continues launching work instead of synchronizing after every step. The practical implication is that repeated execution is less likely to be dominated by serialized host-side waiting, especially when many short operations would otherwise stall on frequent CPU synchronization."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-11-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "What is the primary purpose of lifetime analysis in an ML compiler's static memory planner?",
+     "explanation": "The correct answer is B. Lifetime analysis tracks when each intermediate tensor is created (produced) and last referenced (consumed) during graph execution. By identifying tensors whose lifetimes do not overlap, the compiler's static memory planner can assign them to the same physical memory addresses (buffer reuse/aliasing), significantly reducing the model's peak runtime memory footprint and avoiding dynamic memory allocation overhead. The physical degradation choice confuses tensor lifecycle with semiconductor physics. The training convergence choice describes algorithmic optimization rather than compiler memory management. The instruction stream choice describes scheduling.",
+     "hint": "Think about: explain the role of tensor lifetime analysis in static memory planning.",
+     "type": "single",
+     "options": [
+      "To calculate the physical degradation and failure rate of HBM memory cells over time",
+      "To determine the precise intervals during which each intermediate activation tensor is needed, allowing disjoint tensors to share the same physical memory buffer",
+      "To predict the number of training epochs required for a neural network to converge",
+      "To prevent the compiler from generating out-of-order instruction streams"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Order the following compilation stages for the illustrative compiler workflow. In this workflow, static memory planning uses the tuned lowered schedule, so it comes after lowering and auto-tuning:",
+     "explanation": "The correct order is: (3) Front-End Ingestion: Parse framework model into High-Level Graph IR, (2) High-Level Graph Optimization: Perform operator fusion, constant folding, and dead code elimination on the computation graph, (4) Low-Level IR & Auto-Tuning: Lower fused operators to loop-level IR and optimize tile sizes, thread bindings, and unroll factors, (5) Static Memory Planning: Analyze tensor lifetimes and allocate shared physical buffers, (1) Target Code Generation: Emit hardware-specific target code. In this illustrative workflow, the compiler first needs a graph representation before it can optimize it, then lowers optimized operators into loop-level forms where schedule choices can be tuned. Static memory planning then consumes that tuned lowered schedule to plan memory over the resulting execution, and the compiler finally emits target-specific code. Some real systems iterate among these stages or place memory planning differently, but for this workflow code generation cannot happen before the compiler has settled the lowered execution plan it intends to emit.",
+     "hint": "Think about: sequence the illustrative end-to-end stages of an ML compiler from graph ingestion through target code generation.",
+     "type": "order",
+     "items": [
+      "High-Level Graph Optimization: Perform operator fusion, constant folding, and dead code elimination on the computation graph",
+      "Low-Level IR & Auto-Tuning: Lower fused operators to loop-level IR and optimize tile sizes, thread bindings, and unroll factors",
+      "Static Memory Planning: Analyze tensor lifetimes and allocate shared physical buffers"
+     ]
+    },
+    {
+     "q": "How does an auto-tuning ML compiler (such as TVM/Ansor) differ from a traditional handwritten library approach (such as cuDNN) for kernel selection?",
+     "explanation": "The correct answer is C. Auto-tuning compiler systems search parameterized spaces of schedules such as tiling, unrolling, and thread mapping, then rank or measure candidates to produce kernels specialized to the target and shape. Handwritten libraries also use parameters, heuristics, and benchmarking tactics, but their emphasis is expert-designed implementations rather than open-ended schedule search by the compiler. The host-CPU claim is false, the infinite-runtime-search claim misstates how libraries operate, and 1-bit quantization is unrelated.",
+     "hint": "Think about: compare compiler-driven auto-tuning search with the expert-tuned implementation strategy emphasized by vendor libraries.",
+     "type": "single",
+     "options": [
+      "Auto-tuning compilers execute code only on the host CPU, whereas handwritten libraries run on GPUs",
+      "Handwritten libraries search an infinite combinatorial loop space at runtime, whereas auto-tuning compilers use static heuristics",
+      "Auto-tuning compilers explore large parameterized search spaces of loop transformations and tile sizes using cost models or measurements to generate custom kernels, whereas handwritten libraries emphasize expert-tuned implementations and heuristics",
+      "Auto-tuning compilers require all tensors to be quantized to 1-bit integers"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In an asynchronous GPU runtime model, when a Python script executes `y = torch.matmul(a, b)`, the CPU thread blocks and waits until the GPU hardware finishes computing the matrix multiplication before executing the next line of Python code.",
+     "explanation": "False. GPU runtime calls are asynchronous: `torch.matmul` enqueues the kernel execution command onto a CUDA stream queue in the driver and immediately returns control to the CPU thread. The CPU continues executing subsequent Python instructions while the GPU executes the kernel in the background, blocking only when synchronization is explicitly requested (e.g., via `torch.cuda.synchronize()` or copying data back to CPU host memory).",
+     "hint": "Think about: analyze the non-blocking execution model of asynchronous GPU runtime streams.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An inference serving system processes dynamic batch sizes ranging from a batch of 1 to 32 concurrent decode requests, each contributing one token at the current step. Why does dynamic batching pose a significant challenge to runtime kernel selection and hardware efficiency?",
+     "explanation": "The correct answer is A. Changing batch size changes shape, available reuse, and parallel work, so a kernel configuration that is effective at one batch can be inefficient at another. Small batches may emphasize low-latency execution and limited reuse, while larger batches can expose more parallelism and justify different tiling or tactic choices. The precision-switching claim is invented, Tensor Cores are not limited to powers of two in that way, and DRAM bank power-down is not the core runtime-kernel-selection issue described here.",
+     "hint": "Think about: analyze why dynamic batch sizes make a single static kernel configuration inefficient across inference requests.",
+     "type": "single",
+     "options": [
+      "Optimal tile sizes, thread block configurations, and memory-reuse opportunities change across batch sizes, making a single static kernel inefficient across all shapes",
+      "Dynamic batching forces the GPU to switch from FP16 to FP64 precision for even batch sizes",
+      "Tensor Cores cannot execute matrix multiplication when batch dimensions are not powers of two",
+      "The GPU memory controller must physically power down DRAM banks when batch size decreases"
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the role of tensor lifetime analysis in static memory planning.",
+    "You can now sequence the illustrative end-to-end stages of an ML compiler from graph ingestion through target code generation.",
+    "You can now compare compiler-driven auto-tuning search with the expert-tuned implementation strategy emphasized by vendor libraries.",
+    "You can now explain how asynchronous queues and device events preserve dependencies without blocking the host after each kernel launch, enabling overlap in repeated accelerator workflows."
+   ]
+  }
+ ]
+}

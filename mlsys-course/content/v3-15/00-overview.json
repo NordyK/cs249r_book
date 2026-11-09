@@ -1,0 +1,234 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v3-15",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Trajectory Curation** (Vol III). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Trajectory Curation, Purpose",
+   "md": "Every agent run leaves a durable record of what it saw, proposed, and achieved, and a team preparing the next policy is tempted to train on that record directly. A record, however, answers a different question than a training example does."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "From Trajectory Records to a Training Co",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Capability Gap Diagnosis",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Task Fixture Design",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Split Design",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Staged Verifier Cascades",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Recovery Demonstration Curation",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "The Self-Improvement Loop",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Capability-gap triage**",
+     "A failure earns a weight update only if it persists with complete context, a well-formed interface, and a healthy runtime, so counterfactual probes run up the intervention ladder from context and schema to SFT and then RL."
+    ],
+    [
+     "**Learning artifacts from one record**",
+     "One recorded run can yield imitation material, a preference comparison, or a rollout fixture, and each use has its own admission conditions rather than inheriting the run's outcome."
+    ],
+    [
+     "**Task-group splits**",
+     "With k attempts per task a random trace split puts most tasks on both sides, so partitions are assigned to task groups that hold every attempt, paraphrase, fork, and derived record."
+    ],
+    [
+     "**Admission cascade**",
+     "Admission is a route-specific conjunction of predicate families that each resolve to pass, fail, pending, or unknown, a missing check never defaults to pass, and checks are ordered by cost per rejection."
+    ],
+    [
+     "**Recovery demonstrations**",
+     "A policy trained only on clean prefixes meets off-path states it never saw, so recovery demonstrations keep the mistake as conditioning context and select only the assessed correction as the target."
+    ],
+    [
+     "**Self-selection narrowing**",
+     "A generate-select-train loop carries contrast only on informative tasks, so it narrows toward what it already solves, and hard and trivial fixtures cost attempts without teaching."
+    ],
+    [
+     "**Bounded collection flow**",
+     "Collection is an asynchronous pipeline whose staging must be sized for a verifier service-time collapse, not average utilization, with each run holding a collection credit at the record ceiling until durable disposition and cost counted per emitted artifact."
+    ],
+    [
+     "**Record lineage**",
+     "Every record version carries a lineage envelope, and any transformation creates a derived record that inherits its source's split group and use permission, so withdrawal reaches every descendant."
+    ],
+    [
+     "**Mixture specification**",
+     "A trajectory class has different shares by records, processed tokens, and selected target tokens, so a mixture is specified in targets and budgeted in processed tokens."
+    ],
+    [
+     "**Test-tampering defense**",
+     "Grader isolation applied to admission keeps test harnesses, inputs, and verdicts beyond the candidate's reach, because an undetected bypass is reinforced across training iterations."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v3-15-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Capability-gap triage",
+     "back": "A failure earns a weight update only if it persists with complete context, a well-formed interface, and a healthy runtime, so counterfactual probes run up the intervention ladder from context and schema to SFT and then RL."
+    },
+    {
+     "front": "Learning artifacts from one record",
+     "back": "One recorded run can yield imitation material, a preference comparison, or a rollout fixture, and each use has its own admission conditions rather than inheriting the run's outcome."
+    },
+    {
+     "front": "Task-group splits",
+     "back": "With k attempts per task a random trace split puts most tasks on both sides, so partitions are assigned to task groups that hold every attempt, paraphrase, fork, and derived record."
+    },
+    {
+     "front": "Admission cascade",
+     "back": "Admission is a route-specific conjunction of predicate families that each resolve to pass, fail, pending, or unknown, a missing check never defaults to pass, and checks are ordered by cost per rejection."
+    },
+    {
+     "front": "Recovery demonstrations",
+     "back": "A policy trained only on clean prefixes meets off-path states it never saw, so recovery demonstrations keep the mistake as conditioning context and select only the assessed correction as the target."
+    },
+    {
+     "front": "Self-selection narrowing",
+     "back": "A generate-select-train loop carries contrast only on informative tasks, so it narrows toward what it already solves, and hard and trivial fixtures cost attempts without teaching."
+    },
+    {
+     "front": "Bounded collection flow",
+     "back": "Collection is an asynchronous pipeline whose staging must be sized for a verifier service-time collapse, not average utilization, with each run holding a collection credit at the record ceiling until durable disposition and cost counted per emitted artifact."
+    },
+    {
+     "front": "Record lineage",
+     "back": "Every record version carries a lineage envelope, and any transformation creates a derived record that inherits its source's split group and use permission, so withdrawal reaches every descendant."
+    },
+    {
+     "front": "Mixture specification",
+     "back": "A trajectory class has different shares by records, processed tokens, and selected target tokens, so a mixture is specified in targets and budgeted in processed tokens."
+    },
+    {
+     "front": "Test-tampering defense",
+     "back": "Grader isolation applied to admission keeps test harnesses, inputs, and verdicts beyond the candidate's reach, because an undetected bypass is reinforced across training iterations."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v3-15-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Capability-gap triage**?",
+     "options": [
+      "One recorded run can yield imitation material, a preference comparison, or a rollout fixture, and each use has its own admission conditions rather than inheriting the run's outcome.",
+      "A trajectory class has different shares by records, processed tokens, and selected target tokens, so a mixture is specified in targets and budgeted in processed tokens.",
+      "Collection is an asynchronous pipeline whose staging must be sized for a verifier service-time collapse, not average utilization, with each run holding a collection credit at the record ceiling until durable disposition and cost counted per emitted artifact.",
+      "A failure earns a weight update only if it persists with complete context, a well-formed interface, and a healthy runtime, so counterfactual probes run up the intervention ladder from context and schema to SFT and then RL."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Capability-gap triage itself, not a neighbouring idea.",
+     "explanation": "**Capability-gap triage:** A failure earns a weight update only if it persists with complete context, a well-formed interface, and a healthy runtime, so counterfactual probes run up the intervention ladder from context and schema to SFT and then RL."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Learning artifacts from one record**?",
+     "options": [
+      "With k attempts per task a random trace split puts most tasks on both sides, so partitions are assigned to task groups that hold every attempt, paraphrase, fork, and derived record.",
+      "A policy trained only on clean prefixes meets off-path states it never saw, so recovery demonstrations keep the mistake as conditioning context and select only the assessed correction as the target.",
+      "Admission is a route-specific conjunction of predicate families that each resolve to pass, fail, pending, or unknown, a missing check never defaults to pass, and checks are ordered by cost per rejection.",
+      "One recorded run can yield imitation material, a preference comparison, or a rollout fixture, and each use has its own admission conditions rather than inheriting the run's outcome."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Learning artifacts from one record itself, not a neighbouring idea.",
+     "explanation": "**Learning artifacts from one record:** One recorded run can yield imitation material, a preference comparison, or a rollout fixture, and each use has its own admission conditions rather than inheriting the run's outcome."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Task-group splits**?",
+     "options": [
+      "Admission is a route-specific conjunction of predicate families that each resolve to pass, fail, pending, or unknown, a missing check never defaults to pass, and checks are ordered by cost per rejection.",
+      "Every record version carries a lineage envelope, and any transformation creates a derived record that inherits its source's split group and use permission, so withdrawal reaches every descendant.",
+      "With k attempts per task a random trace split puts most tasks on both sides, so partitions are assigned to task groups that hold every attempt, paraphrase, fork, and derived record.",
+      "One recorded run can yield imitation material, a preference comparison, or a rollout fixture, and each use has its own admission conditions rather than inheriting the run's outcome."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Task-group splits itself, not a neighbouring idea.",
+     "explanation": "**Task-group splits:** With k attempts per task a random trace split puts most tasks on both sides, so partitions are assigned to task groups that hold every attempt, paraphrase, fork, and derived record."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Admission cascade**?",
+     "options": [
+      "Admission is a route-specific conjunction of predicate families that each resolve to pass, fail, pending, or unknown, a missing check never defaults to pass, and checks are ordered by cost per rejection.",
+      "A failure earns a weight update only if it persists with complete context, a well-formed interface, and a healthy runtime, so counterfactual probes run up the intervention ladder from context and schema to SFT and then RL.",
+      "With k attempts per task a random trace split puts most tasks on both sides, so partitions are assigned to task groups that hold every attempt, paraphrase, fork, and derived record.",
+      "A generate-select-train loop carries contrast only on informative tasks, so it narrows toward what it already solves, and hard and trivial fixtures cost attempts without teaching."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Admission cascade itself, not a neighbouring idea.",
+     "explanation": "**Admission cascade:** Admission is a route-specific conjunction of predicate families that each resolve to pass, fail, pending, or unknown, a missing check never defaults to pass, and checks are ordered by cost per rejection."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Recovery demonstrations**?",
+     "options": [
+      "A policy trained only on clean prefixes meets off-path states it never saw, so recovery demonstrations keep the mistake as conditioning context and select only the assessed correction as the target.",
+      "Grader isolation applied to admission keeps test harnesses, inputs, and verdicts beyond the candidate's reach, because an undetected bypass is reinforced across training iterations.",
+      "One recorded run can yield imitation material, a preference comparison, or a rollout fixture, and each use has its own admission conditions rather than inheriting the run's outcome.",
+      "A generate-select-train loop carries contrast only on informative tasks, so it narrows toward what it already solves, and hard and trivial fixtures cost attempts without teaching."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Recovery demonstrations itself, not a neighbouring idea.",
+     "explanation": "**Recovery demonstrations:** A policy trained only on clean prefixes meets off-path states it never saw, so recovery demonstrations keep the mistake as conditioning context and select only the assessed correction as the target."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Capability-gap triage: A failure earns a weight update only if it persists with complete context, a well-formed interface, and a healthy runtime, so counterfactual probes run up the intervention ladder from context and schema to SFT and then RL.",
+    "Learning artifacts from one record: One recorded run can yield imitation material, a preference comparison, or a rollout fixture, and each use has its own admission conditions rather than inheriting the run's outcome.",
+    "Task-group splits: With k attempts per task a random trace split puts most tasks on both sides, so partitions are assigned to task groups that hold every attempt, paraphrase, fork, and derived record.",
+    "Admission cascade: Admission is a route-specific conjunction of predicate families that each resolve to pass, fail, pending, or unknown, a missing check never defaults to pass, and checks are ordered by cost per rejection."
+   ]
+  }
+ ],
+ "terms": []
+}

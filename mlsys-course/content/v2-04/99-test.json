@@ -1,0 +1,140 @@
+{
+ "title": "Test: Data Storage",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-04-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "An accelerator upgrade reduces compute time per batch while the input representation and storage delivery time remain fixed. What is the primary systems consequence for training cluster design?",
+     "explanation": "The correct answer is D. Faster computation leaves less time to fetch the next batch. Overlap and prefetching hide latency within their buffering window, but cannot fix a sustained service-rate deficit. Automatic compression is not guaranteed, removing staging does not improve a slow source, and checkpoint frequency does not set input delivery throughput.",
+     "hint": "Think about: explain the systems consequences of compute throughput scaling significantly faster than persistent storage bandwidth",
+     "type": "single",
+     "options": [
+      "Training pipelines automatically increase data compression ratios to prevent accelerator starvation without requiring architectural adjustments.",
+      "Storage hierarchies can eliminate intermediate DRAM and NVMe caching tiers because modern network fabrics directly absorb the difference.",
+      "Checkpoint intervals must be decreased proportionally to the compute growth to keep local NVMe buffers from overflowing.",
+      "The compute window available to deliver each batch shrinks, so input I/O can become the bottleneck unless the measured delivery path keeps pace."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Order the sequence of operations that occurs in the traditional (non-GDS) storage I/O path when an accelerator requests a batch from local NVMe:",
+     "explanation": "The correct order is: (1) The data loader process issues a POSIX read() system call traversing the VFS and filesystem drivers, (2) The NVMe controller initiates a DMA transfer of raw blocks into an OS kernel buffer in host DRAM, (3) The host CPU copies payload bytes from kernel space to user-space pinned memory, (4) The CPU programs a PCIe DMA transfer from host DRAM to GPU HBM, (5) The accelerator launches compute kernels on the newly arrived tensor resident in HBM. The traditional path begins with a file-system read call (1), stages data into an OS kernel buffer via storage DMA (2), requires a CPU-mediated memory copy into user space (3), executes a second DMA transfer over PCIe to GPU memory (4), and finally enables GPU computation (5).",
+     "hint": "Think about: analyze the multi-hop data movement and CPU mediation steps in the traditional storage I/O path",
+     "type": "order",
+     "items": [
+      "The NVMe controller initiates a DMA transfer of raw blocks into an OS kernel buffer in host DRAM",
+      "The host CPU copies payload bytes from kernel space to user-space pinned memory",
+      "The CPU programs a PCIe DMA transfer from host DRAM to GPU HBM",
+      "The accelerator launches compute kernels on the newly arrived tensor resident in HBM."
+     ]
+    },
+    {
+     "q": "An in-memory LRU cache sized to \\$300 GB placed in front of a \\$3 TB uniformly shuffled pretraining dataset will achieve roughly a \\$90\\% hit rate after the first epoch warms the cache because all samples are reused across epochs.",
+     "explanation": "False. A cache holding one-tenth of a uniformly shuffled corpus does not gain a 90 percent hit rate merely because samples recur in later epochs. Most cached samples are evicted before reuse. A fixed cyclic scan larger than the cache can approach zero hits; independently reshuffled epochs allow low but nonzero cross-epoch hits that depend on cache fraction and sample order.",
+     "hint": "Think about: analyze why temporal-locality caching strategies such as LRU fail on uniformly streamed ML pretraining datasets",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A team trains a vision model on a \\$50 TB dataset stored in cloud object storage (\\$0.02/GB-month) for 20 epochs across 4 training runs per year. Reading from object storage across a network boundary incurs a \\$0.09/GB data egress fee. Staging the dataset onto local NVMe caches costs \\$0.10/GB-month. What does the economic analysis reveal about streaming vs. staging?",
+     "explanation": "The correct answer is C. Staging data once to local NVMe per run saves roughly \\$282,000 per year compared to streaming from object storage every epoch, breaking even after just 5 epochs per run. Streaming \\$50 TB across 20 epochs costs \\$90,000 in egress per run (\\$360,000/year for 4 runs) plus \\$12,000/year in object storage. Staging once per run incurs only \\$18,000/year in egress plus \\$60,000/year for local NVMe and \\$12,000/year in object storage (total \\$90,000/year), yielding \\$282,000 in net annual savings. The break-even point occurs at roughly 4.3 epochs per run. The streaming-is-cheaper option ignores the massive compounding cost of repeated multi-epoch egress. The egress-is-negligible claim inverts reality: egress charges dominate monthly capacity pricing. The tape archive suggestion is unviable for active multi-run training feeds.",
+     "hint": "Think about: calculate the break-even point and cost savings of local NVMe data staging versus repeated cloud object storage streaming",
+     "type": "single",
+     "options": [
+      "Streaming directly from object storage every epoch is cheaper because local NVMe drives add unnecessary provisioned storage overhead.",
+      "Egress fees are negligible compared to monthly storage costs, making tier selection purely a matter of operational convenience.",
+      "Staging data once to local NVMe per run saves roughly $\\$282,000$ per year compared to streaming from object storage every epoch, breaking even after just 5 epochs per run.",
+      "The team should migrate the dataset to cold tape archive to eliminate both egress fees and provisioned storage costs."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A multi-modal training job combines \\$3\\text{ TB}$ of text, \\$50\\text{ TB}$ of images, and \\$200\\text{ TB}$ of video. The infrastructure team provisions storage bandwidth based exclusively on the video modality because video represents over \\$75\\%$ of total dataset capacity. What can be concluded about this sizing decision from the supplied information?",
+     "explanation": "The correct answer is A. Retained corpus capacity does not determine per-step delivery demand. Sampling frequency, batch representation, and compute time set how many bytes each modality contributes to the feed, while transformations determine its decoding and augmentation work. Sum those demands across active streams and compare them with measured stage rates and buffer capacity. Video-only sizing omits that accounting, but the supplied corpus sizes do not prove a particular storage, host-DRAM, or decoding bottleneck.",
+     "hint": "Think about: distinguish retained corpus capacity from combined sampled-batch and transformation demand when sizing multimodal delivery",
+     "type": "single",
+     "options": [
+      "Adequacy cannot be established from corpus capacity alone; sizing must include the combined sampled-batch byte rate and decoding, augmentation, and buffering demand of all active modalities.",
+      "The video stream will starve the parallel file system because image and text files use incompatible POSIX stripe sizes.",
+      "The model will fail to converge because object storage cannot maintain ACID consistency when serving multiple modalities simultaneously.",
+      "The training job will exhaust GPU HBM because video tensors automatically overwrite text embeddings during collation."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Order the sequence of steps executed during a tiered asynchronous checkpointing operation:",
+     "explanation": "The correct order is: (2) The training orchestrator initiates a synchronized step barrier across all worker ranks, (3) Each rank snapshots its model weights and optimizer state shard into a local pinned DRAM buffer, (4) The training barrier releases and accelerators immediately resume forward-backward computation for the next step, (5) Each node flushes its pinned memory snapshot to local NVMe at full drive bandwidth, (1) Background daemons asynchronously transfer the local checkpoint shards from NVMe to the shared parallel file system. The process begins with a coordinated barrier (2), creates a fast in-memory snapshot (3), releases the compute barrier to resume training (4), writes the snapshot to local NVMe in the background (5), and asynchronously replicates the shard to shared storage in the background (1).",
+     "hint": "Think about: analyze the multi-stage execution workflow of tiered asynchronous checkpointing",
+     "type": "order",
+     "items": [
+      "The training orchestrator initiates a synchronized step barrier across all worker ranks",
+      "Each rank snapshots its model weights and optimizer state shard into a local pinned DRAM buffer",
+      "The training barrier releases and accelerators immediately resume forward-backward computation for the next step",
+      "Each node flushes its pinned memory snapshot to local NVMe at full drive bandwidth.",
+      "Background daemons asynchronously transfer the local checkpoint shards from NVMe to the shared parallel file system"
+     ]
+    },
+    {
+     "q": "In large-scale distributed training, when hundreds of nodes simultaneously pause computation to write gigabytes of model weights and optimizer states to persistent storage, the resulting synchronized burst of write traffic is called a ____.",
+     "explanation": "The correct term is checkpoint storm. A checkpoint storm occurs when all data-parallel or model-parallel workers simultaneously flush their memory shards to local or remote storage, creating extreme write contention that must be absorbed via tiered staging (such as writing to local NVMe before asynchronously copying to a parallel file system).",
+     "hint": "Think about: explain the technical term for synchronized cluster-wide write bursts generated during distributed training state saves",
+     "type": "fill",
+     "answer": [
+      "The correct term is checkpoint storm"
+     ]
+    },
+    {
+     "q": "Which statement precisely describes the architectural data-path modification introduced by GPUDirect Storage (GDS)?",
+     "explanation": "The correct answer is D. GDS establishes a direct DMA transfer path between NVMe storage (local or NVMe-oF) and GPU memory, eliminating the CPU-mediated bounce buffer in host DRAM while retaining CPU control-plane coordination. In the traditional path, data is copied from NVMe to a kernel buffer, copied by the CPU to user space, and then transferred to the GPU via PCIe DMA; GDS programs a direct peer-to-peer DMA between the NVMe controller and GPU HBM, skipping host DRAM payload copies while the CPU continues to issue and manage I/O control requests. The HBM caching option is physically impossible given dataset-to-HBM capacity ratios. The flash compression claim mischaracterizes GDS as in-storage compute. The bounce-buffer routing option describes the exact traditional bottleneck GDS was designed to eliminate.",
+     "hint": "Think about: explain the architectural data-path modification introduced by GPUDirect Storage compared to traditional CPU-mediated I/O",
+     "type": "single",
+     "options": [
+      "GDS caches the entire training corpus in GPU HBM to eliminate all storage I/O operations during training epochs.",
+      "GDS compresses training tensors directly inside the NVMe flash controller using hardware acceleration.",
+      "GDS routes network packets through host DRAM bounce buffers to perform real-time data integrity checksumming.",
+      "GDS establishes a direct DMA transfer path between NVMe storage (local or NVMe-oF) and GPU memory, eliminating the CPU-mediated bounce buffer in host DRAM while retaining CPU control-plane coordination."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "An enterprise evaluates building an on-premises 1 PB parallel file system ($\\$3\\text{M to } \\$5\\text{M}$ capex plus $\\$500\\text{k/year}$ opex) versus storing the 1 PB corpus in cloud object storage ($\\$240\\text{k/year}$ storage) and paying $\\$0.09/\\text{GB}$ egress fees for 10 full-dataset reads per year ($\\$900\\text{k/year}$ egress). What is the realistic financial payback horizon for building the on-premises system under these parameters?",
+     "explanation": "The correct answer is A. Between 4.7 and 7.8 years, because net annual cloud delivery savings ($\\$640\\text{k/year}$) require multiple years to amortize the multi-million dollar initial hardware expenditure. Cloud delivery costs $\\$1.14\\text{M/year}$ ($\\$240\\text{k}$ storage + $\\$900\\text{k}$ egress). Subtracting on-premises annual operations ($\\$500\\text{k}$) leaves net annual savings of $\\$640\\text{k/year}$. Dividing the $\\$3\\text{M}$ to $\\$5\\text{M}$ capex by $\\$640\\text{k}$ gives a break-even range of roughly 4.7 to 7.8 years. The 6-month claim is overly optimistic and ignores fixed facility, power, and operational overheads. The 20-year claim fails to account for the $\\$900\\text{k}$ annual egress cost in the cloud model. The perpetually free claim is factually false.",
+     "hint": "Think about: evaluate build-versus-buy trade-offs for large-scale storage infrastructure using capital expenditure, operational costs, and data egress fees",
+     "type": "single",
+     "options": [
+      "Between 4.7 and 7.8 years, because net annual cloud delivery savings ($\\$640\\text{k/year}$) require multiple years to amortize the multi-million dollar initial hardware expenditure.",
+      "Less than 6 months, because cloud egress fees make any on-premises storage investment instantly profitable.",
+      "Exactly 20 years, because on-premises operational overhead exceeds all cloud storage and egress fees combined.",
+      "There is no payback horizon because cloud object storage is perpetually free for research and training workloads."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A team generates a \\$1\\text{ TB}$ synthetic text dataset. Retained provenance adds \\$40\\%$ metadata overhead, and 3 verifier models each read the payload once without materializing another full copy. What persistent capacity and total pipeline traffic are required?",
+     "explanation": "The correct answer is A. Persistent capacity is \\$1.4\\text{ TB}$: the \\$1\\text{ TB}$ payload plus \\$0.4\\text{ TB}$ of provenance. Pipeline traffic is \\$4.4\\text{ TB}$: those \\$1.4\\text{ TB}$ of writes plus three \\$1\\text{ TB}$ verifier reads. Verification passes do not multiply capacity unless their outputs are materialized as additional full datasets.",
+     "hint": "Think about: distinguish persistent storage amplification from read and write traffic in a verified synthetic-data pipeline",
+     "type": "single",
+     "options": [
+      "\\$1.4 TB of persistent capacity and \\$4.4 TB of traffic: \\$1 TB payload write, \\$0.4 TB metadata write, and \\$3 TB of verifier reads.",
+      "Exactly \\$1.0 TB, because verifier models run entirely in GPU registers without generating persistent storage artifacts.",
+      "Roughly \\$0.4 TB, because synthetic data compresses more efficiently than natural language text.",
+      "Roughly \\$14\\text{ TB}$, because every verifier model stores a full \\$350\\text{ GB}$ copy of its internal neural activations for every sample."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "If a cluster monitoring dashboard indicates that average storage read bandwidth matches the aggregate throughput predicted by the pipeline equation, storage performance issues can be conclusively ruled out as the cause of low GPU utilization.",
+     "explanation": "False. Average bandwidth metrics mask transient tail-latency spikes, worker-side lock contention, metadata serialization, and prefetch buffer underruns. Even if aggregate gigabytes-per-second over a 10-minute window matches the theoretical target, microsecond-level and millisecond-level I/O jitter can cause individual GPUs to stall repeatedly at step boundaries, driving down utilization. Diagnostics must evaluate per-step wait-for-data distributions (P95/P99 stall times) rather than aggregate bandwidth averages alone.",
+     "hint": "Think about: evaluate why average bandwidth metrics fail to rule out storage bottlenecks without fine-grained tail-latency and stall-ratio profiling",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  }
+ ]
+}

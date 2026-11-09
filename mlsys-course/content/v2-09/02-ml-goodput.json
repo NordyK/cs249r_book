@@ -1,0 +1,107 @@
+{
+ "title": "ML Goodput",
+ "summary": "Apply the loss-share decomposition to split a gap in useful work among the goodput factors.",
+ "source": {
+  "chapter": "v2-09",
+  "sections": [
+   "ML Goodput",
+   "The three goodput factors",
+   "Program goodput and its measure",
+   "Accounting boundaries",
+   "One word, several measures"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **ML Goodput** in *Fleet Efficiency* (Vol II). By the end you should be able to:\n\n- Apply the loss-share decomposition to split a gap in useful work among the goodput factors\n- Select the named ideal for program goodput and interpret MFU and MBU for bandwidth-bound decode\n- Explain how overlapping denominators double-count losses and when MFU equals program goodput\n- Apply the first-boundary rule to charge a straggler's cost to the correct factor\n- Recall the definition of program goodput and its named ideal"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Efficiency, § ML Goodput",
+   "md": "Across a fleet, capacity disappears at three successive stages in the life of a job. First, a job must acquire a complete set of devices: an accelerator produces no progress while it sits unallocated, while cluster fragmentation strands it in a shape no queued gang can use, or while a partially allocated gang holds it idle waiting for the rest of its peers."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The three goodput factors\n- Program goodput and its measure\n- Accounting boundaries\n- One word, several measures\n\nPay attention to: ML productivity goodput as the product of scheduling, runtime, and program goodput; Loss shares weighted by what earlier boundaries passed; MFU as program goodput only over retained steps; MBU for bandwidth-bound decode; Charging each loss at the first boundary it fails to cross."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A team multiplies a published MFU averaged over a whole run by a runtime goodput computed from the same run's restart and checkpoint logs. Why does this product understate the job's goodput, and over what must MFU be measured for it to equal program goodput?",
+   "md": "A run-averaged MFU divides by elapsed time that already includes restarts and checkpoint pauses, so those losses sit inside the MFU and the runtime factor charges them again. The product is valid only when each factor divides by exactly what the previous one passed, so that each numerator cancels the next denominator. MFU equals program goodput when it is measured over the steps that runtime goodput retained, with input waits already removed, against the time the required operations would take at peak."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-09-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Applying the loss-share decomposition to Llama 3 405B on its dedicated cluster (scheduling goodput 1, runtime goodput about 0.90, program goodput about 0.41), which split of its held capacity is correct?",
+     "explanation": "The correct answer is A. With scheduling goodput of one, the runtime share is \\$1 - 0.90 = 0.10, the program share is the program loss weighted by what the runtime boundary passed, \\$0.90 × 0.59 approx 0.53, and useful work is \\$0.90 × 0.41 approx 0.37; the three parts add to one. Charging the program's 59% loss against full capacity subtracts the runtime loss twice. Removing every interruption could therefore recover at most a tenth of the held capacity, while the program boundary held most of the gap.",
+     "hint": "Think about: apply the loss-share decomposition to split a gap in useful work among the goodput factors.",
+     "type": "single",
+     "options": [
+      "About 10% lost at the runtime boundary, 53% at the program boundary, and 37% becoming progress at the ideal rate",
+      "About 10% lost at the runtime boundary, 59% at the program boundary, and 31% becoming progress, because each factor's loss is charged against full capacity",
+      "About 59% lost at the runtime boundary and 10% at the program boundary, because the program factor is measured first",
+      "About 37% lost at the runtime boundary, 41% at the program boundary, and 22% becoming progress"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A serving replica's batch-one decode step reports an MFU of 2.5% and a model bandwidth utilization (MBU) of 86%. How should these figures be read when assigning the replica's program goodput?",
+     "explanation": "The correct answer is B. Small-batch decode must read every weight to perform a few operations per weight, so memory bandwidth sets its time and the arithmetic units run far below peak. Charging that gap to the program would assign it a loss no program change can recover, since only a larger batch, a serving decision, raises the work done per byte. Against the bandwidth floor, program goodput is MBU, and high MBU with low MFU marks a memory-saturated program. Ideals that measure different resources cannot be averaged; a fleet report carries program goodput per workload class or converts every class to the arithmetic ideal and attributes decode's loss to batch size.",
+     "hint": "Think about: select the named ideal for program goodput and interpret MFU and MBU for bandwidth-bound decode.",
+     "type": "single",
+     "options": [
+      "The accelerators are faulty, because an MFU this low cannot occur on a healthy device",
+      "The step is memory-saturated rather than inefficient; for bandwidth-bound decode the named ideal is the bandwidth floor, so program goodput is MBU, and the low MFU reflects a batch size that serving sets",
+      "Program goodput is 2.5%, because MFU is the only measure of program goodput that composes across workloads",
+      "Program goodput is about 44%, the average of the two, so training and decode can share one program factor"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A straggling rank that slows every synchronous step should be charged to runtime goodput, because the reliability layer is the one that decides whether to replace the node.",
+     "explanation": "False. The boundary decides where a loss is counted, and the cause decides who fixes it. The job holds a complete allocation and keeps every step, but those steps run below their ideal, so the straggler is a program goodput loss. Charging it there makes program goodput fall when the straggler appears and recover when the node is replaced, while the replacement decision stays with the reliability layer, which weighs that gain against the runtime goodput a restart costs.",
+     "hint": "Think about: apply the first-boundary rule to charge a straggler's cost to the correct factor.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Program goodput is the ratio of the retained steps' ____ execution time to their actual execution time, so code, compiler, and communication inefficiency are charged against a named reference.",
+     "explanation": "ideal. For arithmetic-bound training and prefill steps, the ideal is the time to perform the model's required operations at peak rate, which makes program goodput equal to MFU; for bandwidth-bound decode it is the bandwidth floor, which makes it MBU.",
+     "hint": "Think about: recall the definition of program goodput and its named ideal.",
+     "type": "fill",
+     "answer": [
+      "ideal"
+     ]
+    },
+    {
+     "q": "Which assignment of losses to goodput factors follows the chapter's accounting boundaries?",
+     "explanation": "The correct answer is D. A synchronous pause stops the step while the job holds its devices, so the interval produces no retained step and is a runtime loss. Asynchronous writes let steps continue but contend with them for memory and network bandwidth, lengthening retained steps, a program loss. Compiling before the first step is startup, a runtime loss, while the speed of the compiled code is program goodput. Preemption follows the same logic: the orchestrator decides it, yet the lost work and the reload are runtime losses because the job held its allocation when they occurred.",
+     "hint": "Think about: classify checkpoint and compilation losses by the first accounting boundary they fail to cross.",
+     "type": "single",
+     "options": [
+      "Synchronous checkpoint pause: program; asynchronous checkpoint writes that contend with the step: runtime; compilation before the first step: program",
+      "Synchronous checkpoint pause: scheduling; asynchronous checkpoint writes: runtime; compilation before the first step: scheduling",
+      "All three: runtime, because the fault-tolerance and compiler layers rather than the model cause them",
+      "Synchronous checkpoint pause: runtime; asynchronous checkpoint writes that contend with the step: program; compilation before the first step: runtime"
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the loss-share decomposition to split a gap in useful work among the goodput factors.",
+    "You can now select the named ideal for program goodput and interpret MFU and MBU for bandwidth-bound decode.",
+    "You can now explain how overlapping denominators double-count losses and when MFU equals program goodput.",
+    "You can now apply the first-boundary rule to charge a straggler's cost to the correct factor."
+   ]
+  }
+ ]
+}

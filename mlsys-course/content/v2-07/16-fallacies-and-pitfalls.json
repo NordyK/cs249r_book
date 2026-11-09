@@ -1,0 +1,83 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Calculate Young-Daly optimal intervals to demonstrate why intuition-based checkpoint scheduling causes excessive I/O overhead.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Fault Tolerance* (Vol II). By the end you should be able to:\n\n- Calculate Young-Daly optimal intervals to demonstrate why intuition-based checkpoint scheduling causes excessive I/O overhead\n- Justify why independent component reliability models fail to capture the risk and blast radius of correlated infrastructure failures\n- Evaluate the reliability ceiling where aggregate cluster failure overhead outpaces parallel compute scaling\n- Evaluate the limitations of hardware ECC and justify the necessity of end-to-end software verification against silent data corruption"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, § Fallacies and Pitfalls",
+   "md": "An infrastructure team might spend weeks hardening their storage layer against disk failures, only to have their entire training run destroyed by a subtle software bug in their PyTorch distributed backend. Fault tolerance for distributed ML systems involves counterintuitive mathematics and subtle trade-offs where conventional data center wisdom often fails. Recognizing the fallacies and pitfalls below prevents engineers from optimizing for the wrong failure modes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: Fallacy: Hardware failures are the only concern (neglecting software and data loader bugs); Pitfall: Setting checkpoint intervals by intuition vs Young-Daly calculations; Pitfall: Assuming failure independence in MTBF calculations (correlated power/switch domains); Pitfall: Adding GPUs without accounting for recovery overhead (the reliability scaling ceiling)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain what a GPU-only independent-failure estimate, $\\mathrm{MTBF}_{\\mathrm{system}}=\\mathrm{MTBF}_{\\mathrm{component}}/N$, omits about shared failure domains and their recovery consequences.",
+   "md": "The independent-component formula omits separate shared failure modes such as power or switch outages, and it says nothing about their blast radius. Add those fault domains and their recovery consequences explicitly. Correlation alone does not necessarily increase the count of distinct incidents for fixed marginal component rates; a shared outage can group many component failures into one large event."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-16-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An engineering team operates a 1,000-GPU training cluster with a system MTBF of 50 hours (\\$3,000 minutes) and a checkpoint write time of 5 minutes. The team intuitively chooses to checkpoint 'every 15 minutes to stay safe.' According to the Young-Daly formula, what is the mathematically optimal interval, and what is the consequence of the team's intuitive choice?",
+     "explanation": "The correct answer is B. Applying the Young-Daly formula: $\\tau_{\\text{opt}} = \\sqrt{2 \\cdot T_{\\text{write}} \\cdot \\text{MTBF}_{\\text{system}}} = \\sqrt{2 \\times 5 \\times 3000} = \\sqrt{30{,}000} \\approx 173.2\\text{ minutes}$ (approx. 2.9 hours). Setting an interval of 15 minutes deviates by more than an order of magnitude, spending massive cluster time on unnecessary storage writes. The 15-minute, 50-hour, and 1-minute options misapply the square-root law or make exaggerated failure claims. A stricter recovery point objective can justify a shorter interval even when it increases expected waste.",
+     "hint": "Think about: calculate Young-Daly optimal intervals to demonstrate why intuition-based checkpoint scheduling causes excessive I/O overhead.",
+     "type": "single",
+     "options": [
+      "Optimal interval is 15 minutes; the intuitive choice is mathematically perfect.",
+      "The first-order optimum is approximately 173 minutes (~2.9 hours); writing every 15 minutes adds more checkpoint overhead than it saves in expected rework under this model.",
+      "Optimal interval is 50 hours; checkpointing every 15 minutes causes disk sectors to wear out in days.",
+      "Optimal interval is 1 minute; checkpointing every 15 minutes risks losing 100% of the training dataset."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Why does adding more GPUs ($N$) to a distributed training job eventually encounter a 'reliability ceiling' where total wall-clock training time increases rather than decreases?",
+     "explanation": "The correct answer is D. Under independent failures, adding workers increases the aggregate failure rate. Recovery and replay can eventually cost more than the marginal compute speedup, and this reliability ceiling applies on top of the Amdahl ceiling. Whole-run useful goodput must count only retained progress and include recovery time in the denominator, so its reliability penalty grows with the number of workers.",
+     "hint": "Think about: evaluate the reliability ceiling where aggregate cluster failure overhead outpaces parallel compute scaling.",
+     "type": "single",
+     "options": [
+      "Because GPUs consume more electrical power than data center transformers can supply.",
+      "Because floating-point numbers lose precision when divided across more than 1,000 workers.",
+      "Because the Python interpreter cannot spawn more than 512 concurrent threads.",
+      "Because aggregate cluster failure rate scales linearly ($N\\lambda$), shrinking system MTBF until the cumulative time lost to failure detection, job restarts, checkpoint loading, and rework exceeds the marginal compute speedup of additional parallelism."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Because modern accelerator hardware incorporates hardware ECC on High Bandwidth Memory and CRC on interconnects, application-level gradient checksums and loss validation checks are redundant and unnecessary in 10,000-GPU clusters.",
+     "explanation": "False. ECC and CRC protect the error patterns covered by their implementations within storage and transport boundaries. They do not validate arbitrary arithmetic or software transformations. Checksums test byte integrity or agreement, while replay, independent computation, invariants and statistical checks provide different evidence about computed results. Coverage must match the declared fault model; no single check establishes end-to-end correctness.",
+     "hint": "Think about: evaluate the limitations of hardware ECC and justify the necessity of end-to-end software verification against silent data corruption.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate Young-Daly optimal intervals to demonstrate why intuition-based checkpoint scheduling causes excessive I/O overhead.",
+    "You can now justify why independent component reliability models fail to capture the risk and blast radius of correlated infrastructure failures.",
+    "You can now evaluate the reliability ceiling where aggregate cluster failure overhead outpaces parallel compute scaling.",
+    "You can now evaluate the limitations of hardware ECC and justify the necessity of end-to-end software verification against silent data corruption."
+   ]
+  }
+ ]
+}

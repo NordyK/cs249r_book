@@ -1,0 +1,139 @@
+{
+ "title": "Test: Data Selection",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-09-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "A team distills a ResNet-50 student on ImageNet and chooses offline distillation, precomputing the teacher's FP32 logits for every training image instead of keeping the teacher in accelerator memory. Which cost does this choice move onto the data path?",
+     "explanation": "The correct answer is A. Offline distillation stores one logit per class for every sample, so the per-sample label grows from a single integer index to four bytes per class, an expansion of more than three orders of magnitude for ImageNet's thousand classes, and every epoch reads it back through the input pipeline. Teacher residency and the reduced student batch size are the costs of online distillation, which this choice avoids. Soft targets do not force a lower learning rate, and the teacher pass runs once during precomputation rather than once per epoch.",
+     "hint": "Think about: analyze knowledge distillation as a data-synthesis lever by locating its storage and input-pipeline cost.",
+     "type": "single",
+     "options": [
+      "Every epoch must read per-class logit vectors in place of single integer labels, multiplying the label bytes the storage tier and input pipeline must deliver",
+      "Every training step must run a teacher forward pass beside the student, restricting the student's per-accelerator batch size",
+      "The student must be trained with a lower learning rate, because soft targets produce larger gradients than one-hot labels",
+      "The teacher must be retrained once per student epoch, so preparation cost grows linearly with the number of epochs"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Order the following stages as they are presented in this chapter's conceptual map of the data-selection pipeline:",
+     "explanation": "The correct order is: (2) Static Pruning, (1) Dynamic Selection, (3) Synthetic Data Generation. This is the chapter's presentation order: prune low-value data before target training, adapt sample usage during training, then create missing coverage when needed. The sequence is a conceptual map rather than a mandatory runtime chronology, because synthetic data can also be created earlier and then pruned or selected before final training.",
+     "hint": "Think about: identify the chapter's conceptual ordering of the three main data-selection intervention points.",
+     "type": "order",
+     "items": [
+      "Static Pruning",
+      "Dynamic Selection",
+      "Synthetic Data Generation."
+     ]
+    },
+    {
+     "q": "In curriculum learning, an engineer implements an easy-to-hard pacing schedule that controls the fraction of the sorted training pool available at each stage. What is the primary objective of this pacing strategy?",
+     "explanation": "The correct answer is A. The chapter presents curriculum learning as a way to shape the optimization trajectory: easier examples can provide steadier early gradients, while harder examples are introduced later as the model matures. That is not a guarantee against divergence on every task, and 'easy' depends on the scoring rule, but it is the pacing mechanism this section teaches. The other choices confuse curriculum with memory-layout tricks or active-learning workflows.",
+     "hint": "Think about: analyze how curriculum pacing can stabilize early learning by controlling when harder examples appear.",
+     "type": "single",
+     "options": [
+      "To guide early optimization with more stable examples before gradually introducing harder ones",
+      "To eliminate the need for backward passes during the first half of training",
+      "To maximize GPU memory bandwidth utilization by sorting tensors strictly by length in bytes",
+      "To replace human labelers with an automated oracle during the late stages of training"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Order the steps in an active learning closed-loop iteration:",
+     "explanation": "The correct order is: (3) Score unlabeled pool using current model, (1) Select top query samples via query strategy, (2) Acquire expert annotations from the oracle, (5) Add newly labeled samples to the training set, (4) Retrain or update model on expanded dataset. The cycle begins with proxy or model scoring over the candidate pool, selecting candidate queries, querying the human oracle, incorporating verified labels into the dataset, and updating the model.",
+     "hint": "Think about: design the closed-loop workflow of an iterative active learning system.",
+     "type": "order",
+     "items": [
+      "Score unlabeled pool using current model",
+      "Select top query samples via query strategy",
+      "Acquire expert annotations from the oracle",
+      "Add newly labeled samples to the training set.",
+      "Retrain or update model on expanded dataset"
+     ]
+    },
+    {
+     "q": "Because self-supervised pretraining learns general representations from unlabeled data, it completely eliminates the need for data selection or quality filtering during the pretraining stage.",
+     "explanation": "False. Self-supervised pretraining at web scale remains highly sensitive to pretraining data quality; uncurated corpora containing boilerplate, corrupted text, toxic samples, or pervasive duplicates degrade representation quality and inflate training FLOPs without improving downstream transfer.",
+     "hint": "Think about: evaluate the misconception that self-supervised learning eliminates data curation requirements.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "On one host with two to eight accelerator workers, how can centralized coreset selection become a bottleneck, and what trade-off does hierarchical selection introduce?",
+     "explanation": "The correct answer is C. Centralized selection gathers candidate scores or embeddings at a coordinator process on the same host. Its memory demand and CPU dispatch can compete with decoding and batch preparation, so adding accelerator workers does not necessarily accelerate selection. Hierarchical selection distributes selection by having workers select local coresets on their shards before merging at the coordinator; however, this shard-local pruning can introduce distribution skew if rare classes or boundary cases are unevenly distributed across shards. The other choices state incorrect hardware, communication, or backpropagation limitations.",
+     "hint": "Think about: compare centralized, shard-local, and hierarchical architectures for distributed coreset selection.",
+     "type": "single",
+     "options": [
+      "Centralized selection requires all workers to share a single GPU; hierarchical selection distributes weights across SSDs",
+      "Centralized selection fails because sharding prevents network cards from transmitting floating-point values",
+      "Centralized selection can bottleneck host memory and coordinator dispatch; hierarchical selection prunes locally per shard, risking loss of globally rare samples across shards",
+      "Centralized selection eliminates gradient synchronization; hierarchical selection disables local backpropagation"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Under the illustrative analytical model where dataset information content scales as $\\mathcal{I}(D) \\propto \\log D$ and training compute scales linearly as $O = O_{\\text{sample}} \\cdot D$, how does the marginal Information-Compute Ratio $\\mathrm{ICR}(D)$ scale with dataset size $D$?",
+     "explanation": "The correct answer is B. Under the chapter's illustrative model, $d\\mathcal{I}/dD \\propto 1/D$ and $dO/dD = O_{\\text{sample}}$, so their ratio is $\\mathrm{ICR}(D) \\approx 1/(O_{\\text{sample}}D)$. This captures diminishing marginal learning signal under the stated log-information and linear-compute assumptions. A constant or growing answer ignores the derivative of $\\log D$, while the exponential-decay choice introduces a memory-capacity mechanism that is not part of this model.",
+     "hint": "Think about: calculate the scaling behavior of the Information-Compute Ratio under the section's illustrative logarithmic-information model.",
+     "type": "single",
+     "options": [
+      "It remains constant at $\\mathcal{O}(1)$ because additional compute scales proportionally with dataset size",
+      "It decays as $\\mathcal{O}\\!\\left(\\frac{1}{O_{\\text{sample}}D}\\right)$, so under this illustrative model additional data eventually adds compute faster than marginal information",
+      "It grows logarithmically as $\\mathcal{O}(\\log D / O_{\\text{sample}})$ due to power-law parameter scaling",
+      "It decays exponentially as $\\mathcal{O}(\\exp(-D))$ once the training corpus exceeds accelerator memory capacity"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Using a high-capacity diffusion model or state-of-the-art LLM to generate synthetic training data guarantees that the resulting training set will be completely free of distribution shift relative to the real deployment environment.",
+     "explanation": "False. Generator quality does not eliminate domain gap. Synthetic generators can amplify subtle distribution shifts, introduce generator-specific artifacts, and omit edge cases present in real-world deployment environments, requiring domain validation against real ground truth.",
+     "hint": "Think about: evaluate the misconception that advanced generative models eliminate domain shift.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Compute-optimal frontier**?",
+     "options": [
+      "Sample value is learning per unit of training compute (the information-compute ratio), learning-curve metrics show whether a reduction held quality, and a gain in data value becomes a throughput gain only when the run is compute-bound and the saved work is on the critical path.",
+      "Controlled sweeps fit a compute-optimal balance of about 20 tokens per parameter, so a run whose unique tokens per parameter sit well below it is data-starved and repeats its corpus, which is the regime where selection rather than more compute moves the run toward the frontier.",
+      "Semi-supervised and self-supervised learning trade extra training compute for fewer task labels, valid only when the unlabeled pool matches the target distribution, and a foundation model pays off only when pretraining is amortized across enough downstream tasks.",
+      "When the pool lacks the needed cases, augmentation and generative synthesis replace curation at a per-sample cost against realism, the domain gap needs randomization, adaptation, and a real-data anchor, and recursive training risks model collapse."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Compute-optimal frontier itself, not a neighbouring idea.",
+     "explanation": "**Compute-optimal frontier:** Controlled sweeps fit a compute-optimal balance of about 20 tokens per parameter, so a run whose unique tokens per parameter sit well below it is data-starved and repeats its corpus, which is the regime where selection rather than more compute moves the run toward the frontier."
+    },
+    {
+     "q": "In an ML infrastructure scaling scenario where available GPU compute grows by approximately \\$10\\times$ every 3 years while high-quality web data grows by only \\$2\\times$ every 5 years, what primary systems regime emerges, and what is the appropriate systems response?",
+     "explanation": "The correct answer is A. Compute throughput growing faster than accessible high-quality human data creates a compute-to-data imbalance known as the data wall. In this regime, additional raw compute yields diminishing returns on uncurated corpora, making data selection essential to maximize the Information-Compute Ratio (ICR). Shifting model parallelism addresses parameter memory limits rather than data scarcity, scaling disk bandwidth solves I/O stalls rather than token information quality, and eliminating synthetic generation ignores a key strategy for expanding scarce data pools.",
+     "hint": "Think about: analyze the systems implications of the compute-to-data scaling asymmetry and diagnose the data wall regime.",
+     "type": "single",
+     "options": [
+      "A compute-rich, data-constrained data wall regime where intelligent data selection and curation must maximize the learning signal extracted per token",
+      "A memory bandwidth-bound regime where model parallel sharding must replace data parallelism across all training clusters",
+      "An I/O ingestion bottleneck where disk read bandwidth must be quadrupled to keep GPUs saturated",
+      "A compute-starved regime where synthetic data generation should be eliminated to avoid wasting accelerator cycles"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "The training-dynamics coreset metric that measures the Euclidean norm of the difference between predicted class probabilities and the one-hot target vector early in training is known as ____.",
+     "explanation": "EL2N. It measures $\\lVert p(x)-y \\rVert_2$ early in training as an error-based difficulty score. The chapter notes that proxy-model rankings can transfer usefully to larger targets, but that transfer must be validated rather than assumed universal.",
+     "hint": "Think about: identify EL2N from its mathematical definition and explain why proxy-based use still requires validation.",
+     "type": "fill",
+     "answer": [
+      "EL2N"
+     ]
+    }
+   ]
+  }
+ ]
+}

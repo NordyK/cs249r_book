@@ -1,0 +1,109 @@
+{
+ "title": "Scaling Efficiency and Convergence",
+ "summary": "Apply linear learning rate scaling with warmup for large-batch data-parallel training.",
+ "source": {
+  "chapter": "v2-06",
+  "sections": [
+   "Scaling Efficiency and Convergence",
+   "The mathematics of scaling efficiency",
+   "Scaling physics and Amdahl's Law with communication",
+   "Convergence rate for synchronous data parallel SGD",
+   "Staleness impact across synchronization models",
+   "Learning rate scaling rules",
+   "Critical batch size and diminishing returns",
+   "Communication cost versus convergence speed",
+   "FP8 for distributed training"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Scaling Efficiency and Convergence** in *Distributed Training* (Vol II). By the end you should be able to:\n\n- Apply linear learning rate scaling with warmup for large-batch data-parallel training\n- Compare hardware throughput efficiency with statistical sample efficiency in distributed optimization\n- Explain the impact of bounded gradient staleness on optimizer stability and learning rate selection\n- Define critical batch size in terms of gradient covariance trace and gradient norm\n- Compare E4M3 and E5M2 FP8 formats based on numerical range, precision, and training tensor roles"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Distributed Training, § Scaling Efficiency and Convergence",
+   "md": "Data parallelism and ZeRO sharding show how communication and synchronization enter every training step, yet raw step throughput alone cannot judge a distributed run. When doubling the number of GPUs yields only 1.5$\\times$ speedup for the same work, scaling efficiency is 75 percent, and if the larger global batch also requires more optimizer updates to reach the same loss, wall-clock time to quality degrades further."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The mathematics of scaling efficiency\n- Scaling physics and Amdahl's Law with communication\n- Convergence rate for synchronous data parallel SGD\n- Staleness impact across synchronization models\n- Learning rate scaling rules\n- Critical batch size and diminishing returns\n- Communication cost versus convergence speed\n- FP8 for distributed training\n\nPay attention to: Amdahl scaling efficiency formula and communication walls; hardware efficiency vs statistical efficiency distinction; stale-synchronous parallel (SSP) staleness penalty on optimization; linear learning-rate scaling rules and warmup schedules."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain the distinction between hardware efficiency and statistical efficiency in distributed training, and describe a concrete scenario where a cluster configuration achieves high hardware efficiency but poor statistical efficiency.",
+   "md": "Hardware efficiency measures how effectively compute capacity produces step throughput after exposed execution overhead. Statistical efficiency measures how effectively processed samples advance learning toward the target quality. A global batch far beyond the critical-batch crossover can keep MFU high while added examples yield diminishing reductions in update count. This can increase the examples and allocated GPU-hours needed to reach the target. Whether wall-clock time also increases depends on achieved throughput and the measured steps to the same target; high throughput alone does not establish either a faster or slower complete run."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-06-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team scales a data-parallel training run from 8 to 64 workers, increasing the effective global batch size from 512 to 4,096 samples. If the model operates comfortably below its critical batch size, which learning-rate adjustment follows the linear scaling heuristic?",
+     "explanation": "The correct answer is D. The batch expansion is \\$4096/512=8, so the linear scaling heuristic multiplies the learning rate by eight, with warmup to limit early instability. It is a starting configuration to validate, not a universal optimizer rule. Scaling by the total worker count uses the wrong ratio; square-root scaling is a different heuristic.",
+     "hint": "Think about: apply linear learning rate scaling with warmup for large-batch data-parallel training",
+     "type": "single",
+     "options": [
+      "Keep the learning rate unchanged, because large-batch variance reduction automatically stabilizes optimization",
+      "Multiply the learning rate by 64 to match the total worker count rather than the batch expansion ratio",
+      "Multiply the learning rate by $\\sqrt{8}$ from step zero without a warmup schedule",
+      "Multiply the learning rate by \\$8× (matching the batch expansion ratio) and include a gradual linear warmup schedule"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Why must the learning-rate schedule be revalidated when moving from Bulk-Synchronous Parallel (BSP) to Stale-Synchronous Parallel (SSP) at the same global batch size?",
+     "explanation": "The correct answer is A. SSP permits gradients from parameter snapshots that lag behind the current state. Their effect on stability depends on the delay bound, objective, and optimizer schedule; there is no universal staleness penalty or mandatory learning-rate reduction. A smaller learning rate is one candidate to validate by comparing complete runs to the same target quality. SSP still communicates, uses stochastic minibatches, and is not restricted to second-order optimizers.",
+     "hint": "Think about: explain the impact of bounded gradient staleness on optimizer stability and learning rate selection",
+     "type": "single",
+     "options": [
+      "Gradients computed against stale parameters can alter update stability, with effects that depend on delay, objective, and optimizer schedule",
+      "SSP workers compute exact full-batch gradients instead of stochastic minibatches",
+      "SSP eliminates all inter-GPU network communication, which alters the loss landscape",
+      "SSP is mathematically restricted to second-order quasi-Newton optimizers that require small step sizes"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "The threshold batch size $B^* \\approx \\frac{\\text{tr}(\\Sigma)}{\\|\\nabla \\mathcal{L}(\\theta)\\|^2}$, representing the point where gradient variance equals true gradient magnitude and past which larger batches yield diminishing returns in sample efficiency, is known as the ____.",
+     "explanation": "critical batch size. The gradient-noise-scale proxy estimates the crossover where larger batches give diminishing reductions in optimization steps per added sample. Below that crossover, steps can fall approximately inversely with batch size; the relationship depends on optimizer, training phase, and target quality.",
+     "hint": "Think about: define critical batch size in terms of gradient covariance trace and gradient norm",
+     "type": "fill",
+     "answer": [
+      "critical batch size"
+     ]
+    },
+    {
+     "q": "Why does the FP8 recipe described in this chapter pair the E4M3 format for forward-pass activations and weights with the E5M2 format for backward-pass gradients?",
+     "explanation": "The correct answer is B. E4M3 provides finer precision, while E5M2 provides a wider representable range. The cited recipe uses these properties for scaled weights/activations and gradients respectively. Tensor distributions and scaling determine suitability; neither format guarantees that all values avoid underflow or overflow. Both are one-byte floating-point formats, so choosing E5M2 rather than E4M3 does not halve wire traffic.",
+     "hint": "Think about: compare E4M3 and E5M2 FP8 formats based on numerical range, precision, and training tensor roles",
+     "type": "single",
+     "options": [
+      "E4M3 has a wider numerical range than E5M2, which prevents gradient underflow during backpropagation",
+      "E4M3 spends more bits on the mantissa, giving finer precision for bounded weights and activations, while E5M2 spends more bits on the exponent, giving the wider dynamic range that small and widely varying gradients need",
+      "E4M3 is an integer format while E5M2 is a floating-point format supported exclusively on CPU hosts",
+      "E5M2 requires half the memory bandwidth of E4M3, accelerating the backward pass AllReduce"
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain why per-tensor dynamic scaling is necessary in FP8 distributed training and describe how the scaling factor is computed during execution.",
+   "md": "FP8 scaling maps each tensor into the limited representable range. A simple current-maximum rule uses $S=\\mathrm{FP8}_{\\max}/\\max(|X|)$ before casting, with an appropriate zero-tensor guard. For a product of independently scaled operands, the output must be divided by the product of their scales. Practical policies may use history or smaller scaling blocks; the objective is to balance rounding, underflow, and overflow."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply linear learning rate scaling with warmup for large-batch data-parallel training.",
+    "You can now compare hardware throughput efficiency with statistical sample efficiency in distributed optimization.",
+    "You can now explain the impact of bounded gradient staleness on optimizer stability and learning rate selection.",
+    "You can now define critical batch size in terms of gradient covariance trace and gradient norm."
+   ]
+  }
+ ]
+}

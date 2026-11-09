@@ -1,0 +1,52 @@
+{
+ "title": "Carrying a Repair Across Turns",
+ "summary": "Work through Carrying a Repair Across Turns.",
+ "source": {
+  "chapter": "v3-04",
+  "sections": [
+   "Carrying a Repair Across Turns"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Carrying a Repair Across Turns** in *Context Engineering* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Context Engineering, § Carrying a Repair Across Turns",
+   "md": "The repair agent (a later section) has spent several turns investigating a connection-pool defect. It has inspected the pool implementation, executed a reproduction test, and revised its initial diagnosis. Deliberation has left behind candidate versions, a refuted timeout hypothesis, test observations, and the dependency records that tie them together (a later section). None of that progress lives inside the model. Because foundation models are stateless functions across turns, every call begins and ends with the payload assembled by the host runtime."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Context compaction matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Every compaction is a lossy transform that can silently drop evidence a later decision needs, so the runtime pins a protected-field set and keeps handles to raw records."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-04-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Carrying a Repair Across Turns** develops one of the chapter's claims. Which one?",
+     "options": [
+      "An observation is evidence only for the artifact versions and execution conditions under which it was gathered, and provenance labels on untrusted spans guide interpretation but enforce nothing.",
+      "Staging the request as root, trunk, and leaf by change rate keeps the longest exact token prefix reusable, so volatile fields belong in the leaf, although correctness always overrides cache economics.",
+      "Every compaction is a lossy transform that can silently drop evidence a later decision needs, so the runtime pins a protected-field set and keeps handles to raw records.",
+      "Separating a trigger watermark from a post-compaction target sets compaction cadence, and the amortized pass cost is judged against cost per accepted task, not local turn cost."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Context compaction**: Every compaction is a lossy transform that can silently drop evidence a later decision needs, so the runtime pins a protected-field set and keeps handles to raw records."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Carrying a Repair Across Turns."
+   ]
+  }
+ ]
+}

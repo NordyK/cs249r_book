@@ -1,0 +1,92 @@
+{
+ "title": "Production Monitoring",
+ "summary": "Analyze why delayed, sparse, or noisy labels create a verification gap and explain how leading indicators support earlier investigation without proving correctness loss.",
+ "source": {
+  "chapter": "v1-14",
+  "sections": [
+   "Production Monitoring",
+   "Infrastructure telemetry and hardware utilization",
+   "Statistical monitoring and drift detection",
+   "Monitoring cost model"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Production Monitoring** in *ML Operations* (Vol I). By the end you should be able to:\n\n- Analyze why delayed, sparse, or noisy labels create a verification gap and explain how leading indicators support earlier investigation without proving correctness loss\n- Sequence the data-dependent stages of a drift-alert workflow from validated cohort selection to owner routing\n- Evaluate whether coarse GPU busy-time and memory-bandwidth counters are sufficient to prescribe a serving optimization\n- Use stage-level latency evidence to localize a production regression and route it to the owning component\n- Identify an illustrative PSI threshold for severe shift and distinguish it from a universal drift rule"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Operations, § Production Monitoring",
+   "md": "A newly promoted ranking model can pass its canary check on Monday, only to lose five points of accuracy by Thursday when an upstream catalog migration or a competitor's promotion alters live user traffic while every HTTP and GPU gauge stays green. A deployed model loses accuracy at a rate that must be measured rather than assumed."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Infrastructure telemetry and hardware utilization\n- Statistical monitoring and drift detection\n- Monitoring cost model\n\nPay attention to: hardware telemetry diagnosis (compute vs memory-bandwidth bounds); stage-level latency budgets as a diagnostic for regressions; statistical drift detection and Population Stability Index (PSI) thresholds; verification gap and label delay."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why high-stakes production ML systems (such as medical diagnosis or loan underwriting) experience a 'verification gap' and describe how leading indicators mitigate this challenge.",
+   "md": "A verification gap arises because correct model behavior is not established just by successful execution, and in high-stakes ML the strongest correctness signals often depend on sparse, delayed, or noisy real-world labels. For example, loan defaults may take months to observe, so teams cannot measure true error immediately after deployment. Leading indicators—such as feature distribution drift, prediction-confidence shifts, data freshness checks, and schema validation—provide earlier signals that something may have changed and should be investigated. Their practical value is faster diagnosis, but they do not by themselves prove harm, identify the root cause, or guarantee warning before business impact occurs."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-14-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Order the following stages in a single drift-alert workflow where each step depends on the previous one:",
+     "explanation": "The correct order is: (3) select and validate the versioned input cohort for analysis, (4) compute divergence against the specified reference distribution, (2) compare the computed divergence with a calibrated threshold, (1) route the resulting alert to the designated owner for investigation. The dependencies are intrinsic: divergence is meaningless until the cohort and reference are fixed, threshold comparison requires a computed divergence value, and routing an alert only makes sense after the threshold test indicates that an alert exists. Swapping threshold comparison ahead of divergence computation or routing before thresholding would break the logic of the alert itself.",
+     "hint": "Think about: sequence the data-dependent stages of a drift-alert workflow from validated cohort selection to owner routing",
+     "type": "order",
+     "items": [
+      "select and validate the versioned input cohort for analysis",
+      "compute divergence against the specified reference distribution.",
+      "compare the computed divergence with a calibrated threshold",
+      "route the resulting alert to the designated owner for investigation"
+     ]
+    },
+    {
+     "q": "An inference server showing 95% GPU busy time and 30% HBM memory bandwidth utilization provides sufficient evidence to prescribe weight quantization as the primary optimization.",
+     "explanation": "False. GPU busy time is not the same as achieved FLOPs efficiency, and 95% busy with 30% HBM utilization is not sufficient by itself to uniquely diagnose the bottleneck. You would still need achieved-ops, stall, and kernel-profile evidence. Quantization can reduce memory traffic, but on supported hardware lower precision can also change compute throughput.",
+     "hint": "Think about: evaluate whether coarse GPU busy-time and memory-bandwidth counters are sufficient to prescribe a serving optimization",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A recommendation service's p99 latency rises from 80 ms to 110 ms overnight, breaching its 100 ms SLO. No model was deployed. Illustrative representative end-to-end request traces show model inference steady at 45 ms, while feature retrieval rose from 25 ms to 55 ms, with the remaining stages roughly unchanged. What is the appropriate first operational response?",
+     "explanation": "The correct answer is C. Route the incident to the feature-store owners and investigate the retrieval path, because the representative stage-level breakdown localizes the latency increase outside the model itself. Inference stayed flat, so rolling back the model or quantizing it further attacks a stage that did not move. Raising the SLO would hide the symptom instead of diagnosing the retrieval regression.",
+     "hint": "Think about: use stage-level latency evidence to localize a production regression and route it to the owning component",
+     "type": "single",
+     "options": [
+      "Roll back to the previous model version, because latency regressions are model regressions until proven otherwise",
+      "Quantize the model further to buy back the 30 ms from the inference stage",
+      "Route the incident to the feature-store owners and investigate the retrieval path, because the stage-level budget localizes the regression outside the model",
+      "Raise the SLO to 110 ms, because a drift in total latency indicates a permanent change in workload"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In an illustrative PSI rule of thumb, a Population Stability Index value of $\\text{PSI} \\ge$ ____ is treated as a severe distribution shift that should trigger investigation.",
+     "explanation": "0.25. In this illustrative convention, PSI < 0.10 is below the warning range, \\$0.10 le PSI < 0.25 is a warning range, and PSI ge 0.25 should trigger escalation. This is an illustrative rule of thumb for interpretation, not a universal threshold or proof of accuracy loss.",
+     "hint": "Think about: identify an illustrative PSI threshold for severe shift and distinguish it from a universal drift rule",
+     "type": "fill",
+     "answer": [
+      "0.25"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze why delayed, sparse, or noisy labels create a verification gap and explain how leading indicators support earlier investigation without proving correctness loss.",
+    "You can now sequence the data-dependent stages of a drift-alert workflow from validated cohort selection to owner routing.",
+    "You can now evaluate whether coarse GPU busy-time and memory-bandwidth counters are sufficient to prescribe a serving optimization.",
+    "You can now use stage-level latency evidence to localize a production regression and route it to the owning component."
+   ]
+  }
+ ]
+}

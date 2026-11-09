@@ -1,0 +1,59 @@
+{
+ "title": "Effects Outside a Shared Transaction",
+ "summary": "Work through Effects Outside a Shared Transaction.",
+ "source": {
+  "chapter": "v3-12",
+  "sections": [
+   "Effects Outside a Shared Transaction"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Effects Outside a Shared Transaction** in *Failure Recovery* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Failure Recovery, § Effects Outside a Shared Transaction",
+   "md": "When the integration suite crashes inside the temporary test environment, rolling back the agent runtime's local database cannot reach across the network to deallocate the remote virtual machine. Even if the cloud provider's environment service executes internal database transactions with strict ACID guarantees, its database and the runtime's execution log commit in separate administrative domains with no shared atomic boundary. Inside a single database or a tightly coupled cluster, a locking transaction holds exclusive locks until commit or abort, and two-phase commit coordinates an atomic decision across cooperating resource managers."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Compensation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-12-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Effects Outside a Shared Transaction** develops one of the chapter's claims. Which one?",
+     "options": [
+      "An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past.",
+      "A looping trajectory is hyperactive, not dead, so a watchdog compares a declared task projection, verifier results, and repeated action-outcome pairs over a bounded window, and its window sets detection latency.",
+      "Reversibility is relative to a subsystem and a grant, so a plan is organized into compensable preparation, a single pivot, and owned follow-up duties, with every check that can precede the pivot hoisted ahead of it.",
+      "Recovery order is a DAG of admitted cleanup operations rather than a reverse stack, and an unresolved node blocks only its transitive dependents."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Compensation**: An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Compensation* is registered as recovery work by *Trajectory saga*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Compensation is registered as recovery work by Trajectory saga."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Effects Outside a Shared Transaction."
+   ]
+  }
+ ]
+}

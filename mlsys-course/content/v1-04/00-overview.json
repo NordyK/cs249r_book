@@ -1,0 +1,256 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v1-04",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Data Engineering** (Vol I). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Engineering, Purpose",
+   "md": "In conventional software, programmers write logic that computers execute. In machine learning, programmers write optimization procedures that extract operational logic from data. This inversion makes training data resemble source code: changing it can change the learned system when the model is retrained, even if no traditional code changes. Yet data rarely receives the review, testing, and version control that even a one-line code change routinely receives."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Data as Code",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "How Data Fails",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Requirements and Data Budget",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Data Acquisition",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Ingestion and Validation",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Data Labeling",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Data Processing",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Data as code practice**",
+     "Because the pipeline that produces a dataset is the system's build and every retraining a rebuild, datasets need the disciplines code has: immutable lineage, executable validation suites, versioned releases, and debugging by controlled comparison of versions."
+    ],
+    [
+     "**Data cascades**",
+     "A data defect entered early passes schemas and tests, is converted by each later stage into new derived state, and surfaces only at evaluation or deployment, so remediation cost scales with the downstream artifacts that consumed it and prevention belongs at the source."
+    ],
+    [
+     "**Labels are the specification**",
+     "Ground truth is the system's specification, so a labeling error becomes part of the definition of correct; labeling usually dominates data cost, granularity sets per-label cost, and label quality is bounded through chance-corrected agreement, gold checks, and monitoring of agreement over time."
+    ],
+    [
+     "**Training-serving consistency**",
+     "Shared feature code is not enough: fitted state (normalization constants, vocabularies, gain handling) must be fitted once on the training split, persisted with the model, and replayed identically at serving, because a skewed feature is still a valid vector and raises no error; a violation is training-serving skew, an internal divergence of logic or state that differs from drift in the environment."
+    ],
+    [
+     "**Data leakage**",
+     "Train, validation, and test sets are trust boundaries, and leakage occurs when information crosses them through duplicates, split groups, future-derived features, or preprocessing fitted before the split, so splits are group-keyed, transforms are fit on train only, and features use point-in-time retrieval."
+    ],
+    [
+     "**The feeding problem**",
+     "Training throughput is the minimum of the compute-limited rate and the data supply rate, and storage bandwidth, host decode, and bytes per sample each impose a slowest-stage bound, so the input path is sized for the rate the accelerator consumes."
+    ],
+    [
+     "**Drift statistics**",
+     "Drift decomposes into covariate, label, and concept shift (the last detectable only with labels), and PSI, KL divergence, and the two-sample K-S statistic flag divergence as a prompt for investigation and outcome evidence, not proof of degradation."
+    ],
+    [
+     "**Data budget from targets**",
+     "A product target becomes a data requirement by arithmetic: a false-wake budget fixes a per-window false-positive rate, a budget at a per-label cost buys a computed label count, and the rule of three sets the representative hours needed to support a zero-event claim."
+    ],
+    [
+     "**Validation at the ingestion boundary**",
+     "The ingestion boundary admits only well-formed, plausible data through synchronous schema and contract checks plus asynchronous statistical checks, and dead-letter queues, backoff, circuit breakers, and validated fallbacks make the pipeline degrade gracefully rather than silently."
+    ],
+    [
+     "**Dataset releases and lineage**",
+     "A dataset release is an immutable, versioned record of sources, split assignment, label and rubric version, and feature configuration, and data lineage links each dataset, feature, and model to what produced it, so a regression is traced by snapshot comparison instead of guesswork."
+    ],
+    [
+     "**Storage tiers and access patterns**",
+     "No medium is both cheap and fast, and training's sequential scans and serving's point lookups pull in opposite directions, so ML systems match warehouses, lakes, object stores, and caches to each lifecycle phase's access pattern."
+    ],
+    [
+     "**Data debt**",
+     "Data debt is the accumulated cost of implicit coupling and missing documentation across documentation, schema, quality, and freshness, measured against thresholds and paid down deliberately rather than carried unconsciously."
+    ],
+    [
+     "**Ingestion and transformation patterns**",
+     "Batch versus streaming is priced by how fast data loses value, and ETL versus ELT by where the transformation boundary sits relative to storage, with loader-side transforms extending ELT into the training loop."
+    ],
+    [
+     "**Feature stores**",
+     "A feature store registers each feature definition once and serves it from an offline store for training and an online store for serving, with point-in-time (as-of) retrieval so training sees only feature values available at each observation's timestamp; shared definitions reduce skew only when fitted state, timestamps, and freshness are also synchronized."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$\\text{Data Selection Gain} \\propto \\frac{\\text{Information Entropy}}{\\text{Data Gravity}}$$\n\n$$D_{\\text{KS}} = \\max_x |F_P(x) - F_Q(x)|$$\n\n$$D_{\\text{crit}} \\approx 1.36\\sqrt{\\frac{n_P + n_Q}{n_P n_Q}}$$\n\n$$\\kappa = \\frac{p_o - p_e}{1 - p_e}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v1-04-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Data as code practice",
+     "back": "Because the pipeline that produces a dataset is the system's build and every retraining a rebuild, datasets need the disciplines code has: immutable lineage, executable validation suites, versioned releases, and debugging by controlled comparison of versions."
+    },
+    {
+     "front": "Data cascades",
+     "back": "A data defect entered early passes schemas and tests, is converted by each later stage into new derived state, and surfaces only at evaluation or deployment, so remediation cost scales with the downstream artifacts that consumed it and prevention belongs at the source."
+    },
+    {
+     "front": "Labels are the specification",
+     "back": "Ground truth is the system's specification, so a labeling error becomes part of the definition of correct; labeling usually dominates data cost, granularity sets per-label cost, and label quality is bounded through chance-corrected agreement, gold checks, and monitoring of agreement over time."
+    },
+    {
+     "front": "Training-serving consistency",
+     "back": "Shared feature code is not enough: fitted state (normalization constants, vocabularies, gain handling) must be fitted once on the training split, persisted with the model, and replayed identically at serving, because a skewed feature is still a valid vector and raises no error; a violation is training-serving skew, an internal divergence of logic or state that differs from drift in the environment."
+    },
+    {
+     "front": "Data leakage",
+     "back": "Train, validation, and test sets are trust boundaries, and leakage occurs when information crosses them through duplicates, split groups, future-derived features, or preprocessing fitted before the split, so splits are group-keyed, transforms are fit on train only, and features use point-in-time retrieval."
+    },
+    {
+     "front": "The feeding problem",
+     "back": "Training throughput is the minimum of the compute-limited rate and the data supply rate, and storage bandwidth, host decode, and bytes per sample each impose a slowest-stage bound, so the input path is sized for the rate the accelerator consumes."
+    },
+    {
+     "front": "Drift statistics",
+     "back": "Drift decomposes into covariate, label, and concept shift (the last detectable only with labels), and PSI, KL divergence, and the two-sample K-S statistic flag divergence as a prompt for investigation and outcome evidence, not proof of degradation."
+    },
+    {
+     "front": "Data budget from targets",
+     "back": "A product target becomes a data requirement by arithmetic: a false-wake budget fixes a per-window false-positive rate, a budget at a per-label cost buys a computed label count, and the rule of three sets the representative hours needed to support a zero-event claim."
+    },
+    {
+     "front": "Validation at the ingestion boundary",
+     "back": "The ingestion boundary admits only well-formed, plausible data through synchronous schema and contract checks plus asynchronous statistical checks, and dead-letter queues, backoff, circuit breakers, and validated fallbacks make the pipeline degrade gracefully rather than silently."
+    },
+    {
+     "front": "Dataset releases and lineage",
+     "back": "A dataset release is an immutable, versioned record of sources, split assignment, label and rubric version, and feature configuration, and data lineage links each dataset, feature, and model to what produced it, so a regression is traced by snapshot comparison instead of guesswork."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v1-04-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Data as code practice**?",
+     "options": [
+      "Drift decomposes into covariate, label, and concept shift (the last detectable only with labels), and PSI, KL divergence, and the two-sample K-S statistic flag divergence as a prompt for investigation and outcome evidence, not proof of degradation.",
+      "A data defect entered early passes schemas and tests, is converted by each later stage into new derived state, and surfaces only at evaluation or deployment, so remediation cost scales with the downstream artifacts that consumed it and prevention belongs at the source.",
+      "Data debt is the accumulated cost of implicit coupling and missing documentation across documentation, schema, quality, and freshness, measured against thresholds and paid down deliberately rather than carried unconsciously.",
+      "Because the pipeline that produces a dataset is the system's build and every retraining a rebuild, datasets need the disciplines code has: immutable lineage, executable validation suites, versioned releases, and debugging by controlled comparison of versions."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Data as code practice itself, not a neighbouring idea.",
+     "explanation": "**Data as code practice:** Because the pipeline that produces a dataset is the system's build and every retraining a rebuild, datasets need the disciplines code has: immutable lineage, executable validation suites, versioned releases, and debugging by controlled comparison of versions."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Data cascades**?",
+     "options": [
+      "A data defect entered early passes schemas and tests, is converted by each later stage into new derived state, and surfaces only at evaluation or deployment, so remediation cost scales with the downstream artifacts that consumed it and prevention belongs at the source.",
+      "A dataset release is an immutable, versioned record of sources, split assignment, label and rubric version, and feature configuration, and data lineage links each dataset, feature, and model to what produced it, so a regression is traced by snapshot comparison instead of guesswork.",
+      "Drift decomposes into covariate, label, and concept shift (the last detectable only with labels), and PSI, KL divergence, and the two-sample K-S statistic flag divergence as a prompt for investigation and outcome evidence, not proof of degradation.",
+      "The ingestion boundary admits only well-formed, plausible data through synchronous schema and contract checks plus asynchronous statistical checks, and dead-letter queues, backoff, circuit breakers, and validated fallbacks make the pipeline degrade gracefully rather than silently."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Data cascades itself, not a neighbouring idea.",
+     "explanation": "**Data cascades:** A data defect entered early passes schemas and tests, is converted by each later stage into new derived state, and surfaces only at evaluation or deployment, so remediation cost scales with the downstream artifacts that consumed it and prevention belongs at the source."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Labels are the specification**?",
+     "options": [
+      "Ground truth is the system's specification, so a labeling error becomes part of the definition of correct; labeling usually dominates data cost, granularity sets per-label cost, and label quality is bounded through chance-corrected agreement, gold checks, and monitoring of agreement over time.",
+      "A dataset release is an immutable, versioned record of sources, split assignment, label and rubric version, and feature configuration, and data lineage links each dataset, feature, and model to what produced it, so a regression is traced by snapshot comparison instead of guesswork.",
+      "Data debt is the accumulated cost of implicit coupling and missing documentation across documentation, schema, quality, and freshness, measured against thresholds and paid down deliberately rather than carried unconsciously.",
+      "Batch versus streaming is priced by how fast data loses value, and ETL versus ELT by where the transformation boundary sits relative to storage, with loader-side transforms extending ELT into the training loop."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Labels are the specification itself, not a neighbouring idea.",
+     "explanation": "**Labels are the specification:** Ground truth is the system's specification, so a labeling error becomes part of the definition of correct; labeling usually dominates data cost, granularity sets per-label cost, and label quality is bounded through chance-corrected agreement, gold checks, and monitoring of agreement over time."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Training-serving consistency**?",
+     "options": [
+      "Ground truth is the system's specification, so a labeling error becomes part of the definition of correct; labeling usually dominates data cost, granularity sets per-label cost, and label quality is bounded through chance-corrected agreement, gold checks, and monitoring of agreement over time.",
+      "Shared feature code is not enough: fitted state (normalization constants, vocabularies, gain handling) must be fitted once on the training split, persisted with the model, and replayed identically at serving, because a skewed feature is still a valid vector and raises no error; a violation is training-serving skew, an internal divergence of logic or state that differs from drift in the environment.",
+      "A feature store registers each feature definition once and serves it from an offline store for training and an online store for serving, with point-in-time (as-of) retrieval so training sees only feature values available at each observation's timestamp; shared definitions reduce skew only when fitted state, timestamps, and freshness are also synchronized.",
+      "Batch versus streaming is priced by how fast data loses value, and ETL versus ELT by where the transformation boundary sits relative to storage, with loader-side transforms extending ELT into the training loop."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Training-serving consistency itself, not a neighbouring idea.",
+     "explanation": "**Training-serving consistency:** Shared feature code is not enough: fitted state (normalization constants, vocabularies, gain handling) must be fitted once on the training split, persisted with the model, and replayed identically at serving, because a skewed feature is still a valid vector and raises no error; a violation is training-serving skew, an internal divergence of logic or state that differs from drift in the environment."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Data leakage**?",
+     "options": [
+      "Because the pipeline that produces a dataset is the system's build and every retraining a rebuild, datasets need the disciplines code has: immutable lineage, executable validation suites, versioned releases, and debugging by controlled comparison of versions.",
+      "A product target becomes a data requirement by arithmetic: a false-wake budget fixes a per-window false-positive rate, a budget at a per-label cost buys a computed label count, and the rule of three sets the representative hours needed to support a zero-event claim.",
+      "A feature store registers each feature definition once and serves it from an offline store for training and an online store for serving, with point-in-time (as-of) retrieval so training sees only feature values available at each observation's timestamp; shared definitions reduce skew only when fitted state, timestamps, and freshness are also synchronized.",
+      "Train, validation, and test sets are trust boundaries, and leakage occurs when information crosses them through duplicates, split groups, future-derived features, or preprocessing fitted before the split, so splits are group-keyed, transforms are fit on train only, and features use point-in-time retrieval."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Data leakage itself, not a neighbouring idea.",
+     "explanation": "**Data leakage:** Train, validation, and test sets are trust boundaries, and leakage occurs when information crosses them through duplicates, split groups, future-derived features, or preprocessing fitted before the split, so splits are group-keyed, transforms are fit on train only, and features use point-in-time retrieval."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Data as code practice: Because the pipeline that produces a dataset is the system's build and every retraining a rebuild, datasets need the disciplines code has: immutable lineage, executable validation suites, versioned releases, and debugging by controlled comparison of versions.",
+    "Data cascades: A data defect entered early passes schemas and tests, is converted by each later stage into new derived state, and surfaces only at evaluation or deployment, so remediation cost scales with the downstream artifacts that consumed it and prevention belongs at the source.",
+    "Labels are the specification: Ground truth is the system's specification, so a labeling error becomes part of the definition of correct; labeling usually dominates data cost, granularity sets per-label cost, and label quality is bounded through chance-corrected agreement, gold checks, and monitoring of agreement over time.",
+    "Training-serving consistency: Shared feature code is not enough: fitted state (normalization constants, vocabularies, gain handling) must be fitted once on the training split, persisted with the model, and replayed identically at serving, because a skewed feature is still a valid vector and raises no error; a violation is training-serving skew, an internal divergence of logic or state that differs from drift in the environment."
+   ]
+  }
+ ],
+ "terms": []
+}

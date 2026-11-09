@@ -1,0 +1,83 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Analyze the pitfall of budgeting transformer serving memory from weights alone and analyze KV cache scaling with concurrency and context length.",
+ "source": {
+  "chapter": "v1-06",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Network Architectures* (Vol I). By the end you should be able to:\n\n- Analyze the pitfall of budgeting transformer serving memory from weights alone and analyze KV cache scaling with concurrency and context length\n- Analyze how changing execution regime can move the same transformer architecture between compute-leaning and bandwidth-leaning operating points\n- Evaluate why improved benchmark accuracy in a CNN-attention hybrid does not guarantee preserved throughput or memory efficiency\n- Analyze the fallacy that training cluster success transfers to edge hardware and evaluate total runtime memory components"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Network Architectures, § Fallacies and Pitfalls",
+   "md": "Architecture choice is a systems decision, not a leaderboard selection. The common mistakes in architecture selection arise when teams treat architecture families as interchangeable accuracy tools while ignoring inductive bias, memory traffic, hardware mapping, and deployment state."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: Fallacy: More complex architectures always perform better than simpler ones; Pitfall: Selecting architectures based solely on accuracy metrics without analyzing computational requirements; Fallacy: An architecture has one dominant bottleneck across training and inference; Pitfall: Combining architectural patterns without analyzing interaction effects at the system level."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain the fallacy: 'An architecture has one dominant bottleneck across training and inference.' Use the Transformer architecture to illustrate how execution regime (full-sequence training/prefill vs. batch-1 autoregressive decoding) shifts the primary hardware bottleneck.",
+   "md": "The fallacy is treating a bottleneck as a fixed property of the architecture rather than a property of the architecture running in a specific regime. In a transformer's training or prefill path, many sequence positions are processed together, which can create large matrix-matrix operations and much higher effective reuse; in small-batch autoregressive decoding, the same weights are reused poorly because generation proceeds one token at a time and repeatedly streams weights and KV-cache state. The practical consequence is that exact tiling, batching, cache behavior, and machine balance can shift whether compute or bandwidth sets the limit, so each regime must be measured separately."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-06-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why is estimating LLM transformer serving memory based solely on static model parameter footprint (e.g., 14 GB for a 7B FP16 model) a critical engineering pitfall in production deployments?",
+     "explanation": "The correct answer is D. Serving large language models requires memory for both static model weights and dynamic activation state. During autoregressive decoding, the system stores key and value vectors for all prior tokens in the KV cache ($B \\times N_L \\times 2 \\times N_{\\text{heads}} \\times S \\times d_{\\text{head}} \\times \\text{bytes}$). For a 7B model (14 GB weights), 32 concurrent users at 2,048 tokens require ~34.3 GB of KV cache alone, more than double the model weight footprint. The claim of 10x graph expansion is incorrect. Optimizer states are stored during training, not inference. Model weights remain resident in GPU memory during serving and are not reloaded from disk per token.",
+     "hint": "Think about: analyze the pitfall of budgeting transformer serving memory from weights alone and analyze KV cache scaling with concurrency and context length.",
+     "type": "single",
+     "options": [
+      "Because model weights expand by \\$10× in memory due to framework compilation graph overhead.",
+      "Because inference requires storing three full optimizer states (momentum and variance buffers) in GPU RAM.",
+      "Because transformers delete their weights after processing each token and must reload them from disk.",
+      "Because autoregressive decoding dynamically accumulates a Key-Value (KV) cache that scales linearly with context length and concurrency ($\\mathcal{O}(B \\times S)$), which at high concurrency or long context windows can rival or exceed the static weight memory."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Because a hybrid neural network architecture combining convolutional layers with self-attention achieves higher top-1 accuracy on a benchmark leaderboard, it is guaranteed to maintain the high throughput and low memory traffic of the pure CNN baseline.",
+     "explanation": "False. The chapter's warning is that hybrid accuracy does not predict hybrid system behavior. Dense attention operates on regular contiguous tensors and does not inherently destroy CNN locality, but adding it can still increase score computation, intermediate traffic, and runtime cost. Throughput and memory efficiency therefore have to be profiled for the combined design rather than inferred from the CNN baseline.",
+     "hint": "Think about: evaluate why improved benchmark accuracy in a CNN-attention hybrid does not guarantee preserved throughput or memory efficiency.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A vision model trained on a cluster of \\$8 × A100 GPUs (640 GB total memory) achieves state-of-the-art accuracy. Why is assuming this model will deploy successfully to an edge device such as an NVIDIA Jetson Orin NX (16 GB memory) a dangerous fallacy, even if the model weights require only 8 GB?",
+     "explanation": "The correct answer is A. Model weight storage is only one component of runtime memory. During inference, the system must also allocate memory for intermediate activation feature maps, framework execution workspaces, CUDA runtime context, and operating system buffers. An 8 GB model on a 16 GB edge device leaves only 8 GB of shared system RAM; high-resolution inputs or concurrent streams can cause activation memory to breach this budget, triggering out-of-memory crashes. The assertions regarding floating-point incompatibility, permanent 8-way GPU communication hardcoding, and cloud-only execution are factually false.",
+     "hint": "Think about: analyze the fallacy that training cluster success transfers to edge hardware and evaluate total runtime memory components.",
+     "type": "single",
+     "options": [
+      "Because total runtime memory during inference includes intermediate activation tensors, workspace scratchpads, and operating system buffers; under high batch sizes or high input resolutions, these activation and workspace buffers easily exceed the remaining 8 GB memory ceiling.",
+      "Because edge devices are mathematically incapable of executing the floating-point multiplication instructions used by server GPUs.",
+      "Because models trained on 8 GPUs permanently hardcode an 8-way tensor parallel communication protocol that fails if fewer than 8 physical GPUs are connected.",
+      "Because PyTorch and TensorFlow models can only run on cloud-hosted Linux kernels and cannot execute on embedded SoCs."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the pitfall of budgeting transformer serving memory from weights alone and analyze KV cache scaling with concurrency and context length.",
+    "You can now analyze how changing execution regime can move the same transformer architecture between compute-leaning and bandwidth-leaning operating points.",
+    "You can now evaluate why improved benchmark accuracy in a CNN-attention hybrid does not guarantee preserved throughput or memory efficiency.",
+    "You can now analyze the fallacy that training cluster success transfers to edge hardware and evaluate total runtime memory components."
+   ]
+  }
+ ]
+}

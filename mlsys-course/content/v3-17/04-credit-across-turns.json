@@ -1,0 +1,61 @@
+{
+ "title": "Credit Across Turns",
+ "summary": "Work through Credit Across Turns.",
+ "source": {
+  "chapter": "v3-17",
+  "sections": [
+   "Credit Across Turns",
+   "The score-function estimator",
+   "Value, advantage, and process scores",
+   "Monte Carlo value estimates"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Credit Across Turns** in *Reinforcement Learning from Verifiable Rewards* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Reinforcement Learning from Verifiable Rewards, § Credit Across Turns",
+   "md": "In the connection-pool repair, an agent might run the failing reproducer, read `src/pool.py`, and correctly identify the missed notification on connection return, only to introduce a syntax error in its final edit. A verifier that evaluates only the end state marks the entire trajectory as failed, exposing the multi-turn credit-assignment problem introduced in a later section: that terminal failure characterizes the trajectory as a whole, not whether the earlier diagnosis was a mistake."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The score-function estimator\n- Value, advantage, and process scores\n- Monte Carlo value estimates"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Credit assignment matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-17-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Credit Across Turns** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost.",
+      "Agent RL throughput is set by the rollout loop, not the gradient step, so the serial slot cycle caps capacity and Amdahl's law bounds any single-stage speedup.",
+      "Ratios and gradients are valid only on per-invocation records of the delivered prefix token IDs, sampled token IDs, and behavior log probabilities under the actual sampling transforms.",
+      "A group whose rewards all tie carries no reward gradient, occurring with probability p^G + (1-p)^G, so the rollout cost of one informative group is G/C and difficulty targeting toward p near 0.5 lowers it."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Credit assignment**: A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Credit Across Turns."
+   ]
+  }
+ ]
+}

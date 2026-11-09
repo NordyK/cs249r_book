@@ -1,0 +1,110 @@
+{
+ "title": "Fairness and Bias Mitigation",
+ "summary": "Analyze how a demographic-parity threshold policy changes selection while leaving its accuracy and precision effects to be measured.",
+ "source": {
+  "chapter": "v2-16",
+  "sections": [
+   "Fairness and Bias Mitigation",
+   "Fairness in machine learning",
+   "Measuring disparity",
+   "Threshold setting and fairness trade-offs",
+   "Fairness evidence across deployment tiers",
+   "Bias detection and monitoring"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fairness and Bias Mitigation** in *Responsible AI* (Vol II). By the end you should be able to:\n\n- Analyze how a demographic-parity threshold policy changes selection while leaving its accuracy and precision effects to be measured\n- Explain the conditional incompatibility of groupwise score calibration and balance of mean scores within both outcome classes\n- Analyze the vulnerability of single-axis audits to fairness gerrymandering and design intersectional evaluation protocols\n- Compare preprocessing, in-processing, and postprocessing fairness interventions across the ML systems infrastructure\n- Analyze the operational differences between prediction-only and label-dependent fairness monitoring in production serving"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Responsible AI, § Fairness and Bias Mitigation",
+   "md": "A loan model can approve 70 percent of one group's applicants and 40 percent of another's while reporting a single headline accuracy. Exposing that gap, deciding which gap the deployment must close, and keeping it visible after launch are separate engineering tasks. Formal criteria define the disparity, statistical tests decide whether it exceeds sampling noise, and monitoring infrastructure tracks it in production."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Fairness in machine learning\n- Measuring disparity\n- Threshold setting and fairness trade-offs\n- Fairness evidence across deployment tiers\n- Bias detection and monitoring\n\nPay attention to: Mathematical fairness definitions and impossibility theorems; Score calibration and predictive parity; Intersectional fairness and fairness gerrymandering; Statistical testing of disparities."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how single-axis fairness audits can enable 'fairness gerrymandering' and describe the evaluation strategy required to detect it.",
+   "md": "Single-axis audits evaluate protected attributes independently (e.g., race alone or gender alone), which can report high aggregate fairness while masking severe error concentrations at intersecting identities (such as the Gender Shades finding of \\$99.7\\%$ accuracy for lighter-skinned men versus \\$65.3\\%$ for darker-skinned women). To detect fairness gerrymandering, engineering teams must evaluate multi-slice intersectional subgroups (e.g., $\\text{Race} \\times \\text{Gender}$) or implement multicalibration across overlapping population slices."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-16-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A loan approval model evaluates two demographic groups (Group A and Group B). Group A has a baseline approval rate of \\$70\\% (PPV = 57.1\\%), while Group B has a baseline approval rate of \\$40\\% (PPV = 75.0\\%). If the engineering team lowers the decision threshold for Group B to enforce demographic parity (\\$70\\% approval for both groups), what is the immediate system-level consequence?",
+     "explanation": "The correct answer is B. A lower threshold changes the selection policy and admits applicants previously rejected, potentially changing precision and error rates. The supplied approval rates and PPVs do not determine the outcomes of those additional approvals or the new overall accuracy. Demographic parity does not automatically establish equalized odds, and changing a threshold does not change population base rates.",
+     "hint": "Think about: analyze how a demographic-parity threshold policy changes selection while leaving its accuracy and precision effects to be measured.",
+     "type": "single",
+     "options": [
+      "Group B's positive predictive value increases while overall model accuracy remains completely unchanged",
+      "Lowering the threshold admits additional applicants with lower predicted repayment scores; the effects on approval precision and overall accuracy must be evaluated rather than inferred from approval rates alone.",
+      "The model automatically satisfies equalized odds without any change to false positive rates",
+      "The underlying true default base rates of both populations become mathematically equalized"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "For risk scores, the chapter's score-balance impossibility result combines calibration within each group with equal mean scores across groups among positive outcomes and, separately, among negative outcomes. Which cases escape the stated incompatibility?",
+     "explanation": "The correct answer is D. With unequal base rates and imperfect prediction, groupwise calibration and balance of mean scores within both outcome classes cannot all hold. Equal base rates or perfect prediction are exceptional cases. This score-level result is distinct from equalized odds at a particular decision threshold. More data, regularization, or adversarial training does not remove the stated mathematical conflict.",
+     "hint": "Think about: explain the conditional incompatibility of groupwise score calibration and balance of mean scores within both outcome classes.",
+     "type": "single",
+     "options": [
+      "Whenever the training dataset contains more than \\$10^6 balanced records across all demographic slices",
+      "Whenever the model is trained with $L_2$ regularization and post-hoc isotonic calibration",
+      "Whenever demographic parity is explicitly enforced via multi-task adversarial training",
+      "Only in degenerate or trivial cases, such as perfect prediction (zero error) or identical base rates across groups"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Which statement correctly differentiates Preprocessing, In-processing, and Postprocessing fairness interventions with respect to ML system infrastructure requirements?",
+     "explanation": "The correct answer is D. Preprocessing changes the training distribution; in-processing changes optimization; postprocessing changes the decision policy. Costs depend on the chosen method. Group-specific thresholds need authorized group information at the decision component, but other postprocessing rules need different inputs. Reversing the stages confuses training-data changes with serving policy; hardware tier alone does not restrict these methods.",
+     "hint": "Think about: compare preprocessing, in-processing, and postprocessing fairness interventions across the ML systems infrastructure.",
+     "type": "single",
+     "options": [
+      "Preprocessing modifies serving thresholds at inference, In-processing requires anonymizing logs, and Postprocessing alters training labels in feature stores",
+      "All three methods require identical runtime compute overhead on the live model serving path",
+      "Preprocessing is only applicable to TinyML devices, while In-processing and Postprocessing can only run in cloud clusters",
+      "Preprocessing changes training data and needs lineage; in-processing changes training optimization; group-specific threshold postprocessing requires authorized group information at the component applying the decision rule."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A streaming loan-approval service records authorized group attributes and decisions immediately, but repayment outcomes arrive months later. Why can demographic-parity statistics update earlier than equalized-odds statistics?",
+     "explanation": "The correct answer is A. Demographic parity uses group membership and decisions, while equalized odds also needs matched positive and negative outcome labels. Both aggregations may run asynchronously; label delay additionally limits the freshness of error-rate metrics. Request rate, matrix inversion, and convexity do not establish that deadline.",
+     "hint": "Think about: analyze the operational differences between prediction-only and label-dependent fairness monitoring in production serving.",
+     "type": "single",
+     "options": [
+      "Demographic Parity depends only on model predictions and input demographics available at inference time, whereas Equalized Odds requires true outcome labels that arrive with substantial real-world latency",
+      "Demographic Parity requires calculating matrix inverses that execute faster on GPU tensor cores",
+      "Equalized Odds is a convex optimization problem that cannot be evaluated on streaming CPU worker nodes",
+      "Demographic Parity violates privacy regulations if processed asynchronously in background databases"
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A production ML fleet serving 864 million daily inferences tracks 150 distinct subgroup fairness metrics. With an unadjusted per-metric false alarm rate of \\$5\\%, the system experiences roughly 7.5 false alerts per evaluation interval. Explain the operational consequence of this false alarm volume and describe how the monitoring architecture should mitigate it.",
+   "md": "With one evaluation per metric per interval, a 5% false-alarm probability across 150 null metrics produces 7.5 expected false alerts per interval; request volume does not determine that count. Repeated testing, subgroup sample sizes, delayed labels, and multiple comparisons must inform thresholds. Use uncertainty estimates, persistence criteria, and an accountable investigation path rather than treating every crossing as proven discrimination."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze how a demographic-parity threshold policy changes selection while leaving its accuracy and precision effects to be measured.",
+    "You can now explain the conditional incompatibility of groupwise score calibration and balance of mean scores within both outcome classes.",
+    "You can now analyze the vulnerability of single-axis audits to fairness gerrymandering and design intersectional evaluation protocols.",
+    "You can now compare preprocessing, in-processing, and postprocessing fairness interventions across the ML systems infrastructure."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,97 @@
+{
+ "title": "Differential Privacy",
+ "summary": "Apply differential privacy sensitivity principles to evaluate estimation stability across dataset sizes.",
+ "source": {
+  "chapter": "v2-13",
+  "sections": [
+   "Differential Privacy",
+   "Mathematical foundations and privacy parameters",
+   "Privacy budget composition",
+   "Quantifying the privacy-utility trade-off",
+   "Decision framework for differential privacy deployment trade-offs"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Differential Privacy** in *Security & Privacy* (Vol II). By the end you should be able to:\n\n- Apply differential privacy sensitivity principles to evaluate estimation stability across dataset sizes\n- Calculate and compare noise calibration for the Laplace and Gaussian differential privacy mechanisms\n- Analyze the computational and algorithmic steps of DP-SGD and explain the post-processing property\n- Apply the 5-step differential privacy decision framework to evaluate deployment feasibility\n- Evaluate privacy budget accumulation across sequential model training operations"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Security & Privacy, § Differential Privacy",
+   "md": "Suppose an adversary queries a medical diagnosis model using the exact attributes of a known patient and compares the answers with what a model trained without that patient would return. Encryption and access control cannot help here. The adversary is an authorized caller, and the query reaches only the trained model, never the stored records. A difference in one pair of predictions alone does not prove a privacy violation."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Mathematical foundations and privacy parameters\n- Privacy budget composition\n- Quantifying the privacy-utility trade-off\n- Decision framework for differential privacy deployment trade-offs\n\nPay attention to: Mathematical formulation of pure and approximate (epsilon, delta)-DP; Laplace vs Gaussian noise mechanisms and sensitivity calibration; DP-SGD operations (per-sample clipping, noise addition, post-processing); Decision framework criteria and measured privacy-utility feasibility."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Outline the three core per-step operations in a DP-SGD training iteration, and explain why querying a fixed, fully trained DP model in production does not consume additional privacy budget.",
+   "md": "First check prospectively that the next step fits the accounted budget, then sample with the declared Poisson probability and clip each per-example gradient to norm $C$. Sum the clipped gradients (zero for an empty lot), add $\\mathcal{N}(0,\\sigma^2C^2I)$, and divide by the fixed public normalizer $B$, the expected lot size, rather than the realized random count. Apply the update and record the step using the same mechanism assumptions. Reusing the fixed released model without consulting protected training data is post-processing and adds no training privacy loss."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-13-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "For a fixed, public roster with bounded salaries and salary-replacement adjacency, adding Laplace noise calibrated to global sensitivity ($\\Delta f / \\epsilon$) to compute a differentially private sum introduces an expected absolute estimation error on the calculated sample mean that scales independently of the dataset size $n_{\\text{records}}$.",
+     "explanation": "False. While the Laplace noise added to the aggregate sum depends only on the global sensitivity Delta f and the privacy budget epsilon (b = Delta f / epsilon), the expected absolute error on the sample mean is divided by the number of records (b / n_records). Thus, the mean-estimation error scales as \\$1/n_records, meaning large datasets dampen the added DP noise while small datasets suffer substantial instability.",
+     "hint": "Think about: apply differential privacy sensitivity principles to evaluate estimation stability across dataset sizes.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A data engineering team computes an aggregate query with global ell_1 sensitivity Delta_1 f = 2.0 and ell_2 sensitivity Delta_2 f = 2.0. For pure epsilon-DP with epsilon = 0.5, what is the scale parameter b of the required Laplace mechanism, and why is the Gaussian mechanism preferred in deep learning DP-SGD?",
+     "explanation": "The correct answer is C. Laplace scale is b=Delta_1 f/epsilon=2/0.5=4. Gradient clipping supplies an ell_2 sensitivity bound suitable for Gaussian noise, with composition evaluated by a compatible accountant. For nonzero sensitivity, shifted Gaussian densities have unbounded likelihood ratios, so the standard mechanism uses an approximate DP bound. Unbounded support alone is not the reason: Laplace noise also has unbounded support. The tightness of an RDP bound depends on the mechanism and accountant settings.",
+     "hint": "Think about: calculate and compare noise calibration for the Laplace and Gaussian differential privacy mechanisms.",
+     "type": "single",
+     "options": [
+      "$b = 0.25$; Laplace is preferred in deep learning because it eliminates per-sample gradient clipping.",
+      "$b = 1.0$; Gaussian noise is preferred because it guarantees $\\delta = 0$ for any arbitrary query.",
+      "b = 4.0; Gaussian noise matches an ell_2 clipped-gradient mechanism and supports mechanism-specific composition accounting, such as Rényi DP.",
+      "$b = 10.0$; Gaussian noise is preferred because it adds zero noise to non-zero gradients."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A healthcare startup develops an ECG arrhythmia detector using a dataset of 5,000 cardiac patients. The model is safety-critical (where misclassifications cause clinical harm, requiring $<2\\%$ accuracy loss). When evaluating whether to train this model with DP-SGD under $\\epsilon \\le 3$, what does the DP decision framework indicate?",
+     "explanation": "The correct answer is D. Small datasets can make the privacy–utility trade-off difficult, but no universal sample-count threshold proves failure. Evaluate the actual task, mechanism, privacy unit, accountant, calibration, and subgroup errors against the safety criteria. Federated learning, secure aggregation, and access control address different boundaries and do not themselves provide differential privacy. Raising epsilon drastically weakens protection rather than providing noise-free privacy.",
+     "hint": "Think about: apply the 5-step differential privacy decision framework to evaluate deployment feasibility.",
+     "type": "single",
+     "options": [
+      "DP-SGD should be used immediately because datasets with 5,000 samples achieve near-perfect privacy-utility trade-offs at $\\epsilon < 1$.",
+      "DP-SGD will accelerate training throughput by 5x by eliminating the need for gradient synchronization.",
+      "The startup should increase epsilon to \\$10^6 to obtain pure privacy without noise.",
+      "The team must measure private-model utility under the stated privacy budget and clinical acceptance criteria; dataset size alone does not establish feasibility, and FL with secure aggregation is not a substitute for a DP guarantee."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "If an engineering team trains and deploys 12 successive monthly versions of a recommendation model on the same user dataset, with each training run satisfying $(1.0, 10^{-5})$-DP, the cumulative privacy guarantee for the underlying dataset remains $\\epsilon = 1.0$ at the end of the year.",
+     "explanation": "False. Basic composition gives a valid $(12, 1.2 \\times 10^{-4})$-DP bound for these twelve releases. A compatible accountant may tighten it; per-run upper bounds do not establish the exact cumulative loss or a lower bound above 1. Rotating keys does not reset release accounting.",
+     "hint": "Think about: evaluate privacy budget accumulation across sequential model training operations.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Why is basic, advanced, or Rényi DP accounting not a universal ranking from weakest to strongest? Identify the inputs that an accountant must match when evaluating a DP-SGD run.",
+   "md": "These analyses provide bounds under different assumptions; their names alone do not determine the tightest usable guarantee. Basic composition gives a general bound across releases. A mechanism-specific analysis can improve it when applicable. For DP-SGD, match the protected unit and adjacency, clipping and noise convention, sampling scheme and probability, step count, and target delta. Then compare valid bounds for that same mechanism and release history rather than choosing an accountant by a fixed ranking."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply differential privacy sensitivity principles to evaluate estimation stability across dataset sizes.",
+    "You can now calculate and compare noise calibration for the Laplace and Gaussian differential privacy mechanisms.",
+    "You can now analyze the computational and algorithmic steps of DP-SGD and explain the post-processing property.",
+    "You can now apply the 5-step differential privacy decision framework to evaluate deployment feasibility."
+   ]
+  }
+ ]
+}

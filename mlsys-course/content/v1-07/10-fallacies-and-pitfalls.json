@@ -1,0 +1,69 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Calculate and analyze compilation break-even thresholds under frequent model recompilation.",
+ "source": {
+  "chapter": "v1-07",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *ML Frameworks* (Vol I). By the end you should be able to:\n\n- Calculate and analyze compilation break-even thresholds under frequent model recompilation\n- Explain why popularity is an insufficient criterion for framework selection in constrained deployment environments\n- Critique the fallacy that identical model mathematics implies identical framework runtime performance"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Frameworks, § Fallacies and Pitfalls",
+   "md": "Framework selection involves subtle trade-offs where intuitions from conventional software engineering fail. The memory wall, kernel fusion constraints, and deployment target diversity create pitfalls that waste engineering effort and cause production systems to miss latency targets."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: Fallacy: All frameworks provide equivalent performance for the same architecture; Pitfall: Choosing frameworks based on popularity rather than deployment constraints; Fallacy: Framework abstractions eliminate the need for systems knowledge; Pitfall: Treating compilation overhead as negligible (compilation break-even analysis)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why choosing a framework based on community popularity or GitHub stars rather than the deployment constraints that limit the design is a severe engineering pitfall for edge and embedded ML projects.",
+   "md": "Popularity says little about whether a runtime fits the deployment target. Edge phones, embedded Linux devices, and microcontrollers impose very different limits on memory allocation, operator support, packaging, and hardware acceleration, so a framework that is convenient for cloud training may still be a poor fit for the target runtime. For example, a mobile runtime such as ExecuTorch is solving a different deployment problem from TensorFlow Lite Micro, which is built for far tighter memory budgets and fixed-allocation execution. The practical consequence is that teams who optimize for ecosystem buzz instead of target constraints can reach the end of development with a model that cannot run acceptably on the actual device."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-07-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A research team exploring architecture modifications runs experiments where model code changes every 10 training steps. When they enable JIT graph compilation (`torch.compile`), total training time increases by 5$\\times$ compared to standard eager mode. What systems principle explains this performance degradation?",
+     "explanation": "The correct answer is A. Compilation provides execution speedups by generating optimized fused kernels, but compiling incurs an upfront cost ($T_{\\text{compile}}$, often seconds to minutes); if frequent code or shape changes trigger continuous recompilation without sufficient execution steps to amortize the setup overhead, total runtime will be significantly worse than eager mode. GPU clock frequency is identical for compiled and eager kernels. JIT compilers do not disable GPU acceleration. JIT compilers preserve data types and do not convert FP32 to double precision.",
+     "hint": "Think about: calculate and analyze compilation break-even thresholds under frequent model recompilation",
+     "type": "single",
+     "options": [
+      "Compilation incurs a large upfront compilation latency ($T_{\\text{compile}}$); if graph structures or tensor shapes change frequently, the compilation cost cannot be amortized across executions ($N_{\\text{steps}} \\times (T_{\\text{eager}} - T_{\\text{compiled}}) < T_{\\text{compile}}$), making repeated recompilation slower than eager execution",
+      "Compiled kernels run at half the floating-point clock frequency of eager kernels on NVIDIA GPUs",
+      "JIT compilers disable GPU hardware acceleration when running short training scripts",
+      "Dynamic graph compilation automatically converts all FP32 operations to 64-bit double precision"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Because standard neural network architectures (like ResNet-50 or Transformers) have identical mathematical definitions, any two frameworks running the same model on identical GPU hardware will produce identical throughput.",
+     "explanation": "False. Execution throughput depends on framework compiler quality, kernel fusion depth, memory layout decisions (NCHW vs. NHWC), dispatch overhead efficiency, and backend library optimizations (e.g. cuBLAS vs custom Triton kernels), leading to substantial performance variations across frameworks for identical mathematical architectures.",
+     "hint": "Think about: critique the fallacy that identical model mathematics implies identical framework runtime performance",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate and analyze compilation break-even thresholds under frequent model recompilation.",
+    "You can now explain why popularity is an insufficient criterion for framework selection in constrained deployment environments.",
+    "You can now critique the fallacy that identical model mathematics implies identical framework runtime performance."
+   ]
+  }
+ ]
+}

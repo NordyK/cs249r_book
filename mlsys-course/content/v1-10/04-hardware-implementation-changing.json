@@ -1,0 +1,96 @@
+{
+ "title": "Hardware Implementation: Changing How the Model Executes",
+ "summary": "Explain how hardware implementation determines whether theoretical compression savings become real speedups on target hardware.",
+ "source": {
+  "chapter": "v1-10",
+  "sections": [
+   "Hardware Implementation: Changing How the Model Executes",
+   "Compression-specific fusion",
+   "Sparsity exploitation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Hardware Implementation: Changing How the Model Executes** in *Model Compression* (Vol I). By the end you should be able to:\n\n- Explain how hardware implementation determines whether theoretical compression savings become real speedups on target hardware\n- Analyze operator fusion as a reduction in intermediate-tensor traffic and launch overhead rather than a change in model structure\n- Explain why theoretical FLOP reductions fail to produce proportional latency gains using Amdahl's law and memory-bound layer analysis\n- Reject the misconception that unstructured sparsity automatically accelerates dense SIMD hardware\n- Match NVIDIA Ampere's 2:4 sparse acceleration path to the structured sparsity pattern it is designed to support"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Compression, § Hardware Implementation: Changing How the Model Executes",
+   "md": "Pruning a model structurally to half its weights and quantizing the survivors from FP32 to INT8 cuts stored weight bytes by … and …, or … in all, which would be the speedup if run time scaled with weight bytes. The byte reduction is real, because the stored artifact does shrink by that product; it is the speed that fails to multiply. In production such a model can easily run only … faster, roughly … of that paper projection. Profiling shows where the missing speedup goes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Compression-specific fusion\n- Sparsity exploitation\n\nPay attention to: the role of hardware implementation in translating theoretical gains into wall-clock speedup; operator fusion memory-traffic mechanism (Conv-BN-ReLU); Amdahl's law and memory-bound layers limiting FLOP-to-latency translation; early-exit architectures as adaptive computation."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A compressed neural network achieves a \\$50\\%$ reduction in total floating-point operations (FLOPs), yet on the deployment accelerator, end-to-end inference latency decreases by only \\$10\\%$. Explain two distinct hardware and architectural mechanisms that cause this discrepancy.",
+   "md": "First, Amdahl's Law at the pipeline level limits overall speedup: if model execution accounts for only a fraction of the end-to-end request pipeline (with data ingestion, preprocessing, tokenization, and postprocessing consuming the remainder), accelerating model arithmetic yields a diminished system-level improvement. Second, within the model itself, many non-compute-intensive layers (such as LayerNorm, Softmax, residual additions, and activation functions) are memory-bandwidth bound or latency-bound rather than compute-bound; cutting FLOPs in the compute-heavy layers leaves memory-bound execution time largely unchanged, capping measured speedup."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-10-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A paper estimate predicts an \\$8\\times$ speedup for a compressed model under ideal assumptions, but the implementation measured on an unmodified GPU delivers only \\$1.5\\times$. Which statement best defines the role of hardware implementation in explaining this gap?",
+     "explanation": "The correct answer is A. Hardware implementation is the layer that determines whether compressed representations map to efficient kernels, memory layouts, and execution paths on the target accelerator. A paper target such as \\$8× can collapse to a much smaller measured gain when sparse patterns, metadata, unsupported kernels, or layout issues block efficient execution. The section's example is illustrative rather than a guaranteed multiplication of pruning and INT8 effects, so the right lesson is to explain the measured gap, not to assume the paper ratio must appear in practice.",
+     "hint": "Think about: explain how hardware implementation determines whether theoretical compression savings become real speedups on target hardware",
+     "type": "single",
+     "options": [
+      "It aligns computation graphs, memory access layouts, operator scheduling, and sparsity patterns with physical accelerator architectures so that theoretical compression can translate into measured wall-clock speedup",
+      "It reduces the volume of training data needed to fine-tune compressed neural networks",
+      "It eliminates all memory-bound operations by converting every neural network layer into a compute-bound GEMM",
+      "It automates the hyperparameter tuning of learning rates and batch sizes during pretraining"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Operator fusion of Conv-BatchNorm-ReLU sequences produces substantial execution speedup on modern GPUs even though the fused kernel preserves the intended layer function. Which mechanism explains this latency reduction?",
+     "explanation": "The correct answer is D. Fusion helps by avoiding extra writes and rereads of intermediate activations and by reducing separate kernel launches. In the chapter's idealized Conv-BN-ReLU accounting, the intermediate-tensor stream falls from six transfers to two, but that count excludes weights, auxiliary inputs, cache effects, and spills. The idea that fusion preserves exactly the same arithmetic is too strong: some patterns such as batch-normalization folding change the operation sequence while preserving the intended function within numerical tolerance.",
+     "hint": "Think about: analyze operator fusion as a reduction in intermediate-tensor traffic and launch overhead rather than a change in model structure",
+     "type": "single",
+     "options": [
+      "Fusion reduces the total number of weight parameters stored in the convolutional layer",
+      "Fusion retrains the network to use lower numerical precision during the forward pass",
+      "Fusion skips zero-valued activation elements by converting dense tensors to sparse matrices",
+      "Fusion executes convolution, batch normalization, and ReLU inside a single GPU kernel, keeping intermediate activations on chip and cutting intermediate-tensor traffic and launch overhead"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Commodity SIMD vector units automatically achieve proportional latency reductions on weight matrices with \\$50\\% unstructured sparsity because vector lanes automatically skip zero values without overhead.",
+     "explanation": "False. A dense masked tensor still moves and processes zeros. To skip them, the runtime needs a compact sparse representation and a matching kernel, but that path adds metadata handling, irregular activation accesses, and possible load imbalance. Whether sparse execution wins depends on format, shape, batch size, and hardware; there is no universal sparsity percentage that guarantees proportional speedup.",
+     "hint": "Think about: reject the misconception that unstructured sparsity automatically accelerates dense SIMD hardware",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A team optimizes a deep network for NVIDIA Ampere GPUs that feature hardware-accelerated 2:4 structured sparsity. Which compression strategy directly engages this dedicated accelerator capability?",
+     "explanation": "The correct answer is C. Ampere's sparse Tensor Core path is designed for the specific 2:4 pattern, where each group of four weights keeps two nonzeros. The chapter's example uses compact metadata with 2 bits per retained position, so one 4-element group carries 4 bits of position metadata alongside the retained values. That structure can nearly halve weight traffic and offers up to a \\$2× sparse arithmetic-rate improvement, but it is not an end-to-end guarantee once the rest of the execution path is included. Arbitrary unstructured masks do not activate this fixed hardware path.",
+     "hint": "Think about: match NVIDIA Ampere's 2:4 sparse acceleration path to the structured sparsity pattern it is designed to support",
+     "type": "single",
+     "options": [
+      "Unconstrained unstructured magnitude pruning, because maximum zero count always yields the highest speedup on Ampere",
+      "Dynamic channel pruning that alters tensor shapes per batch, because Tensor Cores require dynamic input dimensions",
+      "Structured 2:4 sparsity (exactly 2 non-zero values in every contiguous block of 4 elements), because Ampere Tensor Cores include a supported sparse path for that pattern",
+      "Activation checkpointing, because recomputing intermediate activations during inference eliminates sparse matrix indexing overhead"
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain how hardware implementation determines whether theoretical compression savings become real speedups on target hardware.",
+    "You can now analyze operator fusion as a reduction in intermediate-tensor traffic and launch overhead rather than a change in model structure.",
+    "You can now explain why theoretical FLOP reductions fail to produce proportional latency gains using Amdahl's law and memory-bound layer analysis.",
+    "You can now reject the misconception that unstructured sparsity automatically accelerates dense SIMD hardware."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,109 @@
+{
+ "title": "The ML Storage Hierarchy",
+ "summary": "Order the six storage tiers by placement and distinguish that order from a bandwidth comparison.",
+ "source": {
+  "chapter": "v2-04",
+  "sections": [
+   "The ML Storage Hierarchy",
+   "Bandwidth cliffs between tiers",
+   "Tier 0 GPU HBM",
+   "Tier 1 host DRAM",
+   "Tier 2 local NVMe",
+   "Data formats for training",
+   "Tier 3 parallel file systems",
+   "Tier 4 object storage",
+   "Tier 5 archive and cold storage"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The ML Storage Hierarchy** in *Data Storage* (Vol II). By the end you should be able to:\n\n- Order the six storage tiers by placement and distinguish that order from a bandwidth comparison\n- Explain the architectural function of pinned host memory in accelerating CPU-to-GPU DMA data transfers\n- Analyze parallel file system metadata saturation from telemetry signatures and prescribe shard-aggregation remediation\n- Justify RAID-0 storage configurations for warm cache tiers and identify failure boundaries where lack of redundancy causes unrecoverable data loss\n- Distinguish retained corpus capacity from combined sampled-batch and transformation demand when sizing multimodal delivery"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Data Storage, § The ML Storage Hierarchy",
+   "md": "No single storage device can hold a petabyte-scale training corpus, absorb multi-terabyte checkpoints, and still feed an accelerator at terabytes per second. HBM supplies high local bandwidth at limited capacity, whereas object storage pools durable capacity behind a much slower service and client path. A multi-tier hierarchy combines these resources rather than requiring one technology to meet every demand. Each tier offers a different balance of bandwidth, latency, capacity, and cost. The hierarchy extends the familiar processor memory hierarchy across nodes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Bandwidth cliffs between tiers\n- Tier 0 GPU HBM\n- Tier 1 host DRAM\n- Tier 2 local NVMe\n- Data formats for training\n- Tier 3 parallel file systems\n- Tier 4 object storage\n- Tier 5 archive and cold storage\n\nPay attention to: six-tier physical hierarchy (HBM, Host DRAM, Local NVMe, PFS, Object, Archive); bandwidth cliffs and staging buffer dynamics; Host DRAM's multi-stage pipeline and pinned memory role; NVMe RAID-0 warm cache durability semantics."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A training node uses four local NVMe drives configured in RAID-0 as a warm cache for \\$25 TB of pre-shuffled training shards. Explain why RAID-0 is an appropriate engineering trade-off for this specific tier, and identify what workload change would make RAID-0 catastrophic.",
+   "md": "RAID-0 aggregates drive bandwidth without parity capacity overhead, making it appropriate for a disposable warm cache when a durable source remains available and the fleet can tolerate restaging after a drive failure. It does not protect availability: losing one drive can invalidate the array. If the array holds the only copy of an unrecoverable artifact or a checkpoint not yet durably replicated, a drive failure can permanently lose that state; the cache placement policy cannot substitute for a recovery contract."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-04-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Order the six tiers from Tier 0 through Tier 5 in the chapter's placement hierarchy, moving outward from accelerator-resident memory through node-local resources to shared storage and archive:",
+     "explanation": "The correct order is: (4) GPU HBM, (3) Host DRAM, (1) Local NVMe SSD, (5) Parallel File System, (2) Object Storage, (6) Archive / Cold Storage. HBM is accelerator-resident; host DRAM and local NVMe serve the node; the parallel file system provides shared access; object storage retains durable organizational data; and archive preserves rarely accessed history. This is the chapter's placement order, not a universal bandwidth ranking. HBM rates are per accelerator, DRAM and local NVMe rates are per node, and shared-service rates must be allocated among clients and checked against the actual delivery path.",
+     "hint": "Think about: order the six storage tiers by placement and distinguish that order from a bandwidth comparison",
+     "type": "order",
+     "items": [
+      "GPU HBM",
+      "Host DRAM",
+      "Local NVMe SSD",
+      "Parallel File System",
+      "Object Storage",
+      "Archive / Cold Storage."
+     ]
+    },
+    {
+     "q": "Host DRAM (Tier 1) executes a four-stage data loader pipeline: Read, Decode, Augment, and Collate. Why place the final collated batch in page-locked ('pinned') host memory for direct asynchronous DMA to GPU HBM without an intermediate staging copy?",
+     "explanation": "The correct answer is B. Pinned memory locks physical pages in host RAM so the PCIe DMA controller can copy data directly to GPU memory without an intermediate pinned staging copy. Standard virtual memory pages can be paged out or relocated by the operating system, forcing the GPU driver to copy data into an intermediate pinned staging buffer before initiating DMA; allocating pinned memory directly (`pin_memory=True` in PyTorch) eliminates this extra CPU memory copy and allows direct DMA across PCIe. The compression option is incorrect as pinned memory is an OS page-locking mechanism, not a compression algorithm. The NUMA replication claim is false because pinning prevents paging rather than replicating data or choosing NUMA placement. The ACID durability option confuses volatile host DRAM staging with persistent transaction logging.",
+     "hint": "Think about: explain the architectural function of pinned host memory in accelerating CPU-to-GPU DMA data transfers",
+     "type": "single",
+     "options": [
+      "Pinned memory automatically compresses tensors using host CPU vector units before PCIe transmission.",
+      "Pinned memory locks physical pages in host RAM so the PCIe DMA controller can copy data directly to GPU memory without an intermediate pinned staging copy.",
+      "Pinned memory replicates the batch across all NUMA nodes to ensure uniform memory access for parallel data loader threads.",
+      "Pinned memory guarantees transactional ACID durability on host storage in case the worker process crashes during transfer."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A vision training cluster migrating to a high-performance parallel file system (PFS) with \\$500\\text{ GB/s}$ rated aggregate bandwidth reports that throughput during ImageNet training is capped at under \\$5\\text{ GB/s}$, with storage data disks showing negligible I/O activity. The dataset consists of millions of individual JPEG files. A worker trace shows repeated waits for file opens, and the MDS reports a sustained operation queue with rising lookup latency while its service rate is saturated. What bottleneck do these additional measurements establish, and which fix addresses it?",
+     "explanation": "The correct answer is C. The saturated MDS service rate, rising lookup latency, and worker file-open waits establish a metadata bottleneck in this case. Repackaging images into sequential shards amortizes per-file operations across many samples. Idle data disks and low throughput alone would not establish this cause; the supplied metadata measurements distinguish it from a slow decoder or another blocked pipeline stage.",
+     "hint": "Think about: analyze parallel file system metadata saturation from telemetry signatures and prescribe shard-aggregation remediation",
+     "type": "single",
+     "options": [
+      "The network fabric is dropping packets due to congestion; enable flow control on top-of-rack switches.",
+      "The parallel file system is bottlenecked on drive endurance wear-leveling; replace SSDs with high-DWPD enterprise drives.",
+      "The dataset is stored as millions of individual image files, saturating the Metadata Server (MDS) with per-file POSIX lookups; repackage images into large sequential shards (such as WebDataset tar archives).",
+      "The GPUs are compute-bound and cannot consume data faster; decrease the batch size to increase I/O request frequency."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A multi-modal training job combines \\$3\\text{ TB}$ of text, \\$50\\text{ TB}$ of images, and \\$200\\text{ TB}$ of video. The infrastructure team provisions storage bandwidth based exclusively on the video modality because video represents over \\$75\\%$ of total dataset capacity. What can be concluded about this sizing decision from the supplied information?",
+     "explanation": "The correct answer is A. Retained corpus capacity does not determine per-step delivery demand. Sampling frequency, batch representation, and compute time set how many bytes each modality contributes to the feed, while transformations determine its decoding and augmentation work. Sum those demands across active streams and compare them with measured stage rates and buffer capacity. Video-only sizing omits that accounting, but the supplied corpus sizes do not prove a particular storage, host-DRAM, or decoding bottleneck.",
+     "hint": "Think about: distinguish retained corpus capacity from combined sampled-batch and transformation demand when sizing multimodal delivery",
+     "type": "single",
+     "options": [
+      "Adequacy cannot be established from corpus capacity alone; sizing must include the combined sampled-batch byte rate and decoding, augmentation, and buffering demand of all active modalities.",
+      "The video stream will starve the parallel file system because image and text files use incompatible POSIX stripe sizes.",
+      "The model will fail to converge because object storage cannot maintain ACID consistency when serving multiple modalities simultaneously.",
+      "The training job will exhaust GPU HBM because video tensors automatically overwrite text embeddings during collation."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now order the six storage tiers by placement and distinguish that order from a bandwidth comparison.",
+    "You can now explain the architectural function of pinned host memory in accelerating CPU-to-GPU DMA data transfers.",
+    "You can now analyze parallel file system metadata saturation from telemetry signatures and prescribe shard-aggregation remediation.",
+    "You can now justify RAID-0 storage configurations for warm cache tiers and identify failure boundaries where lack of redundancy causes unrecoverable data loss."
+   ]
+  }
+ ]
+}

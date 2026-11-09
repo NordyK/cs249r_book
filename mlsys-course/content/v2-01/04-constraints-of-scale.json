@@ -1,0 +1,70 @@
+{
+ "title": "Constraints of Scale",
+ "summary": "Apply the multiplicative reliability gap equation to quantify simultaneous availability in large-scale accelerator clusters.",
+ "source": {
+  "chapter": "v2-01",
+  "sections": [
+   "Constraints of Scale",
+   "The reliability gap",
+   "Physical boundaries of distributed state",
+   "Governance and systemic risk at scale"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Constraints of Scale** in *Introduction* (Vol II). By the end you should be able to:\n\n- Apply the multiplicative reliability gap equation to quantify simultaneous availability in large-scale accelerator clusters\n- Apply the CAP theorem framework to evaluate the consistency-availability trade-off between synchronous and asynchronous distributed training\n- Critique the misconception that Partition Tolerance is an optional system parameter rather than an unavoidable physical constraint"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Introduction, § Constraints of Scale",
+   "md": "Scaling laws set how much work a frontier run must perform, but a cluster sized for that budget can still stall every few hours on a failed node, halt at a synchronization barrier during a network partition, or be blocked from release because its training pipeline lacks an audit trail."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The reliability gap\n- Physical boundaries of distributed state\n- Governance and systemic risk at scale\n\nPay attention to: Reliability gap and exponential availability decay across large node counts; CAP theorem trade-offs (synchronous AllReduce vs asynchronous parameter updates); Edge distribution complexity vs data center fleets; Governance as an active runtime Control Plane (data lineage, security, auditability)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Using the CAP theorem (Consistency, Availability, Partition Tolerance) as an analogy for distributed ML training, explain how a synchronous AllReduce training system and an asynchronous parameter-server system make opposing trade-offs during a network partition.",
+   "md": "Synchronous training can halt when a required worker is unreachable because the shared update needs every required contribution. An asynchronous design may let reachable workers continue against available parameter state while tolerating stale updates. This illustrates a progress-versus-freshness trade-off, but gradient freshness is not CAP's atomic consistency property. Availability during a partition still depends on which workers and state replicas remain reachable and on the system's protocol."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-01-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A data center operator claims that upgrading per-node server availability from 99.9% ('three nines') to 99.99% ('four nines') makes an unreplicated 10,000-GPU training cluster as reliable as a small research workstation. Applying the reliability gap equation, in which all-node availability JobAvailability is the per-node availability ComponentAvailability raised to the number of required nodes, why is this claim invalid?",
+     "explanation": "The correct answer is C. Under independent component failures, the probability JobAvailability that every required node is operational simultaneously is the per-node availability ComponentAvailability raised to the number of required nodes. For 10,000 nodes and ComponentAvailability = 0.999, JobAvailability approx 4.5 × 10^-5 (virtually zero). Increasing individual availability to \\$0.9999 brings simultaneous cluster availability to (0.9999)^10,000 approx 0.368 (36.8%). While this is a substantial improvement, the unreplicated cluster is still unavailable 63.2% of the time, proving that high component reliability cannot eliminate the need for automated checkpointing and fault tolerance. Claiming zero effect ignores component reliability math, asserting 99.99% cluster availability ignores the 10,000-node exponent, and suggesting four-nines hardware lowers MTBF contradicts standard reliability definitions.",
+     "hint": "Think about: apply the multiplicative reliability gap equation to quantify simultaneous availability in large-scale accelerator clusters.",
+     "type": "single",
+     "options": [
+      "The upgrade has zero effect because cluster availability depends exclusively on network switch packet drop rates rather than server uptime.",
+      "The upgrade increases simultaneous all-node availability to 99.99%, but software bugs in PyTorch cause the remaining downtime.",
+      "The upgrade increases simultaneous all-node availability from near zero ($(0.999)^{10{,}000} \\approx 4.5 \\times 10^{-5}$) to approximately 36.8% ($(0.9999)^{10{,}000} \\approx 0.368$), meaning the cluster is still in a degraded or failed state over 63% of the time.",
+      "The upgrade reduces cluster MTBF because four-nines hardware operates at higher thermal thresholds that accelerate silent data corruption."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In the CAP theorem as applied to physical distributed systems, Partition Tolerance is an optional configuration setting that network engineers can choose to disable in high-end data centers to achieve simultaneous atomic Consistency and Availability.",
+     "explanation": "False. Partition Tolerance is not an optional architectural choice or software toggle; it is a physical reality of distributed infrastructure where network cables, transceivers, switches, or nodes can fail or experience delays. Because partitions will inevitably occur in any physical network at scale, a distributed system can only choose how to respond when a partition happens: by halting to preserve Consistency (CP) or continuing with stale state to preserve Availability (AP).",
+     "hint": "Think about: critique the misconception that Partition Tolerance is an optional system parameter rather than an unavoidable physical constraint.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the multiplicative reliability gap equation to quantify simultaneous availability in large-scale accelerator clusters.",
+    "You can now apply the CAP theorem framework to evaluate the consistency-availability trade-off between synchronous and asynchronous distributed training.",
+    "You can now critique the misconception that Partition Tolerance is an optional system parameter rather than an unavoidable physical constraint."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,106 @@
+{
+ "title": "Test: Responsible Engineering",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-15-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "An engineering team is evaluating a facial verification model. To estimate the error rate of a minority demographic group representing 1% of the population with a margin of error of $\\pm 1$ percentage point at 95% confidence, they require 10,000 labeled evaluation samples from that group. Under uniform random sampling from the natural population distribution, how many total images must the team collect and label in expectation?",
+     "explanation": "The correct answer is C. Dividing the required subgroup sample size (\\$10{,}000$) by the subgroup prevalence (\\$0.01$) yields an expected total collection size of $D_{\\text{eval,total}} = 10{,}000 / 0.01 = 1{,}000{,}000$ images—a \\$100\\times$ data collection multiplier. This demonstrates why relying on natural random distributions for fairness evaluation is prohibitively expensive and why intentional stratified data engineering is required. The 10,000 total images choice confuses subgroup sample requirements with overall dataset size, yielding only ~100 minority samples. The 100,000 total images choice underestimates the collection requirement by a factor of 10. The 10,000,000 total images choice applies an incorrect \\$1{,}000\\times$ scaling factor.",
+     "hint": "Think about: calculate the expected data collection multiplier required for minority subgroup evaluation under random versus stratified sampling.",
+     "type": "single",
+     "options": [
+      "About 10,000 total images, because evaluating subgroup accuracy requires only that the total test set contains 10,000 images.",
+      "About 100,000 total images, because statistical confidence intervals scale with the square root of the overall dataset size.",
+      "About 1,000,000 total images in expectation, because a 1% subgroup yields only 1 target image per 100 randomly sampled images, imposing a \\$100× multiplier.",
+      "About 10,000,000 total images, because the binomial confidence interval width expands exponentially for minority subgroups."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "For a high-traffic production ML service, measuring and reporting only the electricity consumed during model training runs provides an accurate accounting of the system's long-term environmental carbon footprint.",
+     "explanation": "False. Training-only accounting omits recurring inference and provisioned serving equipment. The chapter's illustrative service-demand scenario has an inference-to-training dollar-cost ratio of about 40:1, and its separate accelerator-carbon accounting also shows inference dominance under the stated power and traffic assumptions. The 73% inference and 2% training shares describe dollar TCO, not carbon shares. Responsible carbon accounting measures lifecycle energy and applies the relevant grid and facility boundaries, including idle energy and other omitted impacts; the dominant term depends on the deployment.",
+     "hint": "Think about: evaluate why training-only carbon accounting fails to capture lifecycle environmental impacts in production ML.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A deployed automated lending model achieves an impressive 88% overall accuracy on its global test set. However, a disaggregated audit reveals that qualified minority applicants experience a 60% True Positive Rate compared to 90% for majority applicants (a 30 percentage-point gap) and face \\$4× higher false rejection rates. Which engineering pitfall does this scenario illustrate?",
+     "explanation": "The correct answer is A. The Flaw of Averages demonstrates that aggregate accuracy is a weighted average across all samples that masks severe performance degradation in minority subgroups. A model can boast 88% aggregate accuracy while rejecting qualified minority applicants at \\$4× the majority rate (\\$40\\% vs. \\$10\\% False Negative Rate). The documentation-as-accountability choice addresses written model cards versus active deployment checks, not metric aggregation. The model-weights governance choice refers to post-training compliance, not metric illusions. The edge power budget choice confuses physical hardware limits with statistical evaluation metrics.",
+     "hint": "Think about: identify the pitfall of relying on aggregate metrics to assess system fairness.",
+     "type": "single",
+     "options": [
+      "Relying on aggregate metrics to assess fairness, which conceals severe subgroup disparities behind strong overall averages (the Flaw of Averages).",
+      "Treating documentation as sufficient accountability, assuming a model card automatically prevents operational misuse.",
+      "The belief that model weights are exempt from data governance and right-to-erasure regulations.",
+      "Assuming that edge deployment power budgets scale linearly with dataset sample size."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An AI recruiting tool meets its latency SLA, maintains 99.9% availability, and achieves 87% aggregate accuracy, yet it systematically downgrades resumes containing the word \"women's\" or graduates of women's colleges. Applying the systems-engineering verification-versus-validation framing, which diagnosis correctly explains this outcome?",
+     "explanation": "The correct answer is D. In systems engineering, verification asks whether the system was built correctly against stated specifications, while validation asks whether the right system was built to meet true needs. The tool met all monitored technical targets (passing verification) but optimized a flawed objective that reproduced historical hiring bias (failing validation). The low-level defect claim is incorrect because the code executed without error on the objective it was assigned. The operational reliability option conflates service uptime with specification correctness. The model capacity explanation is flawed because a larger model would simply fit and reproduce the biased historical patterns more faithfully.",
+     "hint": "Think about: classify an ML deployment failure using the systems-engineering verification-versus-validation framework.",
+     "type": "single",
+     "options": [
+      "The system failed verification because any discriminatory outcome is by definition a low-level coding defect in the model implementation.",
+      "The failure is primarily an operational reliability defect that responsible engineering addresses only after serving infrastructure destabilizes.",
+      "The root cause is insufficient model capacity, which can be resolved by scaling up model parameters without altering the optimization objective.",
+      "The system passed verification by meeting its stated technical requirements, but failed validation because the specification itself did not capture the organization's true goal of fair hiring."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A European financial institution deploys an automated machine learning system to make sole decisions on credit applications. Under the EU AI Act (high-risk classification) and GDPR Article 22, which set of architectural capabilities must the engineering team build into the system from inception?",
+     "explanation": "The correct answer is D. Covered high-risk systems under the EU AI Act and solely automated decision pipelines under GDPR Article 22 require technical infrastructure for risk management, dataset provenance and lineage logging, explainability (providing meaningful information about the automated logic), and substantive human oversight with the ability for affected individuals to contest decisions. Saliency maps alone do not satisfy comprehensive risk-management or adverse-action requirements. The retrospective spreadsheet option fails the requirement for continuous, built-in audit trails. The unconstrained optimization option ignores the explicit legal mandate that high accuracy does not exempt systems from governance, transparency, and human oversight controls.",
+     "hint": "Think about: analyze how EU AI Act and GDPR Article 22 mandates translate into technical architecture requirements for automated decision systems.",
+     "type": "single",
+     "options": [
+      "Post-hoc saliency map visualization tools only, because EU regulations apply strict requirements exclusively to generative foundation models.",
+      "A manual spreadsheet of training dataset URLs and an annual retrospective fairness report submitted after year-end financial audits.",
+      "An unconstrained deep neural network optimized for accuracy, since high aggregate predictive power automatically satisfies legal safety criteria.",
+      "Automated risk management, training data provenance logging, explainable adverse-action factor generation, and an operational workflow supporting substantive human review and user contestability."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A content recommendation service reports that optimizing a ranker for short-term user clicks increased click-through rate by 20%, but long-term user satisfaction dropped by 5% and 30-day retention declined. Which systems-engineering concept best explains this divergence, and what is the appropriate mitigation?",
+     "explanation": "The correct answer is A. When a measurable proxy (clicks) becomes the optimization target, Goodhart's Law dictates that it ceases to be a reliable measure of the true underlying goal (user satisfaction), creating a signed alignment gap $(\\text{Gap} = \\mathbb{E}[\\text{Proxy}] - \\mathbb{E}[\\text{True}])$. The appropriate mitigation combines multi-objective optimization with safety constraints and randomized counterfactual holdouts that track true long-term satisfaction. The capacity collapse option misattributes a loss-function specification failure to memory constraints. The numerical underflow option confuses mathematical representation limits with metric misalignment. The schema validation option addresses data pipeline serialization rather than proxy divergence.",
+     "hint": "Think about: apply Goodhart's Law and alignment gap mechanics to diagnose metric divergence in recommendation systems.",
+     "type": "single",
+     "options": [
+      "The alignment gap governed by Goodhart's Law, where optimizing an observable proxy metric degrades the unobserved true objective; mitigated by maintaining counterfactual holdouts and multi-objective optimization with explicit satisfaction constraints.",
+      "Model capacity collapse, where the embedding table runs out of capacity for rare items; mitigated by increasing embedding dimension and memory bandwidth.",
+      "Hardware-level numerical underflow in attention layers; mitigated by upgrading from FP16 to FP32 mixed precision across serving clusters.",
+      "Training-serving skew in network protocol buffers; mitigated by implementing automated schema validation in feature pipelines."
+     ],
+     "answer": 0
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Bias feedback loops**?",
+     "options": [
+      "Specification fixes the target, the named populations, and the human-oversight boundary before training forecloses them, and naming a subgroup fixes a per-group data budget, so stratified recruitment costs far less than random sampling for a rare group.",
+      "A disparity is closed before training (reweighting), during training (adversarial debiasing), or after training (group thresholds), and each choice is a point on a fairness-accuracy frontier whose cost must be stated as a number.",
+      "When decisions censor future labels, disparity evolves geometrically across retraining intervals, so a threshold met at launch is a statement about the first interval, the feedback factor fitted from audits projects the breach, and randomized exploration is the serving cost that keeps it below one.",
+      "A model card records intended use, performance factors, and disaggregated metrics and a datasheet records the data's provenance and composition, together stating the envelope the model was validated in so that reuse outside it is detectable."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Bias feedback loops itself, not a neighbouring idea.",
+     "explanation": "**Bias feedback loops:** When decisions censor future labels, disparity evolves geometrically across retraining intervals, so a threshold met at launch is a statement about the first interval, the feedback factor fitted from audits projects the breach, and randomized exploration is the serving cost that keeps it below one."
+    },
+    {
+     "q": "Because ML systems are constructed from modular software components, a fairness defect originating from biased training data can be isolated and patched within a single function without altering data pipelines, training objectives, or shared representations.",
+     "explanation": "False. Unlike traditional software where defects can often be isolated within a specific function or module, ML systems exhibit tight data-dependent coupling. Data flows through shared representations (such as embeddings and learned feature weights), meaning a biased training signal propagates across multiple downstream predictions. Remediating such a failure requires architectural interventions across the D·A·M axes—including data curation, constrained optimization objectives, and disaggregated outcome monitoring.",
+     "hint": "Think about: distinguish localized software bugs from data-coupled ML specification failures across shared representations.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  }
+ ]
+}

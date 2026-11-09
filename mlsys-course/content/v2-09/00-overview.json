@@ -1,0 +1,240 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v2-09",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Fleet Efficiency** (Vol II). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Efficiency, Purpose",
+   "md": "_Why can a fleet that is fully allocated and visibly busy still turn only a fraction of its compute into training progress and served requests?_"
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Where Fleet Capacity Goes",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "ML Goodput",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Measuring Goodput",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Scheduling Goodput",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Runtime Goodput",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Program Goodput",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Recovering Program Goodput",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**ML goodput**",
+     "Useful fleet output is capacity times scheduling, runtime, and program goodput, each counted on one accounting boundary so every lost hour is charged to exactly one factor."
+    ],
+    [
+     "**Reproducible measurement contract**",
+     "A goodput or optimization claim is valid only against a fixed contract that names the factor and window measured along with the workload and quality gate, system state, timing boundary, load-generation mode, and repeated trials with tails, so cold-start and warmed trials are reported apart."
+    ],
+    [
+     "**Fleet profiling by hierarchy and sampling**",
+     "Trace volume grows with device count, so a fleet localizes the lost factor from the cheapest records first (scheduler records, then job timelines, then step traces) and captures short targeted traces or statistical samples only where the suspected factor lives."
+    ],
+    [
+     "**Scheduling goodput**",
+     "Capacity counts only while held by a complete allocation, so partial gangs, fragmentation, and unmet demand are scheduling losses whose levers belong to orchestration."
+    ],
+    [
+     "**Runtime goodput**",
+     "Allocated time counts only while it produces steps a checkpoint retains at the job's fault-free rate, so startup, input stalls, checkpoint pauses, restarts, and rework add up to the runtime loss."
+    ],
+    [
+     "**Program goodput**",
+     "Program goodput measures retained step time against a named hardware ideal, reported as MFU against peak arithmetic (counting only the operations the model requires) or as MBU against the bandwidth floor for bandwidth-bound decode."
+    ],
+    [
+     "**Trading between goodput factors**",
+     "A lever that raises one factor and lowers another is judged by the product, and the efficiency frontier places operating points by goodput, cost, and time to result."
+    ],
+    [
+     "**Composed re-profiled optimization**",
+     "A local fix reaches the fleet only through the Fleet Law term it shortens, and speedups do not add, so the order of fixes is set by the measured limit and the step is re-profiled after each one."
+    ],
+    [
+     "**Tensor-parallel collectives under contention**",
+     "In a tensor-parallel replica the per-layer activation AllReduces are launch- and protocol-bound at small batch, so a faster link barely helps, and communication streams contend with compute for the same SMs and memory."
+    ],
+    [
+     "**Graph compilation amortization**",
+     "A compiled artifact, including the collectives compiler-derived partitioning (GSPMD) inserts, pays back across every job and replica that reuses it, while per-replica builds and recompiles are a runtime-goodput loss."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$\\text{MPG} = S \\times R \\times P$$\n\n$$P = \\frac{\\text{useful FLOPs}/(N R_{\\text{peak}})}{T_{\\text{step}}} = \\text{MFU}$$\n\n$$T = \\frac{D}{\\text{BW}} + \\frac{O}{R_{\\text{peak}} \\cdot \\eta} + L$$\n\n$$1 - R \\approx T_{\\text{startup}}/T_{\\text{held}} + f_{\\text{stall}} + f_{\\text{ckpt}}(\\tau) + T_{\\text{recover}}/\\text{MTBF} + r_{\\text{preempt}} T_{\\text{preempt}}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v2-09-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "ML goodput",
+     "back": "Useful fleet output is capacity times scheduling, runtime, and program goodput, each counted on one accounting boundary so every lost hour is charged to exactly one factor."
+    },
+    {
+     "front": "Reproducible measurement contract",
+     "back": "A goodput or optimization claim is valid only against a fixed contract that names the factor and window measured along with the workload and quality gate, system state, timing boundary, load-generation mode, and repeated trials with tails, so cold-start and warmed trials are reported apart."
+    },
+    {
+     "front": "Fleet profiling by hierarchy and sampling",
+     "back": "Trace volume grows with device count, so a fleet localizes the lost factor from the cheapest records first (scheduler records, then job timelines, then step traces) and captures short targeted traces or statistical samples only where the suspected factor lives."
+    },
+    {
+     "front": "Scheduling goodput",
+     "back": "Capacity counts only while held by a complete allocation, so partial gangs, fragmentation, and unmet demand are scheduling losses whose levers belong to orchestration."
+    },
+    {
+     "front": "Runtime goodput",
+     "back": "Allocated time counts only while it produces steps a checkpoint retains at the job's fault-free rate, so startup, input stalls, checkpoint pauses, restarts, and rework add up to the runtime loss."
+    },
+    {
+     "front": "Program goodput",
+     "back": "Program goodput measures retained step time against a named hardware ideal, reported as MFU against peak arithmetic (counting only the operations the model requires) or as MBU against the bandwidth floor for bandwidth-bound decode."
+    },
+    {
+     "front": "Trading between goodput factors",
+     "back": "A lever that raises one factor and lowers another is judged by the product, and the efficiency frontier places operating points by goodput, cost, and time to result."
+    },
+    {
+     "front": "Composed re-profiled optimization",
+     "back": "A local fix reaches the fleet only through the Fleet Law term it shortens, and speedups do not add, so the order of fixes is set by the measured limit and the step is re-profiled after each one."
+    },
+    {
+     "front": "Tensor-parallel collectives under contention",
+     "back": "In a tensor-parallel replica the per-layer activation AllReduces are launch- and protocol-bound at small batch, so a faster link barely helps, and communication streams contend with compute for the same SMs and memory."
+    },
+    {
+     "front": "Graph compilation amortization",
+     "back": "A compiled artifact, including the collectives compiler-derived partitioning (GSPMD) inserts, pays back across every job and replica that reuses it, while per-replica builds and recompiles are a runtime-goodput loss."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v2-09-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **ML goodput**?",
+     "options": [
+      "Capacity counts only while held by a complete allocation, so partial gangs, fragmentation, and unmet demand are scheduling losses whose levers belong to orchestration.",
+      "Useful fleet output is capacity times scheduling, runtime, and program goodput, each counted on one accounting boundary so every lost hour is charged to exactly one factor.",
+      "A local fix reaches the fleet only through the Fleet Law term it shortens, and speedups do not add, so the order of fixes is set by the measured limit and the step is re-profiled after each one.",
+      "Allocated time counts only while it produces steps a checkpoint retains at the job's fault-free rate, so startup, input stalls, checkpoint pauses, restarts, and rework add up to the runtime loss."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is ML goodput itself, not a neighbouring idea.",
+     "explanation": "**ML goodput:** Useful fleet output is capacity times scheduling, runtime, and program goodput, each counted on one accounting boundary so every lost hour is charged to exactly one factor."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Reproducible measurement contract**?",
+     "options": [
+      "Useful fleet output is capacity times scheduling, runtime, and program goodput, each counted on one accounting boundary so every lost hour is charged to exactly one factor.",
+      "A compiled artifact, including the collectives compiler-derived partitioning (GSPMD) inserts, pays back across every job and replica that reuses it, while per-replica builds and recompiles are a runtime-goodput loss.",
+      "A goodput or optimization claim is valid only against a fixed contract that names the factor and window measured along with the workload and quality gate, system state, timing boundary, load-generation mode, and repeated trials with tails, so cold-start and warmed trials are reported apart.",
+      "In a tensor-parallel replica the per-layer activation AllReduces are launch- and protocol-bound at small batch, so a faster link barely helps, and communication streams contend with compute for the same SMs and memory."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Reproducible measurement contract itself, not a neighbouring idea.",
+     "explanation": "**Reproducible measurement contract:** A goodput or optimization claim is valid only against a fixed contract that names the factor and window measured along with the workload and quality gate, system state, timing boundary, load-generation mode, and repeated trials with tails, so cold-start and warmed trials are reported apart."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Fleet profiling by hierarchy and sampling**?",
+     "options": [
+      "Trace volume grows with device count, so a fleet localizes the lost factor from the cheapest records first (scheduler records, then job timelines, then step traces) and captures short targeted traces or statistical samples only where the suspected factor lives.",
+      "A lever that raises one factor and lowers another is judged by the product, and the efficiency frontier places operating points by goodput, cost, and time to result.",
+      "Capacity counts only while held by a complete allocation, so partial gangs, fragmentation, and unmet demand are scheduling losses whose levers belong to orchestration.",
+      "A goodput or optimization claim is valid only against a fixed contract that names the factor and window measured along with the workload and quality gate, system state, timing boundary, load-generation mode, and repeated trials with tails, so cold-start and warmed trials are reported apart."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Fleet profiling by hierarchy and sampling itself, not a neighbouring idea.",
+     "explanation": "**Fleet profiling by hierarchy and sampling:** Trace volume grows with device count, so a fleet localizes the lost factor from the cheapest records first (scheduler records, then job timelines, then step traces) and captures short targeted traces or statistical samples only where the suspected factor lives."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Scheduling goodput**?",
+     "options": [
+      "A lever that raises one factor and lowers another is judged by the product, and the efficiency frontier places operating points by goodput, cost, and time to result.",
+      "A local fix reaches the fleet only through the Fleet Law term it shortens, and speedups do not add, so the order of fixes is set by the measured limit and the step is re-profiled after each one.",
+      "Capacity counts only while held by a complete allocation, so partial gangs, fragmentation, and unmet demand are scheduling losses whose levers belong to orchestration.",
+      "Program goodput measures retained step time against a named hardware ideal, reported as MFU against peak arithmetic (counting only the operations the model requires) or as MBU against the bandwidth floor for bandwidth-bound decode."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Scheduling goodput itself, not a neighbouring idea.",
+     "explanation": "**Scheduling goodput:** Capacity counts only while held by a complete allocation, so partial gangs, fragmentation, and unmet demand are scheduling losses whose levers belong to orchestration."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Runtime goodput**?",
+     "options": [
+      "A local fix reaches the fleet only through the Fleet Law term it shortens, and speedups do not add, so the order of fixes is set by the measured limit and the step is re-profiled after each one.",
+      "A lever that raises one factor and lowers another is judged by the product, and the efficiency frontier places operating points by goodput, cost, and time to result.",
+      "A compiled artifact, including the collectives compiler-derived partitioning (GSPMD) inserts, pays back across every job and replica that reuses it, while per-replica builds and recompiles are a runtime-goodput loss.",
+      "Allocated time counts only while it produces steps a checkpoint retains at the job's fault-free rate, so startup, input stalls, checkpoint pauses, restarts, and rework add up to the runtime loss."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Runtime goodput itself, not a neighbouring idea.",
+     "explanation": "**Runtime goodput:** Allocated time counts only while it produces steps a checkpoint retains at the job's fault-free rate, so startup, input stalls, checkpoint pauses, restarts, and rework add up to the runtime loss."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "ML goodput: Useful fleet output is capacity times scheduling, runtime, and program goodput, each counted on one accounting boundary so every lost hour is charged to exactly one factor.",
+    "Reproducible measurement contract: A goodput or optimization claim is valid only against a fixed contract that names the factor and window measured along with the workload and quality gate, system state, timing boundary, load-generation mode, and repeated trials with tails, so cold-start and warmed trials are reported apart.",
+    "Fleet profiling by hierarchy and sampling: Trace volume grows with device count, so a fleet localizes the lost factor from the cheapest records first (scheduler records, then job timelines, then step traces) and captures short targeted traces or statistical samples only where the suspected factor lives.",
+    "Scheduling goodput: Capacity counts only while held by a complete allocation, so partial gangs, fragmentation, and unmet demand are scheduling losses whose levers belong to orchestration."
+   ]
+  }
+ ],
+ "terms": []
+}

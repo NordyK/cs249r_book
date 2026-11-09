@@ -1,0 +1,52 @@
+{
+ "title": "Worker Failure Mid-Trajectory",
+ "summary": "Work through Worker Failure Mid-Trajectory.",
+ "source": {
+  "chapter": "v3-11",
+  "sections": [
+   "Worker Failure Mid-Trajectory"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Worker Failure Mid-Trajectory** in *Durable Execution* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Durable Execution, § Worker Failure Mid-Trajectory",
+   "md": "Consider a software repair agent (a later section) that has admitted and dispatched an integration test against `ws_r18`, a fixed workspace snapshot of candidate patch `r18`. Before the test runner reports a result, the worker process crashes, or the host suffers a spot preemption (the sudden reclamation of an ephemeral cloud node). A replacement worker cannot simply re-invoke the model with the original prompt."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Record and replay matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A sampled model reply cannot be regenerated, so reproduction substitutes recorded inputs at nondeterministic boundaries, and one recording serves time-travel inspection, harness regression, and counterfactual branching."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-11-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Worker Failure Mid-Trajectory** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Young's interval prices checkpoints when a crash loses work to re-execute, and once each turn is logged the stride lengthens by the square root of the cost ratio because a crash costs reconstruction, not resampling.",
+      "An acknowledgment is durable only against the faults its storage tier survives, so each write's durability is declared against a failure domain rather than assumed.",
+      "A sampled model reply cannot be regenerated, so reproduction substitutes recorded inputs at nondeterministic boundaries, and one recording serves time-travel inspection, harness regression, and counterfactual branching.",
+      "Debugging two executions steps boundary by boundary from a verified checkpoint to the first mismatch under a declared equivalence, because every later difference may be a consequence."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Record and replay**: A sampled model reply cannot be regenerated, so reproduction substitutes recorded inputs at nondeterministic boundaries, and one recording serves time-travel inspection, harness regression, and counterfactual branching."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Worker Failure Mid-Trajectory."
+   ]
+  }
+ ]
+}

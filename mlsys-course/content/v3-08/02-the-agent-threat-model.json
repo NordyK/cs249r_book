@@ -1,0 +1,67 @@
+{
+ "title": "The Agent Threat Model",
+ "summary": "Work through The Agent Threat Model.",
+ "source": {
+  "chapter": "v3-08",
+  "sections": [
+   "The Agent Threat Model",
+   "Untrusted input and execution reach",
+   "Blast radius by authority level"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Agent Threat Model** in *Agent Sandboxes* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Agent Sandboxes, § The Agent Threat Model",
+   "md": "In the repair scenario, a single line planted in `README.md` turns a routine dependency check into an attempt to steal host credentials, while production vulnerabilities in shipped coding assistants demonstrate that sandbox escapes and command-injection failures are active operational risks rather than theoretical curiosities. A rigorous threat model for the repair task must therefore specify which inputs may be hostile, which failure modes the execution boundary must contain, and what resources the task legitimately requires from its environment."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Untrusted input and execution reach\n- Blast radius by authority level"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Containment beneath the model matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Admitting a well-typed call does not bound what the code it starts can reach, so the limit must be enforced below the executing process by a mechanism the code cannot modify."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-08-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Agent Threat Model** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A used environment may serve a new tenant only after a reset that fences authority, quiesces owned work, exports permitted outputs, and clears four state domains in order.",
+      "A task workspace separates immutable baseline, private modifications, scratch, and exportable artifacts, and copy-on-write makes provisioning cost track what the agent writes rather than what it can see.",
+      "Admitting a well-typed call does not bound what the code it starts can reach, so the limit must be enforced below the executing process by a mechanism the code cannot modify.",
+      "Shared-kernel containers, user-space kernels, microVMs, and restricted bytecode differ first in where a system call lands, which sets the trusted components and the per-call tax each envelope pays."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Containment beneath the model**: Admitting a well-typed call does not bound what the code it starts can reach, so the limit must be enforced below the executing process by a mechanism the code cannot modify."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Containment beneath the model* bounds execution beneath *Complete mediation*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Containment beneath the model bounds execution beneath Complete mediation."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through The Agent Threat Model."
+   ]
+  }
+ ]
+}

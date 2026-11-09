@@ -1,0 +1,78 @@
+{
+ "title": "Why Distribution Is Necessary",
+ "summary": "Analyze which physical trigger necessitates distributed training when model memory and dataset storage are not binding constraints.",
+ "source": {
+  "chapter": "v2-06",
+  "sections": [
+   "Why Distribution Is Necessary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Why Distribution Is Necessary** in *Distributed Training* (Vol II). By the end you should be able to:\n\n- Analyze which physical trigger necessitates distributed training when model memory and dataset storage are not binding constraints\n- Analyze how the communication-computation ratio limits scaling when per-worker compute shrinks faster than communication cost\n- Estimate how cluster size converts a rare per-device failure into a frequent cluster-level event\n- Define the metric governing the transition between compute-bound and communication-bound cluster operation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Distributed Training, § Why Distribution Is Necessary",
+   "md": "A GPT-3-class 175B-parameter reference model cannot load onto a single accelerator, because its FP16 weights alone exceed the memory of the device that must hold them. The empirical scaling law (principle \\ref{pri-universal-scaling}) keeps pushing frontier models further past what one machine can store or finish in calendar time. The accelerator hierarchy, network fabric, and storage pipeline (a later section) form the physical foundation of the fleet, and a later section priced the collective operations that move state across it."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: physical triggers that force distribution (memory, wall-clock, input delivery); communication-computation ratio and the distributed step-time model; cluster failure cadence as one of the three costs distribution expands."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A team doubles a data-parallel cluster from 64 to 128 GPUs and observes that total step time drops by only 12 percent even though per-worker compute time halves. Using the distributed step-time equation $T_{\\text{step}}(N) = T_{\\text{compute}}/N + T_{\\text{comm}}(N) + T_{\\text{sync}}(N) - T_{\\text{overlap}}$, explain what the observation establishes and what measurement would distinguish possible causes.",
+   "md": "The observation establishes that halving per-worker compute did not halve the complete step. Exposed communication, synchronization, reduced overlap, or another critical-path delay can explain the residual; the step-time ratio alone does not identify which one binds. Compare aligned rank timelines for gradient readiness, collective transfer, barrier waiting, input delivery, and kernel execution. Collective waiting may reflect a late participant rather than limited fabric capacity, so link utilization during the critical interval is needed to support a network diagnosis."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-06-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A research team is training a 3B-parameter transformer that fits comfortably in one H100 GPU's 80 GB of memory, but projected single-GPU training would take 18 months to reach target loss. The dataset is 3 TB and fits on local NVMe storage. Which signal makes distributed training necessary in this scenario?",
+     "explanation": "The correct answer is C. The deadline is the binding constraint even though the complete model fits and local storage is sufficient. Memory exhaustion can motivate sharding, offload, or other capacity remedies; dataset capacity and delivery rate can motivate distributed data services without forcing model computation across devices. NVLink enables exchanges when needed but does not mandate distribution. Single-device jobs can checkpoint and recover from interruption.",
+     "hint": "Think about: analyze which physical trigger necessitates distributed training when model memory and dataset storage are not binding constraints",
+     "type": "single",
+     "options": [
+      "Dataset exceeding GPU HBM capacity, which automatically mandates tensor parallelism regardless of execution time",
+      "The presence of NVLink inside the node, which makes multi-machine scaling mandatory by default",
+      "Unacceptable wall-clock training duration, even though single-device memory capacity and local storage are sufficient",
+      "Fault tolerance limitations, because single-GPU training cannot survive hardware restarts"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A cluster of 1,024 GPUs, each with a 50,000-hour mean time to failure, should expect a GPU failure roughly every two days if failures are independent, even though any single GPU fails only about once every five to six years.",
+     "explanation": "True. Independent constant-rate failures add, so the cluster failure rate is about 1,024/50,000 per hour and the cluster mean time between failures is about 49 hours. Whether each failure interrupts training depends on recovery and redundancy, which is why distribution makes fault tolerance a first-order budget rather than an afterthought.",
+     "hint": "Think about: estimate how cluster size converts a rare per-device failure into a frequent cluster-level event",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "The dimensionless ratio $\\rho = T_{\\text{comm}}(N) / (T_{\\text{compute}}/N)$, which screens communication demand relative to per-worker compute time, is defined as the ____.",
+     "explanation": "Communication-Computation Ratio. The ratio compares communication time with per-worker compute time. A large ratio warns that communication may limit scaling, but actual step time depends on overlap, readiness, and other exposed work. A small ratio alone does not guarantee near-linear scaling.",
+     "hint": "Think about: define the metric governing the transition between compute-bound and communication-bound cluster operation",
+     "type": "fill",
+     "answer": [
+      "Communication Computation Ratio",
+      "Communication-Computation Ratio"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze which physical trigger necessitates distributed training when model memory and dataset storage are not binding constraints.",
+    "You can now analyze how the communication-computation ratio limits scaling when per-worker compute shrinks faster than communication cost.",
+    "You can now estimate how cluster size converts a rare per-device failure into a frequent cluster-level event.",
+    "You can now define the metric governing the transition between compute-bound and communication-bound cluster operation."
+   ]
+  }
+ ]
+}

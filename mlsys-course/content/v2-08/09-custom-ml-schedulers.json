@@ -1,0 +1,103 @@
+{
+ "title": "Custom ML Schedulers",
+ "summary": "Explain how Tiresias eliminates reliance on user runtime estimates using Least Attained Service (LAS) scheduling.",
+ "source": {
+  "chapter": "v2-08",
+  "sections": [
+   "Custom ML Schedulers",
+   "Duration-agnostic scheduling (Tiresias)",
+   "Iteration-aware scheduling (Gandiva)",
+   "Finish-time fairness (Themis)",
+   "Adaptive resource allocation (Pollux)",
+   "Scheduler comparison framework",
+   "From research to production"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Custom ML Schedulers** in *Fleet Orchestration* (Vol II). By the end you should be able to:\n\n- Explain how Tiresias eliminates reliance on user runtime estimates using Least Attained Service (LAS) scheduling\n- Apply the Pollux Goodput optimization metric to balance cluster-wide resource allocation and job-level batch size\n- Describe the core mechanisms used by Gandiva to achieve low-latency scheduling without wasting training progress\n- Identify the fairness concept implemented by Themis to prevent users from gaming cluster resource allocators\n- Apply two-dimensional attained service to rank jobs by scheduling priority and explain why GPU count must enter the ranking"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Orchestration, § Custom ML Schedulers",
+   "md": "A short experiment waiting behind a long training run can suffer even when every running job has an efficient placement. Improving that outcome requires a policy for deciding which job receives the next available resources. Custom ML schedulers use different signals to make that decision: consumed service can prioritize jobs without runtime estimates, iteration boundaries can make preemption cheaper, normalized finish time can expose unfair delay, and measured goodput can guide joint resource and batch-size changes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Duration-agnostic scheduling (Tiresias)\n- Iteration-aware scheduling (Gandiva)\n- Finish-time fairness (Themis)\n- Adaptive resource allocation (Pollux)\n- Scheduler comparison framework\n- From research to production\n\nPay attention to: Tiresias: Duration-agnostic two-dimensional least-attained-service scheduling; Gandiva: Iteration-aware mini-batch boundary time-slicing; Themis: Auction-based finish-time fairness; Pollux: Statistical Goodput co-optimization of cluster allocation and batch size."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: What mechanisms does Gandiva use to achieve fine-grained, low-overhead time-slicing and job migration across GPUs?",
+   "md": "Gandiva uses iteration boundaries as preemption points after temporary activations have been released. Weights and optimizer state remain and may still be expensive to serialize or transfer. Profiling iteration and transition costs lets the scheduler choose when time-slicing or migration is worthwhile; the boundary reduces transient state without making switching free or eliminating all lost progress."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-08-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "How does the Tiresias scheduler solve the problem of inaccurate and inflated user runtime estimates in GPU cluster scheduling?",
+     "explanation": "The correct answer is A. Tiresias eliminates the game-theoretic distortion of user runtime estimates by adopting duration-agnostic scheduling. It implements a two-dimensional least-attained-service policy that tracks both spatial (GPU count) and temporal (time elapsed) resources consumed. Jobs with low attained service are given higher priority, naturally prioritizing short exploratory jobs over long pretraining runs without requiring users to predict runtimes. Financial penalties, AST-based static runtime calculation, and fixed 60-minute time limits are incorrect.",
+     "hint": "Think about: explain how Tiresias eliminates reliance on user runtime estimates using Least Attained Service (LAS) scheduling.",
+     "type": "single",
+     "options": [
+      "It uses two-dimensional least attained service based on observed spatial (GPU count) and temporal (elapsed execution time) resource attainment, prioritizing jobs that have consumed less cumulative compute without asking users for duration estimates.",
+      "It requires users to pay monetary deposits that are forfeited if their job runtime deviates by more than \\$10\\% from their initial estimate.",
+      "It parses Python ASTs at submission time to statically calculate the exact loop iteration count and FLOP requirements of every training script.",
+      "It forces all jobs to run for exactly 60 minutes before automatically killing and requeueing them."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In the Pollux scheduling architecture, how is the **Goodput** metric ($G_j$) defined to co-optimize cluster resource allocation and job-level training dynamics?",
+     "explanation": "The correct answer is C. Pollux combines examples processed per second under an allocation and batch size with the relative optimization progress each example contributes at that batch size. Increasing batch size can raise system throughput while lowering statistical efficiency, so more examples per second do not necessarily mean faster convergence. Allocation changes also pay a transition cost, and the selected policy must be validated at the same target quality. The other choices describe energy efficiency, network reliability, and hardware activity.",
+     "hint": "Think about: apply the Pollux Goodput optimization metric to balance cluster-wide resource allocation and job-level batch size.",
+     "type": "single",
+     "options": [
+      "Goodput is the total number of raw GPU clock cycles executed divided by the cluster's electricity consumption in kilowatt-hours.",
+      "Goodput is the ratio of network packets transmitted over InfiniBand to the number of retransmissions caused by packet drops.",
+      "Goodput is training throughput in examples per second multiplied by statistical efficiency, the progress per example relative to a reference batch size.",
+      "Goodput is the percentage of time GPUs spend running CUDA kernels compared to CPU data loading time."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "The custom ML scheduler Themis optimizes for ____ fairness, ensuring that each job completes in a time comparable to what it would achieve in a dedicated cluster share, thereby preventing gaming and multi-resource allocation monopolies.",
+     "explanation": "finish-time (or finish-time fairness, finish time). Themis designs an auction-based, finish-time fairness metric that balances resource allocation based on how much a scheduler's decision affects the actual completion time of competing jobs.",
+     "hint": "Think about: identify the fairness concept implemented by Themis to prevent users from gaming cluster resource allocators.",
+     "type": "fill",
+     "answer": [
+      "finish time (or finish time fairness, finish time)",
+      "finish-time",
+      "finish-time (or finish-time fairness, finish time)"
+     ]
+    },
+    {
+     "q": "Under a two-dimensional attained-service policy with service bins of less than 1, 1 to 10, 10 to 100, and more than 100 GPU-hours, order these running jobs from highest to lowest scheduling priority:",
+     "explanation": "The correct order is: (2) 1 GPU for 30 minutes, (3) 8 GPUs for 1 hour, (4) 16 GPUs for 4 hours, (1) 64 GPUs for 2 hours. Attained service multiplies GPU count by elapsed time, giving 0.5, 8, 64, and 128 GPU-hours, which fall in four successive bins, and lower-service bins run first. Ranking by elapsed time alone would place the 64-GPU job ahead of the 16-GPU job and miss that it has already consumed twice the GPU-time. Under heavy-tailed durations, low attained service predicts a short job, and a starvation guard can still promote a job that has waited too long.",
+     "hint": "Think about: apply two-dimensional attained service to rank jobs by scheduling priority and explain why GPU count must enter the ranking.",
+     "type": "order",
+     "items": [
+      "1 GPU for 30 minutes",
+      "8 GPUs for 1 hour",
+      "16 GPUs for 4 hours.",
+      "64 GPUs for 2 hours"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain how Tiresias eliminates reliance on user runtime estimates using Least Attained Service (LAS) scheduling.",
+    "You can now apply the Pollux Goodput optimization metric to balance cluster-wide resource allocation and job-level batch size.",
+    "You can now describe the core mechanisms used by Gandiva to achieve low-latency scheduling without wasting training progress.",
+    "You can now identify the fairness concept implemented by Themis to prevent users from gaming cluster resource allocators."
+   ]
+  }
+ ]
+}

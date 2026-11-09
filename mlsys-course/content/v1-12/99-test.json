@@ -1,0 +1,148 @@
+{
+ "title": "Test: Benchmarking",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-12-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "If a newly released open-source model ranks #1 on a public benchmark leaderboard, an enterprise can deploy it into production with confidence that it will outperform existing models on company workloads.",
+     "explanation": "False. Leaderboard rankings reflect performance under specific, static benchmark conditions that often reward test-set overfitting, excessive compute scaling, and uncalibrated predictions. Production deployments operate under different data distributions, strict latency SLAs, cost constraints, and safety requirements that public leaderboards do not capture.",
+     "hint": "Think about: evaluate whether high rankings on public benchmark leaderboards guarantee superior production performance.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the following steps in an illustrative steady-state ML power measurement workflow from start to finish, where this protocol records an idle baseline before warm-up and then measures a matched active window:",
+     "explanation": "The correct order is: (2) Establish the physical measurement boundary and connect a calibrated power analyzer to the appropriate measurement points, (4) Measure and record the baseline idle/quiescent power consumption while the system is waiting for requests, (3) Execute unmeasured warm-up iterations until the device achieves thermal equilibrium (steady-state junction temperature), (5) Execute the synchronized inference benchmark workload while logging power over the matched measurement window, (1) Integrate instantaneous power readings over the matched active measurement window and compute Joules per inference. In this illustrative protocol, the boundary and instrumentation must be set first, and the idle baseline is recorded before warm-up because that ordering is part of the stated workflow. Warm-up precedes the timed active window so the measurement reflects steady-state behavior, and integration can only occur after the active measurement window has been collected.",
+     "hint": "Think about: classify and order the steps of an illustrative steady-state ML power measurement workflow, including boundary setup, optional idle baseline, warm-up, matched-window measurement, and energy integration.",
+     "type": "order",
+     "items": [
+      "Establish the physical measurement boundary and connect a calibrated power analyzer to the appropriate measurement points",
+      "Measure and record the baseline idle/quiescent power consumption while the system is waiting for requests",
+      "Execute the synchronized inference benchmark workload while logging power over the matched measurement window"
+     ]
+    },
+    {
+     "q": "Order the following operational stages of an illustrative successful ML training time-to-accuracy benchmark run from start to finish:",
+     "explanation": "The correct order is: (3) Initialize model parameters and data loaders using the run's documented seed and standardized preprocessing, (2) Execute distributed forward-backward iterations with gradient synchronization across nodes, (5) Perform periodic evaluation on the held-out validation dataset at predefined intervals, (4) Check whether the validation accuracy meets or exceeds the declared target quality threshold, (1) Halt training execution and log total elapsed wall-clock time-to-accuracy. Initialization must happen before any training work. Validation can only occur after training has advanced, and the target check depends on having a validation result to inspect. In this successful run, training stops only after the declared quality threshold is satisfied and the elapsed time can be recorded under the run rule.",
+     "hint": "Think about: order the stages of an illustrative successful time-to-accuracy training run from initialization through target-quality termination.",
+     "type": "order",
+     "items": [
+      "Initialize model parameters and data loaders using the run's documented seed and standardized preprocessing",
+      "Execute distributed forward-backward iterations with gradient synchronization across nodes",
+      "Perform periodic evaluation on the held-out validation dataset at predefined intervals",
+      "Check whether the validation accuracy meets or exceeds the declared target quality threshold",
+      "Halt training execution and log total elapsed wall-clock time-to-accuracy"
+     ]
+    },
+    {
+     "q": "Why did computing benchmark methodology historically transition away from synthetic instruction-mix microbenchmarks (such as Whetstone and Dhrystone) to representative application suites (such as SPEC CPU)?",
+     "explanation": "The correct answer is C. Synthetic benchmarks contained artificial, repetitive loops that optimizing compilers could easily recognize, unroll, or eliminate, inflating scores without providing real-world application speedups. SPEC CPU solved this by using complete, realistic application programs (like compilers, ray tracers, and fluid dynamics simulations) that exercised complex instruction flows, cache hierarchies, and memory subsystems. Memory bandwidth requirements were not the primary historical driver; representative application suites are substantially more complex to standardize and compile; hardware vendors actively published synthetic results until their lack of correlation with real software forced an industry transition.",
+     "hint": "Think about: analyze why the transition from synthetic microbenchmarks to representative application suites was necessary to prevent compiler gaming.",
+     "type": "single",
+     "options": [
+      "Synthetic microbenchmarks required too much memory bandwidth to execute on modern microprocessors",
+      "Representative application suites were easier to implement and did not require source code compilation",
+      "Synthetic benchmarks lacked realistic memory access patterns and branch behavior, allowing optimizing compilers to artificially game scores via dead-code elimination and loop unrolling",
+      "Hardware vendors refused to publish floating-point operations per second for synthetic loops"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "If an ML deployment passes both system benchmarking (achieving target throughput and low latency) and model benchmarking (preserving validation accuracy and calibration), data benchmarking is unnecessary because software execution and model mathematics are fully verified.",
+     "explanation": "False. A system can execute at peak hardware efficiency and achieve high benchmark accuracy, yet fail catastrophically in deployment if the training dataset contained systematic label noise, demographic bias, or distributional blind spots that unrepresentative validation sets failed to expose.",
+     "hint": "Think about: evaluate whether independent success on system and model benchmarks guarantees deployment readiness without data validation.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The structural phenomenon where a machine learning algorithm achieves prominence primarily because specialized hardware and software compilers were already co-optimized for its execution pattern is called the ____.",
+     "explanation": "hardware lottery. The hardware lottery is the structural advantage enjoyed by methods that align well with the dominant hardware and software stack, even when alternative algorithms might fare better under different execution assumptions.",
+     "hint": "Think about: explain the concept of the hardware lottery as a structural bias favoring algorithms that align with prevailing hardware architectures.",
+     "type": "fill",
+     "answer": [
+      "hardware lottery"
+     ]
+    },
+    {
+     "q": "An image classification model achieves \\$95\\%$ accuracy on the CIFAR-10 benchmark test set, but when deployed on a mobile robot operating in a warehouse, its accuracy drops to \\$70\\%$. Assume the warehouse images are verified to use the same class definitions and preprocessing contract but differ substantially in lighting, motion blur, and camera noise. Which benchmarking limitation most plausibly explains the gap?",
+     "explanation": "The correct answer is C. Given the stated assumptions that the task definition and preprocessing contract are aligned, the most plausible explanation is that the benchmark distribution was too narrow to represent the deployment environment. Clean, centered benchmark images do not prepare the model for warehouse-specific variation such as blur, noise, and lighting changes. Hardware details or seed choices can matter in some cases, but they are not the best explanation for the stated benchmark-to-deployment mismatch.",
+     "hint": "Think about: analyze how distributional narrowness in a benchmark dataset can make strong held-out accuracy fail to transfer to a different deployment environment.",
+     "type": "single",
+     "options": [
+      "The mobile robot CPU lacked 64-bit floating-point registers",
+      "The CIFAR-10 evaluation used too few random seeds during training",
+      "Incomplete benchmark coverage and distributional narrowness: the benchmark dataset contained clean, centered, low-resolution images that failed to represent warehouse camera noise, lighting variations, and motion blur",
+      "The benchmark harness executed the test set in the wrong order"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In the three-dimensional ML benchmarking framework, what distinct failure mode does *system benchmarking* isolate compared to *model* and *data benchmarking*?",
+     "explanation": "The correct answer is A. System benchmarking focuses on execution behavior: whether the hardware-software stack delivers the expected throughput, latency, and utilization on the workload being run. Model and data benchmarks examine different lenses, such as calibration loss after compression or coverage gaps in the dataset. These lenses are complementary diagnostics for the same deployed system, not perfectly isolated root causes.",
+     "hint": "Think about: compare how system, model, and data benchmarking provide complementary diagnostic lenses for different failure modes in deployed ML systems.",
+     "type": "single",
+     "options": [
+      "Whether hardware accelerators, memory subsystems, and software runtimes deliver expected computational throughput and latency under workload execution patterns",
+      "Whether model compression techniques preserve confidence calibration and accuracy on rare edge cases",
+      "Whether the training dataset contains sufficient coverage, demographic balance, and resistance to covariate drift",
+      "Whether human labeling errors and noisy annotations degrade model convergence rates"
+     ],
+     "answer": 0
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Latency distribution and the SLO**?",
+     "options": [
+      "Every speed, size, or energy number holds only for the conditions the measurement fixed (warm or cold, batch size, curated or deployed inputs, burst or sustained), so a benchmark is a proxy and the first question is what it does not measure.",
+      "Energy is integrated power over a matched window inside a stated boundary (chip, node, or facility through PUE), so efficiency belongs to one operating point and a duty-cycled device's idle floor can set battery life.",
+      "Mean latency hides the tail, so serving benchmarks report percentiles under a stated offered load and judge them against an SLO (a target for a named indicator, distinct from a contractual SLA), and generative workloads report time to first token and time per output token together.",
+      "Comparable evidence needs a shared reference workload, quality target, and run rules, as in MLPerf's closed and open divisions and its arrival scenarios, which is why one accelerator reports very different Offline and Server throughput."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Latency distribution and the SLO itself, not a neighbouring idea.",
+     "explanation": "**Latency distribution and the SLO:** Mean latency hides the tail, so serving benchmarks report percentiles under a stated offered load and judge them against an SLO (a target for a named indicator, distinct from a contractual SLA), and generative workloads report time to first token and time per output token together."
+    },
+    {
+     "q": "The metric that partitions model prediction confidences into discrete bins and calculates the weighted average difference between confidence and accuracy across all bins is called ____.",
+     "explanation": "expected calibration error. Expected calibration error is a finite-bin empirical measure of how closely predicted confidences match observed correctness frequencies across the evaluation set.",
+     "hint": "Think about: explain the concept and calculation of Expected Calibration Error across partitioned confidence bins.",
+     "type": "fill",
+     "answer": [
+      "expected calibration error"
+     ]
+    },
+    {
+     "q": "In roofline analysis, an accelerator has a peak compute performance of \\$989\\text{ TFLOP/s}$ (dense FP16) and a memory bandwidth of \\$3.35\\text{ TB/s}$, yielding a machine ridge point of $\\RooflineRidgePoint \\approx 295\\text{ FLOP/byte}$. When serving a Transformer model with batch size $b=1$, the arithmetic intensity is only $I = 4.8\\text{ FLOP/byte}$. What is the roofline upper bound on achieved throughput as a fraction of peak compute throughput for this workload?",
+     "explanation": "The correct answer is A. Because ArithmeticIntensity < RooflineRidgePoint, the workload is memory-bandwidth bound in the roofline model. The throughput upper bound is \\$3.35 TB/s × 4.8 FLOP/byte approx 16.1 TFLOP/s, and \\$16.1 / 989 approx 1.6\\%. This is a roofline bound on throughput relative to the matching arithmetic peak, not an observed MFU or a generic busy-utilization reading. The compute-bound answers ignore that the arithmetic intensity sits far below the ridge point.",
+     "hint": "Think about: apply roofline model principles to estimate the throughput ceiling at low arithmetic intensity relative to peak compute capability.",
+     "type": "single",
+     "options": [
+      "Approximately \\$1.6\\% of peak compute throughput (memory-bandwidth bound)",
+      "Exactly \\$100\\% because modern tensor cores execute batch b=1 at peak speed",
+      "Approximately \\$50\\% due to pipeline bubbles and kernel launches",
+      "Approximately \\$85\\% because matrix-vector multiplications are compute-bound"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "How do the constraints and primary evaluation metrics differ across the domain-specific variants of the MLPerf benchmark suite?",
+     "explanation": "The correct answer is D. MLPerf splits into variants because different deployment regimes have different constraints. Training centers on time-to-quality, not just raw device speed. Inference measures latency and throughput under named serving scenarios. Tiny targets embedded memory and energy limits on microcontrollers, and Power adds a cross-cutting efficiency measurement with an explicit system boundary. The other choices either collapse the suites into one metric or swap their purposes.",
+     "hint": "Think about: compare the primary constraints and evaluation metrics across the MLPerf Training, Inference, Tiny, and Power variants.",
+     "type": "single",
+     "options": [
+      "All MLPerf variants evaluate identical metrics (pure TFLOPS) across different hardware form factors",
+      "MLPerf Training focuses on latency SLAs, while MLPerf Inference evaluates multi-node interconnect bandwidth",
+      "MLPerf Tiny measures data center power consumption, while MLPerf Power evaluates floating-point peak throughput",
+      "MLPerf Training targets time-to-quality on fixed workloads, MLPerf Inference evaluates scenario-defined latency and throughput across server and edge settings, MLPerf Tiny targets embedded memory, latency, and energy constraints on microcontrollers, and MLPerf Power measures useful throughput per watt or useful work per joule within a stated measurement boundary"
+     ],
+     "answer": 3
+    }
+   ]
+  }
+ ]
+}

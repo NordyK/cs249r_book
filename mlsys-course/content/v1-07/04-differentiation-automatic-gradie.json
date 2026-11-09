@@ -1,0 +1,94 @@
+{
+ "title": "Differentiation: Automatic Gradient Computation",
+ "summary": "Compare the scaling of forward-mode and reverse-mode automatic differentiation for many-parameter scalar-loss training.",
+ "source": {
+  "chapter": "v1-07",
+  "sections": [
+   "Differentiation: Automatic Gradient Computation",
+   "Forward and reverse mode",
+   "Activation memory",
+   "Autograd internals",
+   "Tape-based and transform-based differentiation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Differentiation: Automatic Gradient Computation** in *ML Frameworks* (Vol I). By the end you should be able to:\n\n- Compare the scaling of forward-mode and reverse-mode automatic differentiation for many-parameter scalar-loss training\n- Analyze why in-place tensor mutations break autograd tape integrity during reverse-mode differentiation\n- Distinguish gradient accumulation in tensor buffers from computational graph retention across backward passes\n- Evaluate the memory footprint differences between forward-only inference and reverse-mode training passes\n- Order the execution steps of reverse-mode automatic differentiation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Frameworks, § Differentiation: Automatic Gradient Computation",
+   "md": "A framework that executes graphs efficiently but cannot compute gradients can run inference, yet it cannot learn. Training requires the derivative of a scalar loss LossFunction with respect to every parameter: doing this manually for even a three-layer network demands dozens of hand-derived partial derivatives, and for a billion-parameter transformer it is intractable. The **differentiation problem** is the task of mechanizing that derivative computation automatically. During the forward pass, the runtime records an execution tape and saves intermediate activation buffers for subsequent derivative evaluations."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Forward and reverse mode\n- Activation memory\n- Autograd internals\n- Tape-based and transform-based differentiation\n\nPay attention to: Forward-mode (JVPs) versus reverse-mode (VJPs) differentiation complexity scaling; Reverse-mode memory footprint (storing forward activations $\\mathcal{O}(L)$); Activation checkpointing (rematerialization) trading $\\sim 33\\%$ compute overhead for $\\mathcal{O}(\\sqrt{L})$ memory; PyTorch autograd tape internals: Node/GradFn DAG, in-place mutation hazards, and retain_graph behavior."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain the difference between accumulating gradients in a tensor's `.grad` attribute across batches and retaining the autograd computational graph using `loss.backward(retain_graph=True)`.",
+   "md": "Gradient accumulation adds successive backward results into parameter `.grad` buffers until those buffers are reset; each batch can use a fresh graph. By contrast, `retain_graph=True` keeps saved graph state available for another traversal of the same computation, which can retain additional device memory. Releasing that saved state does not reclaim tensor storage that other live references still retain, and graph retention is distinct from page-locked host memory."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-07-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "For a neural network with $N = 10^7$ parameters and a single scalar loss output $M = 1$, why is reverse-mode automatic differentiation the standard training choice in deep learning frameworks?",
+     "explanation": "The correct answer is A. Training has a many-parameters-to-one-loss structure, so reverse mode is efficient because one reverse traversal can accumulate gradients for all parameters with work proportional to the forward graph up to a small constant factor. Forward mode computes exact derivatives too, but recovering the full gradient for \\$10^7 parameters would require one seeded direction per parameter. The \"no saved forward information\" claim is backwards: reverse mode's main systems cost is retaining or regenerating the forward information backward rules need. Matrix multiplies and other network operations are differentiable in forward mode as well, so the restriction claim is false.",
+     "hint": "Think about: compare the scaling of forward-mode and reverse-mode automatic differentiation for many-parameter scalar-loss training",
+     "type": "single",
+     "options": [
+      "Reverse mode gets all parameter gradients from one reverse traversal whose work is proportional to the recorded graph, whereas forward mode would need one seeded direction per parameter to recover the full gradient",
+      "Forward-mode differentiation cannot compute exact gradients and therefore is unusable for neural networks",
+      "Reverse-mode differentiation requires no saved forward information, so it is always the lowest-memory choice",
+      "Forward mode can differentiate only scalar element-wise functions, not matrix multiplications or network layers"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A PyTorch user modifies an intermediate activation tensor using an in-place operation (`x.relu_()` or `x += 1`) during the forward pass. During `loss.backward()`, autograd raises a runtime error: *\"one of the variables needed for gradient computation has been modified by an inplace operation\"*. What is the systems mechanism causing this failure?",
+     "explanation": "The correct answer is B. Autograd saves pointers to intermediate activations during the forward pass via functions like `ctx.save_for_backward()`; modifying those buffers in-place overwrites the numerical values needed to evaluate derivative formulas during the backward pass, triggering version-counter mismatch errors. In-place operations preserve data types and do not convert floats to integers. In-place operations do not alter the `requires_grad` flags of ancestor nodes. The hardware memory allocator does not restrict in-place buffer mutations; the error is enforced by framework autograd version tracking.",
+     "hint": "Think about: analyze why in-place tensor mutations break autograd tape integrity during reverse-mode differentiation",
+     "type": "single",
+     "options": [
+      "In-place operations convert 32-bit floating point numbers to integers, corrupting floating-point precision",
+      "The autograd tape recorded a reference to the forward tensor whose underlying storage was overwritten, destroying the original activation values required by the operation's derivative formula",
+      "In-place operations automatically set `requires_grad=False` on all ancestor nodes in the computational graph",
+      "The GPU caching allocator prohibits in-place memory modifications during forward execution"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Because reverse-mode automatic differentiation computes exact gradients in a single backward pass, its peak memory consumption during training is identical to that of inference.",
+     "explanation": "False. Training usually keeps additional forward information needed by backward rules, and what must be saved depends on the operation and implementation. Inference avoids optimizer state and gradient storage, but it still has live activations, workspaces, and other runtime tensors rather than only the current layer in all cases.",
+     "hint": "Think about: evaluate the memory footprint differences between forward-only inference and reverse-mode training passes",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "To reduce GPU memory pressure from saved activations during long forward passes, frameworks can save only selected boundary tensors and recompute dropped intermediates during the backward pass. This memory-saving technique is called activation ____ (or rematerialization).",
+     "explanation": "checkpointing. Activation checkpointing reduces peak saved-activation memory by storing only selected boundaries and recomputing omitted intermediates later, trading additional backward-time work for lower memory capacity pressure.",
+     "hint": "Think about: identify activation checkpointing as a compute-memory trade-off mechanism",
+     "type": "fill",
+     "answer": [
+      "checkpointing"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare the scaling of forward-mode and reverse-mode automatic differentiation for many-parameter scalar-loss training.",
+    "You can now analyze why in-place tensor mutations break autograd tape integrity during reverse-mode differentiation.",
+    "You can now distinguish gradient accumulation in tensor buffers from computational graph retention across backward passes.",
+    "You can now evaluate the memory footprint differences between forward-only inference and reverse-mode training passes."
+   ]
+  }
+ ]
+}

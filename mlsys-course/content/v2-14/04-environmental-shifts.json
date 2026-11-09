@@ -1,0 +1,103 @@
+{
+ "title": "Environmental Shifts",
+ "summary": "Classify distribution shifts using formal probability distributions $p(x)$, $p(y)$, and $p(y \\mid x)$.",
+ "source": {
+  "chapter": "v2-14",
+  "sections": [
+   "Environmental Shifts",
+   "Distribution shift and concept drift",
+   "Measuring distribution drift",
+   "Monitoring and adaptation strategies",
+   "Per-request competence and selective prediction"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Environmental Shifts** in *Robust AI* (Vol II). By the end you should be able to:\n\n- Classify distribution shifts using formal probability distributions $p(x)$, $p(y)$, and $p(y \\mid x)$\n- Evaluate drift alerts by separating sample-size-driven statistical significance from operational decision thresholds\n- Apply the multi-metric retraining decision matrix to select appropriate operational responses\n- Order the evidence dependencies of a drift investigation and validated update\n- Explain why input feature monitoring cannot detect concept drift in the absence of ground-truth outcomes"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Robust AI, § Environmental Shifts",
+   "md": "A credit-scoring or recommendation model trained on last quarter's user behavior can lose accuracy as seasonal demand, demographics, or economic conditions move, because training data freezes a past world while production traffic keeps changing. Environmental shifts arise whenever data distributions, user behavior, or deployment contexts depart from the training population, and a shift becomes a robustness failure when model behavior no longer meets the service contract."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Distribution shift and concept drift\n- Measuring distribution drift\n- Monitoring and adaptation strategies\n- Per-request competence and selective prediction\n\nPay attention to: distinguishing covariate shift, label shift, and concept drift by which probability changes; statistical significance vs operational significance in drift alerts; the retraining decision framework combining PSI, performance, and critical-feature status; MMD for joint-distribution shift that univariate tests miss."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A monitoring service evaluates an input feature over 1,000,000 requests, reporting a Kolmogorov-Smirnov test p-value of \\$10^-5 (p < 0.001), but the calculated Population Stability Index (PSI) is 0.04 and model precision is unaffected. Explain why the team should continue monitoring rather than triggering an immediate retraining job.",
+   "md": "With a million requests, the KS test can detect small differences that have little measured operational impact. PSI 0.04 and stable precision do not, by themselves, justify retraining. Continue monitoring under service-calibrated rules, inspect relevant subgroup and joint-distribution evidence, and investigate when changes exceed the validated tolerance. PSI bands are conventions, not universal guarantees; retraining requires a diagnosed change that an update can address."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-14-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A credit scoring model encounters a scenario where loan applicants' demographic and financial feature distributions $p(x)$ remain unchanged, yet default rates increase due to a sudden macroeconomic policy change that alters the relationship between income and repayment probability $p(y \\mid x)$. Which type of environmental shift does this represent?",
+     "explanation": "The correct answer is A. Concept drift, because the conditional relationship $p(y \\mid x)$ changed while the input marginal $p(x)$ stayed constant. Concept drift is specifically defined by a change in the statistical mapping $p(y \\mid x)$, meaning the true relationship between features and outcomes has changed even if the input distribution $p(x)$ appears identical. Strict covariate shift changes $p(x)$ while preserving $p(y \\mid x)$; an observed input-distribution change alone does not establish that condition. Label smoothing is a training-time loss regularization technique. Hardware bit corruption is an internal systems fault rather than an environmental distribution shift.",
+     "hint": "Think about: classify distribution shifts using formal probability distributions $p(x)$, $p(y)$, and $p(y \\mid x)$",
+     "type": "single",
+     "options": [
+      "Concept drift, because the conditional relationship $p(y \\mid x)$ changed while the input marginal $p(x)$ stayed constant.",
+      "Covariate shift, because input feature values moved relative to the training distribution.",
+      "Label smoothing, because target probabilities were regularized during training.",
+      "Hardware bit corruption, because inference activations deviated from ground truth."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A fraud detection team uses service-calibrated drift alerts. Which scenario most strongly warrants urgent investigation and containment, with retraining considered after the cause and candidate update are validated?",
+     "explanation": "The correct answer is D. A changed critical feature together with a confirmed precision decline supplies stronger evidence of operational harm than a nonpredictive shift or a small statistical difference with stable outcomes. Investigate pipeline faults and environmental causes, contain unacceptable harm, and validate the response. Neither PSI 0.25 nor a 5% decline is a universal retraining rule; the thresholds and remediation must fit the service.",
+     "hint": "Think about: apply the multi-metric retraining decision matrix to select appropriate operational responses",
+     "type": "single",
+     "options": [
+      "A non-predictive logging metadata feature exhibits $\\text{PSI} = 0.28$ while all predictive features show $\\text{PSI} < 0.05$.",
+      "A primary feature shows $\\text{PSI} = 0.06$ and $\\mathcal{D}_{\\text{KL}} = 0.03$, with downstream precision and recall holding steady.",
+      "A two-sample KS test on a continuous feature yields p = 0.01 over \\$10^6 samples, but PSI = 0.08 and accuracy is unchanged.",
+      "A critical predictive feature crosses $\\text{PSI} = 0.29$ accompanied by a confirmed 7 percent drop in production precision."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Order these stages of a drift investigation that considers a validated model update, while treating urgent containment as a separate response when needed:",
+     "explanation": "The correct order is: (3) Ingest and log production features and outcomes, (1) Compute drift metrics against versioned references, (2) Compare with available predictive and business outcomes, (5) Investigate pipeline faults, environmental changes, and temporary events, (4) Validate and apply an evidence-supported candidate response. Logged traffic supports the statistical comparison; predictive and business outcomes help determine its consequences; root-cause investigation identifies which response might address them; and a candidate must pass validation before deployment. Outcome comparison and investigation can proceed iteratively while labels arrive. Urgent containment need not wait for that entire sequence, and an alert alone does not command retraining.",
+     "hint": "Think about: order the evidence dependencies of a drift investigation and validated update",
+     "type": "order",
+     "items": [
+      "Ingest and log production features and outcomes",
+      "Compute drift metrics against versioned reference distributions",
+      "Compare the signal with available predictive and business outcomes",
+      "Investigate pipeline faults, environmental changes, and temporary events.",
+      "Validate a candidate response and apply it only if the evidence and release gate support it"
+     ]
+    },
+    {
+     "q": "If PSI, KL divergence, and two-sample KS tests on every input feature remain within green thresholds for six months, the engineering team can guarantee that no concept drift has occurred without checking ground-truth labels.",
+     "explanation": "False. Input-level statistical tests (PSI, KL, KS) monitor only the input feature distribution $p(x)$. Concept drift is defined by changes in the conditional distribution $p(y \\mid x)$, which can occur even when $p(x)$ remains perfectly stationary (such as adversaries changing fraud tactics while using identical transaction amounts). Detecting concept drift requires comparing predictions against delayed ground-truth outcomes.",
+     "hint": "Think about: explain why input feature monitoring cannot detect concept drift in the absence of ground-truth outcomes",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A triage classifier answers every request whose calibrated confidence exceeds a threshold and routes the rest to clinician review. The team proposes raising the threshold to cut errors on answered requests. Explain what this change trades, what must be true of the score for it to help, and which capacity it consumes.",
+   "md": "Raising the threshold lowers coverage and moves the operating point along the risk-coverage curve. Selective risk on accepted requests falls only if the score orders requests by error risk well enough on the deployment population; a calibrated score can still be confidently wrong on out-of-distribution inputs. Every request no longer accepted becomes fallback load, so reviewer capacity must absorb (1 − coverage) times the arrival rate within the latency and safety budget, and selective risk can be confirmed only once delayed labels arrive."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify distribution shifts using formal probability distributions $p(x)$, $p(y)$, and $p(y \\mid x)$.",
+    "You can now evaluate drift alerts by separating sample-size-driven statistical significance from operational decision thresholds.",
+    "You can now apply the multi-metric retraining decision matrix to select appropriate operational responses.",
+    "You can now order the evidence dependencies of a drift investigation and validated update."
+   ]
+  }
+ ]
+}

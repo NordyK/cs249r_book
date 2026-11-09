@@ -1,0 +1,87 @@
+{
+ "title": "The Complete Production System",
+ "summary": "Apply rate-matching principles across storage, compute, and network subsystems to diagnose why isolated component upgrades fail to improve end-to-end throughput.",
+ "source": {
+  "chapter": "v2-17",
+  "sections": [
+   "The Complete Production System"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Complete Production System** in *Conclusion* (Vol II). By the end you should be able to:\n\n- Apply rate-matching principles across storage, compute, and network subsystems to diagnose why isolated component upgrades fail to improve end-to-end throughput\n- Classify production ML archetypes by their primary C$^3$ bottleneck and connect each to its corresponding systems engineering intervention\n- Design a diagnostic troubleshooting workflow using the 6-step procedure to resolve fleet-scale production bottlenecks\n- Explain the concept of displacement of overhead and how local optimizations shift constraints across stack layers\n- Apply the 6-step diagnostic procedure to analyze cross-layer constraint displacement in a distributed training and serving pipeline"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Conclusion, § The Complete Production System",
+   "md": "A team that doubles its training cluster to chase the next point on a scaling curve halves the ideal arithmetic time per step, yet the added accelerators also increase collective traffic, shorten the interval between hardware interruptions, and draw against a fixed facility power budget. Empirical scaling laws set the demand for that fleet growth and the Fleet Law (a later section) sets its price, so together they say when growth pays and where it breaks."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: subsystem rate-matching (storage bandwidth vs communication capacity vs compute); the three running archetypes and their first binding C3 constraints; the 6-step diagnostic procedure and displacement of overhead."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Apply the chapter's 6-step diagnostic procedure to evaluate the following scenario: A distributed training team increases per-device microbatch size by 4x to raise GPU Model FLOPs Utilization (MFU) from 40% to 65%, but downstream live serving experiences severe p99 tail-latency spikes and automated checkpoint save times double.",
+   "md": "1. **Observed symptom**: Serving tail latency rises and checkpoint saves slow after the training change.\n2. **Attach metrics**: Measure request latency, training resource use, checkpoint bytes and write duration, and shared network/storage contention.\n3. **Map to C3**: Higher training MFU improves local compute utilization, but the other symptoms may reflect shared-resource contention; causation needs evidence.\n4. **Locate layers**: Trace the training allocation, storage tier, and serving placement to identify any shared bottleneck.\n5. **State displaced cost**: A larger microbatch increases training activation memory, but does not inherently enlarge serving KV caches or persistent model/optimizer checkpoints. Check whether slower writes reflect contention rather than larger files.\n6. **Preserve evidence**: Record the before/after measurements and test an isolated or rolled-back configuration before accepting the change."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-17-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A data-center engineering team upgrades its training storage tier to provide 200 GB/s of sustained read bandwidth per node, while the inter-node network fabric remains at 25 GB/s per accelerator. Despite the 4x storage upgrade, overall training throughput on a multi-node Vision Transformer benchmark does not improve. Matched step traces show that data loading finishes before it is needed, ranks enter the collective with little arrival skew, and exposed gradient transfer saturates the relevant fabric links. Applying the chapter's rate-matching and co-design principles, why did this upgrade fail to yield end-to-end performance gains?",
+     "explanation": "The correct answer is A. The matched traces identify exposed gradient transfer as the critical-path constraint; increasing already sufficient storage bandwidth does not shorten that transfer. In distributed ML systems, storage pipelines, compute engines, and communication fabrics form a tightly coupled chain of rates. Expanding an already sufficient component does not shorten the binding critical path. Comparing 200 GB/s per node with 25 GB/s per accelerator alone would not identify that path; workload demand, scope, and overlap must be accounted for. Effective system engineering requires co-designing storage bandwidth to match the ingestion rate demanded by compute while balancing network bisection bandwidth with collective synchronization volume. The claim that storage read bandwidth is only used during checkpointing is incorrect because data loaders continuously stream minibatches. Bus arbitration throttles disabling tensor cores are fictional hardware behaviors. Claiming an intrinsic 10 GB/s limit in self-attention is algorithmically false.",
+     "hint": "Think about: apply rate-matching principles across storage, compute, and network subsystems to diagnose why isolated component upgrades fail to improve end-to-end throughput.",
+     "type": "single",
+     "options": [
+      "The matched traces identify exposed gradient transfer as the critical-path constraint; increasing already sufficient storage bandwidth does not shorten that transfer.",
+      "Storage read bandwidth is only utilized during model checkpointing, so data loader throughput has zero impact on training iteration step time.",
+      "Upgrading storage beyond 100 GB/s triggers automatic PCI Express bus arbitration throttles that disable GPU tensor cores.",
+      "Vision Transformers cannot ingest training samples at rates exceeding 10 GB/s due to algorithmic limits in the self-attention mechanism."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "The chapter maps the volume's three running archetypes to representative constraints in stated operating regimes within the C$^3$ taxonomy (Compute, Communication, Coordination). Which of the following mappings correctly identifies the first binding term and primary engineering focus for each archetype?",
+     "explanation": "The correct answer is D. Archetype A (GPT-4/Llama-3) binds on Communication (gradient sync / activation transfer); Archetype B (DLRM at Scale) binds on Coordination (multi-TB embedding sharding / AllToAll routing); Archetype C (Federated MobileNet) binds on Compute (watt-scale device silicon / duty-cycle limits). These are representative regimes, not universal rankings: an edge device's local compute limit does not establish the global federated round's communication or availability limit. The three archetypes demonstrate that no single C$^3$ term universally dominates across ML workloads: Archetype A spans thousands of tightly coupled accelerators where tensor/pipeline collectives saturate fabric bisection bandwidth (Communication); Archetype B features terabyte-scale sparse embedding tables partitioned across hundreds of nodes where request routing and AllToAll tail latency dominate (Coordination); and Archetype C executes on battery-powered, thermal-constrained mobile devices where local silicon throughput and energy ceilings bind execution (Compute). The alternative mappings misidentify the underlying physical constraints and failure profiles of these representative workloads.",
+     "hint": "Think about: classify production ML archetypes by their primary C$^3$ bottleneck and connect each to its corresponding systems engineering intervention.",
+     "type": "single",
+     "options": [
+      "Archetype A binds on Compute (matrix arithmetic); Archetype B binds on Communication (inter-data-center WAN bandwidth); Archetype C binds on Coordination (edge mesh consensus protocols).",
+      "Archetype A binds on Coordination (scheduler dispatch); Archetype B binds on Compute (dense embedding multiplications); Archetype C binds on Communication (cellular 5G upload bandwidth).",
+      "Archetype A binds on Compute (floating-point tensor cores); Archetype B binds on Compute (embedding lookups); Archetype C binds on Coordination (parameter server consensus).",
+      "Archetype A (GPT-4/Llama-3) binds on Communication (gradient sync / activation transfer); Archetype B (DLRM at Scale) binds on Coordination (multi-TB embedding sharding / AllToAll routing); Archetype C (Federated MobileNet) binds on Compute (watt-scale device silicon / duty-cycle limits)."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Order the 6 steps of the chapter's procedural diagnostic workflow for resolving fleet-scale systems issues:",
+     "explanation": "The correct sequence is (1) Start with the observed symptom -> (2) Attach the metric -> (3) Map to C$^3$ (Compute, Communication, Coordination) -> (4) Locate the fleet-stack row -> (5) State the displaced cost -> (6) Preserve governance evidence. The diagnostic procedure begins by naming the user- or operator-visible failure, attaching a falsifiable metric, mapping the constraint onto C$^3$, locating the fleet-stack row that owns the intervention, identifying what cost the proposed fix displaces elsewhere, and ensuring audit and compliance evidence is preserved.",
+     "hint": "Think about: design a diagnostic troubleshooting workflow using the 6-step procedure to resolve fleet-scale production bottlenecks.",
+     "type": "order",
+     "items": [
+      "Start with the observed symptom",
+      "Attach the metric",
+      "Locate the fleet-stack row",
+      "State the displaced cost",
+      "Preserve governance evidence"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply rate-matching principles across storage, compute, and network subsystems to diagnose why isolated component upgrades fail to improve end-to-end throughput.",
+    "You can now classify production ML archetypes by their primary C$^3$ bottleneck and connect each to its corresponding systems engineering intervention.",
+    "You can now design a diagnostic troubleshooting workflow using the 6-step procedure to resolve fleet-scale production bottlenecks.",
+    "You can now explain the concept of displacement of overhead and how local optimizations shift constraints across stack layers."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,83 @@
+{
+ "title": "Choosing a Framework",
+ "summary": "Apply the hard-filter-then-soft-preference principle to framework selection decisions.",
+ "source": {
+  "chapter": "v1-07",
+  "sections": [
+   "Choosing a Framework",
+   "Framework selection criteria",
+   "Development support and long-term viability assessment"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Choosing a Framework** in *ML Frameworks* (Vol I). By the end you should be able to:\n\n- Apply the hard-filter-then-soft-preference principle to framework selection decisions\n- Evaluate long-term maintenance and ecosystem health risks in framework selection\n- Analyze the three fundamental trade-off axes in framework selection\n- Evaluate the fallacy that cross-framework model conversion is a frictionless post-training step"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Frameworks, § Choosing a Framework",
+   "md": "Those differences in where state lives and what the compiler sees become concrete obligations once a team commits to one framework for a project that must ship to a particular device. Framework selection decides which framework a team develops in, given the model it must express, the team that must maintain it, and the targets it must eventually run on. Development framework and deployment runtime need not be the same system: a model can be developed in PyTorch or TensorFlow and exported to a compact runtime for the device."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Framework selection criteria\n- Development support and long-term viability assessment\n\nPay attention to: Framework selection as a constrained optimization problem; Hard feasibility filters (deployment targets, runtime constraints, operator support) vs soft preferences (developer velocity, ergonomics); The three selection trade-off tensions: velocity vs performance, flexibility vs optimization depth, ecosystem breadth vs specialization; Long-term ecosystem viability and maintenance risks."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Describe the three fundamental tensions in the framework selection trade-off space (velocity vs. performance, flexibility vs. optimization depth, ecosystem breadth vs. specialization).",
+   "md": "The first tension balances development velocity (rapid eager prototyping and debugging) against production performance (compiled, high-throughput execution). The second balances programming flexibility (arbitrary Python dynamic control flow) against compiler optimization depth (whole-graph visibility enabling deep operator fusion and memory planning). The third balances ecosystem breadth (broad operator coverage across many tasks) against specialization (narrow runtimes like TensorRT that achieve peak throughput on specific hardware)."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-07-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An engineering team is architecting a new commercial computer vision system. In the chapter's decision framework, why must deployment constraints (e.g. target mobile NPU delegates and memory budgets) act as *hard filters* evaluated *before* selecting the training framework?",
+     "explanation": "The correct answer is A. Deployment constraints represent hard feasibility boundaries: if the target hardware or runtime cannot execute the operators exported by the framework, the project fails at deployment time, incurring catastrophic rewriting costs; soft preferences like developer ergonomics only matter among viable paths. Frameworks cannot change physical hardware specifications. Deployment feasibility filters govern system execution capability, not statistical model accuracy. Prioritizing iteration speed while ignoring deployment feasibility leads to un-deployable research artifacts.",
+     "hint": "Think about: apply the hard-filter-then-soft-preference principle to framework selection decisions",
+     "type": "single",
+     "options": [
+      "If a training framework cannot export or compile the required model operators to the target deployment runtime, the model cannot run in production regardless of its training speed or developer ergonomics",
+      "Training frameworks automatically alter target hardware specifications to match model requirements",
+      "Hard deployment filters guarantee that the model achieves 100% classification accuracy",
+      "Research iteration speed is the only metric that matters in commercial system design"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "When evaluating framework viability for a production system expected to operate for 5+ years, which factor is the strongest warning sign of long-term maintenance risk?",
+     "explanation": "The correct answer is B. The section frames framework choice as a multi-year infrastructure commitment, so the biggest architectural risk is weak long-term support: if maintainers disappear, compiler paths stagnate, compatibility erodes, and future hardware or deployment tooling may never be supported well enough for production needs. A framework does not become risky merely because it is less mainstream in some abstract sense; the real concern is whether its maintenance and support signals indicate decay. By contrast, active ecosystem support usually lowers migration and tooling risk, and the Python-versus-Fortran or GPU-versus-CPU answers do not address the chapter's actual long-horizon framework viability criteria.",
+     "hint": "Think about: evaluate long-term maintenance and ecosystem health risks in framework selection",
+     "type": "single",
+     "options": [
+      "Using Python instead of Fortran for high-level model definitions",
+      "Adopting a niche or fading framework whose maintenance signals, compatibility path, and future hardware support are weak",
+      "Selecting an open-source framework that continues to receive broad ecosystem and vendor support",
+      "Training on GPU clusters rather than single CPU workstations"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Because model weights are stored as floating-point arrays, an engineering team can choose any training framework for research and assume that converting to a production embedded runtime is a trivial format conversion step.",
+     "explanation": "False. Converting between frameworks and deployment runtimes frequently encounters severe operator coverage gaps, custom kernel incompatibilities, unsupported dynamic control flow, and divergent numerical behaviors, making late-stage conversion a frequent source of project delays.",
+     "hint": "Think about: evaluate the fallacy that cross-framework model conversion is a frictionless post-training step",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the hard-filter-then-soft-preference principle to framework selection decisions.",
+    "You can now evaluate long-term maintenance and ecosystem health risks in framework selection.",
+    "You can now analyze the three fundamental trade-off axes in framework selection.",
+    "You can now evaluate the fallacy that cross-framework model conversion is a frictionless post-training step."
+   ]
+  }
+ ]
+}

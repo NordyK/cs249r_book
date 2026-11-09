@@ -1,0 +1,84 @@
+{
+ "title": "Level 5 Cluster Design and Case Studies",
+ "summary": "Design optimal mappings of 3D parallelism strategies onto the hierarchical network fabric.",
+ "source": {
+  "chapter": "v2-03",
+  "sections": [
+   "Level 5 Cluster Design and Case Studies",
+   "The GPU-to-GPU \"gradient bus\"",
+   "NVIDIA DGX SuperPOD architecture",
+   "Meta Grand Teton platform"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Level 5 Cluster Design and Case Studies** in *Network Fabrics* (Vol II). By the end you should be able to:\n\n- Design optimal mappings of 3D parallelism strategies onto the hierarchical network fabric\n- Explain the fundamental limit of communication-computation overlap during backpropagation\n- Compare the architectural and operational trade-offs of deploying RoCEv2 Ethernet versus InfiniBand at hyperscale\n- Analyze physical media placement in modular AI cluster architectures"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Network Fabrics, § Level 5 Cluster Design and Case Studies",
+   "md": "Cluster design reduces to concrete engineering decisions: which cables to buy, how to wire the racks, which protocol to deploy, and how to validate that the resulting fabric delivers the bandwidth the training job expects. At this final level of the stack, wires, transport, topology, and congestion control combine into a coherent system, an end-to-end gradient bus that makes thousands of distributed GPUs feel like a single machine. Two representative large-scale architectures, one built on InfiniBand and one on Ethernet, illuminate the trade-offs that define ML infrastructure."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The GPU-to-GPU \"gradient bus\"\n- NVIDIA DGX SuperPOD architecture\n- Meta Grand Teton platform\n\nPay attention to: GPU-to-GPU gradient bus and communication-computation overlap; Overlap limits for gradients computed at the end of backpropagation; NVIDIA DGX SuperPOD architecture (InfiniBand, rail-optimized, ConnectX); Meta Grand Teton architecture (RoCEv2, multi-vendor Ethernet, PFC watchdogs)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why can communication-computation overlap not hide the last mile of the gradient exchange in distributed training, and what does that leave on the critical path?",
+   "md": "During backpropagation, gradients are computed in reverse order, from the final layers to the first. Gradients computed early in the backward pass can overlap their AllReduce with the backward computation still to come. The gradients computed at the end of backpropagation have little computation left behind which to hide their transfer, so that last part of the exchange is exposed on the critical path and every GPU waits for it before the next step."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-03-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In a 3D-parallel training architecture (combining Tensor, Pipeline, and Data Parallelism) across a cluster of 8-GPU nodes, how should each parallelism dimension be mapped to the network hierarchy to optimize communication efficiency?",
+     "explanation": "The correct answer is B. Tensor Parallelism requires continuous, low-latency all-gather/reduce-scatter of activations at every layer, making the ultra-high-bandwidth NVLink domain of a single node a preferred placement (\\$900 GB/s aggregate bidirectional, or \\$450 GB/s per direction). Pipeline Parallelism exchanges activations only at pipeline stage boundaries (point-to-point transfers), easily mapping across inter-node links. Data Parallelism exchanges full gradient tensors across all replicas, which can be overlapped with backward computation across the broader cluster fabric. The option placing Tensor Parallelism across spine switches adds inter-node transfer costs to fine-grained activation exchanges. The choice involving CPU sockets and PCIe storage buses misidentifies accelerator data paths. The option suggesting uniform round-robin mapping ignores the per-direction \\$9× bandwidth cliff between the local fabric and a single inter-node port.",
+     "hint": "Think about: design optimal mappings of 3D parallelism strategies onto the hierarchical network fabric.",
+     "type": "single",
+     "options": [
+      "Data Parallelism within the node over NVLink, Pipeline Parallelism across the leaf switches, and Tensor Parallelism across the core spine switches",
+      "Tensor Parallelism within the node over high-bandwidth NVLink, Pipeline Parallelism across immediate inter-node links, and Data Parallelism across the cluster fabric with backward-pass overlap",
+      "Tensor Parallelism across the multi-hop core network, Data Parallelism within the CPU socket, and Pipeline Parallelism over PCIe storage buses",
+      "All three parallelism dimensions mapped uniformly across all network tiers using round-robin flow allocation"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "What is the primary operational and architectural motivation for Meta adopting RoCEv2 over commodity Ethernet in its Grand Teton clusters rather than dedicated InfiniBand?",
+     "explanation": "The correct answer is C. Meta deployed 400G RoCEv2 clusters (such as Grand Teton for Llama 3) to leverage multi-vendor hardware availability (e.g., Arista, OCP switches), avoid proprietary hardware single-sourcing, and integrate network management into existing data-center monitoring stacks. The trade-off is higher operational complexity: tuning PFC watchdogs, collective routing, and congestion control to approximate InfiniBand's native hardware losslessness. The option claiming RoCEv2 has lower FEC latency is false, as physical signaling for equivalent line rates incurs a similar FEC latency overhead. The choice claiming Ethernet cabling is immune to symbol errors is physically inaccurate. The assertion that InfiniBand caps at \\$100 Gb/s is false, as InfiniBand NDR operates at \\$400 Gb/s and XDR at \\$800 Gb/s.",
+     "hint": "Think about: compare the architectural and operational trade-offs of deploying RoCEv2 Ethernet versus InfiniBand at hyperscale.",
+     "type": "single",
+     "options": [
+      "RoCEv2 provides lower physical-layer forward error correction latency than InfiniBand",
+      "Ethernet cabling is physically immune to transceiver symbol errors",
+      "Commodity Ethernet enables multi-vendor switch and optics sourcing, supply chain resilience, and unified management tooling with web serving infrastructure, despite requiring careful PFC and routing tuning",
+      "InfiniBand switches cannot support link rates exceeding \\$100 Gb/s"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "An NVIDIA DGX SuperPOD scalable unit eliminates inter-node optical transceiver costs by connecting all 32 DGX nodes in the scalable unit using passive direct-attach copper cables to the core spine switches.",
+     "explanation": "False. In the stated multi-rack, row-scale layout, paths to the spine exceed the representative passive DAC reach and require an appropriate active cable or optical medium. Reach depends on per-lane signaling, cable construction, connectors, and the actual path length; copper is not categorically prohibited by crossing a rack boundary.",
+     "hint": "Think about: analyze physical media placement in modular AI cluster architectures.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now design optimal mappings of 3D parallelism strategies onto the hierarchical network fabric.",
+    "You can now explain the fundamental limit of communication-computation overlap during backpropagation.",
+    "You can now compare the architectural and operational trade-offs of deploying RoCEv2 Ethernet versus InfiniBand at hyperscale.",
+    "You can now analyze physical media placement in modular AI cluster architectures."
+   ]
+  }
+ ]
+}

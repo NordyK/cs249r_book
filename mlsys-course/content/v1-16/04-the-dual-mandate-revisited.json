@@ -1,0 +1,101 @@
+{
+ "title": "The Dual Mandate Revisited",
+ "summary": "Map a production trust failure on the DLRM lighthouse to the deployment principle that names and detects it.",
+ "source": {
+  "chapter": "v1-16",
+  "sections": [
+   "The Dual Mandate Revisited",
+   "Trustworthy learned behavior",
+   "Physical deliverability"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Dual Mandate Revisited** in *Conclusion* (Vol I). By the end you should be able to:\n\n- Map a production trust failure on the DLRM lighthouse to the deployment principle that names and detects it\n- Calculate idealized memory-transfer and compute lower bounds for autoregressive token decoding and use arithmetic intensity to select high-leverage serving optimizations\n- Analyze root causes of tail-latency spikes ($P99 \\gg \\text{mean}$) in production inference serving systems and evaluate them against latency budget SLOs\n- Justify why responsible AI monitoring and bias feedback mitigation are first-class operational systems constraints rather than post-hoc compliance audits\n- Apply the iron law and the arithmetic intensity law to diagnose batch-one decode as memory bound and identify levers that raise arithmetic intensity"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Conclusion, § The Dual Mandate Revisited",
+   "md": "A recommendation model that ranks well on launch day can, six months later, be serving a population that its own rankings shaped, on hardware whose cost per query decides whether the service survives. The introduction named this pair of demands the dual mandate, and the thirteen principles make both halves measurable end to end on the book's lighthouses."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Trustworthy learned behavior\n- Physical deliverability\n\nPay attention to: the dual mandate: trustworthy learned behavior and physical deliverability; DLRM as the trace for drift, skew, bias feedback, and the verification gap; batch-one LLM decode as the trace for the iron law, arithmetic intensity, and energy movement; tail latency vs. mean latency in production serving (the 40x p99 ratio)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Using the iron law and the arithmetic intensity law, explain why generating one token from a large decoder at batch size one is bound by memory rather than compute, and name two levers that move it toward the ridge point.",
+   "md": "At batch size one, each generated token reads essentially every weight once and performs about one multiply-accumulate per weight, so arithmetic intensity is near 1 FLOP/byte, far left of the accelerator's ridge point R_peak/BW. The data term DataVolume/Bandwidth therefore dominates the iron law, and the memory-transfer bound exceeds the compute bound by a wide factor. Batching amortizes each weight read across several requests, reducing modeled weight traffic per generated token rather than necessarily reducing total traffic per batch. Supported quantization shrinks bytes per weight and raises modeled intensity. Energy savings depend on actual access widths and counts, arithmetic and runtime costs, and the measured system boundary. The latency budget limits how far batching can go."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-16-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Six months after launch, a DLRM-based recommender still returns well-formed rankings with healthy latency, but click-through has fallen, and an audit finds that the online embedding lookup normalizes one user feature differently from the offline training pipeline. Which principle names this specific failure?",
+     "explanation": "The correct answer is A. The failure described is a divergence between two code paths on identical inputs, which the training-serving skew diagnostic (principle 11) defines and can detect without waiting for labels. Drift would be a change in the input population, and divergence alone does not prove a quality drop. The verification gap says the opposite of that choice: launch evaluation estimates behavior over a stated population and tolerance, with uncertainty. The required population success probability and statistical confidence in that estimate are separate quantities. Latency is healthy here, so the latency budget is not the limiting principle.",
+     "hint": "Think about: map a production trust failure on the DLRM lighthouse to the deployment principle that names and detects it.",
+     "type": "single",
+     "options": [
+      "The training-serving skew diagnostic, because the same model computes a feature differently in serving and in training, and that divergence is measurable without labels.",
+      "The statistical drift diagnostic, because any drop in click-through proves that the user distribution has shifted.",
+      "The verification gap, because the launch evaluation certified correctness for every future input.",
+      "The latency budget principle, because falling click-through always indicates a missed tail-latency deadline."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Consider serving one token at batch size 1 from a 70-billion-parameter Llama 2 model in FP16 ($D_{\\text{vol}} = 140\\text{ GB}$, $O \\approx 140\\text{ GFLOP}$) sharded across two NVIDIA H100 GPUs (aggregate $\\text{BW} = 6.70\\text{ TB/s}$, aggregate $R_{\\text{peak}} = 1,978\\text{ TFLOP/s}$). What are the idealized lower bounds for memory transfer ($T_{\\text{mem}}$) and peak compute ($T_{\\text{comp}}$), and what systems optimization strategy does this diagnostic suggest?",
+     "explanation": "The correct answer is C. Memory transfer time $T_{\\text{mem}} \\approx 20.9\\text{ ms}$ and compute time $T_{\\text{comp}} \\approx 0.07\\text{ ms}$; because the memory bound is $\\approx 295\\times$ larger than the compute bound, the modeled ceiling is bandwidth-bound, suggesting weight reuse and supported quantization as candidates whose latency effects require profiling. Applying the Iron Law and Arithmetic Intensity formulas: $T_{\\text{mem}} = \\frac{140\\text{ GB}}{6.70\\text{ TB/s}} = \\frac{140\\text{ GB}}{6,700\\text{ GB/s}} \\approx 20.9\\text{ ms}$, while $T_{\\text{comp}} = \\frac{140\\times 10^9\\text{ FLOP}}{1,978\\times 10^{12}\\text{ FLOP/s}} \\approx 0.07\\text{ ms}$. The ratio $\\frac{T_{\\text{mem}}}{T_{\\text{comp}}} = \\frac{20.9}{0.07} \\approx 295\\times$. Arithmetic intensity is $\\approx 1\\text{ FLOP/byte}$, which lies far to the left of the H100 ridge point ($I_{\\text{ridge}} = \\frac{1978\\text{ TFLOP/s}}{6.7\\text{ TB/s}} \\approx 295\\text{ FLOP/byte}$). This traffic model limits attainable arithmetic throughput relative to peak; it does not measure tensor-core busy or stalled cycles. Profiling must establish the realized bottleneck, including costs excluded from this calculation. Batching reuses weights across requests, and supported weight quantization reduces their byte volume, but their end-to-end latency effects depend on operator support, queueing, and the request path. Compute-only tuning cannot lower the modeled memory-transfer bound. Inverting the values confuses compute with memory; claiming equal time misplaces the ridge point; and doubling execution time misapplies sharding.",
+     "hint": "Think about: calculate idealized memory-transfer and compute lower bounds for autoregressive token decoding and use arithmetic intensity to select high-leverage serving optimizations.",
+     "type": "single",
+     "options": [
+      "Memory transfer time T_mem approx 0.07 ms and compute time T_comp approx 20.9 ms; because compute time dominates by \\$295×, the engineering team should prioritize hand-tuning tensor core matrix multiplication kernels.",
+      "Memory transfer time $T_{\\text{mem}} \\approx 2.09\\text{ ms}$ and compute time $T_{\\text{comp}} \\approx 2.09\\text{ ms}$; because the workload operates exactly at the roofline ridge point, compute optimizations and memory optimizations provide identical returns.",
+      "Memory transfer time $T_{\\text{mem}} \\approx 20.9\\text{ ms}$ and compute time $T_{\\text{comp}} \\approx 0.07\\text{ ms}$; because the memory bound is $\\approx 295\\times$ larger than the compute bound, the modeled ceiling is bandwidth-bound, suggesting weight reuse and supported quantization as candidates whose latency effects require profiling.",
+      "Memory transfer time T_mem approx 41.8 ms and compute time T_comp approx 0.14 ms; because sharding across two GPUs doubles the communication overhead, execution time increases by \\$2× relative to a single GPU."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A production serving dashboard for an interactive conversational assistant reports an average (mean) time to first token of 50 ms. However, user satisfaction metrics are declining, and detailed telemetry reveals a P99 time to first token of 2,000 ms (a \\$40× gap over the mean), violating the product SLO (T_0.99 le 200 ms). Which set of plausible mechanisms should engineers investigate using request-stage traces to explain the long tail?",
+     "explanation": "The correct answer is C. Variable sequence lengths, runtime pauses, and queueing under bursty arrivals are plausible mechanisms to investigate, not causes established by the mean and p99 alone. Request-stage traces must separate waiting, prompt processing, generation, and host-runtime pauses. Mean latency hides tail behavior ($P99 \\gg \\text{mean}$). In ML serving, possible sources of tail latency include variable-length prompt processing and generation loops in LLMs, garbage collection pauses in host runtimes, lock contention in dynamic batch schedulers, and queueing buildup when request arrival rates momentarily exceed processing capacity. Uniform bandwidth degradation could slow requests but is not diagnosed by these two summary statistics; dynamic parameter growth is technically nonsensical for static weights; and floating-point underflow confuses numerical precision with serving latency distributions.",
+     "hint": "Think about: analyze root causes of tail-latency spikes ($P99 \\gg \\text{mean}$) in production inference serving systems and evaluate them against latency budget SLOs.",
+     "type": "single",
+     "options": [
+      "Uniform degradation of memory bus bandwidth across all simultaneous client connections.",
+      "A 40x increase in model weight parameters triggered dynamically whenever traffic surges.",
+      "Heavy-tailed sequence lengths in autoregressive decoding, runtime garbage collection pauses in Python servers, and queueing delays caused by dynamic batching timeouts under bursty request arrivals.",
+      "Deterministic floating-point underflow occurring on exactly one percent of input requests."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Responsible AI metrics, such as subgroup error rates and bias feedback amplification, can be adequately handled as a post-hoc compliance audit after model serving is fully optimized, because fairness properties remain stable once offline validation passes.",
+     "explanation": "False. Responsible AI is a dynamic systems engineering constraint governed by the same measurement discipline as latency and throughput. High aggregate accuracy on an offline benchmark can easily conceal massive error rate disparities on underrepresented demographic cohorts. In production, algorithmic predictions influence future data collection, creating compounding feedback loops (principle 13: $\\Delta_g(k) \\approx \\Delta_g(0)\\alpha_{\\text{fb}}^k$) whose fitted amplification factor determines whether disparity grows or diminishes within the modeled regime. Treating fairness as an afterthought can leave harms undetected. Disaggregated metrics, subgroup monitoring, and fairness validation provide evidence for response, but detection and mitigation depend on outcome-label delays, monitoring cadence, and the response path; they are not guaranteed in real time.",
+     "hint": "Think about: justify why responsible AI monitoring and bias feedback mitigation are first-class operational systems constraints rather than post-hoc compliance audits.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: The section traces trustworthiness on DLRM and physical deliverability on a Llama decoder with different principles. What single engineering discipline do the two traces share, and why does the bitter lesson make it necessary?",
+   "md": "Both traces name the limiting term, measure it, and budget for it: drift, skew, and disparity get telemetry, thresholds, and response paths on the trust side, while the data term, intensity, and tail latency get bounds and budgets on the delivery side. The bitter lesson says general methods that exploit growing computation win, so systems keep scaling; only a system that can afford that scale and can still be trusted gets to keep scaling, which requires both halves of the mandate to be measured rather than assumed."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now map a production trust failure on the DLRM lighthouse to the deployment principle that names and detects it.",
+    "You can now calculate idealized memory-transfer and compute lower bounds for autoregressive token decoding and use arithmetic intensity to select high-leverage serving optimizations.",
+    "You can now analyze root causes of tail-latency spikes ($P99 \\gg \\text{mean}$) in production inference serving systems and evaluate them against latency budget SLOs.",
+    "You can now justify why responsible AI monitoring and bias feedback mitigation are first-class operational systems constraints rather than post-hoc compliance audits."
+   ]
+  }
+ ]
+}

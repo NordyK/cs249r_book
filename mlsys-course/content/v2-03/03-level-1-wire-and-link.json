@@ -1,0 +1,84 @@
+{
+ "title": "Level 1 Wire and Link",
+ "summary": "Evaluate the trade-offs between PAM4 and NRZ signaling in high-speed network fabrics.",
+ "source": {
+  "chapter": "v2-03",
+  "sections": [
+   "Level 1 Wire and Link",
+   "Signal integrity and PAM4",
+   "Reach and medium for copper and optics",
+   "SerDes, link budget, and power"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Level 1 Wire and Link** in *Network Fabrics* (Vol II). By the end you should be able to:\n\n- Evaluate the trade-offs between PAM4 and NRZ signaling in high-speed network fabrics\n- Analyze link budget and attenuation constraints on high-speed copper cabling in dense AI racks\n- Calculate and evaluate the power overhead of optical interconnects in large-scale AI clusters\n- Compare latency profiles of Direct Attach Copper versus optical cabling"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Network Fabrics, § Level 1 Wire and Link",
+   "md": "At … and beyond, the physics of signal transmission imposes hard limits on cable length, power consumption, and error rates. Signal attenuation in copper and chromatic dispersion in fiber dictate how far an accelerator can sit from its switches before communication fails. Every higher-level protocol and topology is ultimately constrained by what the physical wire can carry; these limits shape the geometry of the entire cluster."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Signal integrity and PAM4\n- Reach and medium for copper and optics\n- SerDes, link budget, and power\n\nPay attention to: PAM4 vs NRZ signaling and noise margin trade-offs; Forward Error Correction (FEC) latency overhead; Cabling media reach and cost (DAC vs AOC vs Pluggable Optics); SerDes power consumption and link budget limits."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why can increasing per-lane signaling rate shorten passive Direct Attach Copper reach, and how should the resulting link budget constrain AI rack design?",
+   "md": "Higher signaling frequencies increase copper attenuation, consuming the available loss margin. Usable reach depends on lane rate, cable construction, connectors, and active components rather than aggregate port rate alone. Designers keep passive paths within the validated channel budget and consider active cables or optics when the required distance exceeds it; a rack boundary by itself does not determine the medium."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-03-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "What is the primary physical trade-off introduced by adopting PAM4 (Pulse Amplitude Modulation 4-level) instead of NRZ (Non-Return-to-Zero) signaling in \\$400\\text{ Gb/s}$ and \\$800\\text{ Gb/s}$ network fabrics?",
+     "explanation": "The correct answer is B. PAM4 transmits 2 bits per symbol using 4 discrete voltage levels, doubling throughput without doubling the symbol rate. However, the voltage gap between adjacent levels shrinks by a factor of 3 compared to NRZ, requiring Reed-Solomon Forward Error Correction (RS-FEC) whose processing latency depends on the PHY and module implementation. The choice claiming PAM4 triples the baud rate while eliminating equalization is incorrect because PAM4 maintains the symbol rate while requiring more complex equalization. The option stating PAM4 replaces copper with optical coherent modulation confuses electrical modulation with optical transceivers. The assertion that PAM4 eliminates bit errors contradicts the physical reality that smaller noise margins increase raw bit error rates.",
+     "hint": "Think about: evaluate the trade-offs between PAM4 and NRZ signaling in high-speed network fabrics.",
+     "type": "single",
+     "options": [
+      "PAM4 triples the baud rate on the physical wire but eliminates the need for receiver equalization",
+      "PAM4 doubles the data rate per symbol by using four voltage levels, but the reduced noise margin requires Forward Error Correction (FEC) with an implementation-dependent latency cost",
+      "PAM4 replaces electrical copper signaling with optical coherent modulation, restricting maximum cable length to under \\$50 cm",
+      "PAM4 eliminates link-level bit errors entirely, removing the need for physical layer error detection at the cost of doubling SerDes power consumption"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In a modern multi-thousand GPU cluster using \\$400 Gb/s pluggable optical transceivers, why is transceiver power consumption a critical design constraint at the facility level?",
+     "explanation": "The correct answer is C. The scenario counts one selected spine-side module per physical link, giving \\$20{,}000 \\times 20\\text{ W} = 400\\text{ kW}$ for those endpoints. A complete optical link has a module at each end; the opposite endpoints, switch electronics, and cooling are outside this subtotal. The separate \\$25\\text{ W}$ per-port budget also includes the selected switch-side SerDes. Standard datacom optics do not require cryogenic cooling, and active conversion consumes power while data moves.",
+     "hint": "Think about: calculate and evaluate the power overhead of optical interconnects in large-scale AI clusters.",
+     "type": "single",
+     "options": [
+      "Pluggable transceivers require cryogenic cooling to prevent optical fiber dispersion",
+      "Optical transceivers consume no power during active data transfer but draw high surge currents during idle states",
+      "Counting one selected spine-side module on each of 20,000 links at \\$20\\text{ W}$ per module gives a \\$400\\text{ kW}$ endpoint subtotal, before opposite-end modules and other fabric power",
+      "Optical modules dissipate heat directly into the switch ASIC die, reducing switch processing clock frequencies by \\$50\\%"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Direct Attach Copper (DAC) cables introduce higher propagation and serialization latency than Active Optical Cables (AOC) over a 2-meter intra-rack link because copper has higher electrical resistance than optical fiber.",
+     "explanation": "False. Passive DAC avoids electrical-to-optical and optical-to-electrical conversion, but both high-speed copper and optical paths can include PHY and FEC processing. Actual latency depends on the complete path, signaling, and implementation; electrical resistance alone does not establish a latency ordering or a universal under-3-meter winner.",
+     "hint": "Think about: compare latency profiles of Direct Attach Copper versus optical cabling.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate the trade-offs between PAM4 and NRZ signaling in high-speed network fabrics.",
+    "You can now analyze link budget and attenuation constraints on high-speed copper cabling in dense AI racks.",
+    "You can now calculate and evaluate the power overhead of optical interconnects in large-scale AI clusters.",
+    "You can now compare latency profiles of Direct Attach Copper versus optical cabling."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,92 @@
+{
+ "title": "Production Debugging and Incident Response",
+ "summary": "Apply cross-model failure pattern analysis to isolate root causes in production ML outages.",
+ "source": {
+  "chapter": "v2-12",
+  "sections": [
+   "Production Debugging and Incident Response",
+   "Incident classification",
+   "Attribution analysis",
+   "Runbook development",
+   "Post-incident reviews",
+   "Incident ownership for distributed failures",
+   "On-call practices for ML teams"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Production Debugging and Incident Response** in *ML Operations at Scale* (Vol II). By the end you should be able to:\n\n- Apply cross-model failure pattern analysis to isolate root causes in production ML outages\n- Explain why ML incident response must inspect semantic and data health in addition to infrastructure metrics\n- Apply distributed collective debugging tools to diagnose distributed training deadlocks\n- Explain how post-incident reviews convert operational failures into enforceable platform invariants\n- Evaluate control plane blast radius and isolation risks in large-scale platform operations"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, ML Operations at Scale, § Production Debugging and Incident Response",
+   "md": "At 3:00 AM, the paging system alerts the on-call engineer that revenue from the core recommendation system has dropped 15 percent in the last hour. The servers are healthy, the latency is normal, and there are no exception logs. Conventional software can also return incorrect results silently, but machine learning adds failures rooted in data and statistical behavior while ordinary service-health signals remain normal. Debugging production ML systems therefore requires investigative frameworks that reach beyond code and infrastructure."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Incident classification\n- Attribution analysis\n- Runbook development\n- Post-incident reviews\n- Incident ownership for distributed failures\n- On-call practices for ML teams\n\nPay attention to: Cross-model failure pattern attribution analysis; Diagnostic sequencing in ML runbooks (semantic health before infra); Distributed collective deadlock debugging and Post-Incident Reviews."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: How does an operator diagnose a silent collective communication hang in a 1,024-GPU distributed training run using NCCL debug tooling?",
+   "md": "Enable `NCCL_DEBUG=INFO` and `NCCL_DEBUG_SUBSYS=ALL` to collect communication diagnostics across ranks, then compare their last completed operations and check for missing or mismatched collectives. Correlate these with process, network, and device telemetry. A hang may produce logs or timeout errors, and logging alone does not guarantee identification of its cause."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-12-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In an enterprise ML platform hosting dozens of services, on-call alerts report that *all* recommendation models across multiple teams have suffered a 15% drop in conversion over the past two hours, while vision models, NLP services, and raw server health metrics remain completely green. What is the most probable root cause?",
+     "explanation": "The correct answer is D. The shared recommendation feature pipeline is the strongest hypothesis among these choices because the failure follows model-family dependencies while unrelated services remain healthy. Confirm freshness, recent changes, and cohort effects before declaring a root cause; the pattern narrows the investigation but does not prove it.",
+     "hint": "Think about: apply cross-model failure pattern analysis to isolate root causes in production ML outages.",
+     "type": "single",
+     "options": [
+      "A catastrophic failure in the data center's primary 400 Gbps spine network switches.",
+      "Simultaneous random hardware bit-flips across all GPU Tensor Cores.",
+      "An unannounced git commit modifying the loss function in the vision model repository.",
+      "An upstream feature store pipeline delay causing user interaction features to become stale across all recommender models."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Why should an ML incident response runbook check feature freshness and input distributions when business KPIs drop even though server health and latency remain normal?",
+     "explanation": "The correct answer is A. Stale features or distribution changes can degrade predictions while requests still return successfully. Healthy infrastructure metrics therefore do not establish healthy model behavior. Investigate semantic and data signals alongside infrastructure evidence, and contain user impact while attribution continues; no universal diagnostic sequence fits every incident.",
+     "hint": "Think about: explain why ML incident response must inspect semantic and data health in addition to infrastructure metrics.",
+     "type": "single",
+     "options": [
+      "ML systems fail silently: when feature pipelines stall or input distributions drift, models continue returning HTTP 200 responses with normal latency, rendering infrastructure checks falsely reassuring.",
+      "Inspecting GPU hardware metrics immediately triggers automated container restarts.",
+      "Data pipelines are not connected to production networks and cannot cause outages.",
+      "Infrastructure monitoring tools require 24 hours of latency to register server crashes."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "The 2021 Meta global outage demonstrated that control plane dependencies (such as DNS, authentication, and routing) can be safely shared across both management and inference serving paths without physical isolation.",
+     "explanation": "False. The 2021 outage proved that platform-scale operations must treat the control plane as a hard dependency with a bounded blast radius; when network partitions sever out-of-band management and DNS, shared dependencies isolate operators from performing remediation.",
+     "hint": "Think about: evaluate control plane blast radius and isolation risks in large-scale platform operations.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain the primary objective of a Post-Incident Review (PIR) in an ML platform team and how it prevents recurrent operational failures.",
+   "md": "A PIR conducts a blameless timeline analysis to identify missing or delayed platform controls (e.g., absent feature freshness gates or unversioned schema dependencies) and assigns ownership for implementing structural platform invariants that prevent an entire failure class from recurring."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply cross-model failure pattern analysis to isolate root causes in production ML outages.",
+    "You can now explain why ML incident response must inspect semantic and data health in addition to infrastructure metrics.",
+    "You can now apply distributed collective debugging tools to diagnose distributed training deadlocks.",
+    "You can now explain how post-incident reviews convert operational failures into enforceable platform invariants."
+   ]
+  }
+ ]
+}

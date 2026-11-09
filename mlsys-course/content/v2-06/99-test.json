@@ -1,0 +1,147 @@
+{
+ "title": "Test: Distributed Training",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-06-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "A cluster of 1,024 GPUs, each with a 50,000-hour mean time to failure, should expect a GPU failure roughly every two days if failures are independent, even though any single GPU fails only about once every five to six years.",
+     "explanation": "True. Independent constant-rate failures add, so the cluster failure rate is about 1,024/50,000 per hour and the cluster mean time between failures is about 49 hours. Whether each failure interrupts training depends on recovery and redundancy, which is why distribution makes fault tolerance a first-order budget rather than an afterthought.",
+     "hint": "Think about: estimate how cluster size converts a rare per-device failure into a frequent cluster-level event",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "In standard PyTorch DistributedDataParallel, each worker uses a ____ to partition dataset indices deterministically and assign rank-specific shards based on process rank and epoch seed.",
+     "explanation": "DistributedSampler. It assigns rank-specific dataset indices using the rank and epoch seed. When the dataset size is not divisible by the worker count, padding can repeat samples unless the remainder is dropped; the sampler and loss accounting must handle that boundary explicitly.",
+     "hint": "Think about: identify deterministic rank-specific dataset partitioning and account for repeated or dropped remainder samples",
+     "type": "fill",
+     "answer": [
+      "DistributedSampler"
+     ]
+    },
+    {
+     "q": "According to the chapter's parallelism decision framework, which condition indicates that standard DistributedDataParallel (DDP) is a sensible baseline to evaluate over FSDP, TP, or PP?",
+     "explanation": "The correct answer is C. Comfortable full-state and activation fit makes DDP a sensible baseline because it avoids sharded parameter reconstruction and pipeline bubbles. Memory fit alone does not prove maximum throughput; exposed communication and useful batch size still need evaluation. An oversized layer makes tensor parallelism a candidate, while offload or recomputation may enable other layouts. Slow Ethernet requires a workload-specific communication budget; accumulation or a faster fabric may help. Sparse MoE routing motivates evaluating expert placement and its AllToAll demand.",
+     "hint": "Think about: identify the binding constraint criteria that validate using standard Data Parallelism",
+     "type": "single",
+     "options": [
+      "The model's single layer weight matrices exceed the HBM capacity of an individual GPU",
+      "The cluster is connected by slow 10 Gb/s commodity Ethernet across 1,024 nodes",
+      "The entire model state (parameters, gradients, and optimizer state) fits comfortably within single-device memory with sufficient headroom for activations",
+      "The model architecture contains sparse Mixture-of-Experts routing layers"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In the 3D parallelism cube, where the device count equals the product of the data-, pipeline-, and tensor-parallel degrees, how do the three scaling axes interact to allocate cluster accelerators for large models?",
+     "explanation": "The correct answer is D. Data, pipeline, and tensor parallelism partition different workload dimensions, and the product of their degrees gives the accelerator count. The degrees are not independent knobs: tensor and pipeline degrees must divide the model, the data-parallel degree and microbatch schedule must give a viable global batch, every partition must fit memory, and each axis's traffic must map onto a tier that can carry it. Large-model configurations routinely compose all three, for example TP=8 inside an NVLink node, PP=16 across nodes, and DP=128 across the cluster. Mutual exclusivity, a ban on combining data and model parallelism, and an additive count all contradict that multiplicative composition.",
+     "hint": "Think about: calculate total cluster resource allocation using the multiplicative axes of the 3D parallelism cube",
+     "type": "single",
+     "options": [
+      "The three axes are mutually exclusive; choosing data parallelism precludes using tensor or pipeline parallelism in the same cluster",
+      "Tensor and pipeline parallelism can combine within a node, but data parallelism can only be used if model parallelism is disabled",
+      "The total accelerator count is the sum of the three degrees, with each parallelism type requiring a disjoint node pool",
+      "The axes compose multiplicatively, so one layout can split layers (TP), stage the layer stack (PP), and replicate the pipeline across data shards (DP), and its device count is the product of the three degrees"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "For one rank in a balanced 3D layout with eight transformer layers per pipeline stage, 32 microbatches per update, two tensor-parallel reductions per layer in each pass, and one unbucketed data-parallel reduction after accumulation, order these communication patterns by invocation count per update, highest to lowest:",
+     "explanation": "(2) -> (3) -> (1). Tensor reductions recur within each layer of each microbatch. Pipeline transfers recur at stage boundaries for each microbatch. The specified unbucketed data-parallel reduction occurs once after accumulation. This ordering depends on the supplied layer count, schedule, and bucketing; it is not a universal ranking of bandwidth demand or exposed time.",
+     "hint": "Think about: compare communication invocation counts under an explicitly specified hybrid schedule",
+     "type": "order",
+     "items": [
+      "Tensor-parallel reductions",
+      "Pipeline stage-boundary transfers",
+      "Data-parallel gradient reduction"
+     ]
+    },
+    {
+     "q": "In Megatron-LM style tensor parallelism for a transformer layer, how are the linear projections in the multi-head attention block arranged to minimize cross-device collective communication?",
+     "explanation": "The correct answer is C. In Megatron-LM, the first linear layer (QKV projection) is column-parallel ($W = [W_1 | W_2]$), producing partitioned intermediate activations without communication. The second linear layer (Output projection) is row-parallel ($W = [W_1 ; W_2]$), taking those partitioned activations directly as inputs and generating partial sums. Only a single AllReduce at the end of the row-parallel projection is required to sum the partial outputs. Using column-parallel for both layers would require an intermediate AllGather. Using row-parallel for both layers would require an AllReduce before the second layer. Splitting QKV and Output across pipeline stages confuses intra-layer tensor parallelism with inter-layer pipelining.",
+     "hint": "Think about: analyze the column-then-row linear layer pairing in Megatron-LM tensor parallelism",
+     "type": "single",
+     "options": [
+      "Both QKV and Output projections are column-parallel, requiring an AllGather after each projection",
+      "Both QKV and Output projections are row-parallel, requiring an AllReduce before each projection",
+      "The QKV projection is column-parallel and the Output projection is row-parallel, requiring only a single AllReduce at the end of the attention block",
+      "The QKV projection is partitioned across pipeline stages while the Output projection is replicated across data-parallel ranks"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "The largest global batch size beyond which adding more samples per step yields diminishing reductions in the number of steps needed to reach target quality is called the ____.",
+     "explanation": "critical batch size. Beyond this workload-dependent point, larger global batches can raise hardware throughput without proportionally reducing the steps to target quality, so hardware scaling and statistical scaling must be evaluated separately.",
+     "hint": "Think about: identify the critical batch size as the statistical limit on useful data-parallel scale-out.",
+     "type": "fill",
+     "answer": [
+      "critical batch size"
+     ]
+    },
+    {
+     "q": "In a capacity-limited Mixture of Experts (MoE) system using top-1 routing and token dropping, what occurs when a hot expert receives more tokens than its allocated buffer capacity determined by the Capacity Factor $C$?",
+     "explanation": "The correct answer is A. To prevent memory overflow and load-imbalance stalls on devices hosting popular experts, the stated top-1 dropping implementation enforces a capacity limit $C \\cdot (B \\times S)/E$. When an expert's assigned token count exceeds this buffer, the excess tokens are dropped and bypass the feed-forward computation, flowing directly through the residual connection. Dynamically allocating host CPU memory would stall GPU execution. Collective communication does not pause dynamically for uneven token counts. Rerouting to random unselected experts would violate gating semantics.",
+     "hint": "Think about: explain the function of the capacity factor and token dropping in distributed MoE routing",
+     "type": "single",
+     "options": [
+      "Excess tokens are dropped and pass through the MoE layer unprocessed via the residual connection",
+      "The expert GPU dynamically allocates host CPU memory over PCIe, halting computation on other ranks",
+      "The AllToAll collective automatically pauses until all sibling experts process matching token counts",
+      "The extra tokens are rerouted to a random cold expert regardless of gating network weights"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "During the autoregressive generation phase of PPO alignment for a 70B-parameter model, which growing runtime state can limit generation concurrency in accelerator memory?",
+     "explanation": "The correct answer is B. The KV cache grows with concurrent sequence count, context length, layer count, and KV-head width. It can limit how many rollouts fit beside model weights and other resident state. Small-batch decoding is often memory-bandwidth bound, but cache capacity and compute limits must be evaluated separately. Optimizer buffers and checkpoint I/O do not explain this per-sequence growth.",
+     "hint": "Think about: identify the binding resource bottleneck during the generation phase of online RLHF",
+     "type": "single",
+     "options": [
+      "FP32 Adam momentum and variance buffers stored on CPU hosts",
+      "Key-Value (KV) cache memory in GPU HBM, bounded by memory bandwidth during token-by-token generation",
+      "AllReduce gradient communication buffers across InfiniBand switches",
+      "Host filesystem NVMe write bandwidth for checkpoint dumping"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A uniform fat-tree network topology providing equal bisection bandwidth between all node pairs is always more cost-effective than a rail-optimized topology when training large language models with hierarchy-aware 3D parallelism.",
+     "explanation": "False. A rail-optimized fabric can reduce hardware and cabling costs when its connectivity matches the intended pipeline and data-parallel groups. The saving requires a workload and placement comparison; expert AllToAll traffic, mixed jobs, routing constraints, and contention can change the required fabric. Neither topology is always more cost-effective.",
+     "hint": "Think about: evaluate how network topology design interacts with hierarchy-aware parallelism communication locality",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "If a model's parameters, gradients, optimizer state, activations, and working buffers already fit comfortably within single-GPU memory with high compute utilization under standard DDP, what is the expected throughput impact of enabling ZeRO-3 / FSDP Full Sharding?",
+     "explanation": "The correct answer is B. With full resharding, FSDP adds parameter AllGathers before forward and backward computation and uses ReduceScatter for gradients. When memory savings do not enable a better execution configuration, exposed extra communication can reduce throughput. The penalty depends on overlap and topology; neither linear speedup nor perfect hiding follows from sharding alone.",
+     "hint": "Think about: evaluate the communication throughput overhead of FSDP when device memory is not the binding constraint",
+     "type": "single",
+     "options": [
+      "Throughput will increase linearly by $N\\times$ because sharding reduces per-GPU gradient memory",
+      "Throughput can decrease because FSDP introduces additional AllGather collectives before forward and backward passes and ReduceScatter on the critical path",
+      "Throughput will remain exactly identical because NCCL automatically hides all collective communication overhead",
+      "Throughput will double because parameter sharding eliminates the backward pass entirely"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Order the four sequential phases of token routing and execution in Expert Parallelism (Mixture of Experts) across distributed workers:",
+     "explanation": "(3) -> (4) -> (2) -> (1). First, (3) Gating evaluates token representations to select destination experts. Next, (4) AllToAll Dispatch routes tokens across the interconnect to the GPUs hosting the chosen experts. Then, (2) Computation executes the local expert feed-forward layers on the received tokens. Finally, (1) AllToAll Combine routes the processed representations back to their originating devices.",
+     "hint": "Think about: order the four phases of token routing and execution in expert parallelism",
+     "type": "order",
+     "items": [
+      "Gating: A router network evaluates tokens and selects top-k destination experts",
+      "AllToAll Dispatch: Tokens are shuffled across the network fabric to the devices hosting their selected experts",
+      "Computation: Sharded expert feed-forward networks process their assigned token batches",
+      "AllToAll Combine: Processed token embeddings are routed back to their original source devices for residual connections"
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,62 @@
+{
+ "title": "Forward Recovery",
+ "summary": "Work through Forward Recovery.",
+ "source": {
+  "chapter": "v3-12",
+  "sections": [
+   "Forward Recovery",
+   "Recovery actions and evidence",
+   "Admissibility and expected cost",
+   "Repair vs. rebuild",
+   "The repair episode"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Forward Recovery** in *Failure Recovery* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Failure Recovery, § Forward Recovery",
+   "md": "Take the branch in which provisioning evidence did arrive. The separately authorized operation `provision_test_env_r18` has settled, binding the temporary integration-test environment `env_r18_01`. Before dispatching the integration test, the runtime validates the proposed test configuration and rejects it because a field requiring an integer contains a string. The candidate workspace remains `ws_r18`, and no integration test has started. Releasing the environment through `release_test_env_r18` would discard expensive, fully functional preparation. Conversely, a bounded correction of the configuration can restore readiness without rebuilding the environment from scratch."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Recovery actions and evidence\n- Admissibility and expected cost\n- Repair vs. rebuild\n- The repair episode"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Repair break-even matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: One bounded repair attempt beats immediate unwind-and-rebuild iff its measured success rate exceeds p* = C_repair / C_fallback, evaluated separately in time and dollars."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-12-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Forward Recovery** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Scoped circuit breakers, a single retry owner, and bulkheads bound three different quantities when many trajectories share one dependency.",
+      "A trajectory saga durably registers each effectful step's cleanup template before dispatch, not after the step returns, so a crash never leaves an effect without its compensator.",
+      "One bounded repair attempt beats immediate unwind-and-rebuild iff its measured success rate exceeds p* = C_repair / C_fallback, evaluated separately in time and dollars.",
+      "Transport retry, fresh proposal, feedback repair, compensation, and hold or escalate are chosen by evidence class first, then admission, then expected cost."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Repair break-even**: One bounded repair attempt beats immediate unwind-and-rebuild iff its measured success rate exceeds p* = C_repair / C_fallback, evaluated separately in time and dollars."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Forward Recovery."
+   ]
+  }
+ ]
+}

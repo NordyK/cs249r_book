@@ -1,0 +1,83 @@
+{
+ "title": "Dynamic Selection",
+ "summary": "Analyze how curriculum pacing can stabilize early learning by controlling when harder examples appear.",
+ "source": {
+  "chapter": "v1-09",
+  "sections": [
+   "Dynamic Selection",
+   "Curriculum learning",
+   "Active learning"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Dynamic Selection** in *Data Selection* (Vol I). By the end you should be able to:\n\n- Analyze how curriculum pacing can stabilize early learning by controlling when harder examples appear\n- Compare active learning query strategies to mitigate sampling bias and redundancy\n- Design the closed-loop workflow of an iterative active learning system"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Selection, § Dynamic Selection",
+   "md": "Early in a ResNet-50 run over ImageNet, clean, centered images of common classes provide stable gradients that establish general feature representations, but as parameters converge their gradient norms decay toward zero. Executing forward and backward passes on these mastered samples continues to consume accelerator execution cycles and high-bandwidth memory (HBM) transfers while producing negligible parameter updates, driving their effective ICR toward zero. Dynamic selection mitigates this waste by adapting batch composition to the model's current state."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Curriculum learning\n- Active learning\n\nPay attention to: Curriculum pacing; Active learning query strategies; The active learning loop."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-09-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In curriculum learning, an engineer implements an easy-to-hard pacing schedule that controls the fraction of the sorted training pool available at each stage. What is the primary objective of this pacing strategy?",
+     "explanation": "The correct answer is A. The chapter presents curriculum learning as a way to shape the optimization trajectory: easier examples can provide steadier early gradients, while harder examples are introduced later as the model matures. That is not a guarantee against divergence on every task, and 'easy' depends on the scoring rule, but it is the pacing mechanism this section teaches. The other choices confuse curriculum with memory-layout tricks or active-learning workflows.",
+     "hint": "Think about: analyze how curriculum pacing can stabilize early learning by controlling when harder examples appear.",
+     "type": "single",
+     "options": [
+      "To guide early optimization with more stable examples before gradually introducing harder ones",
+      "To eliminate the need for backward passes during the first half of training",
+      "To maximize GPU memory bandwidth utilization by sorting tensors strictly by length in bytes",
+      "To replace human labelers with an automated oracle during the late stages of training"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An active learning pipeline chooses unlabeled examples for costly radiologist annotation. The team notices that simple uncertainty sampling repeatedly selects images from a single ambiguous artifact class, starving other disease categories. Which query strategy should they adopt to resolve this pathology?",
+     "explanation": "The correct answer is B. Pure uncertainty sampling often suffers from sampling bias by selecting clustered points near a single ambiguous boundary region. Diversity sampling (or hybrid strategies like BADGE that incorporate gradient embeddings) ensures that selected queries span diverse clusters across the feature space while still targeting model uncertainty. Least-confidence sampling exacerbates the clustering issue, random undersampling discards informative candidates arbitrarily, and unthresholded pseudo-labeling introduces catastrophic label noise.",
+     "hint": "Think about: compare active learning query strategies to mitigate sampling bias and redundancy.",
+     "type": "single",
+     "options": [
+      "Least-confidence sampling, because it strictly selects the lowest top-1 probability prediction",
+      "Diversity sampling or hybrid uncertainty-diversity sampling (such as BADGE), which balances uncertainty near decision boundaries with feature-space coverage",
+      "Random undersampling of the entire unlabeled pool to reduce dataset size before scoring",
+      "Uniform zero-shot pseudo-labeling without confidence thresholds"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Order the steps in an active learning closed-loop iteration:",
+     "explanation": "The correct order is: (3) Score unlabeled pool using current model, (1) Select top query samples via query strategy, (2) Acquire expert annotations from the oracle, (5) Add newly labeled samples to the training set, (4) Retrain or update model on expanded dataset. The cycle begins with proxy or model scoring over the candidate pool, selecting candidate queries, querying the human oracle, incorporating verified labels into the dataset, and updating the model.",
+     "hint": "Think about: design the closed-loop workflow of an iterative active learning system.",
+     "type": "order",
+     "items": [
+      "Score unlabeled pool using current model",
+      "Select top query samples via query strategy",
+      "Acquire expert annotations from the oracle",
+      "Add newly labeled samples to the training set.",
+      "Retrain or update model on expanded dataset"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze how curriculum pacing can stabilize early learning by controlling when harder examples appear.",
+    "You can now compare active learning query strategies to mitigate sampling bias and redundancy.",
+    "You can now design the closed-loop workflow of an iterative active learning system."
+   ]
+  }
+ ]
+}

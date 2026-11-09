@@ -1,0 +1,61 @@
+{
+ "title": "The Invocation Contract",
+ "summary": "Work through The Invocation Contract.",
+ "source": {
+  "chapter": "v3-02",
+  "sections": [
+   "The Invocation Contract",
+   "What a request specifies",
+   "The normalized status envelope",
+   "Streaming and cancellation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Invocation Contract** in *The Foundation Model* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Foundation Model, § The Invocation Contract",
+   "md": "When a repair call hits its output token limit after emitting `read_file(\"src/pool\")` instead of `read_file(\"src/pool.py\")`, or when a local deadline expires while the remote server keeps decoding and billing tokens, raw reply text cannot tell the runtime what happened. Both strings parse as valid arguments, and an empty socket says nothing about remote execution. To keep how a call ended attached to what it returned, the host runtime pairs each outbound request specification with a normalized inbound response envelope so that every remote generation is governed by a single contract."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- What a request specifies\n- The normalized status envelope\n- Streaming and cancellation"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Output-bound call latency matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-02-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Invocation Contract** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Model output is a proposal with zero ambient authority: the runtime validates, authorizes, executes, and returns the observation, so a tool request is never an effect and a model claim is never an observation.",
+      "Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever.",
+      "Likelihood is not truth, schema conformance is not permission, a passing test covers only exercised behavior, and self-review re-samples the same distribution, so each gate is chosen for the one property it certifies and a fallible checker leaves a residual defect share given by Bayes.",
+      "Every call is a request record plus a normalized status envelope, and only a COMPLETED reply enters the candidate path, so a truncated prefix that parses is quarantined and a local deadline expiry leaves the remote outcome unknown."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Output-bound call latency**: Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through The Invocation Contract."
+   ]
+  }
+ ]
+}

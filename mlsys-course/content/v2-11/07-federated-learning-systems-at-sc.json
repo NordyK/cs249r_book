@@ -1,0 +1,104 @@
+{
+ "title": "Federated Learning Systems at Scale",
+ "summary": "Design client selection and straggler mitigation mechanisms using over-selection in large-scale federated systems.",
+ "source": {
+  "chapter": "v2-11",
+  "sections": [
+   "Federated Learning Systems at Scale",
+   "Client scheduling",
+   "Bandwidth-aware update compression",
+   "Federated personalization",
+   "Federated privacy",
+   "Large-scale device orchestration"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Federated Learning Systems at Scale** in *Edge Intelligence* (Vol II). By the end you should be able to:\n\n- Design client selection and straggler mitigation mechanisms using over-selection in large-scale federated systems\n- Explain the algebraic masking and cancellation mechanism of Secure Aggregation (SecAgg)\n- Analyze why $L_2$ norm clipping is essential for establishing sensitivity bounds in DP-FedAvg\n- Evaluate the role of error accumulation buffers in gradient sparsification for federated learning\n- Calculate single-round versus cumulative communication volume in federated learning deployments"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Edge Intelligence, § Federated Learning Systems at Scale",
+   "md": "A round selects a cohort from the deployment population, but some selected devices overheat, lose Wi-Fi, enter power-saving mode, or power off before returning an update. A fleet of millions of smartphones need not participate in one round for these failures to matter. Turning the FedAvg protocol into a production fleet system requires deciding which clients are eligible and how long to wait, compressing updates to fit constrained uplinks, separating personal state from shared weights, enforcing cryptographic and statistical privacy bounds, and reconciling asynchronous updates across heterogeneous hardware."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Client scheduling\n- Bandwidth-aware update compression\n- Federated personalization\n- Federated privacy\n- Large-scale device orchestration\n\nPay attention to: Client scheduling, participation bias, and eligibility filtering; Over-selection for straggler and dropout mitigation; Bandwidth-aware update compression (quantization, top-k sparsification with error accumulation); Secure Aggregation (SecAgg) zero-sum masking and Differential Privacy (DP-FedAvg clipping/noise)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In Differential Privacy for Federated Learning (DP-FedAvg), explain why gradient clipping to a fixed threshold $S$ ($\\|\\Delta \\theta_k\\|_2 \\le S$) is a mandatory prerequisite before adding calibrated Gaussian noise to the aggregate.",
+   "md": "Clipping bounds each client update norm by S, making sensitivity finite. The bound depends on the aggregation rule and neighboring-dataset definition: replacing one contribution in a fixed-size mean can change it by at most \\$2S/K. Noise must be calibrated to the chosen bound, sampling procedure, and privacy budget, with composition across rounds; clipping alone does not establish an (PrivacyBudget,PrivacyAdditiveSlack) guarantee."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-11-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In production cross-device federated learning (such as Google Gboard), why do systems implement Over-Selection of clients (selecting CandidateClientCount approx 1.3 × TargetUpdateCount devices per round) rather than selecting exactly TargetUpdateCount devices?",
+     "explanation": "The correct answer is C. Over-selection accommodates dropout and slow completion. If enough valid reports arrive, the round can proceed at the target-th completion rather than waiting for the slowest selected device. A surplus pool does not guarantee that the target is reached or prevent a stalled round by itself. The coordinator also needs a deadline, acceptance or abandonment rules, and evaluation of the completed cohort. The approximate 1.3 factor is a deployment example, not a universal setting.",
+     "hint": "Think about: design client selection and straggler mitigation mechanisms using over-selection in large-scale federated systems.",
+     "type": "single",
+     "options": [
+      "Over-selection ensures that every mobile client receives \\$1.3× the monetary payment for participating.",
+      "Over-selection forces client devices to increase their CPU clock frequencies by \\$30\\% during training.",
+      "Selecting surplus candidates can reach the target number of valid reports earlier than waiting for every selected device, provided enough clients complete; a deadline and incomplete-round policy are still required.",
+      "The aggregation server requires exactly \\$30\\% redundant updates to perform parity-bit error correction on the GPU memory bus."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "How does the Secure Aggregation (SecAgg) cryptographic protocol protect individual client privacy during federated aggregation on a central server?",
+     "explanation": "The correct answer is D. Clients establish pairwise secrets and generate opposite masks, so masks cancel when the protocol forms an authorized aggregate. Dropout recovery requires additional protocol steps. Individual-update confidentiality depends on the participant threshold and threat model; it does not make the released aggregate differentially private. Deleting a server disk after receiving raw updates offers no comparable protection.",
+     "hint": "Think about: explain the algebraic masking and cancellation mechanism of Secure Aggregation (SecAgg).",
+     "type": "single",
+     "options": [
+      "Clients transmit raw unencrypted updates, and the server permanently deletes its hard drive after every round.",
+      "Clients train on synthetic dummy data generated by the server, ensuring real gradients are never computed.",
+      "The server encrypts all client devices using a remote ransomware key until the global round terminates.",
+      "Participating client pairs agree on shared pseudo-random masks that are added by one client and subtracted by the other; when the server sums all received masked updates, the masks algebraically cancel out, revealing the exact global aggregate without exposing any individual update."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In top-k gradient sparsification for federated learning, discarding all gradient components outside the top \\$1–10\\% by magnitude without maintaining a local error accumulation buffer preserves the exact convergence rate of uncompressed SGD.",
+     "explanation": "False. Dropping unsent components need not preserve the convergence rate of uncompressed SGD and can introduce optimization bias. Error feedback carries those components into subsequent compression steps, but its update-sized residual consumes persistent device memory. Neither immediate transmission of every component nor convergence for every optimizer and workload is guaranteed; compare quality, rounds, and total communication under the chosen assumptions.",
+     "hint": "Think about: evaluate the role of error accumulation buffers in gradient sparsification for federated learning.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "For a round using secure aggregation and a trusted server that adds differential-privacy noise, order these stages. Assume protocol participation thresholds and dropout recovery are satisfied:",
+     "explanation": "The correct order is (1) -> (3) -> (5) -> (2) -> (4). Eligibility and compatible state precede local work; clipping precedes calibrated noise. Secure aggregation forms an authorized aggregate under its threshold and dropout rules, rather than relying on arbitrary masks to cancel after clients are dropped. In this trusted-server design, differential privacy protects the released noisy result, not the exact aggregate from that server. Repeated releases require privacy accounting. Failure to meet the deadline or threshold follows the incomplete-round policy rather than proceeding with an unauthorized aggregate.",
+     "hint": "Think about: synthesize the complete end-to-end execution lifecycle of a production federated learning round.",
+     "type": "order",
+     "items": [
+      "Select eligible clients and distribute a compatible global model and training policy",
+      "Clients train, clip their contributions under the policy, and apply protocol masks",
+      "Receive enough valid masked reports before the round deadline, or apply the incomplete-round policy",
+      "Form the authorized aggregate and add noise calibrated to bounded client contributions and the declared privacy unit",
+      "Update the global model and evaluate progress and completed-cohort coverage"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: In a federated camera-personalization deployment, a user captures \\$200\\text{ MB}$ of compressed images per week. A 4-bit quantized model update for the 5M-parameter on-device model requires \\$2.5\\text{ MB}$ per uplink round. Calculate the single-round communication savings of transmitting model updates versus uploading raw weekly data, and explain why cumulative round counts must be accounted for in production network budgets.",
+   "md": "The single-round upload reduction is \\$200 MB / 2.5 MB = 80× less data transferred on the uplink. However, this \\$80× factor represents only a single training round. Over the course of training, if a device participates in 80 federated uplink rounds (\\$80 × 2.5 MB = 200 MB), cumulative update uploads alone equal the total raw data volume, before accounting for downlink global-model broadcasts, dropped-round retransmissions, or protocol handshake metadata. Therefore, production network planning must evaluate total communication cost over the entire convergence trajectory rather than single-round ratios."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now design client selection and straggler mitigation mechanisms using over-selection in large-scale federated systems.",
+    "You can now explain the algebraic masking and cancellation mechanism of Secure Aggregation (SecAgg).",
+    "You can now analyze why $L_2$ norm clipping is essential for establishing sensitivity bounds in DP-FedAvg.",
+    "You can now evaluate the role of error accumulation buffers in gradient sparsification for federated learning."
+   ]
+  }
+ ]
+}

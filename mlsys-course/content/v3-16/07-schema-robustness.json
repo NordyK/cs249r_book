@@ -1,0 +1,60 @@
+{
+ "title": "Schema Robustness",
+ "summary": "Work through Schema Robustness.",
+ "source": {
+  "chapter": "v3-16",
+  "sections": [
+   "Schema Robustness",
+   "Schema augmentation",
+   "Transfer evaluation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Schema Robustness** in *Trajectory Fine-Tuning* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Trajectory Fine-Tuning, § Schema Robustness",
+   "md": "Suppose a deployment updates its `read_file` tool so the active interface requires a string argument named `target_uri`, forbids extraneous keys, and resolves paths relative to an authorized fixture directory. Even when training trajectories such as `trace_r19_01_redacted_v1` taught the repair agent to inspect a tool schema after a refusal, a corpus that showed only one static `read_file` signature across thousands of examples lets the policy memorize legacy parameter keys in its weights instead of reading the contract supplied in the prompt context:"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Schema augmentation\n- Transfer evaluation"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Schema augmentation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-16-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Schema Robustness** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Loss values are comparable only under identical split, serialization, mask, and normalization, and promotion requires closed-loop task acceptance under the serving configuration, not lower loss.",
+      "A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas.",
+      "A costly teacher configuration generates trajectories that pass the same admission as any demonstration, so distillation from sampled tokens is imitation rather than soft-target matching.",
+      "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Schema augmentation**: A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Schema Robustness."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,128 @@
+{
+ "title": "Test: Conclusion",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-17-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "The chapter describes the fleet dividend of a link-energy improvement as the link ratio diluted by the affected share of energy, the same affected-share arithmetic that limits any partial speedup. It names this reasoning ____ applied to energy.",
+     "explanation": "The correct answer is Amdahl's law. An improvement confined to one part of a system can change the whole only in proportion to that part's share, whether the quantity is time or energy.",
+     "hint": "Think about: recognize Amdahl's law as the bound on partial improvements to fleet energy.",
+     "type": "fill",
+     "answer": [
+      "The correct answer is Amdahl's law"
+     ]
+    },
+    {
+     "q": "The chapter maps the volume's three running archetypes to representative constraints in stated operating regimes within the C$^3$ taxonomy (Compute, Communication, Coordination). Which of the following mappings correctly identifies the first binding term and primary engineering focus for each archetype?",
+     "explanation": "The correct answer is D. Archetype A (GPT-4/Llama-3) binds on Communication (gradient sync / activation transfer); Archetype B (DLRM at Scale) binds on Coordination (multi-TB embedding sharding / AllToAll routing); Archetype C (Federated MobileNet) binds on Compute (watt-scale device silicon / duty-cycle limits). These are representative regimes, not universal rankings: an edge device's local compute limit does not establish the global federated round's communication or availability limit. The three archetypes demonstrate that no single C$^3$ term universally dominates across ML workloads: Archetype A spans thousands of tightly coupled accelerators where tensor/pipeline collectives saturate fabric bisection bandwidth (Communication); Archetype B features terabyte-scale sparse embedding tables partitioned across hundreds of nodes where request routing and AllToAll tail latency dominate (Coordination); and Archetype C executes on battery-powered, thermal-constrained mobile devices where local silicon throughput and energy ceilings bind execution (Compute). The alternative mappings misidentify the underlying physical constraints and failure profiles of these representative workloads.",
+     "hint": "Think about: classify production ML archetypes by their primary C$^3$ bottleneck and connect each to its corresponding systems engineering intervention.",
+     "type": "single",
+     "options": [
+      "Archetype A binds on Compute (matrix arithmetic); Archetype B binds on Communication (inter-data-center WAN bandwidth); Archetype C binds on Coordination (edge mesh consensus protocols).",
+      "Archetype A binds on Coordination (scheduler dispatch); Archetype B binds on Compute (dense embedding multiplications); Archetype C binds on Communication (cellular 5G upload bandwidth).",
+      "Archetype A binds on Compute (floating-point tensor cores); Archetype B binds on Compute (embedding lookups); Archetype C binds on Coordination (parameter server consensus).",
+      "Archetype A (GPT-4/Llama-3) binds on Communication (gradient sync / activation transfer); Archetype B (DLRM at Scale) binds on Coordination (multi-TB embedding sharding / AllToAll routing); Archetype C (Federated MobileNet) binds on Compute (watt-scale device silicon / duty-cycle limits)."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Order the 6 steps of the chapter's procedural diagnostic workflow for resolving fleet-scale systems issues:",
+     "explanation": "The correct sequence is (1) Start with the observed symptom -> (2) Attach the metric -> (3) Map to C$^3$ (Compute, Communication, Coordination) -> (4) Locate the fleet-stack row -> (5) State the displaced cost -> (6) Preserve governance evidence. The diagnostic procedure begins by naming the user- or operator-visible failure, attaching a falsifiable metric, mapping the constraint onto C$^3$, locating the fleet-stack row that owns the intervention, identifying what cost the proposed fix displaces elsewhere, and ensuring audit and compliance evidence is preserved.",
+     "hint": "Think about: design a diagnostic troubleshooting workflow using the 6-step procedure to resolve fleet-scale production bottlenecks.",
+     "type": "order",
+     "items": [
+      "Start with the observed symptom",
+      "Attach the metric",
+      "Locate the fleet-stack row",
+      "State the displaced cost",
+      "Preserve governance evidence"
+     ]
+    },
+    {
+     "q": "In a distributed ML system, optimizing individual layers in isolation (such as independently maximizing storage IOPS, network bandwidth, or serving concurrency) guarantees optimal end-to-end system throughput.",
+     "explanation": "False. In distributed ML systems, the layers are coupled rates and constraints. A local optimization that improves one component can be completely negated if another layer binds the system (for example, high storage read bandwidth is wasted if collective communication saturates the network fabric). End-to-end system optimization requires cross-layer co-design and matching rates rather than isolated layer improvements.",
+     "hint": "Think about: evaluate why isolated component optimizations fail to guarantee end-to-end distributed system performance.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The chapter states that test-time compute moves part of the scaling curve from the training cluster into the serving path. What changes about how that compute is paid for?",
+     "explanation": "The correct answer is B. Test-time compute is spent per query, so it is priced as a per-request compute budget inside the serving path and recurs with every request. A one-time training cost amortized across requests describes pretraining, not test-time compute. Nothing in the account moves the cost onto edge devices, and test-time compute adds to pretraining rather than replacing it.",
+     "hint": "Think about: explain why test-time compute turns quality into a recurring per-request serving cost.",
+     "type": "single",
+     "options": [
+      "It is paid once, during training, and then amortized across every later request at no added serving cost.",
+      "It is spent on each query inside the request's latency and resource budget, so its cost recurs with every request for the lifetime of the deployment.",
+      "It moves entirely onto edge devices, so the serving fleet's cost stays unchanged.",
+      "It replaces pretraining, so the training cluster can shrink by the same amount the serving fleet grows."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A synchronous distributed training job achieves 94% linear scaling efficiency on 8 GPUs. When scaled to 8,000 GPUs on the same network fabric without changing hyperparameters, scaling efficiency plummets to 38%. Cluster telemetry reveals that per-device arithmetic execution speed remained constant, but workers spend over 55% of step time waiting at collective barriers. Which of the six principles best explains why small-scale profiling failed to forecast this collapse?",
+     "explanation": "The correct answer is A. Communication can dominate, because collective synchronization, fabric contention, and straggler waiting grow with worker count while each device's share of the compute shrinks. In the Fleet Law, IronLawComputeTime/DeviceCount falls as DeviceCount grows from 8 to 8,000, but CommunicationTime(DeviceCount) and SynchronizationTime(DeviceCount) do not; fabric contention and arrival skew can expose communication and synchronization costs at the larger scale. Barrier waiting alone does not distinguish those causes; aligned rank traces and fabric measurements are needed. Profiling at 8 GPUs therefore does not establish the regime that 8,000 GPUs enter, which is the qualitative change of scale that all six principles share. The telemetry supports exposed synchronization cost, but it does not establish silent corruption as its cause. The downclocking option is refuted by the constant per-device arithmetic speed, and the thermal-throttling option is likewise inconsistent with unchanged local kernel speeds.",
+     "hint": "Think about: diagnose how communication and synchronization terms that are negligible on a small cluster come to dominate step time at fleet scale, a qualitative change that small-cluster profiling cannot predict.",
+     "type": "single",
+     "options": [
+      "Communication can dominate, because collective synchronization, fabric contention, and straggler waiting grow with worker count while each device's share of the compute shrinks, so the exposed communication and synchronization time that is negligible on 8 GPUs becomes most of the step on 8,000.",
+      "Failure is routine, because the cluster experiences silent hardware data corruption that forces the optimizer to recalculate gradient steps.",
+      "Infrastructure determines capability, because 8,000-GPU clusters automatically downclock GPU core frequencies by 60% to comply with data-center power capping.",
+      "Sustainability is a first-order cost, because thermal throttling occurs only when aggregate cluster power exceeds one megawatt."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An ML systems engineer tunes a 2,048-accelerator Ring AllReduce collective around the \\$2(DeviceCount-1)CollectivePayloadSize/DeviceCount bandwidth transfer model, chooses how to partition the model across nodes, and configures an automated Young-Daly checkpoint interval based on an observed 4-hour cluster MTBF. Under the chapter's competency framework, which band of the fleet stack does this set of engineering activities belong to?",
+     "explanation": "The correct answer is C. The Distribution band, because it makes a workload larger than any single machine behave as one coordinated system while designing for routine hardware failure. The chapter organizes competence by the four bands of the fleet stack: Infrastructure, Distribution, Serving, and Governance. Distribution-band competence covers analyzing collective communication, selecting a parallelization strategy, and deriving failure cadence and checkpoint intervals from component MTBF and fleet size. Model architecture research focuses on mathematical layer formulations rather than cluster communication and reliability. Data curation addresses dataset quality rather than network fabrics and checkpointing. Legal auditing concerns statutory compliance rather than network bandwidth and collective communication models.",
+     "hint": "Think about: identify and categorize core distributed systems competencies, including collective communication modeling, topology selection, and MTBF-based recovery design.",
+     "type": "single",
+     "options": [
+      "Model architecture research, because it modifies neural network loss functions and attention head dimensions.",
+      "Data curation engineering, because it filters low-quality web crawl text and deduplicates document tokens.",
+      "The Distribution band, because it makes a workload larger than any single machine behave as one coordinated system while designing for routine hardware failure.",
+      "Compliance legal auditing, because it verifies intellectual property licensing for training datasets."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A substrate whose measured link energy per bit is lower than today's electrical links has thereby been shown to produce a better fleet.",
+     "explanation": "False. A lower link-energy measurement alone does not establish a better fleet. Each proposal needs a workload-specific comparison of useful work, data movement, power, and implementation cost, and a new substrate still needs fault tolerance and responsible governance. The dividend is also bounded by the share of fleet energy the links actually consume.",
+     "hint": "Think about: evaluate what evidence a new substrate must supply before it is accepted as a fleet improvement.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An infrastructure team notices that inter-node network bandwidth is saturated during distributed training. To relieve network congestion, they introduce an aggressive gradient compression algorithm that achieves a 10x reduction in transmitted bytes. However, the compression and decompression routines add substantial CPU overhead, causing worker nodes to fall behind and increasing overall training step time by 25%. Which pitfall does this engineering failure illustrate?",
+     "explanation": "The correct answer is A. Pitfall: \"Optimizing one layer while hiding the constraint it creates in another.\" Relieving network communication displaced the bottleneck into host CPU compute and synchronization, increasing end-to-end step time. The pitfall of displaced overhead occurs when an engineering team optimizes a metric in one layer (reducing network bytes transferred) without measuring the compensating cost created in an adjacent layer (host CPU compression time and serialization stalls). Because system layers are coupled, moving a constraint to an unmonitored resource often replaces a well-understood bottleneck with a worse one. Effective engineering keeps transferred constraints visible across the entire stack. Sustainability and carbon budgeting did not cause this CPU bottleneck. Gradient compression is a standard technical numerical optimization, not a legal violation. Assuming network switches automatically compress arbitrary payloads at zero CPU cost is technically unfounded.",
+     "hint": "Think about: distinguish the pitfall of displaced overhead and diagnose how local layer optimizations can shift bottlenecks into adjacent, unmonitored subsystems.",
+     "type": "single",
+     "options": [
+      "Pitfall: \"Optimizing one layer while hiding the constraint it creates in another.\" Relieving network communication displaced the bottleneck into host CPU compute and synchronization, increasing end-to-end step time.",
+      "Fallacy: \"Carbon budgets forbid lossy gradient encodings.\" Compressing gradients violated data-center carbon budgeting policies.",
+      "Pitfall: \"Treating governance as an external review.\" The compression algorithm altered gradient numerical representations without legal consent.",
+      "Fallacy: \"Network switches compress payloads in flight.\" The network switch hardware should have automatically compressed the packets in flight at zero CPU cost."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An inference optimization team profiles an autoregressive LLM decode engine on an H100 GPU and finds that realized throughput is only 12% of theoretical FP16 tensor core peak FLOP/s, even though `nvidia-smi` reports 98% GPU utilization. The execution profile shows that execution time is dominated by matrix-vector kernels (one weight matrix times one activation vector) with a batch size of 1, and measured HBM traffic approaches sustainable bandwidth with stable clocks. Applying the chapter's memory wall and serving principles, what is the root cause of this behavior, and what is the proper engineering response?",
+     "explanation": "The correct answer is D. Decode is memory-bandwidth bound because loading the full parameter matrix for a single token yields an arithmetic intensity well below the hardware roofline ridge; the team should evaluate batching to reuse weights, quantization to reduce weight bytes, or tensor parallelism to distribute work and memory traffic, subject to latency, quality, and communication costs. In single-token autoregressive decode, each parameter weight is transferred from High-Bandwidth Memory (HBM) to on-chip registers to perform only 2 FLOPs per parameter, yielding an arithmetic intensity of approx 1 FLOP/byte (for 16-bit floats). Since the H100 roofline ridge point is around \\$150--300 FLOP/byte, the compute cores remain stalled waiting for memory transfers, while `nvidia-smi` reports high utilization because a kernel is executing during most sampling intervals, which does not measure tensor-core saturation. Mitigations include batching requests (reusing loaded weights across multiple tokens) and quantization (halving the bytes transferred per parameter). Upgrading peak arithmetic TFLOP/s does nothing to accelerate an HBM bandwidth bottleneck. Stable measured clocks do not support the thermal-throttling diagnosis. Tensor parallelism distributes work and memory traffic but adds collectives; it does not inherently raise arithmetic intensity. Each mitigation requires end-to-end measurement under the service contract. Converting to FP32 doubles memory traffic per parameter, worsening the memory wall bottleneck.",
+     "hint": "Think about: apply the memory wall and roofline principles to diagnose low decode throughput and identify batching and quantization as the appropriate remedies.",
+     "type": "single",
+     "options": [
+      "The GPU arithmetic units are saturated; the team must upgrade to an accelerator with higher FP16 peak TFLOP/s to unblock the matrix kernels.",
+      "The low realized throughput indicates severe GPU thermal throttling; the team should increase cooling fan speeds and lower clock targets.",
+      "High `nvidia-smi` utilization proves compute saturation; the team should convert model weights to FP32 to ensure the arithmetic units perform more floating-point work per cycle.",
+      "Decode is memory-bandwidth bound because loading the full parameter matrix for a single token yields an arithmetic intensity well below the hardware roofline ridge; the team should evaluate batching to reuse weights, quantization to reduce weight bytes, or tensor parallelism to distribute work and memory traffic, subject to latency, quality, and communication costs."
+     ],
+     "answer": 3
+    }
+   ]
+  }
+ ]
+}

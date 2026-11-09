@@ -1,0 +1,96 @@
+{
+ "title": "The Evolution of AI Bottlenecks",
+ "summary": "Compare the four historical AI eras across their primary limiting systems bottlenecks.",
+ "source": {
+  "chapter": "v1-01",
+  "sections": [
+   "The Evolution of AI Bottlenecks",
+   "Rule-based approaches: Logic and knowledge bottlenecks",
+   "The statistical learning era and the feature engineering bottleneck",
+   "The deep learning era and the infrastructure bottleneck"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Evolution of AI Bottlenecks** in *Introduction* (Vol I). By the end you should be able to:\n\n- Compare the four historical AI eras across their primary limiting systems bottlenecks\n- Apply Moravec's paradox to explain why perceptual AI workloads drive modern hardware accelerator design\n- Classify the chronological progression of AI engineering eras and their respective systems bottlenecks\n- Evaluate AlexNet as an achievement of systems co-design linking architecture, dataset scale, and GPU hardware\n- Explain how cascaded classifiers and hand-engineered features enabled real-time inference during the statistical learning era"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Introduction, § The Evolution of AI Bottlenecks",
+   "md": "When Alan Turing proposed evaluating machine intelligence through observable responses, computing machinery had little memory or processing capacity, and every early attempt to build intelligent behavior ran into a structural ceiling. Early researchers pursued two contrasting paths: Frank Rosenblatt's Perceptron (1958) attempted to learn weights directly from sensory inputs, whereas Joseph Weizenbaum's ELIZA executed hand-coded pattern substitutions. Both soon met hard limits."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Rule-based approaches: Logic and knowledge bottlenecks\n- The statistical learning era and the feature engineering bottleneck\n- The deep learning era and the infrastructure bottleneck\n\nPay attention to: progression of AI bottlenecks from logic to infrastructure; Moravec's paradox and its hardware accelerator implications; AlexNet as a landmark in systems co-design."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why was AlexNet's 2012 ImageNet victory considered a breakthrough in systems co-design rather than purely an algorithmic advance?",
+   "md": "AlexNet co-designed the convolutional neural network architecture with the physical hardware constraints of two GTX 580 GPUs, splitting convolutional and dense layers across parallel GPU streams. While convolutional networks had existed for more than a decade, AlexNet aligned dense matrix arithmetic directly with parallel GPU architectures and massive labeled data (ImageNet), achieving a 15.3% top-5 error rate (a 42% relative improvement over the 26.2% runner-up)."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-01-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Which historical transition correctly pairs an AI era with the primary systems bottleneck that limited its scalability and forced the transition to the subsequent paradigm?",
+     "explanation": "The correct answer is D. Expert systems hit the knowledge acquisition bottleneck because extracting and maintaining consistent rules was bound by the serial bandwidth of human experts; statistical learning overcame this by estimating probabilities from data, but hit the feature engineering bottleneck because humans still had to manually design feature extractors (e.g., SIFT, HOG); deep learning overcame this by learning representations end-to-end from raw data. Compute throughput and GPU memory bandwidth constrained deep learning, not early symbolic or expert systems. Formal logic ambiguity was the logic bottleneck of symbolic AI, not statistical learning.",
+     "hint": "Think about: compare the four historical AI eras across their primary limiting systems bottlenecks.",
+     "type": "single",
+     "options": [
+      "Symbolic AI was limited by compute throughput, forcing the transition to expert systems; Deep Learning was limited by human rule maintenance, forcing the transition to statistical learning.",
+      "Expert Systems were limited by GPU memory bandwidth, forcing the transition to statistical learning; Statistical Learning was limited by formal logic ambiguity, forcing the transition to deep learning.",
+      "Statistical Learning was limited by a complete lack of training labels, forcing the transition to symbolic logic; Symbolic AI was limited by hardware integer arithmetic, forcing the transition to neural networks.",
+      "Expert Systems were limited by the knowledge acquisition bottleneck (serial human expert elicitation bandwidth), forcing the transition to statistical learning; Statistical Learning was limited by the feature engineering bottleneck (manual extraction of hand-crafted representations), forcing the transition to deep learning."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Moravec's paradox observes that tasks humans find easy (such as visual perception, walking, and grasping) require vast computational resources, while tasks humans find hard (such as playing chess or solving algebra) require comparatively little compute. What is the direct implication of this paradox for ML systems hardware?",
+     "explanation": "The correct answer is C. Moravec's paradox explains why perception, vision, and motor control—which humans execute effortlessly—require processing high-dimensional data at high frame rates, driving the requirement for massive arithmetic parallelism, high memory bandwidth, and domain-specific accelerators (GPUs, TPUs). The claim that symbolic reasoning requires accelerator clusters reverses the computational requirements. The assertion that high-level reasoning saturates bandwidth while perception is only compute-bound ignores the massive data movement required for continuous video streams. Microcontroller deployment for perception requires aggressive compression due to strict hardware limits.",
+     "hint": "Think about: apply Moravec's paradox to explain why perceptual AI workloads drive modern hardware accelerator design.",
+     "type": "single",
+     "options": [
+      "Symbolic reasoning algorithms require multi-GPU accelerator clusters, whereas computer vision pipelines run efficiently on single-threaded CPUs.",
+      "High-level reasoning tasks saturate off-chip memory bandwidth, while low-level perceptual tasks are strictly compute-bound.",
+      "Perceptual and physical-world AI tasks demand massive parallelism, high memory bandwidth, and specialized hardware accelerators to process dense, high-dimensional sensor streams in real time.",
+      "Robotic perception models can be deployed on microcontrollers without model compression or accuracy degradation."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Place the four historical AI engineering eras in chronological order based on when their primary paradigm dominated, and identify the key bottleneck that constrained each era:",
+     "explanation": "The correct order is (3) -> (2) -> (4) -> (1).\n- (3) Symbolic AI Era (1950s–1970s): Constrained by the logic bottleneck (brittle hand-coded rules unable to handle real-world ambiguity).\n- (2) Expert Systems Era (1970s–1980s): Constrained by the knowledge acquisition bottleneck (serial human expert elicitation bandwidth).\n- (4) Statistical Learning Era (1990s–2000s): Constrained by the feature engineering bottleneck (manual extraction of hand-crafted features prior to statistical classification).\n- (1) Deep Learning Era (2010s–present): Constrained by the compute and infrastructure bottleneck (hardware scaling, memory bandwidth, and distributed coordination).",
+     "hint": "Think about: classify the chronological progression of AI engineering eras and their respective systems bottlenecks.",
+     "type": "order",
+     "items": [
+      "Symbolic AI Era",
+      "Expert Systems Era",
+      "Statistical Learning Era",
+      "Deep Learning Era"
+     ]
+    },
+    {
+     "q": "The Viola-Jones face detection algorithm achieved real-time execution on early-2000s CPUs by using a cascade of simple rectangular features that evaluated an average of about ten features per candidate region, although the full cascade contained over 6,000 features.",
+     "explanation": "True. Viola-Jones exemplified the statistical learning era: expert feature engineering (integral image rectangular features) and a cascaded classifier allowed early rejection of non-face regions, achieving real-time performance within narrow domains while remaining constrained by manual feature engineering when applied to new tasks.",
+     "hint": "Think about: explain how cascaded classifiers and hand-engineered features enabled real-time inference during the statistical learning era.",
+     "type": "truefalse",
+     "answer": true
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare the four historical AI eras across their primary limiting systems bottlenecks.",
+    "You can now apply Moravec's paradox to explain why perceptual AI workloads drive modern hardware accelerator design.",
+    "You can now classify the chronological progression of AI engineering eras and their respective systems bottlenecks.",
+    "You can now evaluate AlexNet as an achievement of systems co-design linking architecture, dataset scale, and GPU hardware."
+   ]
+  }
+ ]
+}

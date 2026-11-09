@@ -1,0 +1,61 @@
+{
+ "title": "Tokenizing the Request",
+ "summary": "Work through Tokenizing the Request.",
+ "source": {
+  "chapter": "v3-02",
+  "sections": [
+   "Tokenizing the Request",
+   "Tokens in the serialized request",
+   "Output headroom",
+   "Counting multimodal inputs"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Tokenizing the Request** in *The Foundation Model* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Foundation Model, § Tokenizing the Request",
+   "md": "Once the repair agent appends the `src/pool.py` excerpt and a compiler diagnostic to its message history, every piece of the request (role delimiters, tool schemas, system instructions, file paths, and source lines) serializes into a single sequence of discrete tokens before entering the model. Whether the next call fits the context window depends on the token count of that fully assembled sequence, plus the output room reserved for the reply, measured strictly against the target model's tokenizer and wire format."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Tokens in the serialized request\n- Output headroom\n- Counting multimodal inputs"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Invocation contract matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Every call is a request record plus a normalized status envelope, and only a COMPLETED reply enters the candidate path, so a truncated prefix that parses is quarantined and a local deadline expiry leaves the remote outcome unknown."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-02-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Tokenizing the Request** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A per-state logit mask guarantees a completed output is in the enforced language, but only for syntax, only on COMPLETED status, and an over-constrained schema forces confabulation unless it offers an explicit unknown variant.",
+      "Re-sending an append-only history submits H*S0 + Delta*H(H-1)/2 prompt tokens, compatible prefix reuse cuts fresh prefill to S0 + (H-1)*Delta, and latency, work, and billed dollars remain separate accounts.",
+      "Every call is a request record plus a normalized status envelope, and only a COMPLETED reply enters the candidate path, so a truncated prefix that parses is quarantined and a local deadline expiry leaves the remote outcome unknown.",
+      "Temperature, top-k, and top-p reshape which candidates appear but none makes a likely token a correct one, so sampling settings are chosen by measured task pass rates."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Invocation contract**: Every call is a request record plus a normalized status envelope, and only a COMPLETED reply enters the candidate path, so a truncated prefix that parses is quarantined and a local deadline expiry leaves the remote outcome unknown."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Tokenizing the Request."
+   ]
+  }
+ ]
+}

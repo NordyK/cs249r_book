@@ -1,0 +1,96 @@
+{
+ "title": "Hardware Specialization",
+ "summary": "Explain the physical breakdown of Dennard scaling that led to domain-specific acceleration.",
+ "source": {
+  "chapter": "v1-11",
+  "sections": [
+   "Hardware Specialization",
+   "Specialized computing",
+   "Domain-specific architectures",
+   "Machine learning hardware specialization",
+   "The integration bottleneck"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Hardware Specialization** in *Hardware Acceleration* (Vol I). By the end you should be able to:\n\n- Explain the physical breakdown of Dennard scaling that led to domain-specific acceleration\n- Compare software-managed scratchpad memory with hardware-managed caches for deep learning workloads\n- Explain the historical evolution of hardware specialization from FPUs to modern AI accelerators\n- Evaluate the architectural source of energy efficiency in domain-specific accelerators like TPUv1\n- Explain why the divergence between model compute demand and single-device hardware scaling drives specialization"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Hardware Acceleration, § Hardware Specialization",
+   "md": "General-purpose processors dedicate substantial silicon area and power to instruction fetch, branch prediction, out-of-order scheduling, and cache coherence, machinery built for arbitrary control flow that yields poor arithmetic density on regular, dense linear algebra. When Google deployed its first Tensor Processing Unit (TPU v1) into production data centers alongside contemporary CPUs and NVIDIA K80 GPUs, stripping away that general-purpose control machinery in favor of a dedicated matrix array produced an immediate efficiency jump (example \\ref{exmp-hw-acceleration-tpuv1-vs-k80-efficiency-shock})."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Specialized computing\n- Domain-specific architectures\n- Machine learning hardware specialization\n- The integration bottleneck\n\nPay attention to: Physical breakdown of Dennard scaling and the rise of dark silicon; Emergence of Domain-Specific Architectures (DSAs) and technology S-curves; Model compute demand outrunning single-device hardware scaling; Software-managed scratchpads vs hardware-managed caches in the integration bottleneck."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Contrast the architectural trade-offs of software-managed scratchpad memory (such as Google TPUv1's Unified Buffer) with hardware-managed cache hierarchies when executing large-scale tensor workloads.",
+   "md": "Software-managed scratchpads eliminate the hardware overhead of tag arrays, cache line state machines, coherence snooping, and dynamic replacement policies, allowing more silicon area and power to be dedicated to storage capacity and dense arithmetic units. When compilers can statically determine regular tensor access patterns, they can deterministically tile and stage data. However, scratchpads increase compiler complexity and software burden, and they perform poorly on irregular, dynamically indexed memory patterns that hardware caches manage automatically."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-11-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "What primary physical limitation brought about the end of Dennard scaling in the mid-2000s, necessitating the transition from increasing CPU clock frequencies to domain-specific hardware accelerators?",
+     "explanation": "The correct answer is B. Dennard scaling postulated that as transistors shrank, operating voltage could drop in proportion, keeping chip power density constant while operating frequencies increased. When threshold voltage and leakage currents prevented further voltage scaling around 2005, increasing clock frequency resulted in prohibitive power density and thermal dissipation limits (the power wall and 'dark silicon'), forcing architects to seek energy efficiency through architectural specialization and parallelism. The lithography choice misidentifies lithography limits as the cause of the mid-2000s frequency stall. The quantum tunneling choice confuses gate oxide leakage with bulk copper transmission. The semiconductor depletion choice is physically fabricated.",
+     "hint": "Think about: explain the physical breakdown of Dennard scaling that led to domain-specific acceleration.",
+     "type": "single",
+     "options": [
+      "Lithography light diffraction preventing further reduction of transistor gate length below \\$1\\,mum",
+      "Inability to lower operating voltage proportionally with transistor size, leading to unsustainable power density and heat dissipation limits",
+      "Quantum tunneling in copper interconnect lines preventing data transmission between arithmetic units",
+      "Depletion of global silicon substrate supplies requiring migration to gallium nitride semiconductors"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Place the following computing milestones in chronological order (from earliest to most recent) as hardware evolved toward modern AI accelerators:",
+     "explanation": "The correct order is (3) Integration of floating-point units (FPUs) and digital signal processors (DSPs) as discrete coprocessors -> (4) General-purpose programmable GPUs and SIMD instruction set extensions for 3D graphics and multimedia -> (2) Emergence of fixed-function media codecs and network processors for video/packet streaming -> (1) Introduction of dedicated Tensor Cores and TPUs for deep learning matrix operations. During the 1980s, discrete FPUs and DSPs accelerated arithmetic. The 1990s introduced SIMD extensions and early 3D GPUs. The 2000s expanded fixed-function media engines and network processors. The 2010s ushered in deep learning DSAs like Google TPUs (2015/2017) and NVIDIA Volta Tensor Cores (2017).",
+     "hint": "Think about: explain the historical evolution of hardware specialization from FPUs to modern AI accelerators.",
+     "type": "order",
+     "items": [
+      "General-purpose programmable GPUs and SIMD instruction set extensions for 3D graphics and multimedia",
+      "Emergence of fixed-function media codecs and network processors for video/packet streaming",
+      "Introduction of dedicated Tensor Cores and TPUs for deep learning matrix operations"
+     ]
+    },
+    {
+     "q": "Google's TPUv1 achieved substantial performance-per-watt improvements over contemporary general-purpose CPUs primarily by operating at significantly higher clock frequencies.",
+     "explanation": "False. TPUv1 operated at a modest clock frequency (approximately \\$700 MHz) and achieved \\$30×--80× higher performance-per-watt than contemporary CPUs by omitting complex general-purpose features (such as out-of-order execution, branch prediction, and multi-level cache coherence) and dedicating silicon area to a massive \\$256×256 INT8 systolic matrix multiplier and a large software-managed Unified Buffer.",
+     "hint": "Think about: evaluate the architectural source of energy efficiency in domain-specific accelerators like TPUv1.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Why has the pressure to build specialized ML hardware grown since the 2012 deep learning breakthrough?",
+     "explanation": "The correct answer is C. The measured training-compute trend doubles on the order of 3.4 to 6 months, far faster than the roughly two-year doubling of transistor density, so single-device scaling alone cannot close the gap; specialization, parallelism, and hardware-software co-design must close the rest. The other options describe real but unrelated mismatches that do not explain the growth in specialization pressure.",
+     "hint": "Think about: explain why the divergence between model compute demand and single-device hardware scaling drives specialization.",
+     "type": "single",
+     "options": [
+      "Consumer mobile SoCs began to exceed data center GPUs in memory bandwidth",
+      "On-chip SRAM latency rose relative to host DRAM latency over PCIe",
+      "Training compute demand has doubled every few months while transistor density doubles roughly every two years, so no single chip can keep pace without parallelism and co-design",
+      "Python framework dispatch overhead grew faster than GPU kernel execution time"
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the physical breakdown of Dennard scaling that led to domain-specific acceleration.",
+    "You can now compare software-managed scratchpad memory with hardware-managed caches for deep learning workloads.",
+    "You can now explain the historical evolution of hardware specialization from FPUs to modern AI accelerators.",
+    "You can now evaluate the architectural source of energy efficiency in domain-specific accelerators like TPUv1."
+   ]
+  }
+ ]
+}

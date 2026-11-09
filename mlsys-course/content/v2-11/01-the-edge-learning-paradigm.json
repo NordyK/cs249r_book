@@ -1,0 +1,86 @@
+{
+ "title": "The Edge Learning Paradigm",
+ "summary": "Distinguish latency-driven local inference requirements from the separate justification for on-device training.",
+ "source": {
+  "chapter": "v2-11",
+  "sections": [
+   "The Edge Learning Paradigm"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Edge Learning Paradigm** in *Edge Intelligence* (Vol II). By the end you should be able to:\n\n- Distinguish latency-driven local inference requirements from the separate justification for on-device training\n- Compare feature-based personalization against on-device gradient adaptation in terms of systems overhead and implementation complexity\n- Contrast isolated on-device adaptation and federated learning in terms of knowledge aggregation and communication boundaries\n- Evaluate the privacy and regulatory compliance boundaries of on-device learning beyond simple raw data localization\n- Distinguish coordination responsibilities across learning paradigms without inferring a universal complexity ordering"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Edge Intelligence, § The Edge Learning Paradigm",
+   "md": "Imagine a voice assistant trained on millions of generic audio samples in a cloud data center. When deployed, it may struggle with a regional accent or household vocabulary. Without local adaptation, its performance can decline as usage diverges from the training distribution. **Edge intelligence** places inference, adaptation, and coordination on or near the devices that observe the data, allowing models to respond to local context under power, memory, privacy, and connectivity constraints."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Motivations for edge learning (personalization, latency, privacy, infrastructure efficiency); Decision criteria vs. alternatives (feature-based personalization, cloud fine-tuning, lookup tables); Paradigm transitions across local-only, centralized cloud, and federated learning; NPU silicon dividend and latency/energy feasibility thresholds."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Before investing in an on-device gradient-based learning pipeline for a mobile news app, an ML systems architect considers feature-based personalization (local feature caching with a frozen global model) versus on-device gradient fine-tuning. Under what systems criteria is feature-based personalization preferred, and what eliminates the need for local backpropagation?",
+   "md": "Feature-based personalization is preferred when local preference vectors, interaction histories, or lookup embeddings give a frozen model the useful context it needs. Its parameters do not change, so this path avoids weight-gradient, backward-pass, and optimizer-state costs. Local feature state and inference buffers still consume resources. Compare validated personalization quality and the complete footprint against a gradient-based candidate; the chapter’s 4–12x range describes particular full-model training configurations relative to weight storage, not a universal amplification."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-11-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A mobile robotics vision system must process each frame within \\$33\\text{ ms}$, while cloud network round-trip time is \\$80\\text{–}150\\text{ ms}$. Why must the foreground perception path execute locally even if model training remains in the cloud?",
+     "explanation": "The correct answer is A. An \\$80\\text{–}150\\text{ ms}$ round trip cannot fit inside a \\$33\\text{ ms}$ foreground deadline, regardless of server compute speed. This establishes the need for local inference; it does not establish the need for local training, which requires a separate adaptation benefit and resource budget.",
+     "hint": "Think about: distinguish latency-driven local inference requirements from the separate justification for on-device training.",
+     "type": "single",
+     "options": [
+      "Network round-trip latency alone exceeds the foreground deadline, so a frame cannot wait for a cloud response.",
+      "Cloud data centers are physically incapable of computing backpropagation gradients on batch sizes of one within milliseconds.",
+      "The on-device camera sensor cannot serialize video frames into digital packets without first running an on-device forward-backward training pass.",
+      "On-device adaptation reduces model parameter count to zero before sending updates across the cellular uplink."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In comparing learning paradigms across edge fleets, what fundamental systems distinction separates isolated on-device learning from federated learning?",
+     "explanation": "The correct answer is B. Isolated adaptation updates one device without aggregating knowledge from its peers. Federated learning coordinates local updates while keeping raw training data local. A shared initialization may be pretrained or initialized for federated training; pretraining is not a defining requirement. Neither approach requires FP64 arithmetic.",
+     "hint": "Think about: contrast isolated on-device adaptation and federated learning in terms of knowledge aggregation and communication boundaries.",
+     "type": "single",
+     "options": [
+      "Isolated on-device learning transmits raw private data to centralized servers, whereas federated learning processes data locally without communication.",
+      "Isolated on-device learning restricts parameter updates entirely to a single node, preventing collective fleet knowledge sharing, whereas federated learning coordinates model updates across devices while preserving data locality.",
+      "Federated learning trains models from scratch on client devices without a pretrained base model, whereas isolated on-device learning requires continuous cloud synchronization.",
+      "Isolated on-device learning uses only INT4 integer arithmetic, whereas federated learning requires double-precision FP64 hardware accelerators on all mobile clients."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Because on-device learning keeps raw user observations (such as typed keystrokes or biometric sensor traces) on the client device, it inherently guarantees full compliance with privacy regulations like GDPR and HIPAA without requiring any additional cryptographic or governance safeguards.",
+     "explanation": "False. Keeping raw data on-device significantly reduces privacy exposure and data transmission risks, but it does not automatically guarantee full regulatory compliance. First, intermediate artifacts such as gradient updates or adapter checkpoints can still leak sensitive private information via gradient inversion or membership inference attacks if transmitted or observed. Second, regulatory frameworks like GDPR and HIPAA impose strict obligations regarding lawful basis, user consent, purpose limitation, auditability, data retention limits, and secure local storage of protected health information (PHI) or personal data on the physical device.",
+     "hint": "Think about: evaluate the privacy and regulatory compliance boundaries of on-device learning beyond simple raw data localization.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Compare the coordination responsibilities of isolated on-device learning, centralized cloud training, and cross-device federated learning. Why does the paradigm alone not establish a universal ranking of implementation complexity?",
+   "md": "Isolated learning keeps the update loop on one device. Centralized training coordinates data ingestion, training infrastructure, and artifact release. Cross-device federation adds client eligibility, compatible versions, partial participation, aggregation, and population coverage across intermittent devices. These responsibilities differ, but deployment scale, trust boundaries, and reliability requirements determine implementation complexity; a large cloud training service need not be simpler than a small federated deployment."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now distinguish latency-driven local inference requirements from the separate justification for on-device training.",
+    "You can now compare feature-based personalization against on-device gradient adaptation in terms of systems overhead and implementation complexity.",
+    "You can now contrast isolated on-device adaptation and federated learning in terms of knowledge aggregation and communication boundaries.",
+    "You can now evaluate the privacy and regulatory compliance boundaries of on-device learning beyond simple raw data localization."
+   ]
+  }
+ ]
+}

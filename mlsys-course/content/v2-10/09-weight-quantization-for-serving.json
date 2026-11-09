@@ -1,0 +1,102 @@
+{
+ "title": "Weight Quantization for Serving",
+ "summary": "Analyze the mathematical mechanism of SmoothQuant W8A8 quantization and contrast its performance gains during prefill versus decode phases.",
+ "source": {
+  "chapter": "v2-10",
+  "sections": [
+   "Weight Quantization for Serving",
+   "Outliers and block-wise scaling",
+   "LLM-specific quantization challenges",
+   "W8A8 versus weight-only ceilings",
+   "Runtime contract for quantized serving",
+   "Selecting a quantization format"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Weight Quantization for Serving** in *Serving at Scale* (Vol II). By the end you should be able to:\n\n- Analyze the mathematical mechanism of SmoothQuant W8A8 quantization and contrast its performance gains during prefill versus decode phases\n- Calculate the metadata overhead and effective bit-width scaling of block-wise quantization group sizes\n- Contrast how GPTQ and AWQ preserve quality in 4-bit weight-only quantization and what each requires at deployment\n- Explain how rotation-based quantization addresses activation outliers and the serving cost it introduces\n- Apply the serving quantization decision model from bottleneck to rollout test"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Serving at Scale, § Weight Quantization for Serving",
+   "md": "Keeping a 70B model's … of FP16 weights intact forces every replica across at least two … GPUs and makes every decode step wait on streaming … from HBM. Weight quantization for serving is therefore a bottleneck-selection decision: reducing precision turns that … FP16 weight payload into a … INT4 payload, allowing a model that previously required multiple GPUs to fit on one (perspective \\ref{psp-inference-quantization-serving-constraint}). The ideal payload reduction is 4$\\times$, although metadata, runtime buffers, and KV state still enter the deployment's memory budget."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Outliers and block-wise scaling\n- LLM-specific quantization challenges\n- W8A8 versus weight-only ceilings\n- Runtime contract for quantized serving\n- Selecting a quantization format\n\nPay attention to: Block-wise scaling and its metadata cost; Where each outlier method pays: runtime (LLM.int8()), calibration (GPTQ, AWQ), or preprocessing (SmoothQuant, rotation); SmoothQuant W8A8 and why it helps compute-bound prefill; Matching the binding serving constraint to the quantization change."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain what a rotation-based method such as QuaRot changes before quantization, what that makes possible for serving, and what it costs at run time.",
+   "md": "It applies an orthogonal (Hadamard) transform that changes the coordinate basis, spreading large activation coordinates across many channels so that no single channel carries an extreme value. With the outliers spread out, a single low-precision scale fits the values better, which makes W4A4 (4-bit weights and activations) a serving candidate. The price is some rotation work performed online during inference and a narrower set of runtimes that support the transformed path, so the transform overhead must be measured before rollout."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-10-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "How does SmoothQuant enable efficient 8-bit weight and 8-bit activation (W8A8) inference, and why is its speedup significantly higher during prefill than during decode?",
+     "explanation": "The correct answer is B. The equivalent transform is $XW=(X\\operatorname{diag}(s)^{-1})(\\operatorname{diag}(s)W)$. It smooths activation outliers while increasing weight range, enabling an INT8 path when calibration preserves quality. Compute-bound prefill can benefit from higher arithmetic throughput; memory-bound decode depends on bytes moved and conversion costs. Speedup is workload-dependent, not guaranteed by the transform alone.",
+     "hint": "Think about: analyze the mathematical mechanism of SmoothQuant W8A8 quantization and contrast its performance gains during prefill versus decode phases.",
+     "type": "single",
+     "options": [
+      "It prunes 50% of model weights using structured sparsity, accelerating decode but having no effect on prefill.",
+      "It divides activations by a per-channel scale $s$ and multiplies weights by $s$, moving quantization difficulty toward weights; compute-bound prefill can benefit from native INT8 arithmetic while decode remains sensitive to memory traffic",
+      "It rotates the coordinate basis using randomized Walsh-Hadamard matrices, eliminating memory bandwidth bottlenecks during decode.",
+      "It converts floating-point weights into binary spikes, enabling single-cycle bitwise operations during token generation."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In block-wise INT4 quantization with one FP16 scale per block, reducing the block size from 64 to 16 weights can improve local range resolution but quadruples the scale metadata, from 0.25 bits per weight (6.25 percent overhead on the INT4 payload) to 1.0 bit per weight (25 percent overhead).",
+     "explanation": "True. Each block shares one 16-bit scale, so the metadata per weight is 16 bits divided by the block size: 16/64 = 0.25 bits (0.25/4 = 6.25 percent of the 4-bit payload) and 16/16 = 1.0 bit (25 percent), an effective 5.0 bits per weight. Whether the finer blocks improve quality or slow the kernel must be measured, not inferred from block size.",
+     "hint": "Think about: calculate the metadata overhead and effective bit-width scaling of block-wise quantization group sizes",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "GPTQ and AWQ both produce 4-bit weight-only artifacts offline. How do they differ, and what extra deployment step does AWQ need?",
+     "explanation": "The correct answer is B. Both are offline, weight-only methods that need representative calibration inputs and supported packing kernels. GPTQ corrects the error left by rounding using approximate second-order information; AWQ protects the channels that activation statistics mark as salient by scaling them. If AWQ's scales are not fused into the deployed graph, the serving path pays for an extra operation that eats part of the latency saving.",
+     "hint": "Think about: contrast how GPTQ and AWQ preserve quality in 4-bit weight-only quantization and what each requires at deployment.",
+     "type": "single",
+     "options": [
+      "GPTQ quantizes activations while AWQ quantizes weights; AWQ needs no calibration data.",
+      "GPTQ compensates rounding error with approximate second-order information, while AWQ scales salient channels chosen from activation statistics; AWQ's scales must be fused into the deployed graph or they cost an extra runtime operation.",
+      "GPTQ requires full retraining while AWQ is applied at runtime; AWQ needs a second GPU to hold its scales.",
+      "Both methods are identical except for bit width; AWQ needs its weights stored in FP32."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Order the steps for choosing and rolling out a quantization method for a serving system:",
+     "explanation": "The correct sequence is (2) -> (4) -> (3) -> (1).\n- (2) A quantization method helps only if it relaxes the resource that actually binds, so the bottleneck comes first.\n- (4) The bottleneck determines the representation change: weights only, fewer bytes per token, weights and activations, or a change of coordinate basis.\n- (3) The method family follows from that change (for example GPTQ or AWQ for fit, SmoothQuant W8A8 for prefill compute).\n- (1) Each family carries its own rollout risk, which must be tested on the deployment before traffic moves to it.",
+     "hint": "Think about: apply the serving quantization decision model from bottleneck to rollout test.",
+     "type": "order",
+     "items": [
+      "Identify which resource binds the serving system: memory fit, decode bandwidth, prefill compute, or outlier robustness",
+      "Choose the representation change that relaxes that resource",
+      "Choose the method family that makes that change"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A serving team's INT8 post-training quantization (PTQ) recipe meets its quality budget, and it now wants INT4 weights. When does quantization-aware training (QAT) earn its cost, and what must be checked after the model is converted for deployment?",
+   "md": "An INT8 result says nothing about INT4, so the team first tries a PTQ recipe at INT4 and evaluates it on held-out task data, not the calibration set. QAT earns its training cost only if that PTQ model misses the quality budget: it simulates rounding in the forward pass and passes gradients through it with the straight-through estimator so the weights adapt to the error. Because merging adapters or requantizing can change the numerical path, quality must be rechecked on the final deployed representation."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the mathematical mechanism of SmoothQuant W8A8 quantization and contrast its performance gains during prefill versus decode phases.",
+    "You can now calculate the metadata overhead and effective bit-width scaling of block-wise quantization group sizes.",
+    "You can now contrast how GPTQ and AWQ preserve quality in 4-bit weight-only quantization and what each requires at deployment.",
+    "You can now explain how rotation-based quantization addresses activation outliers and the serving cost it introduces."
+   ]
+  }
+ ]
+}

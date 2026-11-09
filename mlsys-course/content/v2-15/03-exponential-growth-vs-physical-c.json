@@ -1,0 +1,93 @@
+{
+ "title": "Exponential Growth vs. Physical Constraints",
+ "summary": "Calculate fleet energy under rebound and distinguish rebound from scaling-driven demand growth.",
+ "source": {
+  "chapter": "v2-15",
+  "sections": [
+   "Exponential Growth vs. Physical Constraints",
+   "Power envelopes and the energy wall",
+   "Data center grid dynamics",
+   "Training-scale energy concentration"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Exponential Growth vs. Physical Constraints** in *Sustainable AI* (Vol II). By the end you should be able to:\n\n- Calculate fleet energy under rebound and distinguish rebound from scaling-driven demand growth\n- Distinguish the instantaneous power envelope from the cumulative energy account when judging a training plan's feasibility\n- Identify the grid-interface mechanism that absorbs correlated training load swings and state what it does and does not change\n- Explain why temporal concentration, not annual energy, sets the facility and grid requirements of a training campaign\n- Analyze how the scaling-law compute exponent translates successive quality gains into multiplicative training energy"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Sustainable AI, § Exponential Growth vs. Physical Constraints",
+   "md": "Between … and …, the training compute of frontier models expanded from roughly … FLOPs for AlexNet to … for GPT-4-class systems, an increase of about … million times in … years that outpaced hardware efficiency gains by orders of magnitude. @sevilla2022 estimate that the training compute of notable machine learning models doubled roughly every six months after 2010, far faster than the two-year cadence historically associated with transistor scaling."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Power envelopes and the energy wall\n- Data center grid dynamics\n- Training-scale energy concentration\n\nPay attention to: Fleet energy as energy per task times task volume, and rebound; Instantaneous power limits versus cumulative energy accounts; Energy buffering at the grid interface; Temporal concentration of training load."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In the regime studied by Kaplan et al., each 10 percent reduction in compute-limited loss costs about 8.2 times the compute. Explain what two successive 10 percent reductions imply for training energy, and what would have to hold for energy not to grow by the same factor.",
+   "md": "The multiples compound, so two successive 10 percent reductions cost about 8.2 times 8.2, or roughly 67 times, the original compute, because the small compute exponent makes each fixed fractional loss reduction a multiplicative increase in work. Training energy grows by the same factor unless realized FLOPs per joule improve at the same pace, which historical hardware gains have not matched. The diminishing return of the scaling law therefore reaches the facility as a multiplicative energy demand, which is why compute demand has outrun hardware efficiency."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-15-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An inference optimization cuts energy per task by a factor of 4, and the lower cost raises task volume by a factor of 20, with the workload mix unchanged. What happens to fleet energy?",
+     "explanation": "The correct answer is C. Fleet energy is energy per completed task times the number of completed tasks, so one quarter of the energy times 20 times the volume gives five times the energy. Reading only the per-task gain misses the demand response, and multiplying both factors as growth treats the efficiency gain as a cost. This rebound differs from scaling-driven growth, which raises the compute each frontier model requires.",
+     "hint": "Think about: calculate fleet energy under rebound and distinguish rebound from scaling-driven demand growth.",
+     "type": "single",
+     "options": [
+      "It falls by a factor of 4, because per-task efficiency sets fleet energy.",
+      "It stays the same, because efficiency and demand cancel.",
+      "It rises by a factor of 5, because fleet energy is energy per task multiplied by the number of tasks.",
+      "It rises by a factor of 80, because the efficiency gain and the demand growth compound."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A team plans a three-day run that needs 120 MW of accelerator power at once in a facility with an 80 MW grid feed. They argue the run fits because its total energy is less than the facility uses in a month. What is wrong with the argument?",
+     "explanation": "The correct answer is A. Facility power cannot exceed the grid feed at any instant, which caps active servers whatever the job's duration, while energy integrates average power over time and enters the electricity and emissions accounts. A modest energy total therefore cannot license a power draw above the feed. Treating the limits as interchangeable confuses the two physical constraints, and the tariff and PUE answers address the energy account rather than the power cap.",
+     "hint": "Think about: distinguish the instantaneous power envelope from the cumulative energy account when judging a training plan's feasibility.",
+     "type": "single",
+     "options": [
+      "The power limit is instantaneous, so the feed caps how many servers can be active at once regardless of run length; the plan must lower concurrency and accept a longer run, or obtain more deliverable power.",
+      "Nothing, because over a month an energy budget and a power cap are interchangeable.",
+      "The run fails only on cost, because energy drawn above the feed is billed at a peak tariff.",
+      "The only error is omitting PUE; adding facility overhead would show that the run's energy exceeds the monthly budget."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Synchronized training phases swing accelerator draw together across thousands of devices, and a battery or UPS stage that supplies or absorbs energy during each load change provides energy ____, whose location, capacity, and control response must match the electrical boundary being protected.",
+     "explanation": "buffering. Energy buffering smooths the load step that coordinated training phases would otherwise push toward the utility connection; it protects a specific electrical boundary rather than reducing the run's total energy.",
+     "hint": "Think about: identify the grid-interface mechanism that absorbs correlated training load swings and state what it does and does not change.",
+     "type": "fill",
+     "answer": [
+      "buffering"
+     ]
+    },
+    {
+     "q": "Because a frontier training run's yearly energy is a modest share of a region's consumption, the facility can be provisioned for that run's annual-average power.",
+     "explanation": "False. A training run concentrates its draw into weeks or months of sustained peak, and synchronized phases swing that draw together across the cluster. The facility must provision for the sustained peak, and the grid sees one large correlated load rather than many small independent ones.",
+     "hint": "Think about: explain why temporal concentration, not annual energy, sets the facility and grid requirements of a training campaign.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate fleet energy under rebound and distinguish rebound from scaling-driven demand growth.",
+    "You can now distinguish the instantaneous power envelope from the cumulative energy account when judging a training plan's feasibility.",
+    "You can now identify the grid-interface mechanism that absorbs correlated training load swings and state what it does and does not change.",
+    "You can now explain why temporal concentration, not annual energy, sets the facility and grid requirements of a training campaign."
+   ]
+  }
+ ]
+}

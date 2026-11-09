@@ -1,0 +1,83 @@
+{
+ "title": "Stage 1: Problem Definition",
+ "summary": "Explain why complete ML problem definitions require layered statistical, physical, and operational constraints.",
+ "source": {
+  "chapter": "v1-03",
+  "sections": [
+   "Stage 1: Problem Definition",
+   "Constraint layers",
+   "Problem definitions evolve"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Stage 1: Problem Definition** in *ML Lifecycle* (Vol I). By the end you should be able to:\n\n- Explain why complete ML problem definitions require layered statistical, physical, and operational constraints\n- Justify the necessity of cross-disciplinary domain collaboration during Problem Definition to establish valid engineering constraints\n- Analyze how historical label bias corrupts ML workflows and justify why fairness criteria must be specified at Problem Definition\n- Compare stable clinical intent with evolving engineering targets during deployment scaling"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Lifecycle, § Stage 1: Problem Definition",
+   "md": "Problem definition in ML begins with sentences that look deceptively simple. A product manager writes: \"Build a model that detects diabetic retinopathy.\" That single sentence conceals a dozen engineering decisions: sensitivity thresholds for patient safety, hardware capabilities in rural clinics, latency budgets that keep clinicians engaged, and regulatory frameworks governing approval. Software requirements still govern control flow, interfaces, and data storage. ML adds an empirical obligation. Defining *what* the system should do is inseparable from defining *how* it will learn from data and what physical constraints its execution must survive."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Constraint layers\n- Problem definitions evolve\n\nPay attention to: Multi-constraint optimization in ML problem definition; Constraint layers: statistical, physical, operational; Cross-disciplinary requirement formulation; Evolution of engineering targets at production scale."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why ophthalmologists and clinic administrators must participate directly in Problem Definition for a DR screening system, rather than being consulted only during clinical evaluation.",
+   "md": "Engineers optimizing models in isolation tend to maximize aggregate accuracy, but clinical safety depends on domain-specific trade-offs that only medical experts understand. Ophthalmologists define the clinical penalty of false negatives (missed cases leading to blindness) versus false positives (overwhelming specialist clinics), translating medical needs into non-negotiable sensitivity (>90%) and specificity (>80%) floors. Clinic administrators identify physical and workflow constraints (such as returning a result before the patient leaves, older fundus cameras, and intermittent connectivity), ensuring engineering targets reflect real clinical operations from day one."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-03-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why does the statement 'Build a computer vision model that detects diabetic retinopathy' fail as a complete problem definition for an ML system?",
+     "explanation": "The correct answer is A. An ML problem definition is not a one-sentence task label; it is a multi-constraint optimization problem spanning statistical layers (>90% sensitivity and >80% specificity across diverse populations), physical layers (inference on edge hardware within seconds of capture and under a 500 MB memory budget), and operational layers (FDA regulatory compliance, HIS workflow integration, patient privacy). Omitting these layers leaves downstream teams without the constraints needed to bound the design space. Specifying model backbones upfront inverts the workflow order, unsupervised anomaly detection is not mandatory for medical classification, and establishing quantifiable targets upfront is an essential requirement of the Problem Definition output contract.",
+     "hint": "Think about: explain why complete ML problem definitions require layered statistical, physical, and operational constraints.",
+     "type": "single",
+     "options": [
+      "A. It specifies only a high-level task while omitting the statistical constraint layers (sensitivity/specificity floors across subgroups), physical constraints (edge device memory/latency budgets), and operational constraints (regulatory compliance, clinical workflow integration).",
+      "B. It fails to specify which exact deep neural network backbone and learning rate schedule must be used during training.",
+      "C. It defines an image classification problem when medical AI systems must always be framed as unsupervised anomaly detection tasks.",
+      "D. It defines quantifiable objectives before data collection has occurred, which violates standard ML agile practices."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In the 2018 Amazon automated recruiting war story cited in the chapter, an ML model trained on ten years of resumes was abandoned because it systematically penalized female applicants. What fundamental systems lesson does this case illustrate regarding Problem Definition?",
+     "explanation": "The correct answer is C. The Amazon recruiting case demonstrated that when historical hiring was male-dominated, the model learned that male-coded terms correlated with past hiring decisions and penalized female-coded terms. Simply removing explicit gender words failed because the model identified correlated proxy features. The systems lesson is that Problem Definition must specify fairness, auditability, and validation criteria before data collection and training; an ML workflow trained on biased historical labels optimizes to reproduce the bias of those labels rather than the true organizational goal. The failure was not an architecture choice, offline metrics can measure disparities if stratified evaluation is performed, and binary/multi-class framing was not the root cause.",
+     "hint": "Think about: analyze how historical label bias corrupts ML workflows and justify why fairness criteria must be specified at Problem Definition.",
+     "type": "single",
+     "options": [
+      "A. Resume screening models require recurrent neural networks rather than transformer architectures to avoid learning gendered proxies.",
+      "B. Offline evaluation metrics are inherently incapable of measuring demographic disparities in supervised learning models.",
+      "C. A model trained on historical data learns to reproduce historical label biases rather than the intended operational goal; fairness criteria and auditability must be explicitly defined at Problem Definition.",
+      "D. Multi-class classification algorithms should not be applied to human evaluation tasks where ground truth is subjective."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "When a diabetic retinopathy screening deployment scales from a 3-clinic pilot to 200 clinics across diverse regions, the high-level clinical intent (detect referable retinopathy early) remains stable, but the specific engineering targets (subgroup sensitivity thresholds, device latency budgets, and camera-specific preprocessing rules) must evolve.",
+     "explanation": "True. Scaling exposes heterogeneity in patient demographics, camera manufacturers, lighting conditions, and operator training that was invisible at pilot scale. While the overarching clinical mission remains unchanged, the engineering problem definition is a living document that must be revised to include stratified subgroup thresholds, support for older hardware, and updated operational constraints.",
+     "hint": "Think about: compare stable clinical intent with evolving engineering targets during deployment scaling.",
+     "type": "truefalse",
+     "answer": true
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain why complete ML problem definitions require layered statistical, physical, and operational constraints.",
+    "You can now justify the necessity of cross-disciplinary domain collaboration during Problem Definition to establish valid engineering constraints.",
+    "You can now analyze how historical label bias corrupts ML workflows and justify why fairness criteria must be specified at Problem Definition.",
+    "You can now compare stable clinical intent with evolving engineering targets during deployment scaling."
+   ]
+  }
+ ]
+}

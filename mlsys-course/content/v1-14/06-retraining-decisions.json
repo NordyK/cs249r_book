@@ -1,0 +1,81 @@
+{
+ "title": "Retraining Decisions",
+ "summary": "Identify cost-aware automation as the principle that frames retraining as a conditional cost-benefit decision.",
+ "source": {
+  "chapter": "v1-14",
+  "sections": [
+   "Retraining Decisions",
+   "Retraining decision framework",
+   "Quantitative retraining economics",
+   "Scheduled versus triggered retraining"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Retraining Decisions** in *ML Operations* (Vol I). By the end you should be able to:\n\n- Identify cost-aware automation as the principle that frames retraining as a conditional cost-benefit decision\n- Compute the economically optimal retraining interval using the chapter's simplified retraining-economics approximation\n- Perform sensitivity analysis on the optimal retraining interval with respect to retraining costs"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Operations, § Retraining Decisions",
+   "md": "A team that retrains the ranking model on every minor PSI spike burns thousands of dollars in accelerator time and risks training on corrupted upstream logs, while a team that waits blindly for a quarterly calendar tick lets accuracy slide … points within four weeks, long before the next tick arrives. Retraining is the most expensive response the operations loop can choose, and the easiest to automate badly."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Retraining decision framework\n- Quantitative retraining economics\n- Scheduled versus triggered retraining\n\nPay attention to: the retraining decision criterion: expected benefit against run cost and rollout risk; quantitative retraining economics: accuracy decay, staleness cost, optimal interval T*; sensitivity of T* to run cost, traffic, and decay rate."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-14-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "The formal decision criterion governing whether a degraded model should be retrained balances expected accuracy improvement against training compute costs and deployment risk under the principle of ____.",
+     "explanation": "cost-aware automation. This principle frames retraining as a decision about expected benefit versus execution cost, validation effort, and deployment risk. It helps decide when retraining is warranted, but a favorable result still does not by itself authorize production release without validation.",
+     "hint": "Think about: identify cost-aware automation as the principle that frames retraining as a conditional cost-benefit decision",
+     "type": "fill",
+     "answer": [
+      "cost aware automation",
+      "cost-aware automation"
+     ]
+    },
+    {
+     "q": "Under the chapter's simplified economic model (validated retraining resets quality, the square-root approximation applies, costs are fixed, and pipeline delays are ignored), the ranking service serves DailyQueryVolume = 10^6 queries/day with initial accuracy InitialAccuracy = 0.94, daily accuracy decay rate AccuracyDecayRate = 0.0024 (\\$0.24\\% decay per day, fitted to its observed four-week slide), value per query for unit accuracy fraction AccuracyPayoffPerQuery = \\$0.50, and fixed retraining cost RetrainingRunCost = \\$5,000. Using the square-root optimal retraining approximation RetrainingInterval^* approx sqrtfrac2RetrainingRunCostDailyQueryVolume × AccuracyPayoffPerQuery × InitialAccuracy × AccuracyDecayRate, what is the economically optimal retraining interval RetrainingInterval^*?",
+     "explanation": "The correct answer is B. Approximately \\$3.0 days. Using the formula, the numerator is \\$2 × 5,000 = 10,000, the denominator is \\$10^6 × 0.50 × 0.94 × 0.0024 approx 1,128, and sqrt10,000/1,128 approx sqrt8.87 approx 2.98 days. That value is the model's economic optimum under the stated simplifying assumptions; it does not by itself prove that a three-day operational cadence is feasible, because label availability, validation time, and rollout duration still matter.",
+     "hint": "Think about: compute the economically optimal retraining interval using the chapter's simplified retraining-economics approximation",
+     "type": "single",
+     "options": [
+      "Approximately \\$1.0 day",
+      "Approximately \\$3.0 days",
+      "Approximately \\$14.5 days",
+      "Approximately \\$30.0 days"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In the optimal retraining formula $T^* \\approx \\sqrt{\\frac{2C}{Q \\cdot V \\cdot \\text{Accuracy}_0 \\cdot \\gamma}}$, how does the optimal interval $T^*$ change if the fixed retraining compute and validation cost $C$ increases by a factor of 4 while all other parameters remain constant?",
+     "explanation": "The correct answer is B. $T^*$ increases by a factor of 2 (\\$2\\times$ longer interval), because $T^*$ scales with the square root of retraining cost $\\sqrt{C}$. In the formula, the retraining cost appears under the radical, so replacing $C$ with \\$4C$ gives $\\sqrt{4C} = 2\\sqrt{C}$. The linear-scaling answer ignores the square-root relationship, while the shorter-interval and no-change answers contradict the structure of the model.",
+     "hint": "Think about: perform sensitivity analysis on the optimal retraining interval with respect to retraining costs",
+     "type": "single",
+     "options": [
+      "T^* increases by a factor of 4 (\\$4× longer interval), scaling linearly with cost",
+      "T^* increases by a factor of 2 (\\$2× longer interval), because T^* scales with the square root of retraining cost sqrtC",
+      "T^* decreases by a factor of 2 (\\$0.5× shorter interval), forcing more frequent retraining",
+      "$T^*$ remains unchanged, because optimal retraining cadence is governed solely by query traffic and drift rate"
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now identify cost-aware automation as the principle that frames retraining as a conditional cost-benefit decision.",
+    "You can now compute the economically optimal retraining interval using the chapter's simplified retraining-economics approximation.",
+    "You can now perform sensitivity analysis on the optimal retraining interval with respect to retraining costs."
+   ]
+  }
+ ]
+}

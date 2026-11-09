@@ -1,0 +1,64 @@
+{
+ "title": "Transfer Without Discontinuity",
+ "summary": "Work through Transfer Without Discontinuity.",
+ "source": {
+  "chapter": "v4-14",
+  "sections": [
+   "Transfer Without Discontinuity",
+   "Command steps and mechanical drivetrain shock",
+   "Sizing the blend window and the stopping-distance cost",
+   "Initial condition matching and integrator pre-biasing",
+   "Mapping operator input to arm motion",
+   "Bilateral teleoperation and haptic feedback passivity",
+   "Admitting the remote-assistant session"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Transfer Without Discontinuity** in *Supervisory Intervention* (Vol IV)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Supervisory Intervention, § Transfer Without Discontinuity",
+   "md": "At commit time TimeInstant_0, the enforcer latches the last admitted policy command ControlCommand_0 and a checked human target ControlCommand_1. Switching them in one permission tick may exceed the channel's allowed command rate. In classical process control, bumpless transfer between manual and automatic modes is achieved by making the inactive controller track the active one's output, so its internal state, including its integrator, already agrees at the switch. @Sec-intervention-integrator-prebiasing applies that tracking to the console-side controller that turns operator input into a command."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Command steps and mechanical drivetrain shock\n- Sizing the blend window and the stopping-distance cost\n- Initial condition matching and integrator pre-biasing\n- Mapping operator input to arm motion\n- Bilateral teleoperation and haptic feedback passivity\n- Admitting the remote-assistant session"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Bumpless transfer matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A setpoint swap at commit demands an unbounded command derivative, so the enforcer blends between latched endpoints with a quintic smoothstep whose duration is set by the rate limit and paid from stopping reserve."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-14-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Transfer Without Discontinuity** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Blending human and policy commands works only when goals are unimodal and every intermediate blend is admissible; across modes a convex combination is a new, unchecked command.",
+      "Takeover latency (sensory, cognitive, motor, console) is long-tailed and must be budgeted at a design percentile as a delay before braking, which sets the speed a supervised machine may run.",
+      "Per channel, authority resolves every tick to exactly one state with the enforcer the sole actuator writer, and a four-phase request-acknowledge-commit-release handshake moves it.",
+      "A setpoint swap at commit demands an unbounded command derivative, so the enforcer blends between latched endpoints with a quintic smoothstep whose duration is set by the rate limit and paid from stopping reserve."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Bumpless transfer**: A setpoint swap at commit demands an unbounded command derivative, so the enforcer blends between latched endpoints with a quintic smoothstep whose duration is set by the rate limit and paid from stopping reserve."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Transfer Without Discontinuity."
+   ]
+  }
+ ]
+}

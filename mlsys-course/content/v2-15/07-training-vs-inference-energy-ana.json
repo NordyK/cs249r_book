@@ -1,0 +1,98 @@
+{
+ "title": "Training vs. Inference Energy Analysis",
+ "summary": "Analyze why cumulative inference energy dominates one-time training energy for large-scale production models.",
+ "source": {
+  "chapter": "v2-15",
+  "sections": [
+   "Training vs. Inference Energy Analysis",
+   "Carbon benchmarks across AI workloads",
+   "Training energy demands",
+   "Inference energy costs",
+   "Edge execution and the fleet energy account"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Training vs. Inference Energy Analysis** in *Sustainable AI* (Vol II). By the end you should be able to:\n\n- Analyze why cumulative inference energy dominates one-time training energy for large-scale production models\n- Analyze communication-energy mechanisms and estimate their contribution from phase power and duration\n- Explain the microarchitectural mechanism behind the decode phase's low energy efficiency in LLM serving\n- Evaluate an on-device update against battery, memory, thermal, and quality requirements and identify alternatives when it exceeds them\n- Calculate average power in duty-cycled TinyML systems and explain how duty cycling extends operational battery life"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Sustainable AI, § Training vs. Inference Energy Analysis",
+   "md": "Training a large language model is a concentrated, highly visible energy event that consumes thousands of megawatt-hours over weeks or months. Serving the same model to a billion daily queries is the opposite shape of load: energy spent continuously, query by query, year after year."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Carbon benchmarks across AI workloads\n- Training energy demands\n- Inference energy costs\n- Edge execution and the fleet energy account\n\nPay attention to: cumulative inference overtaking one-time training; communication energy in distributed training; decode memory-bandwidth bottleneck and static leakage; on-device learning and the battery wall."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A distributed training job expands from 1,024 to 2,048 accelerators. Explain which mechanisms can increase communication energy and what measurements establish its share of step energy for the actual run.",
+   "md": "Topology, collective algorithm, message volume, overlap, stragglers, and powered waiting determine the energy change; a larger participant count does not guarantee super-linear growth for every collective. Estimate phase energy from measured power integrated over each phase and compare with the whole-step account. Exposed communication time equals its energy fraction only under an explicit equal-average-power approximation; continued power draw alone does not justify that equality."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-15-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Which systems analogy and operational reality best explains why inference often dominates total lifecycle energy for widely deployed foundation models?",
+     "explanation": "The correct answer is B. A training run concentrates energy in a bounded interval, while serving repeats for the product's lifetime. Sufficient demand can make cumulative serving energy exceed training energy, but volume, workload mix, idle capacity, and updates determine the crossover. Neither instantaneous power nor an assumed backward pass establishes it; inference can use specialized accelerators.",
+     "hint": "Think about: analyze why cumulative inference energy dominates one-time training energy for large-scale production models",
+     "type": "single",
+     "options": [
+      "Inference requires higher instantaneous wattage per accelerator than training because real-time serving disables dynamic voltage scaling.",
+      "Training is like a one-time rocket launch that burns concentrated energy over several weeks, whereas inference is like operating a commercial airline fleet that burns energy continuously across billions of recurring user interactions over years.",
+      "Inference models must perform a full backward pass on every user query to maintain accuracy, doubling computational cost.",
+      "Inference cannot run on specialized accelerators, forcing cloud operators to use energy-inefficient legacy CPUs."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Profiling an autoregressive LLM serving pipeline shows that the prefill phase achieves 55 percent Model FLOPs Utilization (MFU), while the token-generation decode phase achieves only 6 percent MFU with high HBM bandwidth utilization. What is the physical mechanism causing decode energy inefficiency?",
+     "explanation": "The correct answer is D. High HBM utilization with low MFU is consistent with a bandwidth-bound decode phase whose limited batch reuse leaves arithmetic units underused. Powered waiting can add static and support energy. These measurements do not establish a fixed prefill-to-decode energy ratio; compare measured energy under declared batch, context, output quality, latency, and hardware boundaries. Decode does not require backpropagation.",
+     "hint": "Think about: explain the microarchitectural mechanism behind the decode phase's low energy efficiency in LLM serving",
+     "type": "single",
+     "options": [
+      "Decode executes in FP32 precision while prefill executes in INT4 precision.",
+      "Prefill bypasses high-bandwidth memory entirely by storing all weights in CPU host RAM.",
+      "Decode requires running backpropagation to generate key-value cache embeddings for each new token.",
+      "Decode is memory-bandwidth bound: each generated token requires reading all model weights from HBM with low arithmetic intensity, leaving tensor execution units idling while drawing static leakage and clock distribution power."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Order the stages of a hierarchical wake-word cascade designed to minimize average energy consumption on a smart speaker from lowest power to highest power:",
+     "explanation": "The correct order is: (3) ultra-low-power Voice Activity Detection (VAD) circuit listening continuously at microwatt power, (2) small convolutional or recurrent neural network wake-word classifier verifying the trigger phrase, (1) large language model or full automatic speech recognition running on host processor or cloud. The cascade minimizes energy by placing the cheapest filter first: the microwatt VAD filters silence/ambient noise; upon detecting voice, it triggers the small milliwatt wake-word model; only when the trigger phrase is validated does the system power up the watt-scale host processor or cloud network stack for full inference. Inverting the sequence would burn hundreds of milliwatts or watts on continuous ambient silence.",
+     "hint": "Think about: design a hierarchical wake-word cascade to minimize average power consumption in low-power edge systems",
+     "type": "order",
+     "items": [
+      "small convolutional or recurrent neural network wake-word classifier verifying the trigger phrase",
+      "large language model or full automatic speech recognition running on host processor or cloud"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A mobile application team proposes running nightly on-device full backpropagation fine-tuning for a 1B-parameter model on user smartphones. Using the concept of the 'battery wall', explain how to assess a 5 percent overnight battery budget and identify alternatives if the measured workload exceeds it.",
+   "md": "A 15 Wh battery contains 54,000 J, so a 5% budget permits 2,700 J. Whether a 1B-parameter training workload fits depends on its measured energy per token, training length, memory footprint, and thermal limits; parameter count alone cannot establish infeasibility. PEFT can reduce trainable parameters and optimizer state, but LoRA still backpropagates through the relevant network and need not remove activation storage. Profile the complete update and consider fewer local steps, off-device training, or charging-only execution."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A TinyML sensor runs inference for 10 ms at 20 mW active power and sleeps for 990 ms at 20 $\\mu\\text{W}$ deep-sleep power during a 1-second monitoring period. Calculate the average power draw, and explain how duty cycling enables multi-year battery operation.",
+   "md": "The active contribution to average power is \\$20 mW×0.010=0.20 mW; the sleep contribution is \\$0.020 mW×0.990=0.0198 mW. Their sum is \\$0.2198 mW, about 91 times below continuous active power. This saves energy, but multi-year operation depends on usable battery capacity, self-discharge, and peripheral loads. Even one year at this average requires about 1.93 Wh before those additional costs."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze why cumulative inference energy dominates one-time training energy for large-scale production models.",
+    "You can now analyze communication-energy mechanisms and estimate their contribution from phase power and duration.",
+    "You can now explain the microarchitectural mechanism behind the decode phase's low energy efficiency in LLM serving.",
+    "You can now evaluate an on-device update against battery, memory, thermal, and quality requirements and identify alternatives when it exceeds them."
+   ]
+  }
+ ]
+}

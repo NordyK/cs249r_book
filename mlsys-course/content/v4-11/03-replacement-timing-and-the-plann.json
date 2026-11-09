@@ -1,0 +1,68 @@
+{
+ "title": "Replacement Timing and the Planning Horizon",
+ "summary": "Work through Replacement Timing and the Planning Horizon.",
+ "source": {
+  "chapter": "v4-11",
+  "sections": [
+   "Replacement Timing and the Planning Horizon",
+   "Action chunk horizons and reaction lag",
+   "Tail latency budgeting across a mission",
+   "Conditioning on the state at splice time"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Replacement Timing and the Planning Horizon** in *Trajectory Planning* (Vol IV)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Trajectory Planning, § Replacement Timing and the Planning Horizon",
+   "md": "On the mug reach, the arm needs an admitted replacement every … and loses tracking authority … after the last one. Whether a replacement can arrive that often depends on how long it takes to produce one, and producing one is more than a single inference pass. The observation behind the candidate must be captured, the proposer must run, and the candidate must cross to the safety MCU and pass validation before it is admitted. Every generator, from numerical trajectory optimization to an autoregressive policy, pays for that pipeline."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Action chunk horizons and reaction lag\n- Tail latency budgeting across a mission\n- Conditioning on the state at splice time"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Replacement latency and handoff tail matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Replacement latency runs from capture to MCU admission (about 115 ms against a 50 ms renewal and a 60 ms lease), so renewal is sustainable only by overlapping requests and every record must carry its own handoff tail."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-11-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Replacement Timing and the Planning Horizon** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Sampling planners, trajectory optimization and MPC, and learned chunks differ in the work they do, not in what they must prove, and a solver's deadline, not its convergence, decides admission.",
+      "Replacement latency runs from capture to MCU admission (about 115 ms against a 50 ms renewal and a 60 ms lease), so renewal is sustainable only by overlapping requests and every record must carry its own handoff tail.",
+      "Clearance and tool limits live in tool space but drives enforce joint limits, so tool-space quantities pass through the configuration-dependent Jacobian, whose weak direction near a singularity demands unbounded joint rates unless damped least squares trades accuracy for bounded rates.",
+      "Planning searches the configuration space and its collision-free subset, and collision queries dominate a sampling planner's run time."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Replacement latency and handoff tail**: Replacement latency runs from capture to MCU admission (about 115 ms against a 50 ms renewal and a 60 ms lease), so renewal is sustainable only by overlapping requests and every record must carry its own handoff tail."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Replacement latency and handoff tail* spends delay already priced in *Delivered torque ceiling*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Replacement latency and handoff tail* spends delay already priced in *Elementary stopping budget*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Replacement Timing and the Planning Horizon."
+   ]
+  }
+ ]
+}

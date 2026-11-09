@@ -1,0 +1,96 @@
+{
+ "title": "Hardware Lifecycle and E-Waste",
+ "summary": "Justify hardware lifespan extension as a high-leverage sustainability intervention using embodied carbon amortization.",
+ "source": {
+  "chapter": "v2-15",
+  "sections": [
+   "Hardware Lifecycle and E-Waste",
+   "Design and experimentation phase",
+   "Water, chemicals, and critical materials",
+   "Manufacturing phase",
+   "Use phase",
+   "Disposal, e-waste, and embedded AI",
+   "Hardware lifespan extension"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Hardware Lifecycle and E-Waste** in *Sustainable AI* (Vol II). By the end you should be able to:\n\n- Justify hardware lifespan extension as a high-leverage sustainability intervention using embodied carbon amortization\n- Analyze why development-phase experimentation overhead must be included in AI sustainability accounting and identify mitigation practices\n- Evaluate how zero-carbon electricity sourcing changes emissions accounting while physical use-phase constraints remain binding\n- Explain the role of Life Cycle Assessment (LCA) methodology in quantifying end-to-end hardware environmental impact\n- Apply circular economy principles to hardware retirement and secondary redeployment decisions"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Sustainable AI, § Hardware Lifecycle and E-Waste",
+   "md": "The environmental cost of an AI accelerator begins long before its first FLOP is calculated. The per-H100 manufacturing footprint quantified in a later section is incurred before the device is ever powered on. A training fleet of a few thousand such accelerators therefore carries a manufacturing debt of the same order as the operational emissions of a GPT-3-scale training run on the US-average grid (about …)."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Design and experimentation phase\n- Water, chemicals, and critical materials\n- Manufacturing phase\n- Use phase\n- Disposal, e-waste, and embedded AI\n- Hardware lifespan extension\n\nPay attention to: accelerator lifespan extension and amortization; hidden carbon in experimentation and NAS; use-phase constraints on renewable grids; Life Cycle Assessment (LCA) methodology."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A research paper reports that training a new vision-language model consumed 500 MWh for its final successful training run. Explain why reporting only the final run systematically underestimates the development phase's total carbon footprint, and identify two mitigation practices.",
+   "md": "The final run omits exploratory searches, debugging, failed runs, compilation, and evaluation. Their cost depends on the actual experiment inventory; fifty candidates at one-tenth of final-run cost add five final-run equivalents in the chapter's example. Transfer learning, shared search, and early stopping can reduce development work, provided the complete comparison preserves the required quality."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-15-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "For a fixed inventoried manufacturing footprint, what happens to annualized embodied carbon when useful hardware life extends from three years to five years, before considering changes in operational energy?",
+     "explanation": "The correct answer is A. Dividing the same manufacturing footprint by five years rather than three changes its annual allocation by a factor of 3/5, a 40% reduction. This does not erase manufacturing emissions or prove that retaining hardware minimizes total lifecycle carbon. The comparison also needs useful work, operational energy, replacement manufacturing, and consistent component boundaries. Aging does not automatically improve silicon efficiency or facility PUE.",
+     "hint": "Think about: justify hardware lifespan extension as a high-leverage sustainability intervention using embodied carbon amortization",
+     "type": "single",
+     "options": [
+      "The fixed manufacturing footprint is amortized over five years rather than three, reducing its annualized allocation by 40 percent; total lifecycle savings still depend on operational energy and the inventory boundary.",
+      "Older accelerators automatically consume 40 percent less electrical power per FLOP as silicon pathways break in over time.",
+      "Extending accelerator lifespans from three to five years eliminates electronic waste entirely because hardware decomposes organically after five years.",
+      "Data center PUE automatically drops to 1.0 after servers have operated for more than four years."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "If an AI training data center is powered 100 percent by dedicated geothermal and hydroelectric power, the use phase is completely unconstrained and engineers no longer need to consider grid dynamics or cooling efficiency.",
+     "explanation": "False. Low-carbon sourcing does not remove electrical capacity, thermal, water, or reliability limits, and it does not erase generation or hardware lifecycle burdens. Any effect on other grid generation depends on the actual supply and grid connection; dedicated hydro or geothermal alone does not establish a peaker response.",
+     "hint": "Think about: evaluate how zero-carbon electricity sourcing changes emissions accounting while physical use-phase constraints remain binding",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Standardized under ISO 14040 and ISO 14044, a comprehensive `____` evaluates the cumulative environmental impact of AI hardware across raw material extraction, manufacturing, use, and end-of-life disposal.",
+     "explanation": "life cycle assessment. A Life Cycle Assessment (LCA) quantifies environmental impacts across design, supply-chain fabrication, active operational use, and recycling/disposal, ensuring embodied emissions are not ignored.",
+     "hint": "Think about: explain the role of Life Cycle Assessment (LCA) methodology in quantifying end-to-end hardware environmental impact",
+     "type": "fill",
+     "answer": [
+      "life cycle assessment"
+     ]
+    },
+    {
+     "q": "A cloud provider considers retiring functional accelerators because a new generation offers a 12 percent improvement in performance per watt. Which option identifies a circular-economy candidate for evaluation, without claiming that this efficiency specification alone determines the lowest-emissions choice?",
+     "explanation": "The correct answer is C. Compatible secondary use can avoid premature disposal and new procurement, but it must meet the workload's quality, performance, security, and reliability requirements. Compare useful-work energy, grid intensity, utilization, replacement manufacturing, and remaining life. A 12 percent performance-per-watt specification alone cannot establish the emissions minimum or its break-even time; automatic replacement ignores the new embodied burden.",
+     "hint": "Think about: apply circular economy principles to hardware retirement and secondary redeployment decisions",
+     "type": "single",
+     "options": [
+      "Immediately shred and dispose of all prior-generation accelerators to eliminate any hardware with lower peak energy efficiency.",
+      "Replace all servers instantly because any improvement in operational efficiency automatically offsets the embodied carbon of manufacturing a replacement fleet.",
+      "Evaluate redeployment to compatible secondary workloads, comparing continued useful service with replacement manufacturing and measured operating emissions over the same remaining service interval.",
+      "Overclock the older accelerators beyond thermal limits to match new hardware throughput regardless of cooling failure risk."
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now justify hardware lifespan extension as a high-leverage sustainability intervention using embodied carbon amortization.",
+    "You can now analyze why development-phase experimentation overhead must be included in AI sustainability accounting and identify mitigation practices.",
+    "You can now evaluate how zero-carbon electricity sourcing changes emissions accounting while physical use-phase constraints remain binding.",
+    "You can now explain the role of Life Cycle Assessment (LCA) methodology in quantifying end-to-end hardware environmental impact."
+   ]
+  }
+ ]
+}

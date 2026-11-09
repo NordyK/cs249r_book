@@ -1,0 +1,94 @@
+{
+ "title": "The Fleet Stack and the Lighthouse Archetypes",
+ "summary": "Analyze how the fleet stack acts as a constraint-propagation hierarchy where lower-layer physical decisions bound upper-layer operational capabilities.",
+ "source": {
+  "chapter": "v2-01",
+  "sections": [
+   "The Fleet Stack and the Lighthouse Archetypes",
+   "Three systems archetypes"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Fleet Stack and the Lighthouse Archetypes** in *Introduction* (Vol II). By the end you should be able to:\n\n- Analyze how the fleet stack acts as a constraint-propagation hierarchy where lower-layer physical decisions bound upper-layer operational capabilities\n- Trace how a change in model size cascades into data and infrastructure requirements under a fixed calendar window\n- Classify the three lighthouse archetypes by their dominant C$^3$ constraint and fleet-scale systems challenge\n- Order the four bands of the fleet stack and locate their eight rows, including scheduling and recovery within Distribution\n- Distinguish the fleet engineer's working practices from the principles of distributed ML systems"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Introduction, § The Fleet Stack and the Lighthouse Archetypes",
+   "md": "When a distributed step stalls on exposed communication or synchronization, the Fleet Law and the C$^3$ dimensions tell us which cost dominates, but not which layer of the system caused it or which workloads will trigger it next. Three architectural maps work together to close that gap: the fleet stack locates system responsibility, C$^3$ and the Fleet Law diagnose execution cost, and the lighthouse archetypes test those costs across representative production workloads."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Three systems archetypes\n\nPay attention to: Fleet Stack as a layered constraint-propagation hierarchy; Cascading requirements across model size, training data, and fleet infrastructure; Three Lighthouse Archetypes at scale (GPT-4/Llama-3, DLRM, Federated MobileNet) and their distinct C^3 stress profiles; Distributed observability systems across multi-thousand-node fleets."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: During capacity planning for a frontier model, an engineering leadership team doubles the target model parameter count from 100B to 200B while keeping the target calendar training window fixed. Explain how this model-side change cascades into concrete requirements on the training data and on the fleet's infrastructure.",
+   "md": "If the plan retains the approximate Chinchilla allocation, doubling parameters from 100B to 200B doubles the token target from roughly 2T to 4T. Parameter and optimizer memory also double at fixed precision. Since TrainingCompute approx 6ParametersDatasetSize, useful training FLOPs quadruple. Finishing in the same time therefore requires four times the effective aggregate compute throughput, which may require more than four times the devices if utilization falls. Data delivery, placement, and communication must be checked separately; no fixed network multiplier follows from parameter count alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-01-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An infrastructure team argues that the four bands of the fleet stack (Infrastructure, Distribution, Serving, Governance) can be optimized in complete isolation by independent teams without cross-layer coordination. Why does the chapter reject this architectural view?",
+     "explanation": "The correct answer is A. The fleet stack is defined as a layered constraint-propagation framework: decisions at the bottom constrain possibilities at the top. Physical infrastructure limits (e.g. 200 Gb/s link limits and facility power budgets) bound which distribution strategies (tensor vs pipeline parallelism) are viable; distribution choices bound serving latency and throughput envelopes; and serving architectures determine how data lineage, access control, and auditability invariants are maintained at runtime. Proposing monolithic binary compilation misrepresents software architecture, claiming it applies only to single nodes contradicts the fleet-scale definition, and viewing it as an administrative org chart misses its technical engineering purpose.",
+     "hint": "Think about: analyze how the fleet stack acts as a constraint-propagation hierarchy where lower-layer physical decisions bound upper-layer operational capabilities.",
+     "type": "single",
+     "options": [
+      "The fleet stack is a strict constraint-propagation hierarchy where lower layers physically constrain upper layers: facility power and network fabric bisection bandwidth constrain feasible distribution strategies, which constrain serving tail-latency SLOs, which in turn determine whether runtime governance invariants can be enforced.",
+      "The fleet stack requires all four layers to be compiled into a single monolithic C++ binary that executes directly on GPU bare metal.",
+      "The fleet stack only applies to single-GPU workstations and breaks down whenever multiple nodes are connected.",
+      "The fleet stack is an administrative corporate organization chart rather than a technical systems model."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Which of the following correctly pairs each of the textbook's three lighthouse archetypes with its representative C$^3$ diagnostic regime and primary fleet challenge?",
+     "explanation": "The correct answer is C. The archetypes probe communication for dense distributed LLM workloads, coordination for sparse DLRM routing and placement, and compute for MobileNet's per-device envelope. These are representative regimes rather than permanent bottleneck assignments: partitioning and overlap can change the binding cost, and communication or participation can dominate a federated round. The other choices misidentify these diagnostic roles.",
+     "hint": "Think about: classify the three lighthouse archetypes by their dominant C$^3$ constraint and fleet-scale systems challenge.",
+     "type": "single",
+     "options": [
+      "Archetype A: Coordination (edge battery); Archetype B: Compute (matrix math); Archetype C: Communication (InfiniBand).",
+      "Archetype A: Compute (single-thread CPU clock); Archetype B: Communication (local PCIe); Archetype C: Coordination (disk I/O).",
+      "Archetype A (GPT-4/Llama-3): Communication (dense gradient/activation synchronization across thousands of GPUs); Archetype B (DLRM): Coordination (sharding 10 TB+ embedding tables with mathcalO(DeviceCount^2) AllToAll routing under <100 ms tail latency); Archetype C (Federated MobileNet): Compute (watt-scale power and memory limits on local edge devices).",
+      "All three archetypes share the identical dominant constraint: local GPU HBM capacity."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Order the four bands of the fleet stack from bottom (physical foundation) to top (mission context):",
+     "explanation": "The correct order is: (2) Infrastructure, (3) Distribution, (4) Serving, (1) Governance. Each band contains two rows: Facility and Accelerators plus Fabric and Storage; Distributed Execution plus Reliability & Control; Runtime and Serving plus Operations; Assurance plus Governance and Sustainability. Job orchestration, cluster scheduling, and recovery belong to Reliability & Control within Distribution. Serving handles inference requests and deployment operations. Physical capabilities constrain the choices above them, while service and governance requirements constrain acceptable lower-layer designs.",
+     "hint": "Think about: order the four bands of the fleet stack and locate their eight rows, including scheduling and recovery within Distribution.",
+     "type": "order",
+     "items": [
+      "Infrastructure",
+      "Distribution",
+      "Serving.",
+      "Governance"
+     ]
+    },
+    {
+     "q": "The six engineering practices named with the fleet stack (instrument first, reserve headroom, expect bottlenecks to migrate, treat failure as steady state, compound small gains, co-design hardware with algorithms) are the same set as the principles of distributed ML systems that the book develops part by part.",
+     "explanation": "False. The practices describe how a fleet engineer works, such as instrumenting before optimizing and treating failure as steady state. The principles describe what the physics of the fleet makes true regardless of practice, and each part of the book establishes its share of them. The conclusion gathers the principles into six and pairs each one with the practice it demands, so the two lists stay separate.",
+     "hint": "Think about: distinguish the fleet engineer's working practices from the principles of distributed ML systems.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze how the fleet stack acts as a constraint-propagation hierarchy where lower-layer physical decisions bound upper-layer operational capabilities.",
+    "You can now trace how a change in model size cascades into data and infrastructure requirements under a fixed calendar window.",
+    "You can now classify the three lighthouse archetypes by their dominant C$^3$ constraint and fleet-scale systems challenge.",
+    "You can now order the four bands of the fleet stack and locate their eight rows, including scheduling and recovery within Distribution."
+   ]
+  }
+ ]
+}

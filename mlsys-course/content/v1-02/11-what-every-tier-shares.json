@@ -1,0 +1,47 @@
+{
+ "title": "What Every Tier Shares",
+ "summary": "Explain how systems optimization techniques (e.g., quantization, kernel fusion) transfer across deployment scales.",
+ "source": {
+  "chapter": "v1-02",
+  "sections": [
+   "What Every Tier Shares"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **What Every Tier Shares** in *System Paradigms* (Vol I). By the end you should be able to:\n\n- Explain how systems optimization techniques (e.g., quantization, kernel fusion) transfer across deployment scales"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, System Paradigms, § What Every Tier Shares",
+   "md": "Quantizing weights from 32-bit floats to 8-bit integers cuts the bytes read from flash and SRAM on a milliwatt microcontroller for the exact same physical reason that it cuts HBM traffic during autoregressive decoding in a megawatt cloud cluster. Although the four deployment tiers differ by orders of magnitude in available energy, memory capacity, and compute throughput, they rest on shared systems foundations: every tier moves data through a pipeline, manages a fixed budget of compute, memory, energy, and network capacity, and maps models onto hardware through a software architecture."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Three-tier convergence of systems engineering principles across scales."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-02-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Optimization techniques such as quantization and memory traffic reduction are mutually exclusive between tiers, meaning methods developed for TinyML microcontrollers have no applicability to cloud data center serving.",
+     "explanation": "False. Because memory bandwidth bottlenecks and the memory wall exist across all computing scales, core systems principles transfer across tiers. Techniques such as integer quantization, kernel fusion, and memory layout tuning originally developed to fit models into microcontrollers or mobile NPUs are routinely applied to cloud LLM serving to reduce HBM traffic and lower inference serving costs.",
+     "hint": "Think about: explain how systems optimization techniques (e.g., quantization, kernel fusion) transfer across deployment scales.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain how systems optimization techniques (e.g., quantization, kernel fusion) transfer across deployment scales."
+   ]
+  }
+ ]
+}

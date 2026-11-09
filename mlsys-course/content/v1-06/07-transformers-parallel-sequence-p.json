@@ -1,0 +1,102 @@
+{
+ "title": "Transformers: Parallel Sequence Processing",
+ "summary": "Explain why unmasked self-attention is permutation equivariant and justify the role of positional information in sequence modeling.",
+ "source": {
+  "chapter": "v1-06",
+  "sections": [
+   "Transformers: Parallel Sequence Processing",
+   "Pattern processing needs",
+   "Algorithmic structure",
+   "Computational mapping",
+   "System implications"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Transformers: Parallel Sequence Processing** in *Network Architectures* (Vol I). By the end you should be able to:\n\n- Explain why unmasked self-attention is permutation equivariant and justify the role of positional information in sequence modeling\n- Calculate the arithmetic intensity of batch-1 autoregressive decoding and evaluate why memory bandwidth bottlenecks single-token generation\n- Explain the architectural layout and sub-layer execution order of a standard Transformer encoder block\n- Calculate the per-request Key-Value (KV) cache memory footprint and analyze how concurrency shifts serving memory bottlenecks from weights to activation state\n- Evaluate why highly optimized batch-1 autoregressive decoding can still fall far below peak compute throughput under a low-intensity streamed-weight regime"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Network Architectures, § Transformers: Parallel Sequence Processing",
+   "md": "Attention provides the computational primitive of dynamic, content-dependent routing between positions, yet it was originally layered on top of recurrent architectures, inheriting their sequential bottleneck. The transformer architecture removes recurrence and makes attention the operation that mixes information between positions in every layer, which enables parallel computation across sequence positions during full-sequence processing, such as training or prompt processing (reading a user's whole input at once), while retaining dynamic connectivity."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Pattern processing needs\n- Algorithmic structure\n- Computational mapping\n- System implications\n\nPay attention to: Parallel sequence processing and elimination of recurrence; Multi-Head Attention dimension partitioning and subspace specialization; Positional encodings to break permutation invariance; Autoregressive decoding bandwidth bottleneck ($I \\approx 1\\text{ FLOP/byte}$) vs prefill compute saturation."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Under a weight-only memory model in FP16 precision, an autoregressive language model generates 1 token per forward pass at batch size 1, performing approximately 2 FLOPs per parameter while streaming the entire weight matrix from High Bandwidth Memory (HBM). Calculate the theoretical arithmetic intensity of this decoding step and explain why it causes accelerator matrix units (Tensor Cores) to remain severely underutilized.",
+   "md": "In FP16 precision, each parameter occupies 2 bytes, so 2 FLOPs per streamed parameter gives an arithmetic intensity of \\$1.0\\text{ FLOP/byte}$. For a hypothetical accelerator with matching FP16 compute throughput of 312 TFLOP/s and HBM bandwidth of 2.0 TB/s, the ridge point is approximately \\$156\\text{ FLOP/byte}$. The streamed-weight model therefore has a bandwidth roofline of 2.0 TFLOP/s, far below the compute ceiling. This bound explains why compute throughput can remain low; it does not measure Tensor Core idle time or prove that a particular implementation saturates HBM. Realized traffic, cache reuse, launch overhead, and available parallelism require profiling."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-06-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why does position-free unmasked self-attention require explicit positional information supplied by mechanisms such as sinusoidal signals, learned positional embeddings, or related position-encoding schemes?",
+     "explanation": "The correct answer is C. The section states that unmasked self-attention treats the sequence as an unordered set unless position information is injected: if the rows of $\\mathbf{X}$ are permuted, the output rows are permuted the same way. That is permutation equivariance, not invariance, and it is why positional information from embeddings, sinusoidal signals, or related mechanisms is needed to represent order. The hardware-padding and complexity answers are unrelated to the mathematical issue.",
+     "hint": "Think about: explain why unmasked self-attention is permutation equivariant and justify the role of positional information in sequence modeling.",
+     "type": "single",
+     "options": [
+      "Because matrix multiplication hardware cannot process tensors without fixed static padding across all dimensions.",
+      "Because layer normalization removes the mean and variance of token vectors, destroying word identity.",
+      "Because without positional information, unmasked self-attention is permutation equivariant: permuting the input rows permutes the output rows in the same way, so the layer by itself does not encode order.",
+      "Because positional encodings reduce the computational complexity of the attention matrix from $\\mathcal{O}(S^2)$ to $\\mathcal{O}(S)$."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Order the sub-layer operations executed within a single standard Transformer encoder block during a forward pass:",
+     "explanation": "The correct order is (1) -> (2) -> (3) -> (4) -> (5). Step 1 is (1) Linear Q, K, V projections. Step 2 is (2) Multi-head scaled dot-product attention. Step 3 is (3) First residual addition and layer normalization. Step 4 is (4) Position-wise feed-forward MLP. Step 5 is (5) Second residual addition and layer normalization.",
+     "hint": "Think about: explain the architectural layout and sub-layer execution order of a standard Transformer encoder block.",
+     "type": "order",
+     "items": [
+      "Project input activations into Query, Key, and Value tensors via linear weight matrices",
+      "Compute multi-head scaled dot-product self-attention across all sequence positions",
+      "Apply residual skip connection addition and layer normalization to the attention output",
+      "Apply residual skip connection addition and layer normalization to the feed-forward output"
+     ]
+    },
+    {
+     "q": "During autoregressive language model inference, single-token generation at batch size 1 achieves near-peak GPU floating-point throughput (TFLOP/s) because the matrix-vector multiplication is highly optimized.",
+     "explanation": "False. The chapter's streamed-weight batch-1 decode model has low arithmetic intensity, so optimization alone does not guarantee near-peak compute throughput. Whether decode is bandwidth bound depends on the machine balance and realized traffic, and prefill or larger batches can reuse weights more effectively than single-token batch-1 generation.",
+     "hint": "Think about: evaluate why highly optimized batch-1 autoregressive decoding can still fall far below peak compute throughput under a low-intensity streamed-weight regime.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In a Multi-Head Attention layer with model dimension $d_{\\text{model}} = 768$ and $N_{\\text{heads}} = 12$ heads, what is the per-head dimension $d_k$, and how does multi-head projection affect total computational FLOP complexity compared to a single attention head operating on the full 768 dimensions?",
+     "explanation": "The correct answer is B. Multi-head attention partitions the model dimension across heads such that $d_k = d_{\\text{model}} / N_{\\text{heads}} = 768 / 12 = 64$. For $N_{\\text{heads}}$ heads, the $S \\times S$ score calculation requires $N_{\\text{heads}} \\times (S \\times S \\times d_k) = S^2 \\times (N_{\\text{heads}} \\cdot d_k) = S^2 \\cdot d_{\\text{model}}$ MACs, which is mathematically identical to the arithmetic cost of a single full-width attention head while providing the representational capacity of diverse attention subspaces. The claim that $d_k = 768$ misstates the per-head dimension. The claim of $d_k = 12$ inverts the head count and head dimension. The claim that multi-head attention eliminates the output projection matrix is false because $\\mathbf{W}^O$ is required to mix the concatenated head outputs.",
+     "hint": "Think about: analyze the dimension partitioning mechanics of multi-head attention and explain why multi-head projection preserves total computational complexity.",
+     "type": "single",
+     "options": [
+      "The per-head dimension is d_k = 768, increasing total projection FLOPs by \\$12× compared to a single head.",
+      "The per-head dimension is $d_k = 768 / 12 = 64$; running 12 heads of dimension 64 has the exact same total projection and score FLOP complexity as a single head of dimension 768, while enabling the model to jointly attend to information from 12 distinct representation subspaces.",
+      "The per-head dimension is d_k = 12, reducing total computational complexity by \\$64×.",
+      "Multi-head attention eliminates the output projection matrix $\\mathbf{W}^O$, halving layer parameter count."
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A production serving system deploys a 32-layer transformer with 32 attention heads, head dimension $d_{\\text{head}} = 128$, and context length $S = 2{,}048$ in FP16 precision (2 bytes per value). Calculate the memory footprint of the Key-Value (KV) cache for a single user request, and explain why KV-cache memory can surpass model weight memory under high concurrent batching.",
+   "md": "For a single request, the KV cache stores key and value tensors across all layers: Memory = N_L × 2 × N_heads × S × d_head × bytes = 32 × 2 × 32 × 2,048 × 128 × 2 bytes = 1,073,741,824 bytes = 1.07 GB (exactly 1.0 GiB). While a 7B parameter FP16 model weight footprint is fixed at ~14 GB, serving 32 concurrent user requests requires \\$32 × 1.07 GB approx 34.3 GB of dynamic KV cache, more than double the static weight memory. This linear growth with concurrency and context length makes the KV cache the dominant serving memory bottleneck."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain why unmasked self-attention is permutation equivariant and justify the role of positional information in sequence modeling.",
+    "You can now calculate the arithmetic intensity of batch-1 autoregressive decoding and evaluate why memory bandwidth bottlenecks single-token generation.",
+    "You can now explain the architectural layout and sub-layer execution order of a standard Transformer encoder block.",
+    "You can now calculate the per-request Key-Value (KV) cache memory footprint and analyze how concurrency shifts serving memory bottlenecks from weights to activation state."
+   ]
+  }
+ ]
+}

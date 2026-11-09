@@ -1,0 +1,83 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Analyze the fallacy that asynchronous collectives guarantee complete latency hiding using the LogP model and stream barrier semantics.",
+ "source": {
+  "chapter": "v2-05",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Collective Communication* (Vol II). By the end you should be able to:\n\n- Analyze the fallacy that asynchronous collectives guarantee complete latency hiding using the LogP model and stream barrier semantics\n- Identify the modeling pitfall of applying 1D Ring AllReduce formulas to full-crossbar NVSwitch intra-node fabrics\n- Explain why gradient compression algorithms must be evaluated on time-to-accuracy rather than microbenchmark time-per-step\n- Evaluate how topology-unaware rank assignment causes NIC contention and degrades multi-rail collective bandwidth"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Collective Communication, § Fallacies and Pitfalls",
+   "md": "Communication optimization attracts persistent misconceptions because the interaction between latency, bandwidth, topology, and compression creates nonobvious failure modes that simple mental models miss. Each of the following pitfalls traces a common rule of thumb to the physical or algorithmic boundary where it breaks down."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: The fallacy of bandwidth as the sole metric; The pitfall of assuming AllReduce fits all workloads (MoE/DLRM require AllToAll); The fallacy that pipeline parallelism eliminates communication (bubble idleness); The pitfall of defaulting to Ring AllReduce without checking size/topology."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why evaluating a new gradient compression algorithm using only 'communication time per step' or 'network compression ratio' is an engineering pitfall, and describe the metric that should be used instead.",
+   "md": "Evaluating gradient compression solely by per-step communication speedup or compression ratio (e.g., \\$100×) is a pitfall because lossy compression introduces gradient noise, variance, or systematic bias into the stochastic optimization process. If compression degrades gradient quality enough that the model requires \\$2× more training iterations or smaller learning rates to reach the target validation loss, total wall-clock training time will increase even if individual network steps are \\$50\\% faster. The true engineering evaluation metric must be 'time-to-accuracy' (total wall-clock time required to reach target convergence/validation perplexity on a realistic training schedule), not time-per-step or network payload reduction alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-05-12-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A machine learning engineer claims: 'Setting async_op=True on PyTorch collective calls guarantees that communication will be 100% hidden behind computation, eliminating communication overhead entirely.' Based on the chapter discussion of asynchronous collectives and the LogP model, why is this claim a fallacy?",
+     "explanation": "The correct answer is C. Returning a work handle lets the host continue, but it does not make the transfer instantaneous or guarantee overlap. Independent computation must cover the transfer interval, the runtime must make progress, and dependent consumers must wait for completion using the backend’s synchronization contract. Launch and completion overhead or shared-resource contention can reduce the benefit. A waiting consumer does not imply that every GPU resource stalls, and nonblocking execution does not inherently disable GPUDirect or restrict collectives to Broadcast.",
+     "hint": "Think about: analyze the fallacy that asynchronous collectives guarantee complete latency hiding using the LogP model and stream barrier semantics.",
+     "type": "single",
+     "options": [
+      "async_op=True is an invalid argument that causes PyTorch to raise a runtime exception on GPU clusters.",
+      "Asynchronous operations automatically disable GPUDirect RDMA and route all traffic through host CPU RAM.",
+      "A nonblocking call does not guarantee independent work, effective runtime progress, or completion before a dependent consumer needs the result; overhead, contention, and unfinished transfers can remain exposed.",
+      "Asynchronous collectives are mathematically restricted to Broadcast operations and cannot execute gradient AllReduces."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "An infrastructure team applies $T_{\\mathrm{lat}}=2(N-1)\\alpha$ to every intra-node AllReduce on an 8-GPU NVSwitch system without checking the selected collective algorithm. Why can that model be misleading?",
+     "explanation": "The correct answer is B. A ring can run over a switched fabric, and its round-count model still applies when that algorithm is used. NVSwitch connectivity also permits other schedules and supported reduction offloads. Physical connectivity alone does not identify the runtime algorithm or guarantee constant latency; benchmark the selected collective for the intended message size.",
+     "hint": "Think about: identify the modeling pitfall of applying 1D Ring AllReduce formulas to full-crossbar NVSwitch intra-node fabrics.",
+     "type": "single",
+     "options": [
+      "DGX nodes do not contain high-bandwidth interconnects and rely solely on 1 GbE management cables.",
+      "The formula describes a logical ring. NVSwitch supports other collective schedules, so the selected algorithm and message size must be checked before assuming sequential ring rounds.",
+      "Intra-node AllReduce is forbidden by the CUDA driver, which mandates that all gradient reductions take place across inter-node InfiniBand links.",
+      "Ring AllReduce cannot operate on power-of-two GPU counts."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Topology-unaware placement can concentrate collective traffic on a subset of network interfaces, reducing realized bandwidth even when nominal aggregate port capacity is unchanged.",
+     "explanation": "True. GPU-to-NIC affinity and the mapping of corresponding model shards determine which ports and paths carry a collective. Concentrating traffic on a few interfaces can leave others underused. The penalty depends on workload and topology; rail alignment alone neither reserves bandwidth nor removes contention.",
+     "hint": "Think about: evaluate how topology-unaware rank assignment causes NIC contention and degrades multi-rail collective bandwidth.",
+     "type": "truefalse",
+     "answer": true
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the fallacy that asynchronous collectives guarantee complete latency hiding using the LogP model and stream barrier semantics.",
+    "You can now identify the modeling pitfall of applying 1D Ring AllReduce formulas to full-crossbar NVSwitch intra-node fabrics.",
+    "You can now explain why gradient compression algorithms must be evaluated on time-to-accuracy rather than microbenchmark time-per-step.",
+    "You can now evaluate how topology-unaware rank assignment causes NIC contention and degrades multi-rail collective bandwidth."
+   ]
+  }
+ ]
+}

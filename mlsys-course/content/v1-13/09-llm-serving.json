@@ -1,0 +1,105 @@
+{
+ "title": "LLM Serving",
+ "summary": "Compare the typical computational bottlenecks and hardware behavior of LLM prefill versus decode in serving.",
+ "source": {
+  "chapter": "v1-13",
+  "sections": [
+   "LLM Serving",
+   "Performance metrics: TTFT and TPOT",
+   "The decode floor",
+   "Decoding strategies",
+   "Continuous batching",
+   "Memory and KV cache",
+   "Session affinity constraints"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **LLM Serving** in *Model Serving* (Vol I). By the end you should be able to:\n\n- Compare the typical computational bottlenecks and hardware behavior of LLM prefill versus decode in serving\n- Sequence the high-level workflow of speculative decoding from draft generation through verification and context update\n- Evaluate how draft-model cost and acceptance rate determine whether speculative decoding improves LLM serving performance\n- Apply prefix caching to reduce repeated prefill work for shared prompt prefixes in conversational serving\n- Compare request-level dynamic batching with iteration-level continuous batching for autoregressive LLM serving and explain why variable output lengths make fixed batch membership inefficient"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Serving, § LLM Serving",
+   "md": "An image classifier returns a single class vector in a few milliseconds and immediately frees its activation buffers, whereas a conversational LLM streams hundreds of tokens over several seconds while holding a growing key-value cache in GPU memory. LLMs make three properties far more prominent than in fixed-output serving. *Autoregressive generation* means that each token depends on all previous tokens, which makes output inherently sequential. *Variable-length output* means that response length is unknown at request time, which complicates fixed-batch assumptions."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Performance metrics: TTFT and TPOT\n- The decode floor\n- Decoding strategies\n- Continuous batching\n- Memory and KV cache\n- Session affinity constraints\n\nPay attention to: LLM latency metrics: Time to First Token (TTFT) vs. Time Per Output Token (TPOT); Prefill (compute-bound) vs. Decode (memory-bandwidth-bound) execution phases; KV cache memory sizing formula: \\$2 × L × H_kv × D_head × P × S × B; Speculative decoding mechanics, draft verification, and distribution preservation."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Contrast traditional request-level dynamic batching with iteration-level continuous batching (as introduced in Orca and vLLM) for Large Language Model (LLM) serving. Why is request-level batching severely inefficient for autoregressive generation?",
+   "md": "In request-level batching, batch membership stays fixed while requests decode, so short generations that finish early cannot immediately free their slots for unrelated waiting work. In continuous batching, the scheduler can admit or remove sequences at iteration boundaries, which uses capacity more efficiently when output lengths vary. For example, if one reply ends after 20 tokens while another runs for 500, a fixed request-level batch leaves part of the batch underused until the long sequence advances far enough. The practical consequence is lower throughput and longer waits for queued requests unless the runtime can reschedule state across iterations."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-13-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In Large Language Model (LLM) serving, how do the computational and hardware characteristics of the Prefill phase fundamentally differ from the Decode phase?",
+     "explanation": "The correct answer is B. Prefill handles the whole prompt together, so it uses larger parallel matrix operations and typically has higher arithmetic intensity than decode. Decode then generates output step by step, and at low batch sizes often becomes limited by repeatedly moving model weights and KV state through memory rather than by raw compute. The autoregressive behavior belongs to decode, not prefill. Both phases usually run on the accelerator, and TTFT includes more than just the prefill kernel time in a full serving path.",
+     "hint": "Think about: compare the typical computational bottlenecks and hardware behavior of LLM prefill versus decode in serving.",
+     "type": "single",
+     "options": [
+      "Prefill processes tokens autoregressively one by one and is memory-bandwidth bound, whereas Decode processes all output tokens simultaneously and is compute-bound.",
+      "Prefill processes all prompt tokens concurrently in parallel matrix multiplications and is often more compute-intensive, whereas Decode generates one token per step autoregressively and at low batch sizes is often memory-bandwidth bound due to repeated weight and KV-state movement.",
+      "Prefill operates exclusively on host CPU DRAM, whereas Decode runs on GPU Tensor Cores.",
+      "Prefill latency scales quadratically with batch size, whereas Decode latency is strictly independent of sequence length and KV-cache size."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Order the step-by-step execution cycle of Speculative Decoding for accelerating LLM inference:",
+     "explanation": "The correct order is: (2) Draft model (a lightweight autoregressive model) generates $K$ candidate tokens sequentially, (1) Target model runs a single parallel forward pass over the draft candidate tokens to compute verification logits, (4) Verification logic compares the draft tokens with the target model's verification results and accepts a prefix of them, (3) Engine appends the accepted tokens to the KV cache and advances the generation context. The sequence matters because the target model cannot verify tokens before the draft proposes them, and the engine should not advance the live context until verification decides which proposed tokens are accepted. Swapping verification and context advancement would commit unverified state and break correctness.",
+     "hint": "Think about: sequence the high-level workflow of speculative decoding from draft generation through verification and context update.",
+     "type": "order",
+     "items": [
+      "Target model runs a single parallel forward pass over the draft candidate tokens to compute verification logits",
+      "Verification logic compares the draft tokens with the target model's verification results and accepts a prefix of them",
+      "Engine appends the accepted tokens to the KV cache and advances the generation context"
+     ]
+    },
+    {
+     "q": "Speculative decoding speeds up serving regardless of draft-model quality, because the target model always verifies multiple tokens in parallel.",
+     "explanation": "False. Speculative decoding helps only when the draft model is cheap enough and its proposed tokens are accepted often enough to offset the extra draft-and-verify work. If acceptance is low, the system can spend more time running two models than it saves through parallel verification.",
+     "hint": "Think about: evaluate how draft-model cost and acceptance rate determine whether speculative decoding improves LLM serving performance.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In a multi-turn conversational AI system with extensive system prompts (e.g., 2,000 tokens of instructions and few-shot examples shared across thousands of user sessions), what serving optimization eliminates redundant prefill compute across requests?",
+     "explanation": "The correct answer is C. Prefix caching stores KV states for a compatible shared prefix so later requests with that same prefix can reuse the prefill result instead of recomputing it. This can cut TTFT substantially for the cached portion, though any uncached suffix still has to be processed normally. Dropping prompt tokens changes model behavior, static graph compilation does not reuse dynamic KV state, and 1-bit prompt quantization is not the mechanism described here.",
+     "hint": "Think about: apply prefix caching to reduce repeated prefill work for shared prompt prefixes in conversational serving.",
+     "type": "single",
+     "options": [
+      "Linear Attention Approximation, which drops system prompt tokens entirely from the attention window.",
+      "Static Graph Compilation, which hardcodes user inputs directly into the weight tensors.",
+      "Prefix Caching (e.g., RadixAttention), which stores the KV-cache states of common prompt prefixes in memory and reuses them across queries matching the prefix.",
+      "Speculative Quantization, which quantizes prompt tokens into 1-bit binary representations during the decode phase."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "PagedAttention resolves the primary memory waste in LLM KV-caching by allocating key and value states in non-contiguous, fixed-size physical memory blocks managed via a virtual page table, eliminating both internal fragmentation from over-allocation and external memory fragmentation.",
+     "explanation": "False. PagedAttention removes the need for one large contiguous KV-cache allocation and greatly reduces external fragmentation, but it does not eliminate internal waste entirely: each sequence can still leave one partially filled final block. Its benefit is reducing fragmentation enough to raise usable concurrency, not making memory waste literally zero.",
+     "hint": "Think about: explain how PagedAttention reduces KV-cache fragmentation and identify the remaining source of memory waste.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare the typical computational bottlenecks and hardware behavior of LLM prefill versus decode in serving.",
+    "You can now sequence the high-level workflow of speculative decoding from draft generation through verification and context update.",
+    "You can now evaluate how draft-model cost and acceptance rate determine whether speculative decoding improves LLM serving performance.",
+    "You can now apply prefix caching to reduce repeated prefill work for shared prompt prefixes in conversational serving."
+   ]
+  }
+ ]
+}

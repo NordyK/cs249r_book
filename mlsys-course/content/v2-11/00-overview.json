@@ -1,0 +1,252 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v2-11",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Edge Intelligence** (Vol II). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Edge Intelligence, Purpose",
+   "md": "A model trained in a data center encounters new conditions when deployed to a user's device. Vocabulary, lighting, acoustics, and usage patterns may differ from the distributions that shaped its parameters, and the gap can widen as behavior evolves. Centralized training cannot anticipate every context, while privacy constraints or limited connectivity may prevent local observations from reaching it. Learning where the data is produced can improve local behavior, but running predictions offline does not by itself justify training there."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "The Edge Learning Paradigm",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Why Learn on the Device",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Design Constraints",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Model Adaptation",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Data Efficiency",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Federated Learning Algorithms",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Federated Learning Systems at Scale",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Local training must earn its place**",
+     "Centralized, local-only, and federated learning differ in what crosses the device boundary, and local training is justified only when a measured adaptation gain beats feature-based personalization under privacy and resource constraints."
+    ],
+    [
+     "**Update working set within the background allowance**",
+     "An on-device update must fit its peak training working set inside the allowance the OS grants a background task, a few hundred MB on a phone rather than its installed RAM, so a model whose weights fit easily can still fail to train."
+    ],
+    [
+     "**Background adaptation admission**",
+     "The runtime admits an adaptation window only if its energy, thermal, and foreground-latency tests all hold, charging relaxes only the energy test, and admission is revoked when the measured envelope changes."
+    ],
+    [
+     "**FedAvg under sampling and non-IID data**",
+     "FedAvg is local SGD under a sampled cohort and non-IID shards, so local epochs that save uplink rounds also pull clients toward their own optima (client drift), and the comparison is measured time to a quality target, not rounds."
+    ],
+    [
+     "**Participation selection**",
+     "Passing the device admission test correlates with hardware, charging habits, and connectivity, so the federated model learns from the admitted population rather than the deployed one, and over-selection with a round deadline concentrates that bias; the skew is sized per cohort as a coverage ratio, the cohort's share of completed updates over its share of the deployed population."
+    ],
+    [
+     "**Federated uplink budget**",
+     "Per-round traffic is downlink plus uplink plus protocol plus retry over a slow asymmetric uplink, so a small compressed update is not an end-to-end saving once cumulative uploads overtake the raw-data volume."
+    ],
+    [
+     "**Secure aggregation**",
+     "Data locality is not privacy, because updates and metadata still leak, so secure aggregation's cancelling pairwise masks hide each client's update from the coordinator at the cost of a participation floor (a secret-sharing threshold of survivors, and enough clients that the sum hides each one) and dropout recovery (survivors' shares rebuild a dropped client's masks in an extra round), while differential privacy bounds a different boundary."
+    ],
+    [
+     "**Adaptive fleet release policy**",
+     "Once models learn after release the release artifact is an adaptation policy versioned with its base model, adapters, and schemas, rollback must restore a compatible set, a shadow comparison against a frozen model is a gate, not a judge, and fleet promotion adds hardware-in-the-loop validation, compatibility across long version skew, and a hold when a cohort's reporting coverage is too low to count as evidence."
+    ],
+    [
+     "**Adaptation method by budget term**",
+     "Freezing removes a parameter's gradient and optimizer state but not its place on the backward path, so bias-only updates, LoRA, and residual adapters each shrink a different term of the peak-memory budget."
+    ],
+    [
+     "**Scarce local evidence allocation**",
+     "On-device data is sparse, weakly labeled, non-IID, and unshuffleable, so few-shot sets, streaming updates, replay buffers, and compressed representations each spend a different scarce resource, and an embedding is not anonymized by being low-dimensional."
+    ],
+    [
+     "**On-device drift and forgetting**",
+     "Sequential local updates that each pass the budget and a local metric can compound into catastrophic forgetting and drift from the validated release, so stability needs a mechanism priced in device state and forgetting measured per cohort."
+    ],
+    [
+     "**Personalization state boundary**",
+     "The federated objective guarantees nothing per client, so personalization adds per-client state regularized toward the global model and must declare which state is aggregated and which stays local."
+    ],
+    [
+     "**Version-compatible aggregation**",
+     "A returned update is meaningful only against its base version and schema, so the coordinator binds updates to version and round, reconciles devices returning after days offline, and down-weights stale contributions in buffered asynchronous aggregation."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$M_{\\text{peak}} = M_{\\text{weights,resident}} + M_{\\text{train}} + \\max_t\\left[M_{\\text{activations}}(t) + M_{\\text{workspace}}(t)\\right]$$\n\n$$E_{\\text{window}} \\le E_{\\text{allow}} \\land P + \\Delta P \\le P_{\\text{thermal}} \\land L_{\\text{fg}} + \\Delta L \\le D$$\n\n$$\\frac{\\partial \\mathcal{L}}{\\partial W} = 0, \\quad \\frac{\\partial \\mathcal{L}}{\\partial b} \\neq 0$$\n\n$$A(h) = W_2 \\, \\sigma(W_1 h)$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v2-11-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Local training must earn its place",
+     "back": "Centralized, local-only, and federated learning differ in what crosses the device boundary, and local training is justified only when a measured adaptation gain beats feature-based personalization under privacy and resource constraints."
+    },
+    {
+     "front": "Update working set within the background allowance",
+     "back": "An on-device update must fit its peak training working set inside the allowance the OS grants a background task, a few hundred MB on a phone rather than its installed RAM, so a model whose weights fit easily can still fail to train."
+    },
+    {
+     "front": "Background adaptation admission",
+     "back": "The runtime admits an adaptation window only if its energy, thermal, and foreground-latency tests all hold, charging relaxes only the energy test, and admission is revoked when the measured envelope changes."
+    },
+    {
+     "front": "FedAvg under sampling and non-IID data",
+     "back": "FedAvg is local SGD under a sampled cohort and non-IID shards, so local epochs that save uplink rounds also pull clients toward their own optima (client drift), and the comparison is measured time to a quality target, not rounds."
+    },
+    {
+     "front": "Participation selection",
+     "back": "Passing the device admission test correlates with hardware, charging habits, and connectivity, so the federated model learns from the admitted population rather than the deployed one, and over-selection with a round deadline concentrates that bias; the skew is sized per cohort as a coverage ratio, the cohort's share of completed updates over its share of the deployed population."
+    },
+    {
+     "front": "Federated uplink budget",
+     "back": "Per-round traffic is downlink plus uplink plus protocol plus retry over a slow asymmetric uplink, so a small compressed update is not an end-to-end saving once cumulative uploads overtake the raw-data volume."
+    },
+    {
+     "front": "Secure aggregation",
+     "back": "Data locality is not privacy, because updates and metadata still leak, so secure aggregation's cancelling pairwise masks hide each client's update from the coordinator at the cost of a participation floor (a secret-sharing threshold of survivors, and enough clients that the sum hides each one) and dropout recovery (survivors' shares rebuild a dropped client's masks in an extra round), while differential privacy bounds a different boundary."
+    },
+    {
+     "front": "Adaptive fleet release policy",
+     "back": "Once models learn after release the release artifact is an adaptation policy versioned with its base model, adapters, and schemas, rollback must restore a compatible set, a shadow comparison against a frozen model is a gate, not a judge, and fleet promotion adds hardware-in-the-loop validation, compatibility across long version skew, and a hold when a cohort's reporting coverage is too low to count as evidence."
+    },
+    {
+     "front": "Adaptation method by budget term",
+     "back": "Freezing removes a parameter's gradient and optimizer state but not its place on the backward path, so bias-only updates, LoRA, and residual adapters each shrink a different term of the peak-memory budget."
+    },
+    {
+     "front": "Scarce local evidence allocation",
+     "back": "On-device data is sparse, weakly labeled, non-IID, and unshuffleable, so few-shot sets, streaming updates, replay buffers, and compressed representations each spend a different scarce resource, and an embedding is not anonymized by being low-dimensional."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v2-11-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Local training must earn its place**?",
+     "options": [
+      "Centralized, local-only, and federated learning differ in what crosses the device boundary, and local training is justified only when a measured adaptation gain beats feature-based personalization under privacy and resource constraints.",
+      "A returned update is meaningful only against its base version and schema, so the coordinator binds updates to version and round, reconciles devices returning after days offline, and down-weights stale contributions in buffered asynchronous aggregation.",
+      "On-device data is sparse, weakly labeled, non-IID, and unshuffleable, so few-shot sets, streaming updates, replay buffers, and compressed representations each spend a different scarce resource, and an embedding is not anonymized by being low-dimensional.",
+      "Per-round traffic is downlink plus uplink plus protocol plus retry over a slow asymmetric uplink, so a small compressed update is not an end-to-end saving once cumulative uploads overtake the raw-data volume."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Local training must earn its place itself, not a neighbouring idea.",
+     "explanation": "**Local training must earn its place:** Centralized, local-only, and federated learning differ in what crosses the device boundary, and local training is justified only when a measured adaptation gain beats feature-based personalization under privacy and resource constraints."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Update working set within the background allowance**?",
+     "options": [
+      "Once models learn after release the release artifact is an adaptation policy versioned with its base model, adapters, and schemas, rollback must restore a compatible set, a shadow comparison against a frozen model is a gate, not a judge, and fleet promotion adds hardware-in-the-loop validation, compatibility across long version skew, and a hold when a cohort's reporting coverage is too low to count as evidence.",
+      "An on-device update must fit its peak training working set inside the allowance the OS grants a background task, a few hundred MB on a phone rather than its installed RAM, so a model whose weights fit easily can still fail to train.",
+      "Freezing removes a parameter's gradient and optimizer state but not its place on the backward path, so bias-only updates, LoRA, and residual adapters each shrink a different term of the peak-memory budget.",
+      "Sequential local updates that each pass the budget and a local metric can compound into catastrophic forgetting and drift from the validated release, so stability needs a mechanism priced in device state and forgetting measured per cohort."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Update working set within the background allowance itself, not a neighbouring idea.",
+     "explanation": "**Update working set within the background allowance:** An on-device update must fit its peak training working set inside the allowance the OS grants a background task, a few hundred MB on a phone rather than its installed RAM, so a model whose weights fit easily can still fail to train."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Background adaptation admission**?",
+     "options": [
+      "Passing the device admission test correlates with hardware, charging habits, and connectivity, so the federated model learns from the admitted population rather than the deployed one, and over-selection with a round deadline concentrates that bias; the skew is sized per cohort as a coverage ratio, the cohort's share of completed updates over its share of the deployed population.",
+      "The runtime admits an adaptation window only if its energy, thermal, and foreground-latency tests all hold, charging relaxes only the energy test, and admission is revoked when the measured envelope changes.",
+      "Once models learn after release the release artifact is an adaptation policy versioned with its base model, adapters, and schemas, rollback must restore a compatible set, a shadow comparison against a frozen model is a gate, not a judge, and fleet promotion adds hardware-in-the-loop validation, compatibility across long version skew, and a hold when a cohort's reporting coverage is too low to count as evidence.",
+      "A returned update is meaningful only against its base version and schema, so the coordinator binds updates to version and round, reconciles devices returning after days offline, and down-weights stale contributions in buffered asynchronous aggregation."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Background adaptation admission itself, not a neighbouring idea.",
+     "explanation": "**Background adaptation admission:** The runtime admits an adaptation window only if its energy, thermal, and foreground-latency tests all hold, charging relaxes only the energy test, and admission is revoked when the measured envelope changes."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **FedAvg under sampling and non-IID data**?",
+     "options": [
+      "The runtime admits an adaptation window only if its energy, thermal, and foreground-latency tests all hold, charging relaxes only the energy test, and admission is revoked when the measured envelope changes.",
+      "An on-device update must fit its peak training working set inside the allowance the OS grants a background task, a few hundred MB on a phone rather than its installed RAM, so a model whose weights fit easily can still fail to train.",
+      "FedAvg is local SGD under a sampled cohort and non-IID shards, so local epochs that save uplink rounds also pull clients toward their own optima (client drift), and the comparison is measured time to a quality target, not rounds.",
+      "On-device data is sparse, weakly labeled, non-IID, and unshuffleable, so few-shot sets, streaming updates, replay buffers, and compressed representations each spend a different scarce resource, and an embedding is not anonymized by being low-dimensional."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is FedAvg under sampling and non-IID data itself, not a neighbouring idea.",
+     "explanation": "**FedAvg under sampling and non-IID data:** FedAvg is local SGD under a sampled cohort and non-IID shards, so local epochs that save uplink rounds also pull clients toward their own optima (client drift), and the comparison is measured time to a quality target, not rounds."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Participation selection**?",
+     "options": [
+      "Passing the device admission test correlates with hardware, charging habits, and connectivity, so the federated model learns from the admitted population rather than the deployed one, and over-selection with a round deadline concentrates that bias; the skew is sized per cohort as a coverage ratio, the cohort's share of completed updates over its share of the deployed population.",
+      "A returned update is meaningful only against its base version and schema, so the coordinator binds updates to version and round, reconciles devices returning after days offline, and down-weights stale contributions in buffered asynchronous aggregation.",
+      "Centralized, local-only, and federated learning differ in what crosses the device boundary, and local training is justified only when a measured adaptation gain beats feature-based personalization under privacy and resource constraints.",
+      "FedAvg is local SGD under a sampled cohort and non-IID shards, so local epochs that save uplink rounds also pull clients toward their own optima (client drift), and the comparison is measured time to a quality target, not rounds."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Participation selection itself, not a neighbouring idea.",
+     "explanation": "**Participation selection:** Passing the device admission test correlates with hardware, charging habits, and connectivity, so the federated model learns from the admitted population rather than the deployed one, and over-selection with a round deadline concentrates that bias; the skew is sized per cohort as a coverage ratio, the cohort's share of completed updates over its share of the deployed population."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Local training must earn its place: Centralized, local-only, and federated learning differ in what crosses the device boundary, and local training is justified only when a measured adaptation gain beats feature-based personalization under privacy and resource constraints.",
+    "Update working set within the background allowance: An on-device update must fit its peak training working set inside the allowance the OS grants a background task, a few hundred MB on a phone rather than its installed RAM, so a model whose weights fit easily can still fail to train.",
+    "Background adaptation admission: The runtime admits an adaptation window only if its energy, thermal, and foreground-latency tests all hold, charging relaxes only the energy test, and admission is revoked when the measured envelope changes.",
+    "FedAvg under sampling and non-IID data: FedAvg is local SGD under a sampled cohort and non-IID shards, so local epochs that save uplink rounds also pull clients toward their own optima (client drift), and the comparison is measured time to a quality target, not rounds."
+   ]
+  }
+ ],
+ "terms": []
+}

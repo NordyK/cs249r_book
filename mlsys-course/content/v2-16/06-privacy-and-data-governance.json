@@ -1,0 +1,85 @@
+{
+ "title": "Privacy and Data Governance",
+ "summary": "Analyze the operational scaling limits and compute trade-offs of SISA machine unlearning under high deletion request rates.",
+ "source": {
+  "chapter": "v2-16",
+  "sections": [
+   "Privacy and Data Governance",
+   "Core data governance principles",
+   "Privacy across deployment tiers",
+   "Governing privacy guarantees",
+   "Machine unlearning"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Privacy and Data Governance** in *Responsible AI* (Vol II). By the end you should be able to:\n\n- Analyze the operational scaling limits and compute trade-offs of SISA machine unlearning under high deletion request rates\n- Explain the algorithmic mechanisms of DP-SGD and their impact on training compute and model accuracy\n- Justify the requirement for machine unlearning beyond database record deletion for regulatory compliance\n- Apply the post-processing property of differential privacy to ML inference workloads"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Responsible AI, § Privacy and Data Governance",
+   "md": "Every fairness audit and monitor consumes demographic evidence, and that evidence is itself sensitive data. The threat models and privacy mechanisms of a later section provide the technical controls; governance defines the evidence, ownership, and lifecycle interfaces that production systems require when inheriting them. A deletion workflow must identify which records and derived artifacts fall within an applicable obligation, such as an erasure requirement under the GDPR. Removing a database row may leave replicas, backups, or trained models to address."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Core data governance principles\n- Privacy across deployment tiers\n- Governing privacy guarantees\n- Machine unlearning\n\nPay attention to: Model memorization and membership inference attacks; Differential privacy and DP-SGD compute/accuracy costs; Machine unlearning (SISA sharding vs full retraining); Deletion workflows and lineage."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why can deleting a user's record from a primary database leave an incomplete ML deletion workflow, and what evidence must a machine-unlearning procedure provide?",
+   "md": "Deleting one database row does not necessarily remove copies, derived datasets, checkpoints, or training influence in released models. Unlearning must specify its reference training procedure and demonstrate the claimed removal guarantee; approximate weight changes do not automatically prove erasure. Lineage, replica replacement, rollback controls, and audit evidence connect the method to an operational deletion workflow. Whether that workflow satisfies a legal duty depends on the applicable context."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-16-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An engineering team implements Sharded, Isolated, Sliced, and Aggregated (SISA) training with SisaShardCount = 100 independent shards to support GDPR Article 17 ('Right to Erasure') for a 175B-parameter model. Under what operational workload does this sharded unlearning strategy lose its computational cost advantage over full model retraining?",
+     "explanation": "The correct answer is B. The chapter assumes retraining cost scales with the data fraction: one isolated deletion affects one of 100 shards, while a batch that touches essentially all shards erodes the sharding-only saving. Request distribution, batching, saved slice states, validation, and deployment overhead affect actual cost. A high request count alone does not prove every shard is touched; quantization and storage medium do not determine those boundaries.",
+     "hint": "Think about: analyze the operational scaling limits and compute trade-offs of SISA machine unlearning under high deletion request rates.",
+     "type": "single",
+     "options": [
+      "When the model is quantized from FP16 to INT8 for edge deployment",
+      "When the daily volume of data erasure requests is high enough that requests touch essentially all SisaShardCount shards in every retraining batch",
+      "When the primary storage system transitions from NVMe SSDs to distributed object storage",
+      "When the training pipeline uses Adam optimizer instead of stochastic gradient descent"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In Differentially Private Stochastic Gradient Descent (DP-SGD), what are the two core operations applied to gradients before weight updates, and what are their primary systems impacts?",
+     "explanation": "The correct answer is C. Clipping bounds each example's gradient contribution; noise, sampling, and composition accounting determine the reported privacy bound. Compute and utility changes must be measured for the selected configuration; extra epochs are not guaranteed and increase privacy loss unless offset by other changes. Quantization and checkpointing address representation or memory, not differential privacy.",
+     "hint": "Think about: explain the algorithmic mechanisms of DP-SGD and their impact on training compute and model accuracy.",
+     "type": "single",
+     "options": [
+      "Gradient quantization to 4 bits and dropout pruning, reducing GPU memory by \\$50\\%",
+      "Gradient checkpointing and layer freezing, eliminating backpropagation overhead",
+      "Per-example gradient clipping to a maximum norm GradientClippingNorm and calibrated Gaussian noise addition, whose privacy bound requires sampling and composition accounting and whose compute and utility costs depend on the configuration",
+      "Spectral normalization of weight matrices and label smoothing, which eliminate adversarial vulnerability with zero compute overhead"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Once a neural network has been trained with DP-SGD under a privacy budget PrivacyBudget = 1.0, executing standard user inference queries in production consumes additional training-data privacy budget.",
+     "explanation": "False. Inference using only fixed, differentially private weights is postprocessing and adds no training-data privacy loss beyond the established bound. This does not mean zero leakage. Further private-data access, updated models, or additional releases require accounting under the stated privacy unit and composition rules.",
+     "hint": "Think about: apply the post-processing property of differential privacy to ML inference workloads.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the operational scaling limits and compute trade-offs of SISA machine unlearning under high deletion request rates.",
+    "You can now explain the algorithmic mechanisms of DP-SGD and their impact on training compute and model accuracy.",
+    "You can now justify the requirement for machine unlearning beyond database record deletion for regulatory compliance.",
+    "You can now apply the post-processing property of differential privacy to ML inference workloads."
+   ]
+  }
+ ]
+}

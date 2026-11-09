@@ -1,0 +1,106 @@
+{
+ "title": "Batching Strategies at Scale",
+ "summary": "Calculate the knee point on the batching efficiency curve for compute-bound versus memory-bandwidth-bound inference workloads.",
+ "source": {
+  "chapter": "v2-10",
+  "sections": [
+   "Batching Strategies at Scale",
+   "Batching across model architectures",
+   "Batching physics and efficiency curves",
+   "Static and dynamic batching for vision models",
+   "Continuous batching for LLM inference",
+   "Quantifying continuous batching",
+   "Feature-parallel batching for recommendation systems",
+   "Streaming inference for real-time applications",
+   "Adaptive batching strategies"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Batching Strategies at Scale** in *Serving at Scale* (Vol II). By the end you should be able to:\n\n- Calculate the knee point on the batching efficiency curve for compute-bound versus memory-bandwidth-bound inference workloads\n- Analyze the mathematical formulation of batching waste in static LLM execution and the mechanism of continuous batching\n- Structure the sequential execution stages of a feature-parallel recommendation model pipeline\n- Separate mean in-flight occupancy from executing capacity and size a candidate fleet with an explicit service-utilization target\n- Explain the serving cost of test-time compute and why a per-request compute budget is stated in both latency and capacity"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Serving at Scale, § Batching Strategies at Scale",
+   "md": "A stream of hundreds of disparate chat requests arrives at an inference server every second. Processing them one by one leaves much of the GPU idle, starved for work between small decode steps. Waiting to gather a large static batch forces the first request in line to endure unacceptable latency. Batching at scale therefore needs policies that group requests as they arrive without violating tail-latency deadlines."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Batching across model architectures\n- Batching physics and efficiency curves\n- Static and dynamic batching for vision models\n- Continuous batching for LLM inference\n- Quantifying continuous batching\n- Feature-parallel batching for recommendation systems\n- Streaming inference for real-time applications\n- Adaptive batching strategies\n\nPay attention to: The physics of the batching efficiency curve and knee point; Traditional vs continuous batching waste ratio; Little's law for inference capacity planning; Feature-parallel batching in recommendation systems."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: For a static LLM batch that retains all slots and pads completed sequences until the longest sequence finishes, define the waste ratio $W=1-\\bar{S}/S_{\\max}$. How can continuous batching reduce this waste?",
+   "md": "The stated implementation allocates B S_max token-step slots but performs only BbarS useful token steps, leaving a waste fraction \\$1-barS/S_max. Continuous batching can replace completed sequences with waiting requests at each iteration. This reduces padded-slot waste when enough admissible work is queued; it does not guarantee a full batch under light arrivals or memory pressure. Holding responses until the batch finishes is a separate response-barrier policy, not an inherent consequence of fixed membership."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-10-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A vision model has fixed latency overhead BatchFixedOverheadTime = 2 ms and variable compute time MarginalRequestServiceTime = 1 ms/item. An LLM decode step has BatchFixedOverheadTime = 40 ms (loading 140 GB weights from HBM) and MarginalRequestServiceTime = 0.5 ms/token. At what approximate batch size BatchSize does each workload reach the 'knee' of its batching efficiency curve (BatchSize approx BatchFixedOverheadTime / MarginalRequestServiceTime)?",
+     "explanation": "The correct answer is D. The knee of the batching efficiency curve occurs where the variable compute cost (BatchSize × MarginalRequestServiceTime) begins to exceed fixed overhead (BatchFixedOverheadTime). For the vision model, BatchSize approx 2 ms / 1 ms = 2. For LLM decode, BatchSize approx 40 ms / 0.5 ms = 80. The larger LLM knee illustrates a stronger incentive to amortize weight reads across concurrent requests. The chosen batch can remain below that knee when arrivals, KV-cache capacity, or the latency budget limit useful concurrency; the knee is not a universal batch requirement. The inverted result swaps the two workloads; the intermediate configurations miscalculate the quotient of fixed and variable parameters.",
+     "hint": "Think about: calculate the knee point on the batching efficiency curve for compute-bound versus memory-bandwidth-bound inference workloads.",
+     "type": "single",
+     "options": [
+      "Vision knee at BatchSize approx 10; LLM decode knee at BatchSize approx 20",
+      "Vision knee at BatchSize approx 80; LLM decode knee at BatchSize approx 2",
+      "Vision knee at BatchSize approx 4; LLM decode knee at BatchSize approx 40",
+      "Vision knee at BatchSize approx 2; LLM decode knee at BatchSize approx 80"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "For a recommendation pipeline that first retrieves sparse features and then processes dense features before combining them, order:",
+     "explanation": "The correct sequence is (3) Sparse Feature Lookup -> (2) Dense Feature Processing -> (1) Feature Interaction -> (4) Ranking Head for the stated pipeline. Interaction consumes both sparse and dense representations; ranking consumes their combined features. Sparse lookup and dense processing can run concurrently in other implementations when neither depends on the other, so their serial order is an explicit scenario assumption.",
+     "hint": "Think about: structure the sequential execution stages of a feature-parallel recommendation model pipeline.",
+     "type": "order",
+     "items": [
+      "Sparse Feature Lookup",
+      "Dense Feature Processing",
+      "Feature Interaction",
+      "Ranking Head."
+     ]
+    },
+    {
+     "q": "A stable inference service completes 1,000 requests/sec with an assumed mean end-to-end latency of 100 ms. Each replica executes full batches of eight in 80 ms, giving 100 requests/sec of service capacity. With a separate target of at most 80% mean service utilization, what mean in-flight work and candidate fleet size follow, without claiming a P99 guarantee?",
+     "explanation": "The correct answer is A. Little's law gives 1,000 × 0.1 = 100 requests in flight on average, including waiting work. Fleet sizing instead uses the separate utilization target: ceil(1,000/(0.8 × 100)) = 13 replicas, running at about 76.9% utilization. Their 104 executing positions exclude queues. Under the idealized assumption that all other latency is waiting or batch formation, the fixed 80 ms service time gives 80 requests executing on average and leaves 20 waiting or accumulating. Ten replicas are the throughput-only saturation boundary. The assumed mean and tail SLO both require validation; dividing in-flight work by batch slots does not establish the fleet size.",
+     "hint": "Think about: separate mean in-flight occupancy from executing capacity and size a candidate fleet with an explicit service-utilization target.",
+     "type": "single",
+     "options": [
+      "Mean in-flight work is 100 requests; sizing service capacity at the 80% utilization target gives 13 replicas",
+      "Required concurrency $Q_{\\text{req}} = 1{,}000$; minimum SLO-sized fleet $= 125$ replicas",
+      "Required concurrency $Q_{\\text{req}} = 80$; minimum SLO-sized fleet $= 10$ replicas",
+      "Required concurrency $Q_{\\text{req}} = 100$; minimum SLO-sized fleet $= 10$ replicas"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Increasing the batching timeout window during a high-traffic spike is always the optimal policy for reducing tail latency.",
+     "explanation": "False. In the chapter's traffic-adaptive rule, a fixed target batch fills sooner as arrival rate rises, permitting a shorter formation window. This reduces intentional formation delay, not the separate wait for a busy replica. Shrinking the maximum batch can also reduce service capacity and worsen queueing. The policy must be evaluated against arrival patterns, measured service rates, tail latency, and overload handling; neither a longer nor a shorter window is universally optimal.",
+     "hint": "Think about: evaluate adaptive batching control policies under varying traffic arrival intensities.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: What is a per-request compute budget for test-time compute, and how does additional reasoning change the serving cost of a request?",
+   "md": "A per-request compute budget limits the generated tokens, candidate evaluations, or search steps a request may consume, stated in both latency and capacity. It binds when serial reasoning tokens exhaust a request's latency budget or its share of fleet capacity before further reasoning stops improving the answer. Additional generated tokens, candidate evaluations, or search steps increase work per request and can extend KV-cache residency without changing the bottleneck of each decode step. A serving policy sets that budget from measured quality gains, request deadlines, and fleet load. Parallel candidate evaluations consume capacity without necessarily adding the same serial latency."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate the knee point on the batching efficiency curve for compute-bound versus memory-bandwidth-bound inference workloads.",
+    "You can now analyze the mathematical formulation of batching waste in static LLM execution and the mechanism of continuous batching.",
+    "You can now structure the sequential execution stages of a feature-parallel recommendation model pipeline.",
+    "You can now separate mean in-flight occupancy from executing capacity and size a candidate fleet with an explicit service-utilization target."
+   ]
+  }
+ ]
+}

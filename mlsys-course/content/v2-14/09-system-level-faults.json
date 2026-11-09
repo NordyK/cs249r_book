@@ -1,0 +1,69 @@
+{
+ "title": "System-Level Faults",
+ "summary": "Select behavioral checks that detect system-level faults which leave service health signals intact.",
+ "source": {
+  "chapter": "v2-14",
+  "sections": [
+   "System-Level Faults",
+   "Behavioral checks for silent faults",
+   "Distinguishing faults from shift and attack"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **System-Level Faults** in *Robust AI* (Vol II). By the end you should be able to:\n\n- Select behavioral checks that detect system-level faults which leave service health signals intact\n- Analyze how software faults masquerade as environmental drift and evaluate cross-layer diagnostic methods\n- Diagnose apparent model failures using input replay, deployment history, and correlated system evidence"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Robust AI, § System-Level Faults",
+   "md": "A preprocessing bug that silently rescales an input feature or an accelerator bit flip that corrupts a stored weight can make a healthy replica emit wrong predictions while triggering the exact same alarms as distribution drift or an adversarial attack. Every defense in the two preceding pillars reads evidence produced by the system it protects: drift monitors read preprocessed features, adversarial detectors read model scores, and poisoning filters read learned representations. The third pillar asks what happens when that machinery is itself wrong."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Behavioral checks for silent faults\n- Distinguishing faults from shift and attack\n\nPay attention to: behavioral checks for system faults (range checks, golden-input canaries, cross-replica comparison) and their C3 costs; faults that masquerade as drift or attack; timing, fixed-input replay, and cross-layer correlation as diagnostic signals."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A preprocessing library update introduces a feature scaling bug that shifts input distributions, causing a drift detector to alarm and trigger an automated model retraining pipeline. Explain why this response fails, and describe how cross-layer correlation separates software faults from true environmental shifts.",
+   "md": "Retraining on corrupted inputs can internalize the preprocessing defect without repairing it. Correlate the onset with releases, inspect schema and range checks, and replay golden inputs through pinned pipeline versions. A sudden shift synchronized with a deployment is evidence for a software cause, but natural shifts can also be abrupt; timing alone does not prove causation. Fix and validate the pipeline before deciding whether retraining is necessary."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-14-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A serving replica's liveness and readiness probes pass and its latency is normal, but one of its weights has suffered an exponent bit flip that left the value finite and very large. Which check is designed to catch this replica?",
+     "explanation": "The correct answer is A. A range check of stored weights or layer activations against the distribution observed on trusted data, or a scheduled golden-input canary compared with stored reference outputs. The flipped exponent produces a finite outlier, so NaN and infinity checks never fire, and health probes measure only whether the replica answers. Input-feature PSI watches the incoming data, which has not changed. A retry proves that the service responded, not that the response passes acceptance. Invariant checks and canaries read the model's own values and outputs, which is where the fault appears.",
+     "hint": "Think about: select behavioral checks that detect system-level faults which leave service health signals intact",
+     "type": "single",
+     "options": [
+      "A range check of stored weights or layer activations against the distribution observed on trusted data, or a scheduled golden-input canary compared with stored reference outputs.",
+      "A NaN and infinity check on the replica's outputs, because a corrupted weight always produces a non-finite value.",
+      "A population stability index alarm on the replica's input features.",
+      "A retry of failed requests, because a successful retry shows that the replica's answers are valid."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "If replaying a fixed set of golden inputs through the current pipeline reproduces the same wrong outputs every time, the failure must be a software or hardware fault rather than distribution shift or an adversarial input.",
+     "explanation": "False. Shifted or adversarial inputs also reproduce the same error under fixed execution conditions, and some faults (race conditions, intermittent hardware) do not reproduce reliably. Replay localizes where outputs first diverge when it compares raw and preprocessed tensors across pinned pipeline and artifact versions; the diagnosis also needs release timing and cross-layer telemetry.",
+     "hint": "Think about: diagnose apparent model failures using input replay, deployment history, and correlated system evidence",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now select behavioral checks that detect system-level faults which leave service health signals intact.",
+    "You can now analyze how software faults masquerade as environmental drift and evaluate cross-layer diagnostic methods.",
+    "You can now diagnose apparent model failures using input replay, deployment history, and correlated system evidence."
+   ]
+  }
+ ]
+}

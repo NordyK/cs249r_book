@@ -1,0 +1,84 @@
+{
+ "title": "Network Technologies That Move the Ceiling",
+ "summary": "Explain the physical mechanism and efficiency gains of Co-Packaged Optics.",
+ "source": {
+  "chapter": "v2-03",
+  "sections": [
+   "Network Technologies That Move the Ceiling",
+   "Protocol convergence and link density",
+   "Optical interconnects",
+   "Disaggregated and composable architectures"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Network Technologies That Move the Ceiling** in *Network Fabrics* (Vol II). By the end you should be able to:\n\n- Explain the physical mechanism and efficiency gains of Co-Packaged Optics\n- Analyze the topological and latency impact of higher-radix, next-generation switch silicon\n- Evaluate the architecture and design goals of the Ultra Ethernet Consortium (UEC) specification\n- Evaluate physical communication limits in disaggregated and composable architectures"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Network Fabrics, § Network Technologies That Move the Ceiling",
+   "md": "Monitoring keeps deployed fabrics honest, but it cannot push past the physical ceilings it measures, such as the reach and power limits that copper approaches at high signaling rates. New fabric technologies earn attention only when they move one of those bounds. As clusters scale toward 100,000 GPUs, the durable design variables are power per bit, reach, and the ratio of compute to memory to network capacity, not the product names attached to a particular roadmap."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Protocol convergence and link density\n- Optical interconnects\n- Disaggregated and composable architectures\n\nPay attention to: Ultra Ethernet Consortium (UEC) transport and link-layer innovations; Switch ASIC density scaling (102.4 Tb/s) and topology flattening; Co-Packaged Optics (CPO) physical mechanics, power savings, and thermal limits; Disaggregated CXL memory fabrics and persistent physical limits."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: How does increasing switch ASIC capacity to \\$102.4 Tb/s with \\$1.6 Tb/s ports impact the topology and latency of a multi-thousand GPU cluster compared to building the same cluster with \\$400 Gb/s switches?",
+   "md": "A \\$102.4 Tb/s ASIC offers aggregate capacity equivalent to 256 ports at \\$400 Gb/s, or 64 ports at \\$1.6 Tb/s. These are bandwidth equivalents, not automatically interchangeable physical port counts. A flatter topology becomes possible when usable radix, breakout support, endpoint rates, and placement permit it. Removing a tier then reduces switch traversals and optical links, but neither a two-tier design nor a halving of transceiver count follows from aggregate ASIC bandwidth alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-03-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "How does Co-Packaged Optics (CPO) physically reduce interconnect power consumption compared to traditional pluggable optical transceivers?",
+     "explanation": "The correct answer is B. In traditional pluggable architectures, high-speed electrical signals must travel several centimeters across PCBs from the switch ASIC to the faceplate transceiver, requiring high-power SerDes equalization and retimers. Co-Packaged Optics (CPO) integrates silicon photonics chiplets directly onto the same substrate as the switch/compute ASIC, reducing the electrical trace to millimeters and saving approximately \\$50\\% of transceiver power (roughly \\$1.28 kW per \\$51.2 Tb/s switch). The option alleging superconducting RF antennas is science fiction. The choice proposing free-space infrared beams inside racks misidentifies guided optical fiber architectures. The option describing tensor downsampling inside waveguides confuses optical transmission with algorithmic quantization.",
+     "hint": "Think about: explain the physical mechanism and efficiency gains of Co-Packaged Optics.",
+     "type": "single",
+     "options": [
+      "It replaces optical lasers with superconducting RF antennas that operate without electrical resistance",
+      "It integrates silicon photonics directly onto the processor or switch package substrate, shortening the electrical SerDes trace from centimeters to millimeters and eliminating power-hungry signal conditioning",
+      "It removes the need for fiber optic cables by transmitting data through free-space infrared beams inside the server rack",
+      "It downsamples 16-bit floating-point tensors to 1-bit integers directly inside the optical waveguide"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "What is the primary design goal of the Ultra Ethernet Consortium (UEC) transport specification for AI and HPC workloads?",
+     "explanation": "The correct answer is C. Ultra Ethernet Transport combines multipath packet spraying, flexible ordering, congestion-control changes, and AI/HPC telemetry within an open Ethernet ecosystem. Its reliability goal is to bound the completion-time penalty of congestion and loss while reducing dependence on PFC. These design goals do not guarantee immunity from every congestion or recovery failure. TCP Reno and centralized host message queues do not describe this transport architecture.",
+     "hint": "Think about: evaluate the architecture and design goals of the Ultra Ethernet Consortium (UEC) specification.",
+     "type": "single",
+     "options": [
+      "To mandate standard TCP Reno congestion control across all high-performance computing clusters",
+      "To replace physical Ethernet cabling with proprietary wireless mesh interconnects",
+      "To develop an open, multi-vendor Ethernet transport featuring multi-path packet spraying, flexible packet ordering, and improved congestion control and recovery to reduce reliance on PFC",
+      "To deprecate GPU-to-GPU direct memory access in favor of host CPU centralized message queues"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Disaggregated composable architectures using CXL memory pooling eliminate the $\\alpha$-$\\beta$ communication costs between processors and remote memory pools.",
+     "explanation": "False. While CXL memory pooling decouples compute and memory into composable resource pools with load/store semantics, cross-chassis memory access still traverses physical wires and switches. It remains governed by physical $\\alpha$-$\\beta$ latency and bandwidth constraints, SerDes power limits, and bisection capacity; disaggregation relocates the synchronization boundary rather than eliminating physical transfer costs.",
+     "hint": "Think about: evaluate physical communication limits in disaggregated and composable architectures.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the physical mechanism and efficiency gains of Co-Packaged Optics.",
+    "You can now analyze the topological and latency impact of higher-radix, next-generation switch silicon.",
+    "You can now evaluate the architecture and design goals of the Ultra Ethernet Consortium (UEC) specification.",
+    "You can now evaluate physical communication limits in disaggregated and composable architectures."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,112 @@
+{
+ "title": "The C$^3$ Taxonomy and Foundations of Scale",
+ "summary": "Classify distributed step-time profiling measurements into the Compute, Communication, and Coordination dimensions of the C$^3$ taxonomy.",
+ "source": {
+  "chapter": "v2-01",
+  "sections": [
+   "The C$^3$ Taxonomy and Foundations of Scale",
+   "The three dimensions of the fleet",
+   "Projection from D·A·M to C$^3$",
+   "The C$^3$ intersection landscape",
+   "The Fleet Law",
+   "The energy accounting boundary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The C^3 Taxonomy and Foundations of Scale** in *Introduction* (Vol II). By the end you should be able to:\n\n- Classify distributed step-time profiling measurements into the Compute, Communication, and Coordination dimensions of the C^3 taxonomy\n- Explain the projection of single-node D·A·M workload components onto fleet-scale C^3 execution costs\n- Apply the Fleet Law diagnostically to select system optimizations targeting the dominant step-time component\n- Order the operational phases of a synchronous distributed training step from forward execution to optimizer weight update\n- Calculate communication overlap (OverlappedTime) using the Fleet Law and explain its physical significance in distributed step efficiency"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Introduction, § The C$^3$ Taxonomy and Foundations of Scale",
+   "md": "An idle accelerator does not identify its own bottleneck. It may be waiting for local operands, a gradient transfer, or a failed peer. The C$^3$ lens introduced at the scale moment separates these explanations and gives the preceding examples a common diagnostic language. On a single machine, diagnosing performance follows the **Data · Algorithm · Machine (D·A·M) taxonomy**. In that framework, Data governs what information the model learns from; the Algorithm defines the mathematical operations to execute; and the Machine supplies the silicon and memory hierarchy executing those operations."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The three dimensions of the fleet\n- Projection from D·A·M to C$^3$\n- The C$^3$ intersection landscape\n- The Fleet Law\n- The energy accounting boundary\n\nPay attention to: The C^3 dimensions: Compute (C1, math), Communication (C2, wire), Coordination (C3, logic); D·A·M to C^3 projection across distributed workloads; The Fleet Law step-time decomposition and compute-time fraction (f_compute); Displacement of Overhead heuristic (cost reductions can shift costs elsewhere)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: The chapter describes D·A·M (Data, Algorithm, Machine) as the nouns of the workload and C^3 (Compute, Communication, Coordination) as the verbs of the fleet. Explain how distributing an Algorithm across multiple nodes gives rise to Communication (OperationalTaxonomyDimension_2), and how distributing Data across multiple nodes gives rise to Coordination (OperationalTaxonomyDimension_3).",
+   "md": "When an Algorithm is partitioned across nodes (e.g., tensor parallelism or pipeline parallelism), intermediate activations and gradients must be exchanged across the network fabric between forward and backward operations, directly generating Communication (OperationalTaxonomyDimension_2, data on the wire). When Data is distributed across nodes (e.g., distributed data parallelism), the fleet must ensure deterministic mini-batch sampling without duplicate reads, track global dataset pointers, and synchronize gradient aggregation barriers and checkpoint state across all worker ranks, directly generating Coordination (OperationalTaxonomyDimension_3, the logic of distributed state management)."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-01-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An engineering team instruments a 2,048-GPU training cluster and breaks down the 1.5-second step time: 0.9 s is spent on GPU matrix multiplications, 0.4 s is spent in NCCL ring transfers across the InfiniBand fabric, and 0.2 s is spent waiting at the barrier for stragglers and fault-heartbeat checks. How does this step time map onto the C$^3$ taxonomy?",
+     "explanation": "The correct answer is D. In the C^3 taxonomy: Compute (OperationalTaxonomyDimension_1, the math) is the local execution of matrix math on accelerators (0.9 s); Communication (OperationalTaxonomyDimension_2, the wire) is data transfer across network links (0.4 s for NCCL transfers); and Coordination (OperationalTaxonomyDimension_3, the logic) is state synchronization, barrier waits, straggler handling, and fault checks (0.2 s). Conflating barrier waiting with network transfer obscures the root cause of idle time, grouping matrix math with communication misattributes silicon execution, and reversing Compute with Coordination misclassifies the workload dimensions.",
+     "hint": "Think about: classify distributed step-time profiling measurements into the Compute, Communication, and Coordination dimensions of the C$^3$ taxonomy.",
+     "type": "single",
+     "options": [
+      "0.9 s Compute (OperationalTaxonomyDimension_1), 0.6 s Communication (OperationalTaxonomyDimension_2), 0 s Coordination (OperationalTaxonomyDimension_3)",
+      "1.3 s Compute (OperationalTaxonomyDimension_1), 0.2 s Communication (OperationalTaxonomyDimension_2), 0 s Coordination (OperationalTaxonomyDimension_3)",
+      "0.9 s Coordination (OperationalTaxonomyDimension_3), 0.4 s Communication (OperationalTaxonomyDimension_2), 0.2 s Compute (OperationalTaxonomyDimension_1)",
+      "0.9 s Compute (OperationalTaxonomyDimension_1), 0.4 s Communication (OperationalTaxonomyDimension_2), 0.2 s Coordination (OperationalTaxonomyDimension_3)"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A team profiles a distributed training step and measures IronLawComputeTime/DeviceCount = 0.8 s, CommunicationTime(DeviceCount) = 1.0 s, SynchronizationTime(DeviceCount) = 0.2 s, with zero communication overlap (OverlappedTime = 0). The compute-time fraction is UsefulComputeFraction = 0.8 / 2.0 = 0.40. Which engineering intervention is most directly indicated by the Fleet Law as a diagnostic instrument?",
+     "explanation": "The correct answer is B. In the Fleet Law (DistributedStepTime = IronLawComputeTime/DeviceCount + CommunicationTime + SynchronizationTime - OverlappedTime), communication (CommunicationTime = 1.0 s) represents 50% of the total 2.0 s step time, while UsefulComputeFraction = 0.40 identifies the modeled compute share, not measured accelerator idle time. Investigating fabric limits or feasible overlap with backward-pass compute (OverlappedTime) targets the largest measured term; an upgrade still requires evidence that available bandwidth is the limit. Buying faster GPUs would only cut the 0.8 s compute term (e.g. to 0.4 s), reducing total step time to 1.6 s while lowering UsefulComputeFraction to \\$0.4 / 1.6 = 0.25. The smaller compute fraction does not mean the faster configuration makes less progress. Increasing node count DeviceCount typically increases CommunicationTime and SynchronizationTime rather than reducing them, and asynchronous updates do not eliminate network data transfer.",
+     "hint": "Think about: apply the Fleet Law diagnostically to select system optimizations targeting the dominant step-time component.",
+     "type": "single",
+     "options": [
+      "Replace existing GPUs with next-generation accelerators that deliver \\$2× higher peak FLOP/s, since local compute is the primary path to speedup.",
+      "Investigate feasible gradient AllReduce overlap with the backward pass (OverlappedTime) and whether fabric bandwidth limits the dominant CommunicationTime term before choosing an intervention.",
+      "Increase the number of GPU worker nodes DeviceCount, which will proportionally reduce both CommunicationTime and SynchronizationTime.",
+      "Switch to a fully asynchronous parameter server architecture, since eliminating SynchronizationTime will automatically cut CommunicationTime to zero."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Order the following steps in the execution of a simplified, non-overlapped synchronous data-parallel training step with an explicit pre-collective barrier from first to last:",
+     "explanation": "The correct order is: (1) Execute forward pass matrix math locally, (4) Execute backward pass and compute local parameter gradients, (5) Wait at barrier for all ranks to complete local computation, (3) Synchronize gradients across all workers via AllReduce, (2) Apply updated weights using optimizer step. The step begins with local forward arithmetic, followed by backward gradient computation; workers then reach the synchronization barrier where gradients are communicated across all nodes via AllReduce; once collective reduction finishes, each worker updates its local model weights with the optimizer step. Reversing forward and backward passes or attempting to apply weight updates before AllReduce gradient synchronization violates optimization logic.",
+     "hint": "Think about: order the operational phases of a synchronous distributed training step from forward execution to optimizer weight update.",
+     "type": "order",
+     "items": [
+      "Execute forward pass matrix math locally",
+      "Execute backward pass and compute local parameter gradients",
+      "Wait at barrier for all ranks to complete local computation.",
+      "Synchronize gradients across all workers via AllReduce",
+      "Apply updated weights using optimizer step"
+     ]
+    },
+    {
+     "q": "Under the Fleet Law decomposition (DistributedStepTime(DeviceCount) = IronLawComputeTime/DeviceCount + CommunicationTime(DeviceCount) + SynchronizationTime(DeviceCount) - OverlappedTime), a team training on 1,024 GPUs uses a hypothetical single-device compute baseline IronLawComputeTime = 1,024 s, raw network communication time CommunicationTime = 0.8 s, barrier synchronization time SynchronizationTime = 0.2 s, and an actual measured step time of DistributedStepTime = 1.6 s. What is the value of OverlappedTime, and what does it signify?",
+     "explanation": "The correct answer is A. Substituting into the Fleet Law: DistributedStepTime = (IronLawComputeTime / DeviceCount) + CommunicationTime + SynchronizationTime - OverlappedTime implies 1.6 s = (1,024 / 1,024) + 0.8 + 0.2 - OverlappedTime implies 1.6 = 1.0 + 1.0 - OverlappedTime implies 1.6 = 2.0 - OverlappedTime implies OverlappedTime = 0.4 s. This term quantifies the 0.4 seconds of gradient communication that ran concurrently with local tensor arithmetic, reducing total exposed step overhead. Conflating overlap with total communication time, confusing it with straggler recovery time, or claiming overlap is impossible on modern GPUs contradicts basic asynchronous CUDA stream execution.",
+     "hint": "Think about: calculate communication overlap (OverlappedTime) using the Fleet Law and explain its physical significance in distributed step efficiency.",
+     "type": "single",
+     "options": [
+      "OverlappedTime = 0.4 s; it represents the communication time successfully hidden behind concurrent backward-pass compute.",
+      "OverlappedTime = 1.0 s; it represents the total exposed network stall time.",
+      "OverlappedTime = 0.2 s; it represents the time spent recovering from straggler delays.",
+      "OverlappedTime = 0 s; because communication and computation cannot execute concurrently on GPU architectures."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "According to the displacement-of-overhead heuristic, switching from synchronous training to asynchronous parameter updates eliminates coordination overhead from the system entirely.",
+     "explanation": "False. Displacement of overhead is a diagnostic heuristic, not a conservation law. Asynchronous updates can reduce barrier waiting but introduce stale gradients and may require more optimization steps. The net benefit must be measured as useful progress to a target quality; eliminating one wait does not establish that all coordination costs disappear.",
+     "hint": "Think about: apply the displacement-of-overhead heuristic to explain why relaxing synchronization barriers relocates rather than eliminates system overhead.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify distributed step-time profiling measurements into the Compute, Communication, and Coordination dimensions of the C$^3$ taxonomy.",
+    "You can now explain the projection of single-node D·A·M workload components onto fleet-scale C$^3$ execution costs.",
+    "You can now apply the Fleet Law diagnostically to select system optimizations targeting the dominant step-time component.",
+    "You can now order the operational phases of a synchronous distributed training step from forward execution to optimizer weight update."
+   ]
+  }
+ ]
+}

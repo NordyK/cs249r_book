@@ -1,0 +1,238 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v3-06",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Long-Term Memory** (Vol III). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Long-Term Memory, Purpose",
+   "md": "A context window holds the working state of one model call, and retained attention state only accelerates computation over that same prefix. Neither decides what an agent should still know across sessions, system restarts, or extended operational horizons. Providing an agent with persistent memory requires an external storage architecture that can index varied experiences, retrieve relevant historical context without polluting active prompts, and resolve conflicting observations over time. However, semantic vector retrieval alone provides no temporal guarantees."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Memory Beyond One Session",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Persistent Records",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "The Retrieval Contract",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Agentic Retrieval",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Lexical and Structural Retrieval",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Dense and Hybrid Retrieval",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Multi-Hop Retrieval",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Record roles**",
+     "Persistent records are roles in an evidence chain (source of record, observation log, agent-written memory, retrieval index), not storage tiers, and any claim is validated against its source of record."
+    ],
+    [
+     "**Retrieval contract**",
+     "Every read is a bounded request answered by an envelope that reports scope, snapshot, completeness status, and per-item provenance, and an empty result proves nonexistence only for a complete search of the declared scope."
+    ],
+    [
+     "**Query formulation choice**",
+     "A named target gets a direct read, a predictable unnamed set gets pre-staged, and a chain where each item is found only from the last forces model-directed probing at one model round per dependent hop."
+    ],
+    [
+     "**Bounded multi-hop retrieval**",
+     "Neighborhoods grow geometrically with traversal depth, so multi-hop retrieval bounds edge types, direction, depth, and visited nodes before ranking."
+    ],
+    [
+     "**Memory write policy**",
+     "The runtime, not the model, decides what persists: admission checks run before deduplication, same-scope updates supersede by compare-and-swap, and deletion (on request, on withdrawn consent, or at the end of a recorded retention period) is a lifecycle event the store must honor."
+    ],
+    [
+     "**Memory poisoning**",
+     "Repeated retrieval or re-summarization adds no independent evidence, so preventing a withdrawn or unverified claim from persisting needs a provenance graph over derived records whose invalidation cascades."
+    ],
+    [
+     "**Source-generation invalidation**",
+     "A retrieval index is a materialized view that cannot be maintained by deltas, so each derived entry carries a source generation and the gateway admits it only for the generations it is valid in."
+    ],
+    [
+     "**Memory policy evaluation**",
+     "The unit of evaluation is the whole memory policy run through isolated multi-session trials with lifecycle fixtures, scored by task acceptance and cost per accepted task including background maintenance."
+    ],
+    [
+     "**Matching method**",
+     "Exact lookup, lexical ranking, structural indexes, and dense similarity answer different information needs and fail in different places, and hybrid retrieval joins candidates on full identity."
+    ],
+    [
+     "**Exact-scan floor and approximate indexes**",
+     "An exact vector scan is bandwidth-bound with floor N*d*b/BW, which screens it against the search budget, while approximate indexes trade recall for bytes touched."
+    ],
+    [
+     "**Read-your-writes consistency**",
+     "A session must observe its own committed memory writes on later reads, which a lagging index or replica silently violates unless reads are pinned to a generation at or after the write."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v3-06-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Record roles",
+     "back": "Persistent records are roles in an evidence chain (source of record, observation log, agent-written memory, retrieval index), not storage tiers, and any claim is validated against its source of record."
+    },
+    {
+     "front": "Retrieval contract",
+     "back": "Every read is a bounded request answered by an envelope that reports scope, snapshot, completeness status, and per-item provenance, and an empty result proves nonexistence only for a complete search of the declared scope."
+    },
+    {
+     "front": "Query formulation choice",
+     "back": "A named target gets a direct read, a predictable unnamed set gets pre-staged, and a chain where each item is found only from the last forces model-directed probing at one model round per dependent hop."
+    },
+    {
+     "front": "Bounded multi-hop retrieval",
+     "back": "Neighborhoods grow geometrically with traversal depth, so multi-hop retrieval bounds edge types, direction, depth, and visited nodes before ranking."
+    },
+    {
+     "front": "Memory write policy",
+     "back": "The runtime, not the model, decides what persists: admission checks run before deduplication, same-scope updates supersede by compare-and-swap, and deletion (on request, on withdrawn consent, or at the end of a recorded retention period) is a lifecycle event the store must honor."
+    },
+    {
+     "front": "Memory poisoning",
+     "back": "Repeated retrieval or re-summarization adds no independent evidence, so preventing a withdrawn or unverified claim from persisting needs a provenance graph over derived records whose invalidation cascades."
+    },
+    {
+     "front": "Source-generation invalidation",
+     "back": "A retrieval index is a materialized view that cannot be maintained by deltas, so each derived entry carries a source generation and the gateway admits it only for the generations it is valid in."
+    },
+    {
+     "front": "Memory policy evaluation",
+     "back": "The unit of evaluation is the whole memory policy run through isolated multi-session trials with lifecycle fixtures, scored by task acceptance and cost per accepted task including background maintenance."
+    },
+    {
+     "front": "Matching method",
+     "back": "Exact lookup, lexical ranking, structural indexes, and dense similarity answer different information needs and fail in different places, and hybrid retrieval joins candidates on full identity."
+    },
+    {
+     "front": "Exact-scan floor and approximate indexes",
+     "back": "An exact vector scan is bandwidth-bound with floor N*d*b/BW, which screens it against the search budget, while approximate indexes trade recall for bytes touched."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v3-06-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Record roles**?",
+     "options": [
+      "Persistent records are roles in an evidence chain (source of record, observation log, agent-written memory, retrieval index), not storage tiers, and any claim is validated against its source of record.",
+      "Neighborhoods grow geometrically with traversal depth, so multi-hop retrieval bounds edge types, direction, depth, and visited nodes before ranking.",
+      "A retrieval index is a materialized view that cannot be maintained by deltas, so each derived entry carries a source generation and the gateway admits it only for the generations it is valid in.",
+      "Repeated retrieval or re-summarization adds no independent evidence, so preventing a withdrawn or unverified claim from persisting needs a provenance graph over derived records whose invalidation cascades."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Record roles itself, not a neighbouring idea.",
+     "explanation": "**Record roles:** Persistent records are roles in an evidence chain (source of record, observation log, agent-written memory, retrieval index), not storage tiers, and any claim is validated against its source of record."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Retrieval contract**?",
+     "options": [
+      "A named target gets a direct read, a predictable unnamed set gets pre-staged, and a chain where each item is found only from the last forces model-directed probing at one model round per dependent hop.",
+      "Exact lookup, lexical ranking, structural indexes, and dense similarity answer different information needs and fail in different places, and hybrid retrieval joins candidates on full identity.",
+      "Every read is a bounded request answered by an envelope that reports scope, snapshot, completeness status, and per-item provenance, and an empty result proves nonexistence only for a complete search of the declared scope.",
+      "The unit of evaluation is the whole memory policy run through isolated multi-session trials with lifecycle fixtures, scored by task acceptance and cost per accepted task including background maintenance."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Retrieval contract itself, not a neighbouring idea.",
+     "explanation": "**Retrieval contract:** Every read is a bounded request answered by an envelope that reports scope, snapshot, completeness status, and per-item provenance, and an empty result proves nonexistence only for a complete search of the declared scope."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Query formulation choice**?",
+     "options": [
+      "The unit of evaluation is the whole memory policy run through isolated multi-session trials with lifecycle fixtures, scored by task acceptance and cost per accepted task including background maintenance.",
+      "An exact vector scan is bandwidth-bound with floor N*d*b/BW, which screens it against the search budget, while approximate indexes trade recall for bytes touched.",
+      "Persistent records are roles in an evidence chain (source of record, observation log, agent-written memory, retrieval index), not storage tiers, and any claim is validated against its source of record.",
+      "A named target gets a direct read, a predictable unnamed set gets pre-staged, and a chain where each item is found only from the last forces model-directed probing at one model round per dependent hop."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Query formulation choice itself, not a neighbouring idea.",
+     "explanation": "**Query formulation choice:** A named target gets a direct read, a predictable unnamed set gets pre-staged, and a chain where each item is found only from the last forces model-directed probing at one model round per dependent hop."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Bounded multi-hop retrieval**?",
+     "options": [
+      "A named target gets a direct read, a predictable unnamed set gets pre-staged, and a chain where each item is found only from the last forces model-directed probing at one model round per dependent hop.",
+      "Every read is a bounded request answered by an envelope that reports scope, snapshot, completeness status, and per-item provenance, and an empty result proves nonexistence only for a complete search of the declared scope.",
+      "Exact lookup, lexical ranking, structural indexes, and dense similarity answer different information needs and fail in different places, and hybrid retrieval joins candidates on full identity.",
+      "Neighborhoods grow geometrically with traversal depth, so multi-hop retrieval bounds edge types, direction, depth, and visited nodes before ranking."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Bounded multi-hop retrieval itself, not a neighbouring idea.",
+     "explanation": "**Bounded multi-hop retrieval:** Neighborhoods grow geometrically with traversal depth, so multi-hop retrieval bounds edge types, direction, depth, and visited nodes before ranking."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Memory write policy**?",
+     "options": [
+      "Exact lookup, lexical ranking, structural indexes, and dense similarity answer different information needs and fail in different places, and hybrid retrieval joins candidates on full identity.",
+      "A session must observe its own committed memory writes on later reads, which a lagging index or replica silently violates unless reads are pinned to a generation at or after the write.",
+      "The runtime, not the model, decides what persists: admission checks run before deduplication, same-scope updates supersede by compare-and-swap, and deletion (on request, on withdrawn consent, or at the end of a recorded retention period) is a lifecycle event the store must honor.",
+      "Persistent records are roles in an evidence chain (source of record, observation log, agent-written memory, retrieval index), not storage tiers, and any claim is validated against its source of record."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Memory write policy itself, not a neighbouring idea.",
+     "explanation": "**Memory write policy:** The runtime, not the model, decides what persists: admission checks run before deduplication, same-scope updates supersede by compare-and-swap, and deletion (on request, on withdrawn consent, or at the end of a recorded retention period) is a lifecycle event the store must honor."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Record roles: Persistent records are roles in an evidence chain (source of record, observation log, agent-written memory, retrieval index), not storage tiers, and any claim is validated against its source of record.",
+    "Retrieval contract: Every read is a bounded request answered by an envelope that reports scope, snapshot, completeness status, and per-item provenance, and an empty result proves nonexistence only for a complete search of the declared scope.",
+    "Query formulation choice: A named target gets a direct read, a predictable unnamed set gets pre-staged, and a chain where each item is found only from the last forces model-directed probing at one model round per dependent hop.",
+    "Bounded multi-hop retrieval: Neighborhoods grow geometrically with traversal depth, so multi-hop retrieval bounds edge types, direction, depth, and visited nodes before ranking."
+   ]
+  }
+ ],
+ "terms": []
+}

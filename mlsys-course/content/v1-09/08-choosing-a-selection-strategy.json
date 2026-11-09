@@ -1,0 +1,101 @@
+{
+ "title": "Choosing a Selection Strategy",
+ "summary": "Calculate break-even run count and ROI for a one-time static-selection investment.",
+ "source": {
+  "chapter": "v1-09",
+  "sections": [
+   "Choosing a Selection Strategy",
+   "Data costs and return on investment",
+   "Break-even analysis",
+   "Amortization across training runs",
+   "Decision process"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Choosing a Selection Strategy** in *Data Selection* (Vol I). By the end you should be able to:\n\n- Calculate break-even run count and ROI for a one-time static-selection investment\n- Analyze when an upstream filtering cost is justified under the chapter's four-term total-cost model\n- Evaluate non-compute engineering overheads in the data selection ROI equation\n- Apply the data selection decision framework to match operational constraints with appropriate selection paradigms\n- Compare static and dynamic selection choices using amortization, reuse, and measured cost-quality trade-offs"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Selection, § Choosing a Selection Strategy",
+   "md": "The hospital team in notebook \\ref{nbk-data-selection-active-learning-roi} could not label every scan, because doing so would have cost …, … over its budget. Allocating capital between human annotation and accelerator compute is a primary systems decision, and a team under a fixed budget must determine whether the next dollar buys more downstream accuracy as specialist annotations or as additional accelerator hours. A cost model settles the question."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Data costs and return on investment\n- Break-even analysis\n- Amortization across training runs\n- Decision process\n\nPay attention to: Coreset return on investment; Total cost of data; Engineering costs in ROI; Constraint-driven technique choice."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why calculating Return on Investment (ROI) for data selection requires tracking engineering implementation and pipeline maintenance costs in addition to raw accelerator compute hours.",
+   "md": "A data selection method that saves GPU training hours may require custom storage infrastructure, indexing services, proxy model scoring pipelines, and human maintenance. If these engineering overheads exceed the cloud compute savings, the net systems ROI is negative despite apparent model FLOP reductions."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-09-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A company invests $\\$30{,}000$ to compute a high-quality coreset. Training on the full dataset costs $\\$10{,}000$ per run, whereas training on the coreset costs $\\$4{,}000$ per run. What is the break-even number of training runs, and what is the ROI after 10 runs?",
+     "explanation": "The correct answer is A. Each run saves $\\$10{,}000-\\$4{,}000=\\$6{,}000$, so break-even is $\\$30{,}000/\\$6{,}000=5$ runs. After 10 runs, gross savings are \\$10\\times\\$6{,}000=\\$60{,}000$, net savings are $\\$60{,}000-\\$30{,}000=\\$30{,}000$, and ROI is $\\$30{,}000/\\$30{,}000=1.0$, or \\$100\\%$. The other answers use the wrong per-run savings or the wrong ROI arithmetic.",
+     "hint": "Think about: calculate break-even run count and ROI for a one-time static-selection investment.",
+     "type": "single",
+     "options": [
+      "Break-even is 5 runs, and ROI after 10 runs is \\$100\\%",
+      "Break-even is 3 runs, and ROI after 10 runs is \\$300\\%",
+      "Break-even is 8 runs, and ROI after 10 runs is \\$50\\%",
+      "Break-even is 10 runs, and ROI after 10 runs is \\$0\\%"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Using the chapter's cost model $C_{\\text{total}} = C_{\\text{acquire}} + C_{\\text{label}} + C_{\\text{store}} + C_{\\text{process}}$, which scenario best justifies an upstream filtering investment?",
+     "explanation": "The correct answer is B. The chapter's four-term cost model says filtering earns its place only when the costs it avoids downstream exceed the filtering investment at matched quality. That means measuring reductions in later labeling, storage, or processing costs rather than assuming that filtering a large fraction of samples automatically saves money. Sending everything downstream ignores preventable cost, the full-manual-review claim is wrong because it asserts filtering is always worse than labeling without the measurements needed to support that universal comparison, and eliminating evaluation removes the evidence needed to claim target-quality preservation.",
+     "hint": "Think about: analyze when an upstream filtering cost is justified under the chapter's four-term total-cost model.",
+     "type": "single",
+     "options": [
+      "Skip filtering so that maximum raw volume reaches training, regardless of downstream processing and labeling cost",
+      "Spend $\\$5{,}000$ on automated filtering only if measured avoided labeling, storage, and processing costs exceed that amount while task coverage and target quality still hold",
+      "Double human labeling effort to manually review every raw sample before filtering, because filtering cost is always worse than labeling cost",
+      "Cut evaluation entirely to offset the cost of training on unfiltered data"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "According to the chapter's decision framework, if an ML team has an abundant pool of unlabeled domain data, very limited annotation budget, and access to human domain experts for selective queries, which technique branch is recommended?",
+     "explanation": "The correct answer is B. When the primary bottleneck is labeling cost, the decision framework routes based on oracle availability: if a human oracle is available, active learning queries the most informative samples; when combined with unlabeled data, semi-supervised learning leverages structural priors. Pure augmentation does not provide ground truth for novel concepts, generative self-instruct cannot replace domain experts where ground-truth verification is required, and pairwise deduplication is a pruning step rather than a labeling strategy.",
+     "hint": "Think about: apply the data selection decision framework to match operational constraints with appropriate selection paradigms.",
+     "type": "single",
+     "options": [
+      "Pure transformation-based data augmentation without labeling",
+      "Active learning (human-in-the-loop selective query) or semi-supervised learning",
+      "Generative self-instruct synthesis to replace all human annotators entirely",
+      "Exhaustive pairwise Jaccard deduplication across all unlabeled samples"
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: When deciding between static coreset pruning and dynamic online active selection for a production pipeline, what role does the expected number of training runs ($N$) play in the architectural choice?",
+   "md": "The expected run count determines how much upfront static-selection cost can be amortized. If the same curated subset will support many retrains, sweeps, or ablations, a static investment can pay off quickly; if there is only one run, that same cost may still be worth it, but only if its measured quality and savings beat the one-run baseline. Dynamic selection is not automatically cheaper, because it can add repeated scoring cost during training instead of paying once upfront."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: In recommendation systems like DLRM where embedding tables consume terabytes of memory, how does interaction deduplication differ in systems impact from cold embedding pruning?",
+   "md": "Interaction deduplication removes repeated user-item examples, so under a fixed epoch count and fixed per-sample work it means fewer examples are actually processed, reducing total traffic and total training work. Cold-ID pruning or reindexing reduces allocated embedding capacity only when IDs disappear from the table design, but that alone does not guarantee lower realized memory traffic or bandwidth cost. A useful deployment check is whether removing rare IDs hurts recommendation quality on sparse users or items."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate break-even run count and ROI for a one-time static-selection investment.",
+    "You can now analyze when an upstream filtering cost is justified under the chapter's four-term total-cost model.",
+    "You can now evaluate non-compute engineering overheads in the data selection ROI equation.",
+    "You can now apply the data selection decision framework to match operational constraints with appropriate selection paradigms."
+   ]
+  }
+ ]
+}

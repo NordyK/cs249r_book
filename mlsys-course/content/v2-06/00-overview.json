@@ -1,0 +1,252 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v2-06",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Distributed Training** (Vol II). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Distributed Training, Purpose",
+   "md": "Splitting a training job across machines creates more compute capacity, but it also requires those machines to exchange state and agree on updates. Each accelerator may finish its local work sooner while spending more of the step waiting for other workers. Once communication and waiting consume the time saved by parallel execution, adding accelerators raises the bill without shortening the run."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Why Distribution Is Necessary",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "The Parallelism Design Space",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Data Parallelism",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Scaling Efficiency and Convergence",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Model Parallelism",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Hybrid Parallelism",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Multi-Model Training for Alignment and R",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Data-parallel update equivalence**",
+     "Replicated data parallelism reproduces the single-device global-batch update only when sampling, valid-item denominators, optimizer state, and update order match, and its price is one gradient AllReduce per step that throughput hides only while local compute covers it."
+    ],
+    [
+     "**Synchronization models and stragglers**",
+     "Bulk-synchronous training gives single-device semantics but waits for the slowest required contribution every step, so at thousands of GPUs the tail worker sets step time, and SSP and ASP trade that waiting for staleness with a convergence cost."
+    ],
+    [
+     "**Sharded data parallelism**",
+     "ZeRO and FSDP shard optimizer state, then gradients, then parameters, cutting per-device state from 16 bytes per parameter toward 16/N, while full parameter sharding raises traffic about 1.5x and puts parameter gathers on every layer's critical path."
+    ],
+    [
+     "**Scaling efficiency and the scaling wall**",
+     "Substituting the Fleet Law into eta = T_1/(N T_N) shows the shrinking compute term eventually losing to a ring bandwidth term that stays near 2*Psi/beta, which is the scaling wall of pure data parallelism, reached sooner under strong scaling (fixed global batch) than under weak scaling (fixed local batch)."
+    ],
+    [
+     "**Critical batch size**",
+     "Beyond the gradient-noise critical batch extra samples per step buy diminishing loss reduction, so the useful data-parallel width is about B_crit over the local batch, and learning-rate rules only extend the validated range."
+    ],
+    [
+     "**Pipeline parallelism bubble**",
+     "Staging layers across devices moves only boundary activations point to point, but fill and drain idle each stage for (p-1)/(m+p-1) of the step, and 1F1B bounds retained activations so the many microbatches that shrink the bubble are affordable."
+    ],
+    [
+     "**Tensor parallelism in the fast domain**",
+     "Megatron tensor parallelism pays two activation AllReduces per transformer block on the critical path of every layer, so its degree is bounded by the fast intra-node domain."
+    ],
+    [
+     "**Parallelism plan as joint placement**",
+     "N = N_DP x N_PP x N_TP is not three independent knobs: a feasible plan satisfies divisibility, training-state and activation memory, the critical-batch limit, and each axis's traffic on a tier that can carry it, and activation recomputation buys memory feasibility at about one extra forward pass per step (full) or a few percent (selective) that HFU counts but MFU does not."
+    ],
+    [
+     "**Sparse embedding sharding**",
+     "Recommendation models are dominated by multi-TB embedding tables touched sparsely, so they shard tables row-wise, column-wise, or in a hot/cold hybrid and exchange only indexed rows through sparse pull/push or AllToAll, binding on aggregate memory, lookup rate, and hot rows rather than on a dense gradient AllReduce."
+    ],
+    [
+     "**Sequence and context parallelism**",
+     "Long contexts make activations the binding memory term, so sequence parallelism shards norm and dropout activations at no extra ideal volume and context parallelism circulates key-value tiles in a ring that overlaps only above a minimum chunk length."
+    ],
+    [
+     "**Expert parallelism**",
+     "Mixture-of-experts layers place experts on different devices so parameters grow without proportional per-token compute, at the cost of a dispatch and a combine AllToAll per layer and hot-expert imbalance managed by a capacity factor."
+    ],
+    [
+     "**Alignment training co-location**",
+     "PPO-style alignment training holds trainable and forward-only models with asymmetric state plus a rollout KV cache, so the fleet alternates inference-shaped and training-shaped phases and chooses co-location or dedicated pools by phase utilization and transfer cost."
+    ],
+    [
+     "**FP8 training precision contract**",
+     "FP8 GEMMs use E4M3 for scaled weights and activations and E5M2 for scaled gradients under dynamic scaling with higher-precision master state, and they shrink a collective's payload only when the wire dtype itself is FP8."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$T_{\\text{step}}(N) = \\frac{T_{\\text{compute}}}{N} + T_{\\text{comm}}(N) + T_{\\text{sync}}(N) - T_{\\text{overlap}}$$\n\n$$g = \\frac{1}{B} \\sum_{i=1}^B \\nabla_{\\theta} \\mathcal{L}(\\theta, x_i)$$\n\n$$g_k = \\frac{1}{|B_k|} \\sum_{x_i \\in B_k} \\nabla_{\\theta} \\mathcal{L}(\\theta, x_i)$$\n\n$$g_{\\text{global}} = \\frac{1}{N} \\sum_{k=1}^N g_k$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v2-06-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Data-parallel update equivalence",
+     "back": "Replicated data parallelism reproduces the single-device global-batch update only when sampling, valid-item denominators, optimizer state, and update order match, and its price is one gradient AllReduce per step that throughput hides only while local compute covers it."
+    },
+    {
+     "front": "Synchronization models and stragglers",
+     "back": "Bulk-synchronous training gives single-device semantics but waits for the slowest required contribution every step, so at thousands of GPUs the tail worker sets step time, and SSP and ASP trade that waiting for staleness with a convergence cost."
+    },
+    {
+     "front": "Sharded data parallelism",
+     "back": "ZeRO and FSDP shard optimizer state, then gradients, then parameters, cutting per-device state from 16 bytes per parameter toward 16/N, while full parameter sharding raises traffic about 1.5x and puts parameter gathers on every layer's critical path."
+    },
+    {
+     "front": "Scaling efficiency and the scaling wall",
+     "back": "Substituting the Fleet Law into eta = T_1/(N T_N) shows the shrinking compute term eventually losing to a ring bandwidth term that stays near 2*Psi/beta, which is the scaling wall of pure data parallelism, reached sooner under strong scaling (fixed global batch) than under weak scaling (fixed local batch)."
+    },
+    {
+     "front": "Critical batch size",
+     "back": "Beyond the gradient-noise critical batch extra samples per step buy diminishing loss reduction, so the useful data-parallel width is about B_crit over the local batch, and learning-rate rules only extend the validated range."
+    },
+    {
+     "front": "Pipeline parallelism bubble",
+     "back": "Staging layers across devices moves only boundary activations point to point, but fill and drain idle each stage for (p-1)/(m+p-1) of the step, and 1F1B bounds retained activations so the many microbatches that shrink the bubble are affordable."
+    },
+    {
+     "front": "Tensor parallelism in the fast domain",
+     "back": "Megatron tensor parallelism pays two activation AllReduces per transformer block on the critical path of every layer, so its degree is bounded by the fast intra-node domain."
+    },
+    {
+     "front": "Parallelism plan as joint placement",
+     "back": "N = N_DP x N_PP x N_TP is not three independent knobs: a feasible plan satisfies divisibility, training-state and activation memory, the critical-batch limit, and each axis's traffic on a tier that can carry it, and activation recomputation buys memory feasibility at about one extra forward pass per step (full) or a few percent (selective) that HFU counts but MFU does not."
+    },
+    {
+     "front": "Sparse embedding sharding",
+     "back": "Recommendation models are dominated by multi-TB embedding tables touched sparsely, so they shard tables row-wise, column-wise, or in a hot/cold hybrid and exchange only indexed rows through sparse pull/push or AllToAll, binding on aggregate memory, lookup rate, and hot rows rather than on a dense gradient AllReduce."
+    },
+    {
+     "front": "Sequence and context parallelism",
+     "back": "Long contexts make activations the binding memory term, so sequence parallelism shards norm and dropout activations at no extra ideal volume and context parallelism circulates key-value tiles in a ring that overlaps only above a minimum chunk length."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v2-06-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Data-parallel update equivalence**?",
+     "options": [
+      "Recommendation models are dominated by multi-TB embedding tables touched sparsely, so they shard tables row-wise, column-wise, or in a hot/cold hybrid and exchange only indexed rows through sparse pull/push or AllToAll, binding on aggregate memory, lookup rate, and hot rows rather than on a dense gradient AllReduce.",
+      "ZeRO and FSDP shard optimizer state, then gradients, then parameters, cutting per-device state from 16 bytes per parameter toward 16/N, while full parameter sharding raises traffic about 1.5x and puts parameter gathers on every layer's critical path.",
+      "Replicated data parallelism reproduces the single-device global-batch update only when sampling, valid-item denominators, optimizer state, and update order match, and its price is one gradient AllReduce per step that throughput hides only while local compute covers it.",
+      "N = N_DP x N_PP x N_TP is not three independent knobs: a feasible plan satisfies divisibility, training-state and activation memory, the critical-batch limit, and each axis's traffic on a tier that can carry it, and activation recomputation buys memory feasibility at about one extra forward pass per step (full) or a few percent (selective) that HFU counts but MFU does not."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Data-parallel update equivalence itself, not a neighbouring idea.",
+     "explanation": "**Data-parallel update equivalence:** Replicated data parallelism reproduces the single-device global-batch update only when sampling, valid-item denominators, optimizer state, and update order match, and its price is one gradient AllReduce per step that throughput hides only while local compute covers it."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Synchronization models and stragglers**?",
+     "options": [
+      "ZeRO and FSDP shard optimizer state, then gradients, then parameters, cutting per-device state from 16 bytes per parameter toward 16/N, while full parameter sharding raises traffic about 1.5x and puts parameter gathers on every layer's critical path.",
+      "Bulk-synchronous training gives single-device semantics but waits for the slowest required contribution every step, so at thousands of GPUs the tail worker sets step time, and SSP and ASP trade that waiting for staleness with a convergence cost.",
+      "FP8 GEMMs use E4M3 for scaled weights and activations and E5M2 for scaled gradients under dynamic scaling with higher-precision master state, and they shrink a collective's payload only when the wire dtype itself is FP8.",
+      "Substituting the Fleet Law into eta = T_1/(N T_N) shows the shrinking compute term eventually losing to a ring bandwidth term that stays near 2*Psi/beta, which is the scaling wall of pure data parallelism, reached sooner under strong scaling (fixed global batch) than under weak scaling (fixed local batch)."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Synchronization models and stragglers itself, not a neighbouring idea.",
+     "explanation": "**Synchronization models and stragglers:** Bulk-synchronous training gives single-device semantics but waits for the slowest required contribution every step, so at thousands of GPUs the tail worker sets step time, and SSP and ASP trade that waiting for staleness with a convergence cost."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Sharded data parallelism**?",
+     "options": [
+      "Beyond the gradient-noise critical batch extra samples per step buy diminishing loss reduction, so the useful data-parallel width is about B_crit over the local batch, and learning-rate rules only extend the validated range.",
+      "Replicated data parallelism reproduces the single-device global-batch update only when sampling, valid-item denominators, optimizer state, and update order match, and its price is one gradient AllReduce per step that throughput hides only while local compute covers it.",
+      "ZeRO and FSDP shard optimizer state, then gradients, then parameters, cutting per-device state from 16 bytes per parameter toward 16/N, while full parameter sharding raises traffic about 1.5x and puts parameter gathers on every layer's critical path.",
+      "Mixture-of-experts layers place experts on different devices so parameters grow without proportional per-token compute, at the cost of a dispatch and a combine AllToAll per layer and hot-expert imbalance managed by a capacity factor."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Sharded data parallelism itself, not a neighbouring idea.",
+     "explanation": "**Sharded data parallelism:** ZeRO and FSDP shard optimizer state, then gradients, then parameters, cutting per-device state from 16 bytes per parameter toward 16/N, while full parameter sharding raises traffic about 1.5x and puts parameter gathers on every layer's critical path."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Scaling efficiency and the scaling wall**?",
+     "options": [
+      "Substituting the Fleet Law into eta = T_1/(N T_N) shows the shrinking compute term eventually losing to a ring bandwidth term that stays near 2*Psi/beta, which is the scaling wall of pure data parallelism, reached sooner under strong scaling (fixed global batch) than under weak scaling (fixed local batch).",
+      "N = N_DP x N_PP x N_TP is not three independent knobs: a feasible plan satisfies divisibility, training-state and activation memory, the critical-batch limit, and each axis's traffic on a tier that can carry it, and activation recomputation buys memory feasibility at about one extra forward pass per step (full) or a few percent (selective) that HFU counts but MFU does not.",
+      "Bulk-synchronous training gives single-device semantics but waits for the slowest required contribution every step, so at thousands of GPUs the tail worker sets step time, and SSP and ASP trade that waiting for staleness with a convergence cost.",
+      "PPO-style alignment training holds trainable and forward-only models with asymmetric state plus a rollout KV cache, so the fleet alternates inference-shaped and training-shaped phases and chooses co-location or dedicated pools by phase utilization and transfer cost."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Scaling efficiency and the scaling wall itself, not a neighbouring idea.",
+     "explanation": "**Scaling efficiency and the scaling wall:** Substituting the Fleet Law into eta = T_1/(N T_N) shows the shrinking compute term eventually losing to a ring bandwidth term that stays near 2*Psi/beta, which is the scaling wall of pure data parallelism, reached sooner under strong scaling (fixed global batch) than under weak scaling (fixed local batch)."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Critical batch size**?",
+     "options": [
+      "Recommendation models are dominated by multi-TB embedding tables touched sparsely, so they shard tables row-wise, column-wise, or in a hot/cold hybrid and exchange only indexed rows through sparse pull/push or AllToAll, binding on aggregate memory, lookup rate, and hot rows rather than on a dense gradient AllReduce.",
+      "Beyond the gradient-noise critical batch extra samples per step buy diminishing loss reduction, so the useful data-parallel width is about B_crit over the local batch, and learning-rate rules only extend the validated range.",
+      "Staging layers across devices moves only boundary activations point to point, but fill and drain idle each stage for (p-1)/(m+p-1) of the step, and 1F1B bounds retained activations so the many microbatches that shrink the bubble are affordable.",
+      "ZeRO and FSDP shard optimizer state, then gradients, then parameters, cutting per-device state from 16 bytes per parameter toward 16/N, while full parameter sharding raises traffic about 1.5x and puts parameter gathers on every layer's critical path."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Critical batch size itself, not a neighbouring idea.",
+     "explanation": "**Critical batch size:** Beyond the gradient-noise critical batch extra samples per step buy diminishing loss reduction, so the useful data-parallel width is about B_crit over the local batch, and learning-rate rules only extend the validated range."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Data-parallel update equivalence: Replicated data parallelism reproduces the single-device global-batch update only when sampling, valid-item denominators, optimizer state, and update order match, and its price is one gradient AllReduce per step that throughput hides only while local compute covers it.",
+    "Synchronization models and stragglers: Bulk-synchronous training gives single-device semantics but waits for the slowest required contribution every step, so at thousands of GPUs the tail worker sets step time, and SSP and ASP trade that waiting for staleness with a convergence cost.",
+    "Sharded data parallelism: ZeRO and FSDP shard optimizer state, then gradients, then parameters, cutting per-device state from 16 bytes per parameter toward 16/N, while full parameter sharding raises traffic about 1.5x and puts parameter gathers on every layer's critical path.",
+    "Scaling efficiency and the scaling wall: Substituting the Fleet Law into eta = T_1/(N T_N) shows the shrinking compute term eventually losing to a ring bandwidth term that stays near 2*Psi/beta, which is the scaling wall of pure data parallelism, reached sooner under strong scaling (fixed global batch) than under weak scaling (fixed local batch)."
+   ]
+  }
+ ],
+ "terms": []
+}

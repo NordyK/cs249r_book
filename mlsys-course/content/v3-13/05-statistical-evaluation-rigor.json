@@ -1,0 +1,70 @@
+{
+ "title": "Statistical Evaluation Rigor",
+ "summary": "Work through Statistical Evaluation Rigor.",
+ "source": {
+  "chapter": "v3-13",
+  "sections": [
+   "Statistical Evaluation Rigor",
+   "Tasks and repeated runs",
+   "Confidence intervals for acceptance",
+   "Paired outcome comparison",
+   "Potential and repeated-run consistency",
+   "Matched-budget comparison"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Statistical Evaluation Rigor** in *Agent Evaluation* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Agent Evaluation, § Statistical Evaluation Rigor",
+   "md": "When an updated agent configuration (`candidate_v2`) passes several more sampled benchmark tasks than a production baseline (`baseline_v1`) in an evaluation sweep, engineering teams are often tempted to declare immediate progress. However, that modest margin can easily reflect random sampling noise. Conversely, a seemingly smaller overall improvement can provide decisive evidence of system progress if the evaluation protocol preserves task-level pairings and demonstrates that the candidate resolves difficult failures without regressing on previously solved tasks. Distinguishing meaningful engineering progress from statistical fluctuation requires two foundations."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Tasks and repeated runs\n- Confidence intervals for acceptance\n- Paired outcome comparison\n- Potential and repeated-run consistency\n- Matched-budget comparison"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Task acceptance contract matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A trial is credited as an accepted task only when evidence on the exact candidate bytes satisfies its declared outcome, process, resource, and residual-duty criteria, and every verdict is pass, fail, pending, or unknown, with no default to pass."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-13-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Statistical Evaluation Rigor** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Sealed tests protect evidence only if a trusted controller outside both the live agent's reach and the submitted artifact's execution keeps the reference solutions, hidden tests, and score store and binds each verdict to the artifact hash.",
+      "pass@k measures candidate availability while pass^k = E[p_i^k] measures whether all k runs pass, and the two diverge as k grows.",
+      "Comparable trials need a hermetic boundary that declares which dependencies are provisioned, simulated, or blocked, a versioned task fixture, and a reset that leaves no state for the next trial.",
+      "A trial is credited as an accepted task only when evidence on the exact candidate bytes satisfies its declared outcome, process, resource, and residual-duty criteria, and every verdict is pass, fail, pending, or unknown, with no default to pass."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Task acceptance contract**: A trial is credited as an accepted task only when evidence on the exact candidate bytes satisfies its declared outcome, process, resource, and residual-duty criteria, and every verdict is pass, fail, pending, or unknown, with no default to pass."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Task acceptance contract* sets completion criteria stored in *Task acceptance contract*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Task acceptance contract* sets completion criteria stored in *Trajectory record*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Statistical Evaluation Rigor."
+   ]
+  }
+ ]
+}

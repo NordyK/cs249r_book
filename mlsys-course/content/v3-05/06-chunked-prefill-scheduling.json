@@ -1,0 +1,60 @@
+{
+ "title": "Chunked Prefill Scheduling",
+ "summary": "Work through Chunked Prefill Scheduling.",
+ "source": {
+  "chapter": "v3-05",
+  "sections": [
+   "Chunked Prefill Scheduling",
+   "Causal correctness across chunks",
+   "The per-iteration token budget"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Chunked Prefill Scheduling** in *KV Cache Management* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, KV Cache Management, § Chunked Prefill Scheduling",
+   "md": "Prefix reuse eliminates redundant computation on shared prompt prefixes, but new observations inevitably introduce fresh work. When the repair agent submits selected integration-test output, the serving engine must process the uncached suffix of the serialized request before generating the next response token. Other requests may already be generating tokens on the same accelerators. If the engine schedules the entire new prefill as one uninterrupted monolithic batch, those ongoing decode streams must wait for that pass to finish before executing their next decode step."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Causal correctness across chunks\n- The per-iteration token budget"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Chunked prefill matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Splitting an uncached prompt into chunks under a per-iteration token budget bounds the inter-token gap of ongoing streams to one iteration at a modest delay to the new request's first token."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-05-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Chunked Prefill Scheduling** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A content-keyed radix tree finds the longest retained common prefix, leaf-first eviction keeps residency prefix-closed, and efficacy is the token-weighted hit rate after availability, permission, and block rounding.",
+      "Token eviction, sliding windows, and KV quantization change the computation and must be validated against an agent's hard semantic dependencies, such as dormant constraints and exact identifiers, rather than perplexity.",
+      "Splitting an uncached prompt into chunks under a per-iteration token budget bounds the inter-token gap of ongoing streams to one iteration at a modest delay to the new request's first token.",
+      "Retained attention state costs 2 x layers x KV heads x head dim x bytes per token, so resident fit in the KV pool falls as 1/S with context length, and the attention design fixed at pretraining sets the slope."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Chunked prefill**: Splitting an uncached prompt into chunks under a per-iteration token budget bounds the inter-token gap of ongoing streams to one iteration at a modest delay to the new request's first token."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Chunked Prefill Scheduling."
+   ]
+  }
+ ]
+}

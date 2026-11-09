@@ -1,0 +1,88 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Evaluate the failure of security through obscurity in machine learning deployments under Kerckhoffs's principle.",
+ "source": {
+  "chapter": "v2-13",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Security & Privacy* (Vol II). By the end you should be able to:\n\n- Evaluate the failure of security through obscurity in machine learning deployments under Kerckhoffs's principle\n- Analyze the high leverage of surgical data poisoning and backdoor attacks against large-scale training pipelines\n- Calculate and evaluate the attack surface expansion when scaling from single-node to distributed ML training\n- Analyze system-level vulnerabilities arising from uncoordinated component-level security controls\n- Evaluate the misconception that decentralization in federated learning guarantees privacy"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Security & Privacy, § Fallacies and Pitfalls",
+   "md": "A common ML security failure is treating a local mechanism as a system guarantee. Obscurity, differential privacy libraries, federated learning, or encrypted storage each solve one part of the threat model, but none substitutes for lifecycle-wide reasoning about data, models, interfaces, hardware, and distributed scale."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: Failure of security through obscurity under Kerckhoffs's principle; Targeted poisoning harm versus aggregate validation accuracy; Distributed ML attack surface scaling (all-to-all O(N^2) channels); Isolated component security fallacy vs unencrypted logging bypasses."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A team assumes that because their training dataset contains 10 million images, an attacker would need to compromise at least 10% (1 million images) to cause meaningful damage. Explain why this assumption is a dangerous pitfall, distinguishing the attacker's targeted objective from aggregate validation accuracy.",
+   "md": "The fraction of corrupted records alone does not determine harm. A targeted poisoning attack can influence selected predictions, and a backdoor can associate a rare trigger with an attacker-chosen outcome while preserving clean validation performance. Required poison counts and attack success depend on the data, model, training procedure, and access assumptions. Teams must test those mechanisms and trace data provenance rather than assume that a large clean corpus dilutes every attack."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-13-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A startup keeps its proprietary vision model architecture and hyperparameters secret, assuming this prevents adversarial attacks and model theft. Under Kerckhoffs's principle and empirical ML security findings, why does this defense fail?",
+     "explanation": "The correct answer is C. Kerckhoffs's principle requires security to survive disclosure of system design apart from protected keys. Prediction APIs can support surrogate extraction, and perturbations can transfer between models under some threat models. Their success rates depend on the models, data, query access, and attack budget; no universal transfer percentage follows from secrecy. Attackers need neither the exact random seed nor a broadcast of the model weights.",
+     "hint": "Think about: evaluate the failure of security through obscurity in machine learning deployments under Kerckhoffs's principle.",
+     "type": "single",
+     "options": [
+      "Adversarial attacks are physically impossible unless the attacker has the exact PyTorch random seed.",
+      "Neural networks automatically publish their weights over DNS broadcast protocols upon initialization.",
+      "Black-box queries can reveal model behavior, and adversarial examples can transfer between models; secrecy alone therefore does not establish a tested security boundary.",
+      "Obscurity is valid for deep learning because gradient descent produces non-invertible mathematical functions."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "When scaling distributed training across 128 GPUs in 16 server nodes, an engineering team changes their communication topology from a logical ring to an all-to-all communication mesh. How does this architectural shift affect the system's communication attack surface?",
+     "explanation": "The correct answer is D. A logical ring has linearly many channels, while all-to-all has quadratically many. This count does not establish physical-link count, distinct credentials, or vulnerability count. Trace which actors can observe or modify each channel and how authentication and encryption protect it; the topology itself supplies no cryptographic guarantee.",
+     "hint": "Think about: calculate and evaluate the attack surface expansion when scaling from single-node to distributed ML training.",
+     "type": "single",
+     "options": [
+      "It reduces the attack surface from $\\mathcal{O}(n_{\\text{nodes}}^2)$ to $\\mathcal{O}(1)$ because all GPUs share a single global memory bus.",
+      "It eliminates the need for node authentication since all-to-all topologies are cryptographically self-verifying.",
+      "It maintains identical trust boundaries because gradient tensors are immune to network tampering.",
+      "It increases logical inter-node channels from $\\mathcal{O}(n_{\\text{nodes}})$ to $\\mathcal{O}(n_{\\text{nodes}}^2)$; the threat model must inventory their endpoint, credential, and transport protections."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Because federated learning keeps raw training data on client devices and transmits only model parameter updates, it is mathematically impossible for a curious server or network eavesdropper to extract private user training data without direct device compromise.",
+     "explanation": "False. Exposed updates can support gradient inversion or membership inference under particular model, batch, processing, and observation conditions. Secure aggregation hides individual messages under its protocol assumptions; DP separately bounds a declared contribution in the release. Data locality alone supplies neither guarantee, and visible updates do not guarantee successful reconstruction in every setting.",
+     "hint": "Think about: evaluate the misconception that decentralization in federated learning guarantees privacy.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: An organization hardens its public inference endpoint with rate limits, top-$k$ truncation, and mTLS authentication, but leaves raw query-response logs in an unencrypted, world-readable monitoring bucket. Explain which API controls this observation path bypasses and what determines the information exposed.",
+   "md": "A world-readable log bucket creates a separate observation path outside the API's request quotas and client authentication. What an adversary learns depends on the fields actually logged: raw prompts, embeddings, or pre-truncation scores can expose more than client responses. Those records may support surrogate training or sensitive inference, but neither reconstruction nor high-precision information follows from the bucket permissions alone."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate the failure of security through obscurity in machine learning deployments under Kerckhoffs's principle.",
+    "You can now analyze the high leverage of surgical data poisoning and backdoor attacks against large-scale training pipelines.",
+    "You can now calculate and evaluate the attack surface expansion when scaling from single-node to distributed ML training.",
+    "You can now analyze system-level vulnerabilities arising from uncoordinated component-level security controls."
+   ]
+  }
+ ]
+}

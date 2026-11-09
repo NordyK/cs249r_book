@@ -1,0 +1,62 @@
+{
+ "title": "Bounding In-Flight Work",
+ "summary": "Work through Bounding In-Flight Work.",
+ "source": {
+  "chapter": "v3-18",
+  "sections": [
+   "Bounding In-Flight Work",
+   "Cancellation context trees",
+   "Evidence preservation during cleanup",
+   "Hedged requests and speculative work",
+   "Credit-based flow control"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Bounding In-Flight Work** in *Multi-Agent Coordination* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Multi-Agent Coordination, § Bounding In-Flight Work",
+   "md": "Suppose the supervisor cancels `migration_task_01` while `worker_interface_01` awaits an external test job and `worker_caller_01` finishes generating a candidate patch. Even if the caller's patch passes its local validation checks after the supervisor initiates cancellation, the runtime must ensure that the patch remains strictly unpublishable. Meanwhile, an external testing service may have already accepted the interface worker's test request, incurring resource and billing charges that remain unsettled long after the worker process halts. In single-agent execution, a cancellation signal interrupts a local loop or an outstanding remote inference call."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Cancellation context trees\n- Evidence preservation during cleanup\n- Hedged requests and speculative work\n- Credit-based flow control"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Subtree cancellation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Cancellation scope follows delegation lineage and closes admission at each gate, but cancelling a subtree does not settle the obligations its admitted work already created."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-18-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Bounding In-Flight Work** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Cancellation scope follows delegation lineage and closes admission at each gate, but cancelling a subtree does not settle the obligations its admitted work already created.",
+      "The runtime assigns each child an identity and a grant contained in its delegator's, sharing permissions but partitioning consumable allowances by atomic reservation.",
+      "Under Speedup(N) = 1/((1-p) + p/N + c(N)) any gain requires c(N) < p(1 - 1/N), the best count sits near sqrt(p/c) for linear overhead, and the serial fraction caps speedup at 1/(1-p).",
+      "For a fixed amount of work with no coordination overhead, the serial fraction 1-p caps speedup at 1/(1-p) however many workers are added, and the universal scalability law reduces to it when coherency is zero."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Subtree cancellation**: Cancellation scope follows delegation lineage and closes admission at each gate, but cancelling a subtree does not settle the obligations its admitted work already created."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Bounding In-Flight Work."
+   ]
+  }
+ ]
+}

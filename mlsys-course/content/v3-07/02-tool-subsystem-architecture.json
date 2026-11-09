@@ -1,0 +1,61 @@
+{
+ "title": "Tool Subsystem Architecture",
+ "summary": "Work through Tool Subsystem Architecture.",
+ "source": {
+  "chapter": "v3-07",
+  "sections": [
+   "Tool Subsystem Architecture",
+   "One mediated round trip",
+   "Complete mediation",
+   "Batches and forced calls"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Tool Subsystem Architecture** in *Tool Calling* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Tool Calling, § Tool Subsystem Architecture",
+   "md": "When the socket times out on `restart_container`, a runtime that drops the failed call from history or reports it as a clean failure invites the next model turn to issue a duplicate restart. @Lst-vol3-tool-call-turn shows the staging restart as one turn of the loop, in a provider-neutral form. The runtime reports what it knows about this attempt, and the next model call receives that result together with the earlier request and proposal."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- One mediated round trip\n- Complete mediation\n- Batches and forced calls"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Computer-use tool calls matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A click keeps every tool-boundary invariant while losing atomicity, so each observation carries capture, window, and coordinate mapping and target identity is rechecked before dispatch."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-07-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Tool Subsystem Architecture** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Which descriptors the model sees each turn and how much work each tool does are design variables priced in context tokens and in cost per accepted task.",
+      "Capture and staging are separate budgets, so the adapter drains both pipes, enforces byte limits, and stages a head-and-tail view with a typed notice of what was omitted and a handle to the rest.",
+      "Read, set-desired-state, and produce-another-event classify what a repeated call does, a dimension orthogonal to the authority levels.",
+      "A click keeps every tool-boundary invariant while losing atomicity, so each observation carries capture, window, and coordinate mapping and target identity is rechecked before dispatch."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Computer-use tool calls**: A click keeps every tool-boundary invariant while losing atomicity, so each observation carries capture, window, and coordinate mapping and target identity is rechecked before dispatch."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Tool Subsystem Architecture."
+   ]
+  }
+ ]
+}

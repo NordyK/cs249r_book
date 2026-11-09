@@ -1,0 +1,95 @@
+{
+ "title": "Attention: Dynamic Processing",
+ "summary": "Explain why scaling attention scores by $\\sqrt{d_{\\text{head}}}$ helps control score magnitude and softmax saturation in scaled dot-product attention.",
+ "source": {
+  "chapter": "v1-06",
+  "sections": [
+   "Attention: Dynamic Processing",
+   "Pattern processing needs",
+   "Algorithmic structure",
+   "Computational mapping",
+   "System implications"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Attention: Dynamic Processing** in *Network Architectures* (Vol I). By the end you should be able to:\n\n- Explain why scaling attention scores by $\\sqrt{d_{\\text{head}}}$ helps control score magnitude and softmax saturation in scaled dot-product attention\n- Calculate the memory footprint of materialized attention score matrices and analyze quadratic context scaling\n- Compare exact tiled attention with naive attention by separating dense arithmetic cost from score-storage and memory-traffic cost\n- Explain the three core projection components (Q, K, V) of the attention mechanism and describe their roles in content-based routing\n- Calculate the exact multiply-accumulate operation count required for pairwise query-key score computation in an attention head"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Network Architectures, § Attention: Dynamic Processing",
+   "md": "Recurrent networks serialize execution along the sequence dimension and compress all historical context into a fixed-capacity hidden state vector (a later section). In a sentence such as \"The cat, which was sitting by the window overlooking the garden, was sleeping,\" the subject \"cat\" and predicate \"sleeping\" are separated by ten intervening words, yet they form the core syntactic and semantic relationship. An RNN must process all intervening tokens sequentially, risking information loss across intermediate recurrent transitions while preventing hardware from parallelizing across time steps."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Pattern processing needs\n- Algorithmic structure\n- Computational mapping\n- System implications\n\nPay attention to: Content-dependent dynamic routing ($\\text{Attention}(\\mathbf{Q},\\mathbf{K},\\mathbf{V}) = \\text{softmax}(\\mathbf{Q}\\mathbf{K}^T/\\sqrt{d_k})\\mathbf{V}$); $\\mathcal{O}(1)$ path length between any two tokens vs $\\mathcal{O}(S^2)$ score computation; Naive score materialization ($S \\times S$ scores per head, quadratic memory wall) vs FlashAttention IO tiling; Attention scaling factor $\\sqrt{d_k}$ and numerical stability / variance control."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Consider a single transformer self-attention layer processing a sequence of length $S = 4{,}096$ with $N_{\\text{heads}} = 12$ attention heads in FP16 precision (2 bytes per score). Calculate the memory required to store the materialized attention score matrices $(\\mathbf{Q}\\mathbf{K}^T)$ for this single layer, and explain why doubling the context length to $S = 8{,}192$ creates a super-linear memory wall.",
+   "md": "For S = 4,096 and 12 heads, the number of score elements in one layer is S × S × N_heads = 4,096 × 4,096 × 12 = 201,326,592 elements. At 2 bytes per element (FP16), this consumes \\$201,326,592 × 2 = 402,653,184 bytes approx 402.7 MB per layer (or ~33.6 MB per head). Because dense score interactions scale quadratically as mathcalO(S^2), doubling the context length from 4,096 to 8,192 increases the score elements by a factor of (8,192/4,096)^2 = 4×, requiring approx 1.61 GB per layer. Across 32 retained layers during training, materialized score storage explodes from ~12.9 GB to ~51.5 GB, quickly exceeding available accelerator SRAM/HBM capacity."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-06-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why does scaled dot-product attention divide the query-key dot product $\\mathbf{Q}\\mathbf{K}^T$ by $\\sqrt{d_{\\text{head}}}$ prior to applying the softmax normalization function?",
+     "explanation": "The correct answer is B. In this section, the taught point is that larger head dimensions can make raw dot products grow in magnitude, which would push softmax toward saturation and make learning harder. Dividing by $\\sqrt{d_{\\text{head}}}$ reins in those score magnitudes before normalization. An answer about changing $\\mathcal{O}(S^2)$ complexity confuses numerical scaling with algorithmic structure, and scaling also does not make keys unnecessary.",
+     "hint": "Think about: explain why scaling attention scores by $\\sqrt{d_{\\text{head}}}$ helps control score magnitude and softmax saturation in scaled dot-product attention.",
+     "type": "single",
+     "options": [
+      "To convert the matrix multiplication into a sparse graph lookup that reduces compute complexity from $\\mathcal{O}(S^2)$ to $\\mathcal{O}(S)$.",
+      "Scaling limits the magnitude of attention scores as $d_{\\text{head}}$ grows, helping keep softmax from saturating too sharply; it does not remove quadratic score computation or guarantee universal overflow protection.",
+      "To force the sum of all elements in the unnormalized query-key matrix to equal exactly 1.0 before applying softmax.",
+      "To eliminate the need for Key weight matrices by making Query and Value representations mathematically identical."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "IO-aware algorithms like FlashAttention reduce the computational complexity of dense self-attention from $\\mathcal{O}(S^2)$ down to $\\mathcal{O}(S)$ floating-point operations.",
+     "explanation": "False. FlashAttention keeps dense self-attention's quadratic arithmetic because it still computes the full set of exact score interactions. Its gain is avoiding full score-matrix storage in HBM by tiling the computation and applying online softmax, so the memory-traffic benefit depends on the kernel and memory hierarchy rather than changing the dense arithmetic to linear in $S$.",
+     "hint": "Think about: compare exact tiled attention with naive attention by separating dense arithmetic cost from score-storage and memory-traffic cost.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In the scaled dot-product attention mechanism, the input sequence is projected into three distinct learned representations known as Queries, Keys, and ____, drawing a direct analogy to content-addressable retrieval systems.",
+     "explanation": "Values (or values). Attention projects inputs into Queries, Keys, and Values, where Queries match Keys to compute weights that aggregate Values.",
+     "hint": "Think about: explain the three core projection components (Q, K, V) of the attention mechanism and describe their roles in content-based routing.",
+     "type": "fill",
+     "answer": [
+      "Values",
+      "Values (or values)"
+     ]
+    },
+    {
+     "q": "In an attention layer with sequence length $S = 512$ and per-head feature dimension $d_k = 64$, how many multiply-accumulate (MAC) operations are required to compute the query-key attention scores $(\\mathbf{Q}\\mathbf{K}^T)$ for a single attention head, excluding softmax normalization and value aggregation?",
+     "explanation": "The correct answer is D. Computing the score matrix $\\mathbf{Q}\\mathbf{K}^T$ for a single head involves multiplying an $S \\times d_k$ matrix by a $d_k \\times S$ matrix. This produces an $S \\times S$ output matrix where each of the \\$512 \\times 512 = 262{,}144$ entries requires a $d_k = 64$ dimensional dot product. The total arithmetic cost is \\$512 \\times 512 \\times 64 = 16{,}777{,}216\\text{ MACs}$ (approx. 16.8M MACs). The choice of 32,768 MACs computes only a single vector-matrix projection. The choice of 262,144 MACs counts output matrix elements without multiplying by feature depth $d_k$.",
+     "hint": "Think about: calculate the exact multiply-accumulate operation count required for pairwise query-key score computation in an attention head.",
+     "type": "single",
+     "options": [
+      "32,768 MACs, calculated as \\$512 × 64.",
+      "262,144 MACs, calculated as \\$512 × 512.",
+      "1,048,576 MACs, calculated as \\$512 × 512 × 4.",
+      "16,777,216 MACs (~16.8 million MACs), calculated as $S \\times S \\times d_k = 512 \\times 512 \\times 64$."
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain why scaling attention scores by $\\sqrt{d_{\\text{head}}}$ helps control score magnitude and softmax saturation in scaled dot-product attention.",
+    "You can now calculate the memory footprint of materialized attention score matrices and analyze quadratic context scaling.",
+    "You can now compare exact tiled attention with naive attention by separating dense arithmetic cost from score-storage and memory-traffic cost.",
+    "You can now explain the three core projection components (Q, K, V) of the attention mechanism and describe their roles in content-based routing."
+   ]
+  }
+ ]
+}

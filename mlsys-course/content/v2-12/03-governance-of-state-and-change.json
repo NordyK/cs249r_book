@@ -1,0 +1,86 @@
+{
+ "title": "Governance of State and Change",
+ "summary": "Design automated dependency tracking and validation workflows for multi-model registry systems.",
+ "source": {
+  "chapter": "v2-12",
+  "sections": [
+   "Governance of State and Change",
+   "Model registries at scale",
+   "Ensemble management",
+   "Model lifecycle management",
+   "Deployment patterns by model count",
+   "E-commerce model ecosystem"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Governance of State and Change** in *ML Operations at Scale* (Vol II). By the end you should be able to:\n\n- Design automated dependency tracking and validation workflows for multi-model registry systems\n- Justify the multi-stage ensemble architecture in latency-constrained recommendation systems\n- Explain the necessity of training provenance and lineage metadata in enterprise model registries\n- Evaluate failure masking and silent degradation risks in multi-model ensemble architectures\n- Order the stages of a staged rollout pattern for multi-model production deployments"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, ML Operations at Scale, § Governance of State and Change",
+   "md": "Collisions through shared state rarely announce themselves at the model that changed. Imagine an e-commerce platform where the search ranking model uses outputs from a user embedding model: an unannounced dimensionality change can break the consumer's input interface, while a shift in scale or meaning can pass shape checks yet degrade ranking quality. Because shared features, chained predictions, and common infrastructure make model behaviors interdependent across team boundaries, governing a portfolio requires both an artifact record and a data contract."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Model registries at scale\n- Ensemble management\n- Model lifecycle management\n- Deployment patterns by model count\n- E-commerce model ecosystem\n\nPay attention to: Enterprise model registries and dependency graph traversal; Multi-stage recommendation ensemble architectures; Staged rollout patterns and training lineage tracking."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why must an enterprise model registry record complete training provenance (code commit, dataset version, hyperparameters, hardware envelope) in addition to the binary model weights?",
+   "md": "Training provenance supports reproducibility and auditability by recording the code, data, hyperparameters, and hardware used. It helps trace regressions and leakage to their sources, but metadata alone cannot guarantee exact reproduction; retained artifacts, dependencies, randomness, and execution conditions also matter."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-12-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "When an upstream User Embedding Model is updated in an enterprise model registry, which automated sequence of graph-traversal actions must the registry execute to prevent silent production failures?",
+     "explanation": "The correct answer is B. Upstream changes silently break downstream models unless the registry executes graph traversal: identifying dependent consumers, triggering automated compatibility evaluation with the new embeddings, blocking promotion until verified, and coordinating staged deployment order.",
+     "hint": "Think about: design automated dependency tracking and validation workflows for multi-model registry systems.",
+     "type": "single",
+     "options": [
+      "Hot-swap the model binary on serving pods and trigger immediate asynchronous retrains of downstream models without blocking traffic.",
+      "Identify all dependent downstream models (retrieval, ranking, ensembles), trigger compatibility re-evaluations, and block promotion of the upstream model until all dependents pass verification.",
+      "Overwrite the existing embedding schema in-place and invalidate all client-side prediction caches.",
+      "Recompile the entire datacenter Kubernetes cluster manifest and flush all feature store storage tables."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "In high-throughput e-commerce recommendation systems, what is the primary systems rationale for deploying a multi-stage ensemble (retrieval rightarrow ranking rightarrow re-ranking) rather than a single end-to-end deep neural network?",
+     "explanation": "The correct answer is C. Multi-stage filtering is computationally essential: lightweight retrieval models filter millions of candidate items down to hundreds within milliseconds, allowing heavy, computationally expensive ranking models with cross-features to score only the top candidates within strict latency SLOs.",
+     "hint": "Think about: justify the multi-stage ensemble architecture in latency-constrained recommendation systems.",
+     "type": "single",
+     "options": [
+      "Multi-stage ensembles eliminate all network communication between microservices.",
+      "Single deep learning models cannot process floating-point tensors larger than 32 bits.",
+      "Evaluating millions of catalog items with an expensive, feature-rich ranking model violates strict serving latency budgets ($<10\\text{ ms}$), requiring fast candidate filtering before fine ranking.",
+      "Modern web browsers reject HTTP responses generated by single-model inference backends."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In a production multi-model recommendation ensemble, severe accuracy degradation in one component model will always trigger explicit application crashes and exception alerts in monitoring dashboards.",
+     "explanation": "False. Other ensemble components or fallback heuristics can compensate for a degraded sub-model, producing plausible-looking recommendations while silently masking severe underlying model decay from basic infrastructure monitoring.",
+     "hint": "Think about: evaluate failure masking and silent degradation risks in multi-model ensemble architectures.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now design automated dependency tracking and validation workflows for multi-model registry systems.",
+    "You can now justify the multi-stage ensemble architecture in latency-constrained recommendation systems.",
+    "You can now explain the necessity of training provenance and lineage metadata in enterprise model registries.",
+    "You can now evaluate failure masking and silent degradation risks in multi-model ensemble architectures."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,73 @@
+{
+ "title": "Fault Injection Tools and Frameworks",
+ "summary": "Evaluate the abstraction gap between software-based fault injection and physical hardware fault mechanisms.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "Fault Injection Tools and Frameworks"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fault Injection Tools and Frameworks** in *Fault Tolerance* (Vol II). By the end you should be able to:\n\n- Evaluate the abstraction gap between software-based fault injection and physical hardware fault mechanisms\n- Design fault-injection experiments that exercise recovery decisions at the level where they are made\n- Compare the fidelity and scalability trade-offs between hardware-based and software-based fault injection methodologies\n- Analyze how bridging frameworks map microarchitectural hardware faults to software-level tensor perturbations"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, § Fault Injection Tools and Frameworks",
+   "md": "An injected failure is useful evidence only when it resembles the production failure the system must survive. A multi-node training cluster that claims to tolerate network partitions should have that connection severed in a staging environment so engineers can observe what the orchestration layer does. Fault injection is the engineering discipline of deliberately perturbing a system to empirically verify that robustness mechanisms work before production traffic discovers the gap."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Fault models vs error models and the injection level; The abstraction gap between software-based fault injection and physical beam/FPGA testing; Bridging tools (e.g. Fidelity) mapping hardware error behaviors to software visible states; Decision-level injection that exercises detection, fencing, and manifest checks."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why killing a rank mid-collective, partitioning a node from the rendezvous service, and corrupting one checkpoint shard are more valuable fleet-recovery experiments than tensor bit flips alone.",
+   "md": "Each experiment exercises a recovery decision rather than only a corrupted value. Killing a rank or delaying its heartbeat tests whether detection timeouts fire and the worker group is rebuilt; partitioning a node from rendezvous tests whether membership and fencing stop the old owner from writing; corrupting a shard tests whether restore rejects a generation whose manifest digests do not match. A tensor bit flip tests how software responds to a wrong value, but it does not show that the detector fires before the protected commit or that recovery stays within its lost-work and recovery-time bounds."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-14-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why might a software-based fault injection framework (such as PyTorchFI) overestimate a neural network's vulnerability to radiation-induced soft errors when compared against physical beam testing on real silicon?",
+     "explanation": "The correct answer is D. In physical hardware, many single-event upsets are masked by circuit-level defenses (ECC, parity checks) or microarchitectural factors (errors on unused registers, speculative instructions that get squashed, or overwritten memory addresses before reads occur). Software-level fault injection bypasses these hardware filtering stages and directly perturbs active software tensors, leading to higher observed failure rates than physical beam experiments. The other options misstate data types, radiation physics, and the capabilities of software tools.",
+     "hint": "Think about: evaluate the abstraction gap between software-based fault injection and physical hardware fault mechanisms.",
+     "type": "single",
+     "options": [
+      "Software-based tools only inject faults into 8-bit integer quantized models, whereas physical radiation only affects 64-bit floating point registers.",
+      "Physical radiation only damages power delivery networks and never alters logic gate states in operational GPUs.",
+      "Software injection tools can only simulate permanent stuck-at faults and cannot model transient bit flips.",
+      "Software injection mutates high-level tensor variables directly, completely bypassing microarchitectural and circuit-level masking (such as ECC correction, speculative instruction discarding, and dead registers) that absorb soft errors in hardware."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Software-based fault injection frameworks are universally preferred over FPGA-based injection for production resilience certification because software tools capture register-level gate timing violations and physical alpha-particle strikes with higher fidelity.",
+     "explanation": "False. Software injection trades physical fidelity for scale and controllable experiments. FPGA-based injection can expose lower-level state in the implemented design, while beam testing probes the actual device under physical radiation. Neither an FPGA implementation nor a tensor-level simulation automatically reproduces every timing, packaging, or fault-propagation behavior of production silicon.",
+     "hint": "Think about: compare the fidelity and scalability trade-offs between hardware-based and software-based fault injection methodologies.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain how fault-injection frameworks such as Fidelity bridge the abstraction gap between low-level hardware faults and high-level software models.",
+   "md": "Such frameworks model how lower-level faults in registers, memory and numerical units become software-visible errors, then use that mapping to guide scalable software injection. The mapping narrows the abstraction gap; its fidelity depends on the modeled hardware, fault distribution and calibration. It does not automatically establish coverage of every production fault."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate the abstraction gap between software-based fault injection and physical hardware fault mechanisms.",
+    "You can now design fault-injection experiments that exercise recovery decisions at the level where they are made.",
+    "You can now compare the fidelity and scalability trade-offs between hardware-based and software-based fault injection methodologies.",
+    "You can now analyze how bridging frameworks map microarchitectural hardware faults to software-level tensor perturbations."
+   ]
+  }
+ ]
+}

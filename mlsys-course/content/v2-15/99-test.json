@@ -1,0 +1,147 @@
+{
+ "title": "Test: Sustainable AI",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-15-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "Order the stages of a hierarchical wake-word cascade designed to minimize average energy consumption on a smart speaker from lowest power to highest power:",
+     "explanation": "The correct order is: (3) ultra-low-power Voice Activity Detection (VAD) circuit listening continuously at microwatt power, (2) small convolutional or recurrent neural network wake-word classifier verifying the trigger phrase, (1) large language model or full automatic speech recognition running on host processor or cloud. The cascade minimizes energy by placing the cheapest filter first: the microwatt VAD filters silence/ambient noise; upon detecting voice, it triggers the small milliwatt wake-word model; only when the trigger phrase is validated does the system power up the watt-scale host processor or cloud network stack for full inference. Inverting the sequence would burn hundreds of milliwatts or watts on continuous ambient silence.",
+     "hint": "Think about: design a hierarchical wake-word cascade to minimize average power consumption in low-power edge systems",
+     "type": "order",
+     "items": [
+      "small convolutional or recurrent neural network wake-word classifier verifying the trigger phrase",
+      "large language model or full automatic speech recognition running on host processor or cloud"
+     ]
+    },
+    {
+     "q": "A cloud provider considers retiring functional accelerators because a new generation offers a 12 percent improvement in performance per watt. Which option identifies a circular-economy candidate for evaluation, without claiming that this efficiency specification alone determines the lowest-emissions choice?",
+     "explanation": "The correct answer is C. Compatible secondary use can avoid premature disposal and new procurement, but it must meet the workload's quality, performance, security, and reliability requirements. Compare useful-work energy, grid intensity, utilization, replacement manufacturing, and remaining life. A 12 percent performance-per-watt specification alone cannot establish the emissions minimum or its break-even time; automatic replacement ignores the new embodied burden.",
+     "hint": "Think about: apply circular economy principles to hardware retirement and secondary redeployment decisions",
+     "type": "single",
+     "options": [
+      "Immediately shred and dispose of all prior-generation accelerators to eliminate any hardware with lower peak energy efficiency.",
+      "Replace all servers instantly because any improvement in operational efficiency automatically offsets the embodied carbon of manufacturing a replacement fleet.",
+      "Evaluate redeployment to compatible secondary workloads, comparing continued useful service with replacement manufacturing and measured operating emissions over the same remaining service interval.",
+      "Overclock the older accelerators beyond thermal limits to match new hardware throughput regardless of cooling failure risk."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Standardized under ISO 14040 and ISO 14044, a comprehensive `____` evaluates the cumulative environmental impact of AI hardware across raw material extraction, manufacturing, use, and end-of-life disposal.",
+     "explanation": "life cycle assessment. A Life Cycle Assessment (LCA) quantifies environmental impacts across design, supply-chain fabrication, active operational use, and recycling/disposal, ensuring embodied emissions are not ignored.",
+     "hint": "Think about: explain the role of Life Cycle Assessment (LCA) methodology in quantifying end-to-end hardware environmental impact",
+     "type": "fill",
+     "answer": [
+      "life cycle assessment"
+     ]
+    },
+    {
+     "q": "For a fixed inventoried manufacturing footprint, what happens to annualized embodied carbon when useful hardware life extends from three years to five years, before considering changes in operational energy?",
+     "explanation": "The correct answer is A. Dividing the same manufacturing footprint by five years rather than three changes its annual allocation by a factor of 3/5, a 40% reduction. This does not erase manufacturing emissions or prove that retaining hardware minimizes total lifecycle carbon. The comparison also needs useful work, operational energy, replacement manufacturing, and consistent component boundaries. Aging does not automatically improve silicon efficiency or facility PUE.",
+     "hint": "Think about: justify hardware lifespan extension as a high-leverage sustainability intervention using embodied carbon amortization",
+     "type": "single",
+     "options": [
+      "The fixed manufacturing footprint is amortized over five years rather than three, reducing its annualized allocation by 40 percent; total lifecycle savings still depend on operational energy and the inventory boundary.",
+      "Older accelerators automatically consume 40 percent less electrical power per FLOP as silicon pathways break in over time.",
+      "Extending accelerator lifespans from three to five years eliminates electronic waste entirely because hardware decomposes organically after five years.",
+      "Data center PUE automatically drops to 1.0 after servers have operated for more than four years."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A platform team has recurring batch training jobs that can move across regions or time while preserving quality. Which intervention is a candidate for lowering operational carbon without changing the model, provided capacity, data access, deadlines, and net emissions are checked?",
+     "explanation": "The correct answer is D. Carbon-aware placement and scheduling can exploit lower-emissions windows for flexible jobs. Compare complete facility energy and compatible grid signals, including checkpoint, transfer, restart, and idle costs, after filtering infeasible candidates. Regional averages motivate investigation but do not guarantee an order-of-magnitude net saving. Changing batch size or activations changes the workload and may change its quality or convergence.",
+     "hint": "Think about: evaluate carbon-aware placement as a conditional mitigation candidate for feasible batch workloads",
+     "type": "single",
+     "options": [
+      "Replacing all ReLU activation functions with GELU activations across training scripts.",
+      "Increasing the batch size to maximize GPU execution unit occupancy.",
+      "Switching from PyTorch to a C++ inference engine for training loops.",
+      "Implementing carbon-aware spatial and temporal scheduling to route training jobs to data center regions and time windows with surplus renewable energy and low carbon intensity."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Migrating a machine learning training workload from an on-premises enterprise cluster in a low-carbon region (20 $\\text{gCO}_2/\\text{kWh}$) to a commercial cloud data center in a coal-heavy region (750 $\\text{gCO}_2/\\text{kWh}$) is guaranteed to reduce the workload's carbon footprint because hyperscale cloud providers operate at lower PUE.",
+     "explanation": "False. Lower PUE alone does not guarantee lower emissions. At equal IT energy and the supplied grid factors, a PUE improvement must offset a 37.5-fold intensity increase merely to match electricity-related emissions. A complete comparison also needs actual energy, useful work, movement costs, and embodied allocations; cloud status is not evidence of that result.",
+     "hint": "Think about: evaluate the fallacy that cloud migration is inherently greener regardless of regional grid carbon intensity",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An engineering team is auditing the greenhouse gas emissions of an AI platform. Which option correctly maps the five operational sources to their respective GHG Protocol scopes?\n\n- S1: Diesel fuel burned by backup generators during a power outage at an owned facility.\n- S2: Grid electricity purchased to power an owned GPU cluster.\n- S3: Grid electricity consumed by cooling chillers in the same owned facility.\n- S4: Embodied carbon from manufacturing the GPUs at an external foundry.\n- S5: Electrical energy consumed by end-user smartphones running the deployed mobile inference app.",
+     "explanation": "The correct answer is A. S1: Scope 1; S2: Scope 2; S3: Scope 2; S4: Scope 3; S5: Scope 3. Scope 1 encompasses direct emissions from owned combustion sources (on-site diesel generators). Scope 2 covers indirect emissions from purchased electricity (powering servers and facility cooling equipment). Scope 3 covers value-chain emissions upstream (semiconductor manufacturing at external foundries) and downstream (end-user mobile device execution). Classifying diesel as Scope 2 confuses direct combustion with purchased utility power; classifying cooling electricity as Scope 1 treats purchased utility power as on-site combustion; and classifying upstream semiconductor fabrication as Scope 1 misattributes supplier manufacturing to direct operations.",
+     "hint": "Think about: classify AI system emissions sources into Scope 1, Scope 2, and Scope 3 under the GHG Protocol",
+     "type": "single",
+     "options": [
+      "S1: Scope 1; S2: Scope 2; S3: Scope 2; S4: Scope 3; S5: Scope 3.",
+      "S1: Scope 2; S2: Scope 1; S3: Scope 2; S4: Scope 3; S5: Scope 3.",
+      "S1: Scope 1; S2: Scope 2; S3: Scope 1; S4: Scope 2; S5: Scope 3.",
+      "S1: Scope 3; S2: Scope 2; S3: Scope 2; S4: Scope 1; S5: Scope 1."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A systems team aggressively compresses a model using unstructured pruning to cut training FLOPs by 60 percent. In production, serving the sparse model requires specialized, custom-fabricated NPU accelerators and requires double the serving iterations to reach quality parity. Which pitfall does this scenario illustrate, and what is the proper engineering mitigation?",
+     "explanation": "The correct answer is A. Local optimization of training compute without full-lifecycle assessment; the mitigation is conducting end-to-end Life Cycle Assessment (LCA) that accounts for hardware manufacturing, deployment scale, and serving energy before committing to architectural changes. Optimizing one isolated phase (training FLOPs) often shifts environmental burdens to other lifecycle phases, such as requiring new specialized hardware fabrication (embodied carbon) or increasing recurring inference queries. Comprehensive LCA across training, serving, and hardware manufacturing prevents counterproductive local optimizations. Amdahl's law does not address lifecycle trade-offs; reclassifying emissions scopes does not alter physical carbon; and workstation cooling is irrelevant to datacenter-scale deployment.",
+     "hint": "Think about: analyze the pitfalls of localized optimization and apply full Life Cycle Assessment to evaluate net environmental impact",
+     "type": "single",
+     "options": [
+      "Local optimization of training compute without full-lifecycle assessment; the mitigation is conducting end-to-end Life Cycle Assessment (LCA) that accounts for hardware manufacturing, deployment scale, and serving energy before committing to architectural changes.",
+      "Failure to apply Amdahl's law; the mitigation is increasing CPU clock frequency.",
+      "Violating the GHG Protocol; the mitigation is reclassifying Scope 3 emissions as Scope 1.",
+      "Ignoring PUE; the mitigation is installing liquid cooling on the development workstations."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "The metric representing the mass of carbon dioxide emitted per unit of electricity generated, expressed in grams of $\\text{CO}_2$ per kilowatt-hour, is known as `____`.",
+     "explanation": "carbon intensity. Grid carbon intensity ($\\text{gCO}_2/\\text{kWh}$) varies by location and time, governing the operational emissions associated with electricity consumption.",
+     "hint": "Think about: explain how grid carbon intensity translates electrical energy into operational carbon emissions",
+     "type": "fill",
+     "answer": [
+      "carbon intensity"
+     ]
+    },
+    {
+     "q": "Give one valid order for the following steps in computing the specified operational-plus-accelerator-manufacturing carbon subtotal of a model training workload:",
+     "explanation": "One valid order is: (3) measure or estimate raw IT electrical power and duration across GPUs, CPUs, and memory, (1) multiply IT energy by facility PUE to obtain total facility energy consumption, (5) multiply total facility energy by regional grid carbon intensity to determine operational carbon, (2) amortize accelerator manufacturing footprint over total operational lifetime to calculate the job's embodied share, (4) sum operational and embodied carbon to determine the accounted subtotal. IT energy must be measured first; facility PUE is applied to calculate total electrical draw; grid carbon intensity converts facility energy into operational emissions; embodied manufacturing carbon is amortized over the run's duration; and both components are summed for this partial lifecycle account. Manufacturing of hosts, networking, storage, and facilities, and any other lifecycle stages outside the stated inventory, must be added before claiming a complete footprint. PUE and carbon intensity may be multiplied in either order, but facility overhead must be included exactly once; embodied carbon can be computed independently before the final sum.",
+     "hint": "Think about: analyze the sequential calculation workflow for AI lifecycle carbon accounting",
+     "type": "order",
+     "items": [
+      "measure or estimate raw IT electrical power and duration across GPUs, CPUs, and memory",
+      "multiply IT energy by facility PUE to obtain total facility energy consumption",
+      "multiply total facility energy by regional grid carbon intensity to determine operational carbon.",
+      "amortize accelerator manufacturing footprint over total operational lifetime to calculate the job's embodied share",
+      "sum operational and embodied carbon to determine the accounted subtotal"
+     ]
+    },
+    {
+     "q": "If an AI training data center is powered 100 percent by dedicated geothermal and hydroelectric power, the use phase is completely unconstrained and engineers no longer need to consider grid dynamics or cooling efficiency.",
+     "explanation": "False. Low-carbon sourcing does not remove electrical capacity, thermal, water, or reliability limits, and it does not erase generation or hardware lifecycle burdens. Any effect on other grid generation depends on the actual supply and grid connection; dedicated hydro or geothermal alone does not establish a peaker response.",
+     "hint": "Think about: evaluate how zero-carbon electricity sourcing changes emissions accounting while physical use-phase constraints remain binding",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An engineer needs to profile the energy consumption of a sub-watt microcontroller executing an on-device wake-word detection model that spends 98 percent of its time in deep sleep drawing 30 $\\mu\\text{W}$. The microcontroller lacks on-chip energy counters. Which measurement approach is appropriate?",
+     "explanation": "The correct answer is D. An external analyzer must resolve both sleep and active states at the declared electrical boundary. Its configured range, bandwidth, calibration, voltage measurement, and integration interval determine whether it can do so; a fast sample rate or product name alone is insufficient. RAPL and NVML do not supply this microcontroller measurement, and parameter count omits duty-cycle and peripheral costs.",
+     "hint": "Think about: select instrumentation capable of measuring the declared duty cycle and electrical boundary of a TinyML system",
+     "type": "single",
+     "options": [
+      "Sampling the Linux RAPL interface at 100 Hz to capture CPU package power states.",
+      "Querying NVML/nvidia-smi programmatic bindings to integrate instantaneous milliwatt metrics.",
+      "Multiplying model parameter count by a theoretical constant of 5 pJ per parameter.",
+      "Using a calibrated external analyzer with verified current range, analog bandwidth, synchronized voltage measurement, and integration windows covering sleep, active execution, and transitions."
+     ],
+     "answer": 3
+    }
+   ]
+  }
+ ]
+}

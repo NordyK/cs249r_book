@@ -1,0 +1,110 @@
+{
+ "title": "Model Loading and Versioning",
+ "summary": "Analyze the root causes of training-serving skew and design unified preprocessing pipelines to maintain inference accuracy.",
+ "source": {
+  "chapter": "v1-13",
+  "sections": [
+   "Model Loading and Versioning",
+   "Cold start and initialization dynamics",
+   "Loading strategies and serialization formats",
+   "Model caching infrastructure",
+   "Multi-model serving",
+   "Training-serving skew"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Model Loading and Versioning** in *Model Serving* (Vol I). By the end you should be able to:\n\n- Analyze the root causes of training-serving skew and design unified preprocessing pipelines to maintain inference accuracy\n- Explain the systems mechanisms behind cold-start latency spikes and justify the use of synthetic warmup passes\n- Design the end-to-end cold-start and initialization lifecycle for autoscaling inference infrastructure\n- Compare GPU multi-tenant isolation mechanisms (MPS vs. MIG) regarding memory safety and compute partitioning\n- Design a tiered memory caching and dynamic model swapping architecture for multi-model serving under GPU memory constraints"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Serving, § Model Loading and Versioning",
+   "md": "Every optimization so far assumed a replica that is already warmed up in device memory and a host pipeline that reproduces the exact transformations used during training. Both assumptions fail at the edges of a replica's lifecycle. Provisioning a new container or swapping an active model stalls traffic until weights and compiled engines are resident on the device, and any drift between training and serving preprocessing silently corrupts accuracy even when every latency target is met."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Cold start and initialization dynamics\n- Loading strategies and serialization formats\n- Model caching infrastructure\n- Multi-model serving\n- Training-serving skew\n\nPay attention to: Training-serving skew (feature pipelines, image preprocessing libraries like PIL vs. OpenCV); Cold start dynamics and initialization timelines (storage -> host DRAM -> GPU HBM); Warmup passes and execution graph compilation; Multi-model serving and memory tiering (NVMe -> Host RAM -> GPU VRAM)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why does simply copying model weights into GPU HBM upon container startup fail to prevent latency spikes on the very first incoming user requests, and how does executing a 'warmup pass' resolve this issue?",
+   "md": "Having weights resident in GPU memory is not enough because first requests may still trigger lazy allocator growth, kernel compilation or selection, graph capture, and other runtime setup on the execution path. A warmup pass sends representative dummy inputs through the model before the server is marked ready, so those deferred costs are paid during initialization instead of by live users. The practical effect is reduced first-request latency spikes, though only for the shapes and paths the warmup actually exercises."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-13-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A computer vision team trains a ResNet-50 model in PyTorch using torchvision's PIL-based bilinear image resizing. In production, high-throughput C++ inference servers use OpenCV's `cv::resize` with default bilinear interpolation. On matched input images, the team observes different preprocessed tensors; when they rerun evaluation with the training preprocessing path, the original accuracy returns. What phenomenon is causing this degradation, and what is the proper engineering solution?",
+     "explanation": "The correct answer is A. The matched-input rerun shows the weights are not the root cause by themselves; the problem is that training and serving are producing different tensors from the same image. That is training-serving skew caused by inconsistent preprocessing. The fix is to make preprocessing shared or parity-verified across environments, whether through a common implementation or an exported graph when the required operations are supported. Numerical differences can matter in some pipelines, but the evidence here points specifically to preprocessing mismatch rather than thermal behavior or weight changes.",
+     "hint": "Think about: analyze the root causes of training-serving skew and design unified preprocessing pipelines to maintain inference accuracy.",
+     "type": "single",
+     "options": [
+      "Training-serving skew caused by subtle implementation differences in resize anti-aliasing and pixel coordinate rounding between PIL and OpenCV; the solution is using shared or parity-verified preprocessing across training and serving, such as a common library or exportable graph when supported.",
+      "Accelerator thermal throttling caused by high frame rates; the solution is downclocking the GPU Tensor Cores.",
+      "Floating-point precision drift between Python and C++; the solution is switching all production inference to 64-bit double precision.",
+      "Catastrophic forgetting in the weights caused by static batching; the solution is retraining the model with dynamic dropout."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Sequence the stages of an illustrative serial cold-start initialization workflow when autoscaling an inference server pod from an idle state to serving live production traffic:",
+     "explanation": "The correct order is: (4) Container initialization, environment bootstrap, and runtime dependency loading, (2) Fetch model checkpoint artifacts and configuration from remote object storage to local NVMe SSD cache, (6) Memory-map or deserialize model weights from local SSD into host memory, with explicit pinned staging buffers if used, (1) Initialize device context or runtime state needed before host-to-device copies, then transfer model weights to GPU HBM over PCIe, (3) Initialize remaining execution-engine state, allocate memory pools, and run synthetic dummy warmup passes, (5) Register pod as healthy with the load balancer gateway. This is an illustrative serial workflow because later stages depend on earlier artifacts and memory state: the model must exist locally before it can be mapped, host-visible weights must exist before transfer, and warmup must happen before the pod is declared ready. Other implementations may overlap parts of the pipeline, but admitting traffic before warmup would push initialization cost onto live requests.",
+     "hint": "Think about: design the end-to-end cold-start and initialization lifecycle for autoscaling inference infrastructure.",
+     "type": "order",
+     "items": [
+      "Container initialization, environment bootstrap, and runtime dependency loading",
+      "Initialize remaining execution-engine state, allocate memory pools, and run synthetic dummy warmup passes",
+      "Register pod as healthy with load balancer gateway to begin receiving live traffic"
+     ]
+    },
+    {
+     "q": "In multi-model serving on a shared GPU, Volta-era NVIDIA Multi-Process Service (MPS) provides hard physical hardware partitioning of high-bandwidth memory (HBM) channels and compute cores, completely preventing memory out-of-memory (OOM) faults caused by co-located tenant models.",
+     "explanation": "False. Volta-era MPS gives clients separate GPU address spaces and contexts, but they still share the same underlying compute and memory hardware. That is not MIG-style physical partitioning, and a fatal GPU fault can still affect other clients on the affected GPU even though one tenant's OOM does not guarantee every colocated client will crash.",
+     "hint": "Think about: compare GPU multi-tenant isolation mechanisms (MPS vs. MIG) regarding memory safety and compute partitioning.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A multi-model serving platform hosts 50 distinct fine-tuned vision models on a single GPU node with 24 GB of VRAM. Each model requires 2 GB of memory, exceeding total VRAM capacity. Traffic to individual models is sporadic. What loading and memory management architecture enables serving all 50 models while minimizing request latency?",
+     "explanation": "The correct answer is C. When model demand is sparse and total VRAM is too small, a tiered design keeps active models resident on the GPU while staging less active ones in host memory for faster reload than remote storage. On-demand swaps still pay transfer time bounded below by bytes moved over available bandwidth, plus runtime overheads, so this design reduces but does not eliminate latency. The approach also assumes host cache capacity and enough GPU workspace for the active model. Provisioning 50 dedicated GPUs wastes capacity for sporadic traffic, and re-downloading from object storage per request would be far slower.",
+     "hint": "Think about: design a tiered memory caching and dynamic model swapping architecture for multi-model serving under GPU memory constraints.",
+     "type": "single",
+     "options": [
+      "Redeploy the cluster on 50 dedicated GPU nodes running continuous batching 24/7.",
+      "Quantize all models to 1-bit weights to fit all 50 models into GPU L2 cache simultaneously.",
+      "Maintain a tiered memory cache (storing active models in GPU VRAM and inactive models in host pinned DRAM), using asynchronous PCIe DMA transfers to swap weights into VRAM on demand with an LRU eviction policy.",
+      "Compress all models into a single shared zip archive on remote S3 and download the entire archive over HTTP on each incoming request."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Why can loading model weights from modern `safetensors` format provide faster startup times than some legacy PyTorch checkpoint paths?",
+     "explanation": "The correct answer is B. `safetensors` stores tensor data in a simple tensor-oriented format, so loaders can avoid the heavy Python object reconstruction associated with general pickle-based checkpoints and can use memory mapping efficiently. That can reduce cold-start overhead, though the exact gain still depends on storage speed, paging behavior, and the rest of runtime initialization. Gzip compression, compiling Python into machine code, and automatic on-read quantization are not what explains the startup benefit here.",
+     "hint": "Think about: compare tensor-oriented checkpoint formats with pickle-based checkpoints in terms of loading overhead, memory mapping, and security.",
+     "type": "single",
+     "options": [
+      "`safetensors` files compress weights using gzip, reducing disk storage by \\$10×.",
+      "`safetensors` files store raw tensor buffers in a simple deterministic layout that supports memory mapping (`mmap`) without Python object deserialization or arbitrary code execution.",
+      "`safetensors` files compile PyTorch code directly into binary x86 machine instructions on disk.",
+      "`safetensors` files automatically quantize FP32 weights into 4-bit integers during read operations."
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the root causes of training-serving skew and design unified preprocessing pipelines to maintain inference accuracy.",
+    "You can now explain the systems mechanisms behind cold-start latency spikes and justify the use of synthetic warmup passes.",
+    "You can now design the end-to-end cold-start and initialization lifecycle for autoscaling inference infrastructure.",
+    "You can now compare GPU multi-tenant isolation mechanisms (MPS vs. MIG) regarding memory safety and compute partitioning."
+   ]
+  }
+ ]
+}

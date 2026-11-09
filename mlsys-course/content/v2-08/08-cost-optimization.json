@@ -1,0 +1,104 @@
+{
+ "title": "Cost Optimization",
+ "summary": "Explain how preemption cascades multiply interruption cost and which controls bound them.",
+ "source": {
+  "chapter": "v2-08",
+  "sections": [
+   "Cost Optimization",
+   "Preemption cost and cascades",
+   "Spot instances and preemptible VMs",
+   "Spot instance strategies for ML training",
+   "Capacity reservation strategies",
+   "Cost-aware scheduling policies"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Cost Optimization** in *Fleet Orchestration* (Vol II). By the end you should be able to:\n\n- Explain how preemption cascades multiply interruption cost and which controls bound them\n- Apply the spot effective-cost relation to decide whether a discount survives interruption overhead\n- Map workloads to reserved, on-demand, and spot capacity tiers by deadline and restart tolerance\n- Explain how lifecycle cost analysis reaches the scheduler as price signals and constraints rather than as a scheduling mechanism\n- Decompose the preemption overhead and explain why preemption budgets protect low-priority work"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Orchestration, § Cost Optimization",
+   "md": "An idle accelerator in an enterprise fleet incurs operational costs every hour whether computing or blocked in a queue, turning placement and preemption decisions into direct financial trade-offs. The orchestrator translates this utilization-to-dollars relationship from a later section into an online scheduling signal, balancing resource prices, reservation commitments, interruption risk, checkpoint cost, and job deadlines to decide whether to admit, delay, preempt, or resize work."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Preemption cost and cascades\n- Spot instances and preemptible VMs\n- Spot instance strategies for ML training\n- Capacity reservation strategies\n- Cost-aware scheduling policies\n\nPay attention to: Preemption overhead and preemption cascades; Spot effective cost after interruption overhead; Correlated spot reclamation risks; Reserved, on-demand, and spot capacity tiers."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: This chapter treats lifecycle total cost of ownership (TCO) as an input to the scheduler rather than as a scheduling mechanism. What does the scheduler consume from TCO analysis and cost accounting, and how does it use those inputs?",
+   "md": "It consumes per-resource opportunity costs and policy constraints: the marginal price of each capacity tier (owned, reserved, on-demand, or interruptible), the reservation a project may claim, the interruption risk it may accept, and the deadline it must meet. It uses them only to rank feasible scheduling actions such as waiting, preempting lower-priority work, falling back to on-demand capacity, or shrinking elastically. Building the TCO model, attributing costs, and chargeback belong to the fleet's accounting and economics processes, not to the orchestrator."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-08-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "What is a preemption cascade in a shared GPU cluster, and which control stops it at the first level?",
+     "explanation": "The correct answer is B. If an urgent job displaces a handful of jobs and each of those displaces as many again on rescheduling, the interruptions multiply with each level, each paying the preemption overhead and adding checkpoint reload traffic at the same moment. A rule that evicted jobs requeue without preempting caps the damage at the first level, and a preemption budget limits how often any one job can be displaced. Failure bursts, queueing behind a gang, and checkpoint frequency are different problems.",
+     "hint": "Think about: explain how preemption cascades multiply interruption cost and which controls bound them.",
+     "type": "single",
+     "options": [
+      "A cascade is a burst of hardware failures in one rack; spare-capacity reservation stops it.",
+      "A cascade is a high-priority admission that evicts medium-priority jobs, each of which then evicts lower-priority jobs to reschedule itself; requiring evicted jobs to requeue without preempting anyone stops it after the first level.",
+      "A cascade is a queue of jobs waiting behind a large gang; backfill scheduling stops it.",
+      "A cascade is repeated checkpointing by one job; lengthening its checkpoint interval stops it."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A training job moves from on-demand to spot capacity at the chapter's scenario discount. According to the effective-cost relation, in which effective cost equals the spot price times billed allocation time divided by retained productive time, what determines whether the discount survives?",
+     "explanation": "The correct answer is B. Effective cost is the spot price scaled by billed time over retained progress. Checkpointing, recovery, and discarded work all add billed time without adding retained progress, so frequent or expensive interruptions can erase the discount. A notice gives an opportunity to save state but does not make the interruption free, and a placement score estimates whether a request will succeed, not how often the job will be interrupted.",
+     "hint": "Think about: apply the spot effective-cost relation to decide whether a discount survives interruption overhead.",
+     "type": "single",
+     "options": [
+      "Only the advertised discount, because interruptions are free once a provider sends a notice.",
+      "The ratio of billed allocation time to retained productive time, which grows with checkpoint overhead, restart time, and work replayed after each interruption.",
+      "The number of GPUs in the job, because larger jobs always receive deeper spot discounts.",
+      "The provider's capacity-placement score, which predicts how many interruptions the job will see per day."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "An organization runs steady 24/7 inference, urgent retraining with tight deadlines, and a large hyperparameter sweep. Which assignment of these workloads to reserved, on-demand, and spot capacity matches each workload's deadline and recovery contract?",
+     "explanation": "The correct answer is B. Reserved capacity suits predictable continuous load such as steady inference. On-demand capacity avoids long-term commitment for urgent work that cannot tolerate reclamation, at full price and with admission and startup delay. Spot capacity suits restart-tolerant work such as independent sweep trials. Placing inference or deadline-bound retraining on reclaimable capacity, or reserving capacity for a bursty sweep, mismatches the tier to the workload's contract.",
+     "hint": "Think about: map workloads to reserved, on-demand, and spot capacity tiers by deadline and restart tolerance.",
+     "type": "single",
+     "options": [
+      "Inference on spot, retraining on reserved, sweep on on-demand.",
+      "Inference on reserved, retraining on on-demand, sweep on spot.",
+      "All three on spot, because the discount outweighs any interruption risk.",
+      "Inference on on-demand, retraining on spot, sweep on reserved."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Because each VM instance in a cloud provider has an independent lifecycle, placing worker nodes of a 64-node distributed training job across different instance types within the same Availability Zone guarantees that preemption events will remain uncorrelated and statistically independent.",
+     "explanation": "False. Cloud capacity pressures and spot revocations are driven by macroeconomic cluster demand spikes and provider-level resource reclamation within a datacenter or Availability Zone. Preemption events for high-demand GPU types (e.g., A100/H100) are heavily correlated within an AZ; when capacity becomes scarce, providers reclaim multiple instances simultaneously, invalidating assumptions of independent failure.",
+     "hint": "Think about: evaluate the assumption of statistical independence in cloud spot instance preemption events.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A low-priority 64-GPU fine-tuning run is forcibly preempted. What makes up the preemption overhead for that event, and why does a per-job preemption budget matter more for this run than for a high-priority job?",
+   "md": "The overhead is the work discarded since the last durable checkpoint plus the relaunch, checkpoint reload, and warmup needed before the job is productive again, charged across every GPU of the allocation. A low-priority run sits at the bottom of every preemption cascade, so without a budget it can be struck many times a day and lose hours of allocation time; a budget caps how often it can be displaced, at the cost of delaying some higher-priority admissions."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain how preemption cascades multiply interruption cost and which controls bound them.",
+    "You can now apply the spot effective-cost relation to decide whether a discount survives interruption overhead.",
+    "You can now map workloads to reserved, on-demand, and spot capacity tiers by deadline and restart tolerance.",
+    "You can now explain how lifecycle cost analysis reaches the scheduler as price signals and constraints rather than as a scheduling mechanism."
+   ]
+  }
+ ]
+}

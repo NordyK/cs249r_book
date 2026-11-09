@@ -1,0 +1,67 @@
+{
+ "title": "From Parallelism to Communication Patterns",
+ "summary": "Analyze why per-GPU compute utilization drops as distributed training scales using the local-compute versus global-communication asymmetry.",
+ "source": {
+  "chapter": "v2-05",
+  "sections": [
+   "From Parallelism to Communication Patterns"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **From Parallelism to Communication Patterns** in *Collective Communication* (Vol II). By the end you should be able to:\n\n- Analyze why per-GPU compute utilization drops as distributed training scales using the local-compute versus global-communication asymmetry\n- Calculate per-node Ring AllReduce communication volume and identify the physical mechanisms that increase synchronization overhead at large scale\n- Distinguish the linear ring neighbor topology of Ring AllReduce from the quadratic connection pattern of AllToAll"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Collective Communication, § From Parallelism to Communication Patterns",
+   "md": "When 10,000 GPUs cooperate on one training update, the splits created by data, tensor, pipeline, and expert parallelism determine which results must cross device boundaries. Workers execute collective operations within participating groups and point-to-point transfers between pipeline stages. In the multi-tier fleet stack of a later section, these exchanges occupy the Distributed Execution row of the Distribution band, where logical parallelism becomes physical traffic."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Local-versus-global scaling asymmetry in distributed training; Per-node communication volume invariance in Ring AllReduce; Ring AllReduce neighbor exchange versus all-pairs exchange."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A logical Ring AllReduce cost model uses a 140 GB input per rank, corresponding to the model-wide BF16 gradient size of a 70B-parameter model. Holding that input fixed, a team expects per-rank sent volume to grow over 100 times when the group grows from 8 to 1,000 ranks. Explain why the expectation is false and why time can still increase. Treat this as transfer arithmetic, not a claim that a full replicated training state fits on one GPU.",
+   "md": "The expectation is false because Ring AllReduce decouples per-node byte volume from cluster size: each participant transfers exactly \\$2 × fracN-1N × M bytes sent, and the same volume received, across the scatter-reduce and all-gather phases. For N=8, each GPU transfers \\$2 × (7/8) × 140 GB = 245 GB; for N=1,000, each GPU transfers \\$2 × (999/1000) × 140 GB = 279.72 GB, an increase of only 14%, approaching the asymptotic \\$2M = 280 GB ceiling. What actually causes synchronization time to increase at large scale is not per-node volume, but: (1) the linear growth in sequential latency hops (\\$2(N-1)alpha), which adds barrier overhead; (2) the physical transition from high-bandwidth intra-node NVLink (450 GB/s one-way) to lower-bandwidth inter-node InfiniBand (50 GB/s per port); and (3) network switch hops and straggler delays that amplify across thousands of participants."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-05-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A dense-model training run triples its GPU count from 64 to 192 while holding the global work per update fixed. Step time drops by only 30%, and per-GPU compute utilization falls. Which scaling mechanism should the team investigate, without treating these aggregates as proof of the cause?",
+     "explanation": "The correct answer is D. Under fixed global work, added workers can reduce local computation while required exchanges retain startup, byte-transfer, and coordination costs. Those costs may then occupy more of the critical path. Step time and utilization alone do not identify communication as the cause: input stalls, placement, kernel efficiency, or stragglers can produce similar symptoms. Compare rank-aligned readiness and transfer traces with matched collective measurements before selecting an intervention.",
+     "hint": "Think about: analyze why per-GPU compute utilization drops as distributed training scales using the local-compute versus global-communication asymmetry.",
+     "type": "single",
+     "options": [
+      "Backpropagation stops functioning correctly across multiple nodes because gradients cannot be computed concurrently across independent data batches.",
+      "Floating-point accumulation during gradient reduction becomes numerically unstable when more than 64 GPUs participate in the collective.",
+      "Host CPU memory bandwidth saturates because all optimizer states must be shuffled through host DRAM on every multi-node step.",
+      "Local compute can shrink while global synchronization and shared-link transfers remain exposed; rank-aligned traces are needed to determine whether communication actually limits the step."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In synchronous data-parallel distributed training, using Ring AllReduce causes each GPU network bandwidth requirement to scale quadratically with the number of GPUs $N$ because every worker must open a direct communication socket to every other worker in the cluster.",
+     "explanation": "False. A ring exchanges chunks with neighbors. Each rank sends \\$2(N-1)M/N$ bytes and receives the same amount; this approaches \\$2M$ in each direction. AllToAll has $N(N-1)$ directed peer relationships, but quadratic peer count does not imply quadratic bytes or bisection demand when the total per-rank payload is fixed.",
+     "hint": "Think about: distinguish the linear ring neighbor topology of Ring AllReduce from the quadratic connection pattern of AllToAll.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze why per-GPU compute utilization drops as distributed training scales using the local-compute versus global-communication asymmetry.",
+    "You can now calculate per-node Ring AllReduce communication volume and identify the physical mechanisms that increase synchronization overhead at large scale.",
+    "You can now distinguish the linear ring neighbor topology of Ring AllReduce from the quadratic connection pattern of AllToAll."
+   ]
+  }
+ ]
+}

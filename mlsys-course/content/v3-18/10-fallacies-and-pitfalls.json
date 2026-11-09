@@ -1,0 +1,60 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Work through Fallacies and Pitfalls.",
+ "source": {
+  "chapter": "v3-18",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Multi-Agent Coordination* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Multi-Agent Coordination, § Fallacies and Pitfalls",
+   "md": "Every pitfall below comes from treating a delegation boundary as a guarantee that the runtime never actually enforced. Splitting work across agents does not by itself speed up completion, prevent semantic conflicts, decorrelate reviewer errors, or settle in-flight operations when a parent stops. Each of those assumptions carries a measurable cost in latency, token spend, or broken repository state."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Attenuated delegation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: The runtime assigns each child an identity and a grant contained in its delegator's, sharing permissions but partitioning consumable allowances by atomic reservation."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-18-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Fallacies and Pitfalls** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Cancellation scope follows delegation lineage and closes admission at each gate, but cancelling a subtree does not settle the obligations its admitted work already created.",
+      "The runtime assigns each child an identity and a grant contained in its delegator's, sharing permissions but partitioning consumable allowances by atomic reservation.",
+      "The dependency graph, the communication topology, and the supervision tree are separate structures, and conflating them hides quadratic communication cost and orphaned lifecycles.",
+      "With a fixed slot pool, a dependency graph's completion time is bounded below by both its critical path and its total slot work divided by the slots."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Attenuated delegation**: The runtime assigns each child an identity and a grant contained in its delegator's, sharing permissions but partitioning consumable allowances by atomic reservation."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Fallacies and Pitfalls."
+   ]
+  }
+ ]
+}

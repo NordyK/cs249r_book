@@ -1,0 +1,61 @@
+{
+ "title": "Context Invalidation",
+ "summary": "Work through Context Invalidation.",
+ "source": {
+  "chapter": "v3-04",
+  "sections": [
+   "Context Invalidation",
+   "Tracking claim dependencies",
+   "Detecting change and bounding uncertainty",
+   "Removing, replacing, or appending"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Context Invalidation** in *Context Engineering* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Context Engineering, § Context Invalidation",
+   "md": "At the moment the repair agent's candidate patch writes `src/pool.py` from `r17` to `r18`, before the reproducer runs again, the working context still holds the `r17` source excerpt, the `r17` test failure, and the missed-notification hypothesis built on both. While that failure still describes how the unpatched code behaved under the earlier source, test harness, and schedule, it says nothing about whether the `r18` patch fixes the bug."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Tracking claim dependencies\n- Detecting change and bounding uncertainty\n- Removing, replacing, or appending"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Context invalidation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A verified write withdraws current-state authority from bound observations and flags dependent conclusions for reassessment, without erasing their historical truth."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-04-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Context Invalidation** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A verified write withdraws current-state authority from bound observations and flags dependent conclusions for reassessment, without erasing their historical truth.",
+      "Usable context is an empirical property of a model, configuration, representation, and workload found by decision-level evaluation, because attention dilutes a target key as staged keys accumulate and position matters.",
+      "Staging the request as root, trunk, and leaf by change rate keeps the longest exact token prefix reusable, so volatile fields belong in the leaf, although correctness always overrides cache economics.",
+      "Every compaction is a lossy transform that can silently drop evidence a later decision needs, so the runtime pins a protected-field set and keeps handles to raw records."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Context invalidation**: A verified write withdraws current-state authority from bound observations and flags dependent conclusions for reassessment, without erasing their historical truth."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Context Invalidation."
+   ]
+  }
+ ]
+}

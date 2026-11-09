@@ -1,0 +1,94 @@
+{
+ "title": "Data Efficiency",
+ "summary": "Apply few-shot transfer learning principles to always-on keyword spotting adaptation under severe data and energy scarcity.",
+ "source": {
+  "chapter": "v2-11",
+  "sections": [
+   "Data Efficiency",
+   "Few-shot learning and data streaming",
+   "Experience replay",
+   "Data compression",
+   "Data efficiency strategy comparison"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Data Efficiency** in *Edge Intelligence* (Vol II). By the end you should be able to:\n\n- Apply few-shot transfer learning principles to always-on keyword spotting adaptation under severe data and energy scarcity\n- Analyze catastrophic forgetting in streaming on-device adaptation\n- Justify the use of compressed feature embeddings over raw inputs in edge experience replay buffers\n- Evaluate the limitations of naive uniform experience replay for long-tail robustness in edge learning\n- Explain the stability-plasticity dilemma in continual on-device learning"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Edge Intelligence, § Data Efficiency",
+   "md": "A user corrects smartphone keyboard autocorrect perhaps three times a day. The system cannot require 10,000 labeled sentences to train a local language model. Data efficiency at the edge means learning aggressively from a sparse, noisy, and uncurated trickle of implicit user feedback, maximizing the signal extracted from each interaction."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Few-shot learning and data streaming\n- Experience replay\n- Data compression\n- Data efficiency strategy comparison\n\nPay attention to: Few-shot learning and streaming adaptation on edge data; Catastrophic forgetting mechanisms and definition; Experience replay using compressed feature ring buffers vs raw inputs; Data compression (fixed encoders, MFCC audio features) to bound replay storage."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In on-device continuous learning, why do production experience-replay implementations store compressed feature embeddings (e.g., penultimate-layer activations or MFCCs) in a circular ring buffer rather than saving raw sensor observations (such as raw images or audio waveforms)?",
+   "md": "Compact embeddings can retain useful replay information with less storage than raw sensor streams, allowing a bounded ring buffer. Discarding raw samples reduces one exposure path, but embeddings may still reveal sensitive information and need access and retention controls. Replay quality also depends on representation stability: changing the encoder can make stored embeddings stale, so this design is easiest with a stable feature extractor."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-11-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A developer of a keyword spotting (KWS) system for smart home appliances wants users to configure custom wake words using 5 to 10 spoken samples. Why is few-shot adaptation of a classification head on top of a frozen acoustic encoder preferred over end-to-end retraining?",
+     "explanation": "The correct answer is C. A pretrained encoder can supply reusable acoustic features while a small head adapts to a few user examples. Freezing the encoder reduces trainable state and preserves its parameters, but does not guarantee accuracy or a particular power and memory footprint. Measure the adaptation path separately from always-on inference; speaker impedance and Fourier-transform convergence do not govern this choice.",
+     "hint": "Think about: apply few-shot transfer learning principles to always-on keyword spotting adaptation under severe data and energy scarcity.",
+     "type": "single",
+     "options": [
+      "End-to-end retraining of acoustic encoders produces audio waveforms that violate device speaker impedance limits.",
+      "Spoken custom wake words cannot be processed by neural networks unless the entire encoder architecture is expanded by \\$10×.",
+      "Updating only the head restricts trainable state and preserves frozen encoder representations, reducing adaptation cost and overfitting risk relative to full retraining.",
+      "The Fourier transform algorithm only converges when supervised labels exceed 100,000 samples."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "An edge health tracker adapts a continuous activity classifier to a user's walking gait over several weeks. When the user starts cycling, the device adapts its model, but suddenly misclassifies normal walking as cycling. What core failure mode has occurred, and why did it happen?",
+     "explanation": "The correct answer is D. Catastrophic forgetting is the fundamental stability failure of sequential learning in neural networks: when a model updates parameters on a new data stream (cycling) without mechanisms to preserve prior distributions (walking), gradient steps overwrite the representations that encoded the old task. Overfitting on a single batch does not describe sequential task erosion. Sensor overflow is a hardware I/O fault, and model inversion is an adversarial privacy attack, not a continuous learning stability failure.",
+     "hint": "Think about: analyze catastrophic forgetting in streaming on-device adaptation.",
+     "type": "single",
+     "options": [
+      "Overfitting on a single static batch caused by excessive L2 regularization.",
+      "Numerical floating-point overflow in the hardware accelerometer sensor buffer.",
+      "Model inversion attack where cycling data erased the operating system kernel.",
+      "Catastrophic forgetting, where sequential gradient updates on new data distributions overwrite the weight configurations responsible for preserving performance on previously learned tasks."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In on-device experience replay, maintaining a small buffer of 100 uniformly sampled past examples guarantees that the adapted model will not suffer from catastrophic forgetting across rare or long-tail edge cases.",
+     "explanation": "False. A bounded uniform sample does not guarantee coverage of rare classes or preservation of earlier behavior. A ring buffer favors recent observations; reservoir sampling gives historical examples an equal inclusion probability but a small reservoir can still contain few or no rare examples. Compare retention policies, capacity, and regularization under retained-task and rare-event evaluation; none is a universal forgetting guarantee.",
+     "hint": "Think about: evaluate the limitations of naive uniform experience replay for long-tail robustness in edge learning.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In continuous edge adaptation, the fundamental trade-off between retaining previously acquired knowledge and acquiring new patterns from dynamic local data is known as the stability-____ trade-off.",
+     "explanation": "plasticity. Stability preserves previously learned behavior; plasticity allows adaptation to new observations. Continual learning must balance both rather than maximize either alone.",
+     "hint": "Think about: explain the stability-plasticity dilemma in continual on-device learning.",
+     "type": "fill",
+     "answer": [
+      "plasticity"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply few-shot transfer learning principles to always-on keyword spotting adaptation under severe data and energy scarcity.",
+    "You can now analyze catastrophic forgetting in streaming on-device adaptation.",
+    "You can now justify the use of compressed feature embeddings over raw inputs in edge experience replay buffers.",
+    "You can now evaluate the limitations of naive uniform experience replay for long-tail robustness in edge learning."
+   ]
+  }
+ ]
+}

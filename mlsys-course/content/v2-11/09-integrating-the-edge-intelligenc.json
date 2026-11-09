@@ -1,0 +1,83 @@
+{
+ "title": "Integrating the Edge Intelligence Pillars",
+ "summary": "Design a tiered edge-learning architecture that integrates model adaptation, data efficiency, and federated coordination across device capability tiers.",
+ "source": {
+  "chapter": "v2-11",
+  "sections": [
+   "Integrating the Edge Intelligence Pillars"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Integrating the Edge Intelligence Pillars** in *Edge Intelligence* (Vol II). By the end you should be able to:\n\n- Design a tiered edge-learning architecture that integrates model adaptation, data efficiency, and federated coordination across device capability tiers\n- Apply explicit priority policies and graceful degradation controls to prevent resource conflicts in edge learning systems\n- Synthesize how parameter-efficient adaptation (LoRA) simultaneously resolves bottlenecks across model adaptation, data efficiency, and federated coordination\n- Explain graceful degradation mechanisms under adverse edge operating conditions"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Edge Intelligence, § Integrating the Edge Intelligence Pillars",
+   "md": "Consider the voice assistant from the opening of this chapter, now deployed across … that range from flagship phones to budget handsets. The chapter built model adaptation, data efficiency, and federated coordination as separate pillars, and treated separately, each solves its own constraint while leaving the others free to misbehave. An adapter rank chosen without regard to replay memory can crowd out the buffer that protects earlier behavior, and an update format chosen without regard to aggregation can produce arrays no coordinator can combine."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Tiered integration of Model Adaptation, Data Efficiency, and Federated Coordination; Voice assistant case study (flagship rank-16 LoRA vs mid-tier rank-8 vs budget bias-only); Edge-learning integration controls (hierarchical matching, graceful degradation, explicit priority); Cold-start bootstrapping and multi-pillar alignment."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In the integrated voice assistant case study, participating devices exchange LoRA adapter updates (\\$50\\text{ MiB}$) rather than full model updates (\\$14\\text{ GB}$ in FP16). Explain how this parameter-efficient adaptation strategy simultaneously satisfies constraints across all three pillars: Model Adaptation, Data Efficiency, and Federated Coordination.",
+   "md": "Compact adapter updates reduce trainable parameter and optimizer-state storage, although frozen weights and backward activation state still require memory. Restricting the update space can help with scarce data, but does not guarantee freedom from overfitting or forgetting. For the stated checkpoints, \\$14 GB divided by \\$50 MiB is roughly \\$267× per transfer. Total communication still includes participation frequency, downloads, and protocol overhead."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-11-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A production voice assistant is deployed across a heterogeneous fleet of 10 million devices comprising 20% flagship smartphones, 50% mid-tier phones, and 30% budget devices. How does the three-pillar integration framework structure model adaptation across this fleet?",
+     "explanation": "The correct answer is C. Tier assignments are candidates, not proof of fit. Profiling must count the resident base, trainable and backward state, replay, runtime support, and foreground reserve; live admission then checks energy, heat, and latency. Validation must establish useful adaptation. An available NPU does not establish backward support, and inference-only operation remains valid when learning fails these tests.",
+     "hint": "Think about: design a tiered edge-learning architecture that integrates model adaptation, data efficiency, and federated coordination across device capability tiers.",
+     "type": "single",
+     "options": [
+      "It mandates that all 10 million devices execute full 32-bit fine-tuning of the 7B-parameter backbone during active voice calls.",
+      "It restricts learning exclusively to cloud data centers, disabling all on-device learning across all device tiers.",
+      "It proposes tier-specific LoRA ranks and replay allowances, with bias-only updates for budget devices, then validates joint resource fit and useful adaptation for each permitted path.",
+      "It assigns the highest-rank adapters to budget microcontrollers because microcontrollers have no operating system overhead."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In a multi-pillar edge architecture, an explicit priority policy is established to arbitrate runtime resource contention between active user inference and background adaptation. What is the fundamental operational rule enforced by this control?",
+     "explanation": "The correct answer is D. In edge systems, user experience and interactive Quality of Service (QoS) are paramount. The explicit priority control mandates that foreground inference tasks (e.g., wake-word detection, keyboard typing, camera rendering) strictly preempt background training tasks. If memory headroom shrinks, device temperature crosses thermal limits, or frame latency degrades, background gradient updates and replay processing are throttled or suspended immediately. Prioritizing training over user interaction or exhausting battery/memory violates fundamental edge engineering principles.",
+     "hint": "Think about: apply explicit priority policies and graceful degradation controls to prevent resource conflicts in edge learning systems.",
+     "type": "single",
+     "options": [
+      "Background gradient updates take absolute priority over interactive user requests to maximize training convergence speed.",
+      "When battery drops below 5%, the device shuts down display output to continue running backpropagation.",
+      "Memory buffers for experience replay are allowed to grow dynamically until they consume 100% of physical system RAM.",
+      "Interactive user inference strictly preempts background training tasks, and training is immediately suspended if memory pressure, thermal limits, or QoS latency thresholds are approached."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "When a mobile device experiences poor cellular connectivity, high thermal load, or battery depletion during deployment, an edge-learning control mechanism known as graceful ____ ensures the device seamlessly transitions into a minimal or inference-only adaptation mode without disrupting active user functionality.",
+     "explanation": "degradation. The controller reduces or suspends background adaptation when resources become scarce, preserving foreground inference and user-facing service requirements.",
+     "hint": "Think about: explain graceful degradation mechanisms under adverse edge operating conditions.",
+     "type": "fill",
+     "answer": [
+      "degradation"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now design a tiered edge-learning architecture that integrates model adaptation, data efficiency, and federated coordination across device capability tiers.",
+    "You can now apply explicit priority policies and graceful degradation controls to prevent resource conflicts in edge learning systems.",
+    "You can now synthesize how parameter-efficient adaptation (LoRA) simultaneously resolves bottlenecks across model adaptation, data efficiency, and federated coordination.",
+    "You can now explain graceful degradation mechanisms under adverse edge operating conditions."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,88 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Explain why unstructured sparsity often fails to accelerate inference on dense accelerator paths.",
+ "source": {
+  "chapter": "v1-11",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Hardware Acceleration* (Vol I). By the end you should be able to:\n\n- Explain why unstructured sparsity often fails to accelerate inference on dense accelerator paths\n- Analyze the performance pitfalls of kernel launch and data transfer overhead in micro-offloading\n- Apply a given diagnostic procedure that starts with end-to-end profiling, checks distributed communication, then uses kernel analysis to choose the right intervention\n- Evaluate why peak TFLOP/s alone cannot predict end-to-end workload speedup"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Hardware Acceleration, § Fallacies and Pitfalls",
+   "md": "Hardware acceleration often defies intuition because headline specifications mask workload-specific bottlenecks. The fallacies and pitfalls here capture selection, scaling, and optimization errors that leave expensive compute resources underused. Sound system evaluation follows one diagnostic habit instead: characterize the workload arithmetic intensity, identify the physical bottleneck metric, match execution to the appropriate datapath, and account for interconnect, scaling, and portability costs."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: Fallacy of peak FLOPS as a predictor of real-world speedup; Pitfalls of unstructured sparsity on dense hardware architectures; Micro-offloading latency overhead and small tensor kernel launch penalties; Systematic diagnostic workflows for identifying hardware bottlenecks."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Describe the pitfall of 'micro-offloading' small tensor operations from CPU to GPU, and explain why a sequence of scalar operations can run slower on an accelerator than on the host CPU.",
+   "md": "Offloading small tensor operations incurs PCIe host-to-device data transfer latency, host driver scheduling overhead, and kernel launch latency ($\\approx 5\\text{--}10\\,\\mu\\text{s}$ per kernel). When a tensor contains only a few dozen or hundred elements, computation time is sub-microsecond, meaning fixed transfer and launch overhead completely dominates execution time. Furthermore, small tensors cannot provide enough parallel work to saturate thousands of GPU cores, making scalar or vector execution on low-latency CPU caches much faster."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-11-12-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team prunes \\$70\\% of the weights in a large language model using unstructured magnitude pruning, setting those weights to zero. However, when executing the pruned model on standard GPU dense Tensor Cores, inference latency is identical to or slower than the unpruned baseline. What is the primary cause of this pitfall?",
+     "explanation": "The correct answer is A. Standard dense Tensor Core paths still operate on dense matrix shapes, so setting many entries to zero does not by itself cause the hardware to skip those multiplies. If the model is converted to a general sparse format, metadata and irregular gathers can offset or erase the theoretical arithmetic reduction. The infinite-loop, thermal-downclock, and page-fault explanations invent mechanisms unrelated to why dense hardware often fails to speed up unstructured sparsity.",
+     "hint": "Think about: explain why unstructured sparsity often fails to accelerate inference on dense accelerator paths.",
+     "type": "single",
+     "options": [
+      "Standard dense hardware cannot skip arbitrary zero elements efficiently, and compact sparse formats add metadata and irregular access overhead",
+      "Floating-point units automatically convert zero values into infinite loops",
+      "Unstructured pruning forces the GPU driver to downclock memory bandwidth to prevent overheating",
+      "The operating system kernel intercepts every zero multiplication and raises a hardware page fault"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "For the given diagnostic procedure for an underperforming training workload on an already distributed accelerator cluster—broad trace first, then communication check, then exposed-kernel analysis, then intervention—place the following steps in that sequence:",
+     "explanation": "The correct order is: (2) End-to-End Profiling: Identify data loading stalls, host-device synchronization, and the full critical path, (4) Multi-Device Communication Profiling: Inspect collective communication delays and interconnect saturation, (1) Roofline & Hardware Counter Analysis: Determine whether exposed kernels are compute-bound, memory-bandwidth-bound, or latency-bound, (3) Targeted Optimization: Apply the intervention that matches the identified critical bottleneck. This answer preserves the given diagnostic procedure: first trace the full path, then check communication, then inspect exposed kernels, and only then choose the intervention. It is not a universal order required in every debugging case: if the broad trace already proves the root cause is host-side or communication-side, the intervention can be chosen without unnecessary deep kernel analysis. The point is to follow the stated procedure and avoid prematurely tuning a kernel that is not actually the limiting step.",
+     "hint": "Think about: apply a given diagnostic procedure that starts with end-to-end profiling, checks distributed communication, then uses kernel analysis to choose the right intervention.",
+     "type": "order",
+     "items": [
+      "End-to-End Profiling: Identify data loading stalls, host-device synchronization, and the full critical path",
+      "Multi-Device Communication Profiling: Inspect collective communication delays and interconnect saturation",
+      "Roofline & Hardware Counter Analysis: Determine whether exposed kernels are compute-bound, memory-bandwidth-bound, or latency-bound",
+      "Targeted Optimization: Apply the intervention that matches the identified critical bottleneck"
+     ]
+    },
+    {
+     "q": "Which of the following statements represents a classic fallacy regarding peak accelerator specifications?",
+     "explanation": "The correct answer is B. Treating a \\$2\\times$ increase in peak TFLOP/s as an automatic \\$2\\times$ workload speedup ignores memory-bandwidth limits, host and launch overheads, unsupported operators, and other bottlenecks that often dominate real execution. The higher-bandwidth statement is a conditional architectural fact rather than a fallacy, and the fusion and warp-divergence statements describe real mechanisms discussed in the chapter.",
+     "hint": "Think about: evaluate why peak TFLOP/s alone cannot predict end-to-end workload speedup.",
+     "type": "single",
+     "options": [
+      "Higher memory bandwidth can raise the bandwidth ceiling for some memory-bound workloads",
+      "An accelerator with \\$2\\times$ higher peak theoretical TFLOP/s will automatically deliver a \\$2\\times$ speedup on any neural network workload",
+      "Kernel fusion can improve arithmetic intensity by reducing global memory traffic",
+      "Warp divergence reduces the execution efficiency of SIMT processor lanes"
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain why unstructured sparsity often fails to accelerate inference on dense accelerator paths.",
+    "You can now analyze the performance pitfalls of kernel launch and data transfer overhead in micro-offloading.",
+    "You can now apply a given diagnostic procedure that starts with end-to-end profiling, checks distributed communication, then uses kernel analysis to choose the right intervention.",
+    "You can now evaluate why peak TFLOP/s alone cannot predict end-to-end workload speedup."
+   ]
+  }
+ ]
+}

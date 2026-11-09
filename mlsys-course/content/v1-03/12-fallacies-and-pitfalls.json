@@ -1,0 +1,77 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Evaluate marginal task and subgroup gains against the costs of data collection and curation.",
+ "source": {
+  "chapter": "v1-03",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *ML Lifecycle* (Vol I). By the end you should be able to:\n\n- Evaluate marginal task and subgroup gains against the costs of data collection and curation\n- Evaluate how a deferred deployment decision creates dependency-sensitive rework\n- Analyze the deployment risk and possible rework from skipping unmet validation evidence obligations"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Lifecycle, § Fallacies and Pitfalls",
+   "md": "Treating ML as ordinary software produces predictable failures, each of which traces back to a section of this chapter. The misconceptions below recur when teams manage statistical models with assumptions inherited from deterministic application code."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: Common workflow fallacies in transitioning from traditional software; Data preparation as a continuous rather than one-time activity; Marginal value of data collection vs. quality curation; The risk of deferring deployment paradigm selection."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-03-12-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why does the chapter characterize 'scaling dataset size is always the best way to improve model accuracy' as a major engineering pitfall?",
+     "explanation": "The correct answer is C. More examples incur acquisition and processing costs, but their learning value depends on which coverage gaps they fill. Repeated examples from well-covered regions can have poor marginal returns, whereas targeted collection or label repair may address observed failure modes. Neither curation nor added volume universally delivers higher gains at lower cost; the team must compare measured task and subgroup improvements with the cost of each option. Sample count alone establishes no parameter-saturation failure or universal legal cap, and adding training examples does not by itself increase the deployed model's inference operation count.",
+     "hint": "Think about: evaluate marginal task and subgroup gains against the costs of data collection and curation.",
+     "type": "single",
+     "options": [
+      "A. Because deep learning models degrade in accuracy when trained on more than \\$10^5 samples due to parameter saturation.",
+      "B. Because collecting additional data increases the Operations ($O$) term during inference execution.",
+      "C. Because additional examples can have poor marginal value in already well-covered regions, so collection and curation choices must be compared using observed gains in required task and subgroup metrics against their labeling, storage, and compute costs.",
+      "D. Because data privacy regulations strictly limit training set sizes to under 100,000 images in healthcare applications."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Deferring deployment paradigm selection (Cloud, Edge, Mobile, or TinyML) until after model architecture design and training are complete is an effective engineering strategy because modern model compression techniques can universally fit any trained model onto any target hardware without compromising accuracy.",
+     "explanation": "False. Deployment paradigm is a day-one constraint that bounds feasible model and preprocessing choices. Compression cannot universally make an arbitrary trained model fit a target while preserving required quality. Late discovery requires tracing which artifacts depend on the missed limit: preprocessing choices, weights, evaluation evidence, and the deployment package may need revision, while some collected data may remain usable. Correction effort and delay follow the affected tasks and their dependencies; the discovery stage alone does not determine them or require every stage to restart.",
+     "hint": "Think about: evaluate how a deferred deployment decision creates dependency-sensitive rework.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A team skips shadow-mode validation and canary deployment, relying entirely on strong test-set accuracy, although its release plan requires evidence of integration behavior, live-input latency, and limited-exposure operation. Why does skipping these unmet evidence obligations increase deployment risk and possible rework?",
+     "explanation": "The correct answer is D. The omitted stages supply complementary evidence about serving integration and controlled live exposure that model accuracy alone does not establish. Skipping them without meeting those obligations another way leaves unresolved risk in the release decision. If a failure then appears in production, the team may need containment, rollback, diagnosis, and revalidation under operating constraints. The chapter does not establish a universal increase in calendar time from omitting any named stage; removal can be justified when its evidence obligation is met another way. Canary deployment does not determine compiler optimization, offline tests can measure accuracy, and orchestrators do not universally enforce shadow evaluation.",
+     "hint": "Think about: analyze the deployment risk and possible rework from skipping unmet validation evidence obligations.",
+     "type": "single",
+     "options": [
+      "A. Because skipping canary deployment causes compilers to emit unoptimized serving binaries.",
+      "B. Because offline test sets are mathematically incapable of computing classification accuracy.",
+      "C. Because modern cloud orchestrators refuse to route traffic to containers that have not completed shadow mode.",
+      "D. Because strong test-set accuracy does not meet those integration and exposure obligations; unresolved failures may reach production and require investigation, containment, artifact repair, and renewed validation."
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate marginal task and subgroup gains against the costs of data collection and curation.",
+    "You can now evaluate how a deferred deployment decision creates dependency-sensitive rework.",
+    "You can now analyze the deployment risk and possible rework from skipping unmet validation evidence obligations."
+   ]
+  }
+ ]
+}

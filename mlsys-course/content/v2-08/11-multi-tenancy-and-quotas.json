@@ -1,0 +1,54 @@
+{
+ "title": "Multi-Tenancy and Quotas",
+ "summary": "Explain the architectural difference between guaranteed quota and limit quota in shared GPU clusters.",
+ "source": {
+  "chapter": "v2-08",
+  "sections": [
+   "Multi-Tenancy and Quotas",
+   "Hierarchical fair-share",
+   "Burst capacity and quota borrowing",
+   "Security and namespace isolation",
+   "Quota governance and organizational dynamics"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Multi-Tenancy and Quotas** in *Fleet Orchestration* (Vol II). By the end you should be able to:\n\n- Explain the architectural difference between guaranteed quota and limit quota in shared GPU clusters\n- Analyze the organizational anti-pattern of quota hoarding and describe governance mechanisms to eliminate it\n- Explain how hierarchical entitlements and feasible resource bundles constrain fair admission in a multi-tenant fleet"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Orchestration, § Multi-Tenancy and Quotas",
+   "md": "When the computer vision team hoards 500 GPUs for a week while the natural language processing team sits blocked trying to push a critical bug fix to production, shared clusters devolve into a tragedy of the commons. Teams with the most aggressive job submission rates, the largest jobs, or the most persistent resubmission scripts consume disproportionate resources, while teams with more modest or intermittent needs find the cluster perpetually occupied."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Hierarchical fair-share\n- Burst capacity and quota borrowing\n- Security and namespace isolation\n- Quota governance and organizational dynamics\n\nPay attention to: Hierarchical fair-share tree structures; Guaranteed quota vs. limit quota in burst capacity models; Quota hoarding organizational anti-patterns."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In a multi-tenant cluster, how does decoupling 'guaranteed quota' from 'limit (burst) quota' prevent stranded idle capacity while protecting team allocations?",
+   "md": "A guaranteed quota defines baseline access under an explicit reclaim-time contract; a burst limit permits borrowing otherwise idle devices above that baseline. When the owning team needs its guarantee, borrowed work must shrink or be preempted within that contract. Concurrent guarantees must fit reclaimable physical capacity, and checkpoint or shutdown delays mean access is not necessarily instantaneous."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: What is 'quota hoarding' in shared GPU clusters, and what automated scheduler policies prevent researchers from engaging in it?",
+   "md": "Quota hoarding retains idle physical allocations to avoid waiting again when work becomes ready. Low activity should trigger investigation against step progress, runtime health, dependencies, and the workload's timeout and return contract; legitimate input or communication waits can look idle. Eligible capacity can be lent under bounded reclamation, and leases permit reuse only after enforced revocation and cleanup. Charging holding time exposes opportunity cost, while revising a longer-term guarantee requires a separate demand review."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Team A in Department X submits a new 16-GPU job. Which entitlement, feasibility, fairness, and ownership checks must its scheduler enforce before granting the allocation, and why is checking free GPU count alone insufficient?",
+   "md": "Check department and team caps, distinguish guaranteed from borrowed capacity, and establish any required reclamation contract. Candidate bundles must satisfy accelerator capability, every requested resource dimension, gang membership, and topology before fairness chooses among runnable alternatives. Commit the allocation against current authoritative state, enforce its ownership at the resources, and update accounting. Free GPU count alone does not prove a viable group, timely return of borrowed capacity, or absence of conflicting ownership; implementations can interleave checks while preserving these dependencies."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the architectural difference between guaranteed quota and limit quota in shared GPU clusters.",
+    "You can now analyze the organizational anti-pattern of quota hoarding and describe governance mechanisms to eliminate it.",
+    "You can now explain how hierarchical entitlements and feasible resource bundles constrain fair admission in a multi-tenant fleet."
+   ]
+  }
+ ]
+}

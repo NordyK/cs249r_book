@@ -1,0 +1,59 @@
+{
+ "title": "Terminal Output Normalization",
+ "summary": "Work through Terminal Output Normalization.",
+ "source": {
+  "chapter": "v3-07",
+  "sections": [
+   "Terminal Output Normalization",
+   "Process status and evidential scope"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Terminal Output Normalization** in *Tool Calling* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Tool Calling, § Terminal Output Normalization",
+   "md": "When a command-line tool executes interactively, it redraws progress indicators with carriage returns and styles diagnostics with terminal escape sequences. Captured directly at the byte level, standard output does not represent the clean visual layout a human engineer sees on a terminal screen. Wherever possible, tool adapters should invoke command-line utilities in noninteractive or batch modes (for example, `--batch` or `--no-color`), or ideally request structured machine-readable outputs such as JSON or JUnit XML."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Process status and evidential scope"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Bounded observation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Capture and staging are separate budgets, so the adapter drains both pipes, enforces byte limits, and stages a head-and-tail view with a typed notice of what was omitted and a handle to the rest."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-07-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Terminal Output Normalization** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A click keeps every tool-boundary invariant while losing atomicity, so each observation carries capture, window, and coordinate mapping and target identity is rechecked before dispatch.",
+      "Capture and staging are separate budgets, so the adapter drains both pipes, enforces byte limits, and stages a head-and-tail view with a typed notice of what was omitted and a handle to the rest.",
+      "Every proposed call, reads included, passes a deterministic host reference monitor that validates, authorizes, dispatches with outcome tracking, and shapes the observation.",
+      "A mutating tool over an endpoint without deduplication ships actuate, probe, and compensate together, with the probe written before dispatch against a captured baseline."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Bounded observation**: Capture and staging are separate budgets, so the adapter drains both pipes, enforces byte limits, and stages a head-and-tail view with a typed notice of what was omitted and a handle to the rest."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Terminal Output Normalization."
+   ]
+  }
+ ]
+}

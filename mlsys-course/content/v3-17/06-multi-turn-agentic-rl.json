@@ -1,0 +1,62 @@
+{
+ "title": "Multi-Turn Agentic RL",
+ "summary": "Work through Multi-Turn Agentic RL.",
+ "source": {
+  "chapter": "v3-17",
+  "sections": [
+   "Multi-Turn Agentic RL",
+   "Invocation records",
+   "Policy actions and conditioning context",
+   "Stopping and censored rollouts",
+   "Collection and deployment contracts"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Multi-Turn Agentic RL** in *Reinforcement Learning from Verifiable Rewards* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Reinforcement Learning from Verifiable Rewards, § Multi-Turn Agentic RL",
+   "md": "In a single-turn response, the policy generates one contiguous block of tokens from one static prompt, so the final text holds the entire training example. In a multi-turn repair trial, however, the agent alternates between proposing actions (code edits, shell commands, or structured tool invocations) and reading observations returned by compilers, test runners, and the container runtime, while the harness compacts or truncates older turns to fit the context window."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Invocation records\n- Policy actions and conditioning context\n- Stopping and censored rollouts\n- Collection and deployment contracts"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Faithful rollout records matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Ratios and gradients are valid only on per-invocation records of the delivered prefix token IDs, sampled token IDs, and behavior log probabilities under the actual sampling transforms."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-17-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Multi-Turn Agentic RL** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A group whose rewards all tie carries no reward gradient, occurring with probability p^G + (1-p)^G, so the rollout cost of one informative group is G/C and difficulty targeting toward p near 0.5 lowers it.",
+      "A terminal reward gives every turn the same reward-to-go, so separating a useful step from a faulty one is bought with a critic, more samples, or step-level signals, each at its own cost.",
+      "Ratios and gradients are valid only on per-invocation records of the delivered prefix token IDs, sampled token IDs, and behavior log probabilities under the actual sampling transforms.",
+      "Symmetric ratio clipping is asymmetric in probability space, so early successes sharpen the policy until groups converge and contrast vanishes, which outcome statistics can diagnose."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Faithful rollout records**: Ratios and gradients are valid only on per-invocation records of the delivered prefix token IDs, sampled token IDs, and behavior log probabilities under the actual sampling transforms."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Multi-Turn Agentic RL."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,147 @@
+{
+ "title": "Test: Neural Computation",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-05-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Cost from layer shapes**?",
+     "options": [
+      "Cross-entropy against a one-hot label reduces to the negative log of the correct-class probability, its fused softmax gradient is p minus y, and mini-batch gradient descent averages per-example gradients so the batch size becomes the main systems knob.",
+      "Layer widths fix parameters, forward work (one multiply-accumulate, two FLOPs, per weight per example), and retained activations before any code runs, so width costs quadratically, depth costs linearly but adds sequential steps and saved activations.",
+      "Overfitting shows as training loss that keeps falling while validation performance stalls or worsens, and regularization controls it at small systems cost, since weight penalties need no persistent state, dropout costs a fresh random mask per activation only during training, and early stopping relies on periodic validation and checkpoints.",
+      "A classifier's scores become operational decisions only through a confidence threshold that routes uncertain inputs to review, chosen on a risk-coverage curve by an expected-cost rule over review and error costs."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Cost from layer shapes itself, not a neighbouring idea.",
+     "explanation": "**Cost from layer shapes:** Layer widths fix parameters, forward work (one multiply-accumulate, two FLOPs, per weight per example), and retained activations before any code runs, so width costs quadratically, depth costs linearly but adds sequential steps and saved activations."
+    },
+    {
+     "q": "In the iron law of ML systems ($T = \\frac{D_{\\text{vol}}}{\\text{BW}} + \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}} + L_{\\text{lat}}$), the shift from rule-based logic to dense neural computation primarily increases the network latency term $L_{\\text{lat}}$ because matrix multiplications introduce distributed network round-trips.",
+     "explanation": "False. The shift from branching rules to dense neural computation primarily increases the operation term $O$ and often the stored state that can later drive more realized memory traffic, while $L_{\\text{lat}}$ is the nonoverlapped latency term more broadly, not just network round-trips. Local matrix arithmetic does not intrinsically create distributed communication, though implementation, precision, and reuse still affect the realized bytes moved and time paid.",
+     "hint": "Think about: analyze how the shift from rule-based logic to dense neural computation maps onto the iron law's compute, data-movement, and latency terms",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "For a tabular dataset with 500 records and linear relationships between features and targets, deploying a deep neural network is generally superior to a linear regression model because deep networks inherently generalize better across all problem scales.",
+     "explanation": "False. On small tabular datasets ($<1{,}000$ samples) with linear relationships, deep neural networks are prone to severe overfitting, require substantial hyperparameter tuning and compute resources, and introduce complex deployment and monitoring pipelines. A linear model is a sensible baseline for the stated relationships and can require less training and deployment effort. Small sample size does not guarantee generalization for either model; held-out evaluation must establish whether added neural-network complexity earns a useful gain.",
+     "hint": "Think about: justify selecting simpler linear models over deep neural networks for small sample size tabular workloads",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Why is reduced numerical precision (such as 8-bit integer quantization, INT8) generally much more practical to deploy during inference than during model training?",
+     "explanation": "The correct answer is A. Inference avoids the small repeated parameter updates, gradients, and iterative optimizer behavior that make training especially sensitive to reduced precision, so lower precision is often a practical serving option. But it is not free: rounding still propagates through the forward computation and can change outputs, so the benefit depends on kernel and hardware support plus calibration and task-level validation. A claim that fitting weights in memory is sufficient ignores both execution support and quality effects, and a claim of universal INT8 speedup overstates the case because realized gains depend on the execution stack and workload shape.",
+     "hint": "Think about: justify why reduced precision is often easier to deploy for inference than for training while identifying the conditions needed for safe INT8 deployment",
+     "type": "single",
+     "options": [
+      "Inference has no small iterative parameter updates or gradient accumulation to preserve, so reduced precision is often practical to test, but rounding can still propagate through forward layers and any INT8 speedup requires supported kernels or hardware plus calibration and quality validation.",
+      "If the quantized weights fit in memory, that alone guarantees inference quality and latency comparable to higher precision.",
+      "A single calibration set is sufficient to guarantee correct INT8 behavior for every slice of future production traffic.",
+      "INT8 is universally faster whenever it reduces bytes moved, so if a model can run in INT8 it should replace FP32 or BF16 without further checks."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Why can an inference serving runtime for a sequential feed-forward network achieve a significantly smaller memory footprint than a training runtime for the exact same model architecture, beyond the omission of optimizer states and gradients?",
+     "explanation": "The correct answer is B. Under the retained-activation training scheme used here, intermediate values needed by the backward pass are saved during the forward pass; checkpointing can instead recompute selected values. During inference, because there is no backward pass, an activation tensor is no longer needed once its downstream consuming layer has computed its output. The serving engine can therefore recycle memory using a ping-pong buffer of just two activation tensors for a sequential graph. Model weights are stored in standard floating-point or quantized formats rather than single-bit hashes. Sequential layers have data dependencies and cannot execute concurrently without inputs. Intermediate buffers reside in device memory rather than fitting entirely in registers.",
+     "hint": "Think about: explain how intermediate activation buffer recycling reduces peak memory consumption during inference",
+     "type": "single",
+     "options": [
+      "Inference converts all parameter tensors into single-bit binary hash tables.",
+      "Inference requires no backward pass, allowing intermediate activation buffers to be immediately recycled or overwritten once their single downstream consumer layer finishes execution.",
+      "Inference executes all network layers simultaneously in parallel, eliminating the need for intermediate buffers.",
+      "Inference executes exclusively within on-chip CPU registers, bypassing main memory completely."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "According to the D·A·M taxonomy, if a deployed computer vision model suffers elevated error rates in production due to a distribution shift in ambient lighting and camera angles, why will scaling the Machine axis (allocating a larger cluster of faster GPUs) fail to resolve the operational failure?",
+     "explanation": "The correct answer is C. The failure stems from the Data axis (unrepresented deployment lighting conditions and covariate shift). Allocating additional compute hardware on the Machine axis merely executes the training of an unrepresentative model faster without correcting the underlying data deficiency. Hardware accelerators do not alter optimizer learning rates automatically. GPU kernels process arbitrary tensor shapes and aspect ratios. The D·A·M taxonomy provides an analysis framework and does not mandate specific hardware platforms.",
+     "hint": "Think about: justify why hardware scaling alone cannot resolve data distribution or algorithmic modeling deficiencies",
+     "type": "single",
+     "options": [
+      "Hardware accelerators automatically reduce optimizer learning rates when cluster size increases.",
+      "Faster GPU accelerators cannot process image tensors captured at non-standard aspect ratios.",
+      "Machine scaling accelerates computational throughput but cannot supply the missing visual patterns or domain coverage required on the Data axis to learn the shifted distribution.",
+      "The D·A·M framework requires all production deployments to execute on single-thread CPU cores."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Order the computational and memory staging steps required to execute the forward pass of a single dense hidden layer for a batch of input tokens:",
+     "explanation": "The correct order is: (2) Load the input activation matrix $\\mathbf{X}$ and layer weight matrix $\\mathbf{W}$ into execution registers/caches, (3) Perform the dense matrix multiplication $\\mathbf{X}\\mathbf{W}$, (4) Broadcast and add the bias vector $\\mathbf{b}$ to obtain layer preactivations $\\mathbf{Z}$, (1) Apply the element-wise nonlinear activation function (e.g. ReLU) to preactivations. Operands must first be staged from memory into caches and processor registers (2); the compute cores then execute the matrix-matrix multiply-accumulate operations (3); the bias vector is broadcast and added to form preactivations $\\mathbf{Z} = \\mathbf{X}\\mathbf{W} + \\mathbf{b}$ (4); and finally the nonlinear activation function is applied element-wise to generate the layer output activations $\\mathbf{A} = \\sigma(\\mathbf{Z})$ (1).",
+     "hint": "Think about: analyze the execution sequence of computational and memory staging steps in a dense layer forward pass",
+     "type": "order",
+     "items": [
+      "Load the input activation matrix $\\mathbf{X}$ and layer weight matrix $\\mathbf{W}$ into execution registers/caches",
+      "Perform the dense matrix multiplication $\\mathbf{X}\\mathbf{W}$",
+      "Broadcast and add the bias vector $\\mathbf{b}$ to obtain layer preactivations $\\mathbf{Z}$."
+     ]
+    },
+    {
+     "q": "Order the computational phases executed within a single supervised mini-batch training step:",
+     "explanation": "The correct order is: (3) Perform the forward pass to compute layer activations and predictions, (2) Evaluate the loss function by comparing predictions to ground-truth labels, (4) Execute backpropagation via the chain rule to compute parameter gradients, (1) Update model weights using the optimizer update rule. The forward pass (3) must first compute output predictions and cache intermediate activations; the loss function (2) then compares these predictions against target labels to produce a scalar error; backpropagation (4) traverses the graph in reverse from the loss to compute gradients for all parameters; and finally the optimizer (1) applies the weight update rule using the newly computed gradients.",
+     "hint": "Think about: analyze the four sequential phases of a supervised training iteration and justify their causal dependencies",
+     "type": "order",
+     "items": [
+      "Perform the forward pass to compute layer activations and predictions",
+      "Evaluate the loss function by comparing predictions to ground-truth labels",
+      "Execute backpropagation via the chain rule to compute parameter gradients.",
+      "Update model weights using the optimizer update rule"
+     ]
+    },
+    {
+     "q": "A team replaces a hand-coded digit recognition system ($\\approx 100$ conditional comparisons, \\$784\\text{ bytes}$ of working state) with a \\$784 \\to 128 \\to 64 \\to 10$ MLP ($\\approx 109{,}184\\text{ MACs}$, $\\approx 438\\text{ KB}$ of weights) on the same MNIST input. Which systems consequence should they expect when deploying this new model on a commodity CPU?",
+     "explanation": "The correct answer is B. Replacing rule-based logic with an MLP shifts the workload from branch-heavy scalar instructions to dense linear algebra ($\\approx 109{,}184\\text{ MACs}$). The $\\approx 438\\text{ KB}$ parameter footprint exceeds typical CPU L1 data cache sizes (typically \\$32\\text{ KB}$ to \\$48\\text{ KB}$), creating cache-level memory traffic to stream weights. Dense neural layers execute regular arithmetic without if-then branches, making branch prediction irrelevant. CPU register files hold at most a few kilobytes and cannot store hundreds of kilobytes of weights. Matrix arithmetic heavily utilizes ALU and SIMD execution units.",
+     "hint": "Think about: apply the MNIST paradigm workload numbers to predict the primary hardware bottleneck when switching from rule-based to dense neural computation",
+     "type": "single",
+     "options": [
+      "The workload becomes dominated by branch mispredictions because artificial neurons execute frequent if-then branching decisions.",
+      "The workload transitions from branch-heavy scalar code to dense matrix arithmetic whose weight footprint exceeds L1 cache capacity, generating cache-level memory traffic absent in the rule-based system.",
+      "Execution memory traffic drops to zero because the \\$438 KB weight footprint fits entirely within standard CPU register files.",
+      "The model executes without using arithmetic logic units (ALUs) because learned representations bypass hardware compute pipelines."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Which interpretation of the reported 1989 handwritten-digit recognition results is justified by the chapter's document-recognition case study?",
+     "explanation": "The correct answer is D. The chapter presents these numbers as research results on USPS-supplied digit images, not as a claim of error-free deployed postal sorting. The distinction between 10–12 per second including acquisition and over \\$30$ per second after normalization shows that the measurement boundary matters, and the \\$12.1\\%$ rejection rate shows that low error depended on withholding uncertain cases rather than forcing every input through automatic classification. An interpretation based on the rejection policy being irrelevant misses exactly what made the reported error possible.",
+     "hint": "Think about: interpret the reported error, rejection, and throughput figures from the 1989 digit-recognition study as a pipeline result rather than a claim of error-free deployment",
+     "type": "single",
+     "options": [
+      "The low post-rejection error means the system's neural classifier was already accurate enough that the rejection policy was mostly irrelevant to interpreting the result.",
+      "Because throughput after normalization exceeded \\$30 classifications per second, individual classification latency must also have improved by the same factor even if other stages overlapped differently.",
+      "The reported rates should be interpreted as measurements of only the neural classification stage, because acquisition and normalization are outside the learned model itself.",
+      "The study reported \\$1\\% classification error after rejecting \\$12.1\\% of test digits, with 10–12 classifications per second including acquisition and over \\$30 per second after normalization, so the result must be read as a pipeline measurement with an explicit rejection policy rather than as error-free full automation."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In hardware accelerators for neural networks, the illustrative silicon-area and energy penalty of implementing transcendental activations such as sigmoid or softmax rather than simple piecewise-linear activations is referred to as the transistor ____.",
+     "explanation": "tax. The transistor tax is the chapter's name for the extra implementation cost of functions like exponentials and divisions relative to simpler operations such as $\\text{ReLU}(z)=\\max(0,z)$. The exact ratio is illustrative and depends on precision and implementation, not a hardware constant.",
+     "hint": "Think about: identify the chapter's term for the hardware implementation penalty associated with transcendental activation functions",
+     "type": "fill",
+     "answer": [
+      "tax"
+     ]
+    },
+    {
+     "q": "In the composite document-recognition pipeline, the preprocessing step that isolates individual handwritten character images from a multi-digit region is called digit ____.",
+     "explanation": "segmentation. Digit segmentation separates the multi-character region into individual character images so later normalization and neural inference can operate on the intended units rather than on an undivided block.",
+     "hint": "Think about: identify digit segmentation as the preprocessing step that isolates character images for later normalization and inference",
+     "type": "fill",
+     "answer": [
+      "segmentation"
+     ]
+    }
+   ]
+  }
+ ]
+}

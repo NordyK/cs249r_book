@@ -1,0 +1,83 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Critique the fallacy that high i.i.d. test set accuracy guarantees production robustness.",
+ "source": {
+  "chapter": "v2-14",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Robust AI* (Vol II). By the end you should be able to:\n\n- Critique the fallacy that high i.i.d. test set accuracy guarantees production robustness\n- Apply worst-case and slice-level evaluation metrics to overcome the aggregate accuracy pitfall\n- Analyze the threat-model specificity pitfall of adversarial training across different perturbation norms\n- Explain why algorithmic robustness certificates cannot replace systems-layer pipeline validation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Robust AI, § Fallacies and Pitfalls",
+   "md": "Published physical-world attacks, such as adversarial patches on clothing or stickers on stop signs, have fooled evaluated vision models under controlled patch and road-sign settings without digital access. Defense requires evaluation under the relevant physical conditions. Physical-world data augmentation, patch-aware training, and serving-time detection are candidate interventions, each with its own coverage and cost. PGD-style adversarial training on digital images adds work with each attack step, but its results do not establish resistance to physical attacks. Ordinary digital test sets can miss these deployment failure modes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: i.i.d. test-set accuracy as insufficient evidence of production robustness; average accuracy masking catastrophic worst-case failures; software faults as a major source of ML incidents even for mathematically robust models; threat-model specificity of adversarial training."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A perception model achieves a certified robustness radius against digital ell_infty input perturbations. An engineer concludes that upstream data-pipeline validation and schema checks can now be deprioritized. Explain why this conclusion is dangerous, using the chapter's systems-layer failure analysis.",
+   "md": "A certificate binds a prediction to a specified input, perturbation set, and artifact under stated assumptions. A pipeline fault can move inputs outside that set or invalidate the assumed computation; prediction stability also does not establish semantic correctness. Some corruptions may remain inside the certified set, but that possibility does not replace schema, unit, preprocessing, and behavioral validation of the complete deployed path."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-14-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Achieving 98 percent accuracy on a held-out i.i.d. test set is sufficient proof that a computer vision model will operate reliably in production without experiencing silent degradation.",
+     "explanation": "False. Held-out test sets are independent and identically distributed (i.i.d.) samples from the historical training distribution, measuring average-case performance under static conditions. A model with 98% test accuracy can fail catastrophically when exposed to real-world distribution shifts, environmental changes (weather, lighting), imperceptible adversarial perturbations, or pipeline preprocessing faults.",
+     "hint": "Think about: critique the fallacy that high i.i.d. test set accuracy guarantees production robustness",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An engineering team wants to reform its model evaluation metrics to avoid the pitfall of using aggregate average accuracy as the sole measure of model quality. Which evaluation practice directly resolves this pitfall?",
+     "explanation": "The correct answer is A. Slice evaluation tests populations aggregate accuracy can hide. Empirical attacks test the named threat model but do not calculate exact worst-case accuracy; a valid certificate establishes its stated local guarantee. A larger i.i.d. split can improve precision without testing a new deployment envelope, latency alone does not measure prediction quality, and exclusive same-model synthetic evaluation supplies a narrow, potentially circular test.",
+     "hint": "Think about: apply worst-case and slice-level evaluation metrics to overcome the aggregate accuracy pitfall",
+     "type": "single",
+     "options": [
+      "Measure consequential population slices, empirical accuracy under specified attacks, and certified accuracy where a valid certificate is available.",
+      "Expand the held-out i.i.d. test split by 10$\\times$ to reduce the variance of the average accuracy estimate.",
+      "Replace all predictive accuracy metrics with p99 serving latency benchmarks.",
+      "Evaluate the model exclusively on synthetic training data generated by the same architecture."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A perception model is hardened using multi-step PGD adversarial training bounded by an ell_infty norm of epsilon_adv = 8/255. When deployed, an adversary attacks the model using an ell_2 optimization attack (such as C&W) and spatial rotation perturbations. What does the chapter's discussion of adversarial training pitfalls predict?",
+     "explanation": "The correct answer is C. Training against one norm and budget does not establish protection against rotations or other threat sets. Some perturbation sets overlap, so resistance can transfer; its extent needs separate evaluation. Empirical adversarial training supplies neither universal immunity nor automatic rejection, and changing the attack objective does not by itself imply a runtime tensor-shape failure.",
+     "hint": "Think about: analyze the threat-model specificity pitfall of adversarial training across different perturbation norms",
+     "type": "single",
+     "options": [
+      "The model will be mathematically immune to all attacks because adversarial training provides universal robustness across all norms.",
+      "The model will automatically detect and reject the ell_2 attack because ell_infty robustness is strictly stronger than all other defenses.",
+      "The model may remain highly vulnerable to the ell_2 and spatial attacks, because adversarial training hardens boundaries specifically against the threat model and norm ball used during training.",
+      "The model will fail to execute forward passes because the runtime input tensor dimensions will be rejected by the GPU driver."
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now critique the fallacy that high i.i.d. test set accuracy guarantees production robustness.",
+    "You can now apply worst-case and slice-level evaluation metrics to overcome the aggregate accuracy pitfall.",
+    "You can now analyze the threat-model specificity pitfall of adversarial training across different perturbation norms.",
+    "You can now explain why algorithmic robustness certificates cannot replace systems-layer pipeline validation."
+   ]
+  }
+ ]
+}

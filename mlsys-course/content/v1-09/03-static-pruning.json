@@ -1,0 +1,89 @@
+{
+ "title": "Static Pruning",
+ "summary": "Compare proxy-based EL2N scoring with other coreset methods in terms of cost, signal, and validation needs.",
+ "source": {
+  "chapter": "v1-09",
+  "sections": [
+   "Static Pruning",
+   "The case for smaller datasets",
+   "Data deduplication",
+   "Data pruning by quality",
+   "Coreset selection algorithms"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Static Pruning** in *Data Selection* (Vol I). By the end you should be able to:\n\n- Compare proxy-based EL2N scoring with other coreset methods in terms of cost, signal, and validation needs\n- Analyze the computational scaling benefits of MinHash and Locality-Sensitive Hashing for web-scale deduplication\n- Evaluate the systems and statistical trade-offs of aggressive near-duplicate filtering\n- Identify EL2N from its mathematical definition and explain why proxy-based use still requires validation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Selection, § Static Pruning",
+   "md": "Web-scale scraping routinely gathers boilerplate text, duplicate images, and malformed records, and each one costs GPT-2 six FLOPs per parameter for every token, or ResNet-50 a full forward and backward pass, before a single useful gradient is calculated. Static pruning removes these low-value records upstream of the training loop. By dropping redundant and corrupt records before target-model training begins, static pruning shrinks the operation count (Operations) without changing model architectures or execution kernels."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The case for smaller datasets\n- Data deduplication\n- Data pruning by quality\n- Coreset selection algorithms\n\nPay attention to: Proxy-based coreset scoring; MinHash and LSH deduplication; Validating near-duplicate removal; EL2N."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-09-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team wants to score a dataset cheaply before training a large production model. They plan to train a small proxy for a few epochs and rank examples by prediction error, knowing that confidently wrong predictions can still score highly. Which method best matches that plan and its trade-off?",
+     "explanation": "The correct answer is C. EL2N ranks samples by early prediction error $\\lVert \\hat{\\mathbf{y}}-\\mathbf{y} \\rVert_2$, so a cheap proxy can score examples without a full target-model run. The section also warns that high EL2N can include noisy samples and that transfer from proxy to target is useful but not guaranteed. Geometry-based $k$-Center is not label-aware boundary scoring, Forgetting Events is much more expensive, and Herding still depends on feature representations.",
+     "hint": "Think about: compare proxy-based EL2N scoring with other coreset methods in terms of cost, signal, and validation needs.",
+     "type": "single",
+     "options": [
+      "$k$-Center clustering on raw pixel inputs, because it guarantees zero-cost label-aware boundary identification",
+      "Forgetting Events scoring on the full production model, because it requires no proxy architecture and computes in $\\mathcal{O}(1)$ time",
+      "EL2N (Error L2-Norm) scoring with a briefly trained proxy model, accepting that high error can reflect hard examples or noise",
+      "Herding on Gaussian-distributed features, because it completely avoids computing feature representations"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Why is Locality-Sensitive Hashing (LSH) with MinHash preferred over exhaustive pairwise Jaccard similarity comparison for large-scale text deduplication?",
+     "explanation": "The correct answer is D. Comparing all pairs in a dataset of $D$ documents requires $\\mathcal{O}(D^2)$ comparisons, which is computationally intractable for web-scale datasets ($D \\ge 10^7$). MinHash compresses documents into fixed-size sketches where collision probability equals Jaccard similarity, and LSH bands these sketches into hash buckets so only candidate pairs colliding in a bucket are compared. MinHash LSH does not detect cross-lingual semantic paraphrases, still requires shingling/tokenization, and pairwise Jaccard comparison is an exact set operation rather than a deep learning method.",
+     "hint": "Think about: analyze the computational scaling benefits of MinHash and Locality-Sensitive Hashing for web-scale deduplication.",
+     "type": "single",
+     "options": [
+      "MinHash LSH guarantees \\$100\\% precision in detecting semantic paraphrases across different natural languages",
+      "MinHash eliminates the need to tokenize or shingle input documents before hashing",
+      "Exhaustive pairwise Jaccard comparison requires training a deep neural network, whereas LSH is purely rule-based",
+      "Exhaustive pairwise comparison requires $\\mathcal{O}(D^2)$ document comparisons, whereas MinHash LSH hashes compact signatures into sublinear candidate collision buckets"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Removing near-duplicate documents with MinHash LSH always improves model accuracy because duplicate data has zero statistical value in all training regimes.",
+     "explanation": "False. While deduplication reduces redundant computation and memorization risk, in some domains duplicate frequency reflects natural empirical data distributions or intentional weighting. Aggressive deduplication with miscalibrated thresholds can prune legitimate variations or distort class priors, necessitating empirical validation on downstream accuracy.",
+     "hint": "Think about: evaluate the systems and statistical trade-offs of aggressive near-duplicate filtering.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The training-dynamics coreset metric that measures the Euclidean norm of the difference between predicted class probabilities and the one-hot target vector early in training is known as ____.",
+     "explanation": "EL2N. It measures $\\lVert p(x)-y \\rVert_2$ early in training as an error-based difficulty score. The chapter notes that proxy-model rankings can transfer usefully to larger targets, but that transfer must be validated rather than assumed universal.",
+     "hint": "Think about: identify EL2N from its mathematical definition and explain why proxy-based use still requires validation.",
+     "type": "fill",
+     "answer": [
+      "EL2N"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare proxy-based EL2N scoring with other coreset methods in terms of cost, signal, and validation needs.",
+    "You can now analyze the computational scaling benefits of MinHash and Locality-Sensitive Hashing for web-scale deduplication.",
+    "You can now evaluate the systems and statistical trade-offs of aggressive near-duplicate filtering.",
+    "You can now identify EL2N from its mathematical definition and explain why proxy-based use still requires validation."
+   ]
+  }
+ ]
+}

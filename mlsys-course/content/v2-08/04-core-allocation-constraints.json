@@ -1,0 +1,88 @@
+{
+ "title": "Core Allocation Constraints",
+ "summary": "Apply Dominant Resource Fairness (DRF) principles to multi-resource ML allocations.",
+ "source": {
+  "chapter": "v2-08",
+  "sections": [
+   "Core Allocation Constraints",
+   "Dominant-resource fairness allocation",
+   "Bin packing",
+   "Gang scheduling",
+   "Deadlock prevention and detection",
+   "Heterogeneous gang scheduling"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Core Allocation Constraints** in *Fleet Orchestration* (Vol II). By the end you should be able to:\n\n- Apply Dominant Resource Fairness (DRF) principles to multi-resource ML allocations\n- Identify the primary operational inefficiency caused by multi-dimensional bin-packing constraints in GPU clusters\n- Analyze how gang scheduling prevents distributed deadlocks in synchronous multi-node training\n- Explain how priority inversion manifests in multi-tenant ML clusters and why strict priority levels alone fail to prevent it\n- Compare traditional homogeneous gang scheduling with heterogeneous gang scheduling in multi-role pipelines such as RLHF"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Orchestration, § Core Allocation Constraints",
+   "md": "Awarding the 64-GPU fine-tuning run its fair share of the cluster delivers zero progress if those GPUs sit on nodes with exhausted host memory, lack the interconnect its parallel layout requires, or arrive only 32 at a time. A scheduling objective can choose only among allocations that a job can actually run."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Dominant-resource fairness allocation\n- Bin packing\n- Gang scheduling\n- Deadlock prevention and detection\n- Heterogeneous gang scheduling\n\nPay attention to: Dominant-resource fairness across multiple resources; Multi-dimensional bin packing and fragmentation; Gang scheduling and hold-and-wait deadlock prevention; Priority inversion and holistic preemption."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Describe how priority inversion occurs when a high-priority distributed training job requires accelerators held by a low-priority job, and explain why simply setting higher priority levels does not resolve the blockage.",
+   "md": "Priority inversion occurs when a high-priority job is blocked waiting for accelerators held by a low-priority job that cannot complete its exit path because intermediate-priority jobs are saturating auxiliary resources (such as host CPU, storage I/O, or network bandwidth needed to write a checkpoint). Simply increasing priority levels fails because the blockage is transitive: the high-priority job depends on the low-priority job exiting, which in turn depends on the low-priority job receiving sufficient auxiliary bandwidth (holistic preemption) to finish checkpointing and release the accelerators."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-08-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Under Dominant Resource Fairness (DRF), if Team A's workload requires \\$4\\text{ GPUs}$ and \\$8\\text{ CPU cores}$ per worker while Team B's workload requires \\$1\\text{ GPU}$ and \\$64\\text{ CPU cores}$ per worker on a cluster with \\$100\\text{ GPUs}$ and \\$1000\\text{ CPU cores}$, DRF equalizes each team's share of their dominant resource (GPUs for Team A, CPUs for Team B).",
+     "explanation": "True. Dominant Resource Fairness (DRF) multi-resource allocation identifies each tenant's dominant resource (the resource type for which the tenant requests the largest fraction of total cluster capacity) and equalizes the dominant shares across all active tenants, ensuring multi-resource equity without allowing single-resource monopolies.",
+     "hint": "Think about: apply Dominant Resource Fairness (DRF) principles to multi-resource ML allocations.",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "When multi-GPU jobs leave unallocated accelerators spread across nodes that cannot be combined to satisfy pending multi-GPU requests due to intra-node interconnect requirements, the cluster suffers from ____.",
+     "explanation": "fragmentation (or resource fragmentation). In ML scheduling, fragmentation refers to stranded, non-contiguous capacity across nodes that individually satisfy no pending job, despite the aggregate free GPU count being theoretically sufficient.",
+     "hint": "Think about: identify the primary operational inefficiency caused by multi-dimensional bin-packing constraints in GPU clusters.",
+     "type": "fill",
+     "answer": [
+      "fragmentation",
+      "fragmentation (or resource fragmentation)"
+     ]
+    },
+    {
+     "q": "In a 1,024-GPU cluster receiving two 1,024-GPU synchronous training jobs, what condition causes a hold-and-wait deadlock under a non-gang scheduler, and how does gang scheduling eliminate it?",
+     "explanation": "The correct answer is A. In synchronous distributed training, the marginal utility of a partial allocation is zero because every worker must participate in every AllReduce collective. If a non-gang scheduler grants 512 GPUs to Job 1 and 512 GPUs to Job 2, both jobs stall waiting for the remaining GPUs, burning idle power at 0% useful progress. Gang scheduling eliminates the Coffman hold-and-wait condition by mandating atomic all-or-nothing allocation: a job is either granted its full requirement or holds nothing in the queue. The time-slicing distractor confuses multi-tasking with resource allocation. The single-chassis distractor states a physical impossibility for 1,024 GPUs. The lock-queue distractor misrepresents priority preemption.",
+     "hint": "Think about: analyze how gang scheduling prevents distributed deadlocks in synchronous multi-node training.",
+     "type": "single",
+     "options": [
+      "Non-gang schedulers allocate partial subsets (e.g., 512 GPUs to each job) where neither job can progress through synchronous AllReduce collectives, whereas gang scheduling enforces atomic all-or-nothing allocation so unallocated jobs hold zero resources.",
+      "Non-gang schedulers force jobs to time-slice GPU compute cycles, causing NCCL timeouts during AllReduce, whereas gang scheduling disables CUDA preemption entirely.",
+      "Non-gang schedulers assign GPUs across multiple racks, creating switch contention, whereas gang scheduling restricts all 1,024 GPUs to a single physical server chassis.",
+      "Non-gang schedulers allow lower-priority jobs to preempt higher-priority jobs, whereas gang scheduling locks node allocations until all jobs in the queue complete."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: How does heterogeneous gang scheduling differ from traditional homogeneous gang scheduling in the context of reinforcement learning from human feedback (RLHF) workflows?",
+   "md": "Traditional gang scheduling allocates identical worker nodes executing symmetric bulk-synchronous parallel graphs. In contrast, heterogeneous gang scheduling atomically co-allocates asymmetric roles within a single logical job, such as memory-optimized nodes with high HBM for inference rollout generation alongside compute-dense nodes for policy gradient updates. The co-allocation requires viable resource bundles and sufficient data-transfer capacity across roles. Measured production and consumption rates reveal imbalance; continuous or perfectly balanced routing is not guaranteed."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply Dominant Resource Fairness (DRF) principles to multi-resource ML allocations.",
+    "You can now identify the primary operational inefficiency caused by multi-dimensional bin-packing constraints in GPU clusters.",
+    "You can now analyze how gang scheduling prevents distributed deadlocks in synchronous multi-node training.",
+    "You can now explain how priority inversion manifests in multi-tenant ML clusters and why strict priority levels alone fail to prevent it."
+   ]
+  }
+ ]
+}

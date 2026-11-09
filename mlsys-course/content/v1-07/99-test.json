@@ -1,0 +1,137 @@
+{
+ "title": "Test: ML Frameworks",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-07-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Eager, graph, and JIT execution**?",
+     "options": [
+      "Eager execution exposes intermediate values to ordinary debugging but shows the runtime one operation at a time, static graphs give the compiler whole-program visibility at the price of graph-only control flow, and graph-capture JIT guards captured regions and pays a graph break wherever capture fails.",
+      "Reverse mode propagates adjoints as vector-Jacobian products from a scalar loss and yields every gradient in one backward sweep at a small constant multiple of forward cost, never materializing a Jacobian, at the price of a recorded graph and retained forward values.",
+      "Compiling pays only when production executions amortize compile time, with breakeven at compile time divided by the per-run saving, so prototyping loops stay eager and long training or serving runs compile.",
+      "A module tree provides automatic parameter discovery, a train/eval mode flag propagated from the root, and hierarchical serialization through dotted state-dict keys, so one object can be optimized, saved, frozen, and inspected."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Eager, graph, and JIT execution itself, not a neighbouring idea.",
+     "explanation": "**Eager, graph, and JIT execution:** Eager execution exposes intermediate values to ordinary debugging but shows the runtime one operation at a time, static graphs give the compiler whole-program visibility at the price of graph-only control flow, and graph-capture JIT guards captured regions and pays a graph break wherever capture fails."
+    },
+    {
+     "q": "An engineering team is architecting a new commercial computer vision system. In the chapter's decision framework, why must deployment constraints (e.g. target mobile NPU delegates and memory budgets) act as *hard filters* evaluated *before* selecting the training framework?",
+     "explanation": "The correct answer is A. Deployment constraints represent hard feasibility boundaries: if the target hardware or runtime cannot execute the operators exported by the framework, the project fails at deployment time, incurring catastrophic rewriting costs; soft preferences like developer ergonomics only matter among viable paths. Frameworks cannot change physical hardware specifications. Deployment feasibility filters govern system execution capability, not statistical model accuracy. Prioritizing iteration speed while ignoring deployment feasibility leads to un-deployable research artifacts.",
+     "hint": "Think about: apply the hard-filter-then-soft-preference principle to framework selection decisions",
+     "type": "single",
+     "options": [
+      "If a training framework cannot export or compile the required model operators to the target deployment runtime, the model cannot run in production regardless of its training speed or developer ergonomics",
+      "Training frameworks automatically alter target hardware specifications to match model requirements",
+      "Hard deployment filters guarantee that the model achieves 100% classification accuracy",
+      "Research iteration speed is the only metric that matters in commercial system design"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "When eager fallback is enabled in `torch.compile`, encountering a graph break necessarily halts execution with a runtime error because the unsupported Python code cannot be represented in the captured graph.",
+     "explanation": "False. With eager fallback enabled, a graph break ends the current captured region, executes the unsupported portion in eager mode, and can resume capture later. A full-graph requirement is the configuration that can turn such a break into an error.",
+     "hint": "Think about: evaluate the operational behavior and performance impact of graph breaks in graph-capture JIT compilers",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A team reports that their model executes correctly on CPU but produces mismatched tensor shapes and silent numerical corruption when switched to a GPU backend because some operators silently default to a different memory layout (such as NCHW versus NHWC). Which of the three fundamental framework problems does this failure most directly expose?",
+     "explanation": "The correct answer is A. The hardware abstraction problem requires providing a unified interface across diverse hardware backends (CPUs, GPUs, TPUs) while ensuring consistent semantics, memory layouts, and numerical behaviors; a silent layout mismatch between backends is a direct failure of this abstraction. Blaming the execution problem confuses when operations are dispatched with how backends interpret tensor memory layouts. Attributing the issue to differentiation is incorrect because forward shape and layout divergences break before gradient propagation occurs. Dismissing it as a data pipeline defect overlooks that tensor layout conversion across backends is a core runtime responsibility.",
+     "hint": "Think about: classify a concrete framework failure into the execution, differentiation, or hardware abstraction problem",
+     "type": "single",
+     "options": [
+      "The hardware abstraction problem, because one unified model interface must preserve consistent semantic behavior, memory layouts, and numerical behavior across diverse hardware backends",
+      "The execution problem, because the operators were evaluated eagerly instead of being captured into a static graph",
+      "The differentiation problem, because the backward pass failed to propagate gradients through non-contiguous strides",
+      "A data engineering pipeline defect unrelated to framework runtime responsibilities"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In graph-capture JIT compilation systems like TorchDynamo, an event where the compiler encounters an unsupported dynamic Python construct (such as an unhandled C-extension call or dynamic side effect) and must pause graph capture to yield control to the Python interpreter is called a ____.",
+     "explanation": "The correct answer is graph break. A graph break splits the computational graph into multiple subgraphs separated by interpreted Python execution, which can increase kernel dispatch overhead.",
+     "hint": "Think about: identify the concept of a graph break in graph-capturing execution systems",
+     "type": "fill",
+     "answer": [
+      "The correct answer is graph break"
+     ]
+    },
+    {
+     "q": "For a neural network with $N = 10^7$ parameters and a single scalar loss output $M = 1$, why is reverse-mode automatic differentiation the standard training choice in deep learning frameworks?",
+     "explanation": "The correct answer is A. Training has a many-parameters-to-one-loss structure, so reverse mode is efficient because one reverse traversal can accumulate gradients for all parameters with work proportional to the forward graph up to a small constant factor. Forward mode computes exact derivatives too, but recovering the full gradient for \\$10^7 parameters would require one seeded direction per parameter. The \"no saved forward information\" claim is backwards: reverse mode's main systems cost is retaining or regenerating the forward information backward rules need. Matrix multiplies and other network operations are differentiable in forward mode as well, so the restriction claim is false.",
+     "hint": "Think about: compare the scaling of forward-mode and reverse-mode automatic differentiation for many-parameter scalar-loss training",
+     "type": "single",
+     "options": [
+      "Reverse mode gets all parameter gradients from one reverse traversal whose work is proportional to the recorded graph, whereas forward mode would need one seeded direction per parameter to recover the full gradient",
+      "Forward-mode differentiation cannot compute exact gradients and therefore is unusable for neural networks",
+      "Reverse-mode differentiation requires no saved forward information, so it is always the lowest-memory choice",
+      "Forward mode can differentiate only scalar element-wise functions, not matrix multiplications or network layers"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In the chapter's two-layer MLP training-step analysis, suppose a hypothetical profiler showed many short kernels separated by host-side dispatch gaps. Why could the total eager-mode step time greatly exceed the idealized compute and memory lower bounds even on a very fast GPU?",
+     "explanation": "The correct answer is D. In that hypothetical profile, many short kernels separated by host dispatch gaps would support an overhead-bound diagnosis: even if compute and memory lower bounds are small, eager execution can still spend substantial time issuing many separate operations. The chapter's peak-rate lower bounds and dispatch-cost assumptions motivate this explanation, but by themselves they do not constitute an observed profile. The network answer does not fit a single-device step, and the thermal-throttling and memory-leak explanations are not the chapter's modeled source of overhead.",
+     "hint": "Think about: analyze why small model training steps on fast accelerators can be overhead-bound rather than limited by raw compute or memory bandwidth",
+     "type": "single",
+     "options": [
+      "Because network communication across multiple machines dominates every training step in the example",
+      "Because thermal throttling is the main bottleneck for small matrix operations in the scenario",
+      "Because the dynamic class hierarchy in the framework leaks memory between layers",
+      "Because repeated host-side dispatch and kernel-launch overhead for many small operations can dominate when the device kernels themselves are short"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "What core programming-model commitment distinguishes JAX from both PyTorch and TensorFlow in the chapter's comparison, enabling transformations like `jax.grad`, `jax.vmap`, and `jax.jit` to compose when their contracts align?",
+     "explanation": "The correct answer is C. JAX is presented as a functional transformation system: users write pure functions, arrays are treated immutably, and transformations such as `grad`, `vmap`, and `jit` act on those functions when each one's outputs match what the next expects as inputs. The section is careful that composition is powerful but not arbitrary, since order still matters semantically. The mutable-object and global-state answers describe the opposite design direction, and the AST-parsing answer invents a mechanism not used in the chapter's explanation of JAX tracing and compilation.",
+     "hint": "Think about: explain the pure functional transformation model that distinguishes JAX architecturally",
+     "type": "single",
+     "options": [
+      "Dynamic class inheritance with mutable object references for all layer parameters",
+      "Global state mutation across all forward and backward passes",
+      "Pure functions over immutable array-like data, with transformations applied to functions rather than hidden mutable objects",
+      "Graph capture via AST string parsing of Python source files"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Because reverse-mode automatic differentiation computes exact gradients in a single backward pass, its peak memory consumption during training is identical to that of inference.",
+     "explanation": "False. Training usually keeps additional forward information needed by backward rules, and what must be saved depends on the operation and implementation. Inference avoids optimizer state and gradient storage, but it still has live activations, workspaces, and other runtime tensors rather than only the current layer in all cases.",
+     "hint": "Think about: evaluate the memory footprint differences between forward-only inference and reverse-mode training passes",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the stages of a generic graph-capture compilation pipeline from the first Python call to repeated execution of optimized code:",
+     "explanation": "The correct order is: (3) the frontend captures a region of tensor computation from the eager program, (1) an intermediate representation is built for the captured region, (5) optimization and lowering transform the captured region toward hardware-specific execution, (2) optimized executable code is cached for reuse under the same guards, (4) the compiled region executes on the target hardware. Capture has to happen before any IR exists; optimization and lowering require that representation; caching happens only after code has been produced; and execution uses the resulting cached artifact when the same assumptions still hold. Swapping capture with optimization would leave nothing to optimize, and swapping caching with execution would remove the compiled object that later calls are supposed to reuse.",
+     "hint": "Think about: order the stages of a graph-capture compilation pipeline from eager program capture to cached hardware execution",
+     "type": "order",
+     "items": [
+      "the frontend captures a region of tensor computation from the eager program",
+      "an intermediate representation is built for the captured region",
+      "optimization and lowering transform the captured region toward hardware-specific execution.",
+      "optimized executable code is cached for reuse under the same guards",
+      "the compiled region executes on the target hardware"
+     ]
+    },
+    {
+     "q": "To reduce GPU memory pressure from saved activations during long forward passes, frameworks can save only selected boundary tensors and recompute dropped intermediates during the backward pass. This memory-saving technique is called activation ____ (or rematerialization).",
+     "explanation": "checkpointing. Activation checkpointing reduces peak saved-activation memory by storing only selected boundaries and recomputing omitted intermediates later, trading additional backward-time work for lower memory capacity pressure.",
+     "hint": "Think about: identify activation checkpointing as a compute-memory trade-off mechanism",
+     "type": "fill",
+     "answer": [
+      "checkpointing"
+     ]
+    }
+   ]
+  }
+ ]
+}

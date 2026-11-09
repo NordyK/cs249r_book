@@ -1,0 +1,254 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v4-08",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Sensor Perception** (Vol IV). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Sensor Perception, Purpose",
+   "md": "A camera can recognize an obstacle correctly and still report where it stood before the robot moved. Exposure, readout, transport, and inference all take time, the machine keeps moving through every millisecond of it, and a shifted mount or a misread clock then places the obstacle somewhere it never stood. None of these errors lowers a detection score."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Choosing Evidence for a Spatial Decision",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Capture Physics and Calibration",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Dating and Placing the Measurement",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Bounding Observation Age",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Ingestion Overhead and Memory Bus Conten",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Spatial Error and Clearance Bounds",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Perception Failure Modes and Sensor Degr",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Sensor chosen by physical quantity**",
+     "Each modality measures one physical quantity (bearing and appearance, metric range, Doppler velocity, contrast change, contact deformation) with its own environmental failures, so sensing is chosen by the quantity the decision needs."
+    ],
+    [
+     "**Capture epoch**",
+     "A measurement is dated at its exposure midpoint or per-point firing time, never at arrival, and rolling-shutter rows and LiDAR sweeps sample the scene at different instants that capture-time geometry must undo."
+    ],
+    [
+     "**Calibration chain**",
+     "Every metric claim rests on intrinsics, extrinsics, and inter-sensor time offsets composed along a frame tree at the capture instant, and angular and timing errors scale with range and turn rate."
+    ],
+    [
+     "**Observation age**",
+     "Observation age runs from the exposure midpoint to dispatch, accumulates stage by stage (exposure, readout, transport, DMA, ISP, backbone, dispatch), and is paid in blind travel that no later stage returns."
+    ],
+    [
+     "**Clearance inset from measured residuals**",
+     "Spatial error is spent from the same clearance as age, so the clearance inset rests on a measured high quantile of residuals against ground truth, which for stereo grows with range squared."
+    ],
+    [
+     "**Metric veto**",
+     "Learned depth and semantic confidence are not metric evidence, so a learned head may classify and propose but the range that enters a clearance check comes from qualified metric sensing, which can veto."
+    ],
+    [
+     "**Silent versus detectable failure**",
+     "Detectable faults raise flags and age out honestly, while silent failures (saturation, contamination, fog backscatter, a misdated frame) deliver valid tensors, so the design must convert silent modes into detectable ones."
+    ],
+    [
+     "**Observation contract**",
+     "Each observation is wrapped with capture time, clock id, clock-conversion bound, frame, payload, covariance, clearance inset, health bits, and CRC so a consumer can refuse it before reading a payload byte."
+    ],
+    [
+     "**Rolling-shutter and de-skew geometry**",
+     "Per-row pose interpolation for rolling shutters and per-point de-skew for LiDAR sweeps remove the motion a finite capture interval smears into geometry."
+    ],
+    [
+     "**Current evidence age**",
+     "The age a consumer computes on its own clock is dispatch age plus the time elapsed since dispatch, and it keeps growing while the observation is reused."
+    ],
+    [
+     "**Perception-side independence**",
+     "The proposal camera and the admission LiDAR must not share a failure mode, so the metric veto is independent evidence only when its sensing differs from the proposer's."
+    ],
+    [
+     "**Latency waterfall**",
+     "Sequential capture stages add their durations while overlapped or streamed stages replace the sum, and the waterfall shows which stage spends the age budget."
+    ],
+    [
+     "**Environmental degradation**",
+     "Fog, rain, glare, and retroreflective vests degrade each modality by its own physics (contrast decay, scattering, blooming, range walk), so a sensor's qualification names its weather."
+    ],
+    [
+     "**Input-support monitors**",
+     "Out-of-distribution and input-support monitors flag into the health bitmask and can demote a camera to LiDAR-only operation, but they cannot certify what the transducer itself got wrong."
+    ],
+    [
+     "**Clock domains and the clock-conversion bound**",
+     "Each oscillator stamps time in its own clock domain, so a capture time can be checked only after conversion to the consumer's clock, and that conversion carries a measured bound (offset tail, path asymmetry, drift between syncs) that every age check adds."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v4-08-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Sensor chosen by physical quantity",
+     "back": "Each modality measures one physical quantity (bearing and appearance, metric range, Doppler velocity, contrast change, contact deformation) with its own environmental failures, so sensing is chosen by the quantity the decision needs."
+    },
+    {
+     "front": "Capture epoch",
+     "back": "A measurement is dated at its exposure midpoint or per-point firing time, never at arrival, and rolling-shutter rows and LiDAR sweeps sample the scene at different instants that capture-time geometry must undo."
+    },
+    {
+     "front": "Calibration chain",
+     "back": "Every metric claim rests on intrinsics, extrinsics, and inter-sensor time offsets composed along a frame tree at the capture instant, and angular and timing errors scale with range and turn rate."
+    },
+    {
+     "front": "Observation age",
+     "back": "Observation age runs from the exposure midpoint to dispatch, accumulates stage by stage (exposure, readout, transport, DMA, ISP, backbone, dispatch), and is paid in blind travel that no later stage returns."
+    },
+    {
+     "front": "Clearance inset from measured residuals",
+     "back": "Spatial error is spent from the same clearance as age, so the clearance inset rests on a measured high quantile of residuals against ground truth, which for stereo grows with range squared."
+    },
+    {
+     "front": "Metric veto",
+     "back": "Learned depth and semantic confidence are not metric evidence, so a learned head may classify and propose but the range that enters a clearance check comes from qualified metric sensing, which can veto."
+    },
+    {
+     "front": "Silent versus detectable failure",
+     "back": "Detectable faults raise flags and age out honestly, while silent failures (saturation, contamination, fog backscatter, a misdated frame) deliver valid tensors, so the design must convert silent modes into detectable ones."
+    },
+    {
+     "front": "Observation contract",
+     "back": "Each observation is wrapped with capture time, clock id, clock-conversion bound, frame, payload, covariance, clearance inset, health bits, and CRC so a consumer can refuse it before reading a payload byte."
+    },
+    {
+     "front": "Rolling-shutter and de-skew geometry",
+     "back": "Per-row pose interpolation for rolling shutters and per-point de-skew for LiDAR sweeps remove the motion a finite capture interval smears into geometry."
+    },
+    {
+     "front": "Current evidence age",
+     "back": "The age a consumer computes on its own clock is dispatch age plus the time elapsed since dispatch, and it keeps growing while the observation is reused."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v4-08-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Sensor chosen by physical quantity**?",
+     "options": [
+      "Each observation is wrapped with capture time, clock id, clock-conversion bound, frame, payload, covariance, clearance inset, health bits, and CRC so a consumer can refuse it before reading a payload byte.",
+      "The age a consumer computes on its own clock is dispatch age plus the time elapsed since dispatch, and it keeps growing while the observation is reused.",
+      "Per-row pose interpolation for rolling shutters and per-point de-skew for LiDAR sweeps remove the motion a finite capture interval smears into geometry.",
+      "Each modality measures one physical quantity (bearing and appearance, metric range, Doppler velocity, contrast change, contact deformation) with its own environmental failures, so sensing is chosen by the quantity the decision needs."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Sensor chosen by physical quantity itself, not a neighbouring idea.",
+     "explanation": "**Sensor chosen by physical quantity:** Each modality measures one physical quantity (bearing and appearance, metric range, Doppler velocity, contrast change, contact deformation) with its own environmental failures, so sensing is chosen by the quantity the decision needs."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Capture epoch**?",
+     "options": [
+      "Spatial error is spent from the same clearance as age, so the clearance inset rests on a measured high quantile of residuals against ground truth, which for stereo grows with range squared.",
+      "The proposal camera and the admission LiDAR must not share a failure mode, so the metric veto is independent evidence only when its sensing differs from the proposer's.",
+      "A measurement is dated at its exposure midpoint or per-point firing time, never at arrival, and rolling-shutter rows and LiDAR sweeps sample the scene at different instants that capture-time geometry must undo.",
+      "Fog, rain, glare, and retroreflective vests degrade each modality by its own physics (contrast decay, scattering, blooming, range walk), so a sensor's qualification names its weather."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Capture epoch itself, not a neighbouring idea.",
+     "explanation": "**Capture epoch:** A measurement is dated at its exposure midpoint or per-point firing time, never at arrival, and rolling-shutter rows and LiDAR sweeps sample the scene at different instants that capture-time geometry must undo."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Calibration chain**?",
+     "options": [
+      "Observation age runs from the exposure midpoint to dispatch, accumulates stage by stage (exposure, readout, transport, DMA, ISP, backbone, dispatch), and is paid in blind travel that no later stage returns.",
+      "A measurement is dated at its exposure midpoint or per-point firing time, never at arrival, and rolling-shutter rows and LiDAR sweeps sample the scene at different instants that capture-time geometry must undo.",
+      "Every metric claim rests on intrinsics, extrinsics, and inter-sensor time offsets composed along a frame tree at the capture instant, and angular and timing errors scale with range and turn rate.",
+      "Learned depth and semantic confidence are not metric evidence, so a learned head may classify and propose but the range that enters a clearance check comes from qualified metric sensing, which can veto."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Calibration chain itself, not a neighbouring idea.",
+     "explanation": "**Calibration chain:** Every metric claim rests on intrinsics, extrinsics, and inter-sensor time offsets composed along a frame tree at the capture instant, and angular and timing errors scale with range and turn rate."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Observation age**?",
+     "options": [
+      "Per-row pose interpolation for rolling shutters and per-point de-skew for LiDAR sweeps remove the motion a finite capture interval smears into geometry.",
+      "Out-of-distribution and input-support monitors flag into the health bitmask and can demote a camera to LiDAR-only operation, but they cannot certify what the transducer itself got wrong.",
+      "Fog, rain, glare, and retroreflective vests degrade each modality by its own physics (contrast decay, scattering, blooming, range walk), so a sensor's qualification names its weather.",
+      "Observation age runs from the exposure midpoint to dispatch, accumulates stage by stage (exposure, readout, transport, DMA, ISP, backbone, dispatch), and is paid in blind travel that no later stage returns."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Observation age itself, not a neighbouring idea.",
+     "explanation": "**Observation age:** Observation age runs from the exposure midpoint to dispatch, accumulates stage by stage (exposure, readout, transport, DMA, ISP, backbone, dispatch), and is paid in blind travel that no later stage returns."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Clearance inset from measured residuals**?",
+     "options": [
+      "Spatial error is spent from the same clearance as age, so the clearance inset rests on a measured high quantile of residuals against ground truth, which for stereo grows with range squared.",
+      "A measurement is dated at its exposure midpoint or per-point firing time, never at arrival, and rolling-shutter rows and LiDAR sweeps sample the scene at different instants that capture-time geometry must undo.",
+      "Learned depth and semantic confidence are not metric evidence, so a learned head may classify and propose but the range that enters a clearance check comes from qualified metric sensing, which can veto.",
+      "Out-of-distribution and input-support monitors flag into the health bitmask and can demote a camera to LiDAR-only operation, but they cannot certify what the transducer itself got wrong."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Clearance inset from measured residuals itself, not a neighbouring idea.",
+     "explanation": "**Clearance inset from measured residuals:** Spatial error is spent from the same clearance as age, so the clearance inset rests on a measured high quantile of residuals against ground truth, which for stereo grows with range squared."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Sensor chosen by physical quantity: Each modality measures one physical quantity (bearing and appearance, metric range, Doppler velocity, contrast change, contact deformation) with its own environmental failures, so sensing is chosen by the quantity the decision needs.",
+    "Capture epoch: A measurement is dated at its exposure midpoint or per-point firing time, never at arrival, and rolling-shutter rows and LiDAR sweeps sample the scene at different instants that capture-time geometry must undo.",
+    "Calibration chain: Every metric claim rests on intrinsics, extrinsics, and inter-sensor time offsets composed along a frame tree at the capture instant, and angular and timing errors scale with range and turn rate.",
+    "Observation age: Observation age runs from the exposure midpoint to dispatch, accumulates stage by stage (exposure, readout, transport, DMA, ISP, backbone, dispatch), and is paid in blind travel that no later stage returns."
+   ]
+  }
+ ],
+ "terms": []
+}

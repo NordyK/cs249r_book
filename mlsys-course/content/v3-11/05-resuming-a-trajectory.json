@@ -1,0 +1,69 @@
+{
+ "title": "Resuming a Trajectory",
+ "summary": "Work through Resuming a Trajectory.",
+ "source": {
+  "chapter": "v3-11",
+  "sections": [
+   "Resuming a Trajectory",
+   "Availability and ownership",
+   "State restoration",
+   "Effect and charge reconciliation",
+   "Continuation admission"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Resuming a Trajectory** in *Durable Execution* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Durable Execution, § Resuming a Trajectory",
+   "md": "The worksheet's replacement worker now holds everything the previous sections promised: the checkpoint that binds `record_R_ckpt` to `ws_r18`, and a suffix that ends at the durable intent for `test_r18` under `attempt1` with no result. Holding that record is not yet permission to act on it. The workspace can be restored byte for byte, but the missing result supports no inference about the test, which may never have launched, may have finished as the host lost power, or may still be running remotely."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Availability and ownership\n- State restoration\n- Effect and charge reconciliation\n- Continuation admission"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Trajectory log matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Recovery state comes from an append-only, typed trajectory log, and the live trajectory record is a deterministic fold over that log."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-11-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Resuming a Trajectory** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Debugging two executions steps boundary by boundary from a verified checkpoint to the first mismatch under a declared equivalence, because every later difference may be a consequence.",
+      "An admitted operation's identity, arguments, grant reference, and reservation must be durable under the declared failure domain before the request leaves, so no effect can exist without its intent on record.",
+      "Resume is an authorized continuation in ordered stages (prove the prefix, acquire ownership with a fencing epoch, restore by fold, reconcile in-doubt operations) rather than a restart.",
+      "Recovery state comes from an append-only, typed trajectory log, and the live trajectory record is a deterministic fold over that log."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Trajectory log**: Recovery state comes from an append-only, typed trajectory log, and the live trajectory record is a deterministic fold over that log."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Trajectory log* reconstructs *Trajectory record*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Trajectory log reconstructs Trajectory record."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Resuming a Trajectory."
+   ]
+  }
+ ]
+}

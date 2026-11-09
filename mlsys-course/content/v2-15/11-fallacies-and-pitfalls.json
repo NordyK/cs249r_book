@@ -1,0 +1,69 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Evaluate the fallacy that cloud migration is inherently greener regardless of regional grid carbon intensity.",
+ "source": {
+  "chapter": "v2-15",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Sustainable AI* (Vol II). By the end you should be able to:\n\n- Evaluate the fallacy that cloud migration is inherently greener regardless of regional grid carbon intensity\n- Analyze the pitfalls of localized optimization and apply full Life Cycle Assessment to evaluate net environmental impact\n- Evaluate carbon offsets against direct engineering interventions and justify prioritizing physical emissions reductions"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Sustainable AI, § Fallacies and Pitfalls",
+   "md": "Sustainability involves counterintuitive physics where efficiency improvements can increase total consumption and geographic choices can outweigh component-level optimizations. These fallacies and pitfalls capture errors that waste compute budgets and planetary resources through misallocated optimization effort."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: cloud-always-greener misconception; local optimization vs lifecycle trade-offs; carbon offsets vs direct emissions reductions."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why an offset purchase does not replace evidence of physical emissions reductions, and what must be established before claiming a reduction from placement, efficiency, or hardware reuse.",
+   "md": "An offset compensates through a separately credited activity; it does not change the workload's own electricity or manufacturing emissions. Additionality, durability, verification, and double counting affect that claim. Physical interventions need their own complete comparison: placement includes movement and waiting costs, efficiency preserves useful service, and reuse weighs avoided new manufacturing against continued operating energy. Report reductions separately from compensation and amortized allocation."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-15-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Migrating a machine learning training workload from an on-premises enterprise cluster in a low-carbon region (20 $\\text{gCO}_2/\\text{kWh}$) to a commercial cloud data center in a coal-heavy region (750 $\\text{gCO}_2/\\text{kWh}$) is guaranteed to reduce the workload's carbon footprint because hyperscale cloud providers operate at lower PUE.",
+     "explanation": "False. Lower PUE alone does not guarantee lower emissions. At equal IT energy and the supplied grid factors, a PUE improvement must offset a 37.5-fold intensity increase merely to match electricity-related emissions. A complete comparison also needs actual energy, useful work, movement costs, and embodied allocations; cloud status is not evidence of that result.",
+     "hint": "Think about: evaluate the fallacy that cloud migration is inherently greener regardless of regional grid carbon intensity",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A systems team aggressively compresses a model using unstructured pruning to cut training FLOPs by 60 percent. In production, serving the sparse model requires specialized, custom-fabricated NPU accelerators and requires double the serving iterations to reach quality parity. Which pitfall does this scenario illustrate, and what is the proper engineering mitigation?",
+     "explanation": "The correct answer is A. Local optimization of training compute without full-lifecycle assessment; the mitigation is conducting end-to-end Life Cycle Assessment (LCA) that accounts for hardware manufacturing, deployment scale, and serving energy before committing to architectural changes. Optimizing one isolated phase (training FLOPs) often shifts environmental burdens to other lifecycle phases, such as requiring new specialized hardware fabrication (embodied carbon) or increasing recurring inference queries. Comprehensive LCA across training, serving, and hardware manufacturing prevents counterproductive local optimizations. Amdahl's law does not address lifecycle trade-offs; reclassifying emissions scopes does not alter physical carbon; and workstation cooling is irrelevant to datacenter-scale deployment.",
+     "hint": "Think about: analyze the pitfalls of localized optimization and apply full Life Cycle Assessment to evaluate net environmental impact",
+     "type": "single",
+     "options": [
+      "Local optimization of training compute without full-lifecycle assessment; the mitigation is conducting end-to-end Life Cycle Assessment (LCA) that accounts for hardware manufacturing, deployment scale, and serving energy before committing to architectural changes.",
+      "Failure to apply Amdahl's law; the mitigation is increasing CPU clock frequency.",
+      "Violating the GHG Protocol; the mitigation is reclassifying Scope 3 emissions as Scope 1.",
+      "Ignoring PUE; the mitigation is installing liquid cooling on the development workstations."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate the fallacy that cloud migration is inherently greener regardless of regional grid carbon intensity.",
+    "You can now analyze the pitfalls of localized optimization and apply full Life Cycle Assessment to evaluate net environmental impact.",
+    "You can now evaluate carbon offsets against direct engineering interventions and justify prioritizing physical emissions reductions."
+   ]
+  }
+ ]
+}

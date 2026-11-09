@@ -1,0 +1,68 @@
+{
+ "title": "Capacity for Agent Workloads",
+ "summary": "Work through Capacity for Agent Workloads.",
+ "source": {
+  "chapter": "v3-05",
+  "sections": [
+   "Capacity for Agent Workloads",
+   "A resident-fit bound",
+   "Residence time and service rate",
+   "KV pool telemetry"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Capacity for Agent Workloads** in *KV Cache Management* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, KV Cache Management, § Capacity for Agent Workloads",
+   "md": "A paused repair task can hold key-value state in accelerator memory for minutes without executing a single forward pass, while an incoming request demands both memory capacity and execution time immediately. How an engine handles paused state dictates how many concurrent agent trajectories can fit in memory. Converting that static concurrency into a sustainable throughput, however, requires modeling how long each session holds its memory. Capacity planning therefore first establishes physical occupancy bounds and then couples those bounds to residence time."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- A resident-fit bound\n- Residence time and service rate\n- KV pool telemetry"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Copy-on-write block sharing matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-05-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Capacity for Agent Workloads** develops one of the chapter's claims. Which one?",
+     "options": [
+      "By Little's law a fixed pool of slots sustains a turn rate inversely proportional to residence, so holding state through a synchronous tool wait divides the memory-bound turn rate by 1 + T_tool/T_model.",
+      "Retained attention state costs 2 x layers x KV heads x head dim x bytes per token, so resident fit in the KV pool falls as 1/S with context length, and the attention design fixed at pretraining sets the slope.",
+      "Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks.",
+      "Fixed-size blocks mapped by a per-sequence block table remove the stranded memory of full-cap reservation and bound tail waste below one block."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Copy-on-write block sharing**: Forked candidates share prefix blocks by reference count, so a fork costs block-table entries rather than a payload copy and physical demand is the count of unique blocks."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Copy-on-write block sharing* reduces the physical cost of breadth in *KV footprint and resident fit*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Copy-on-write block sharing* reduces the physical cost of breadth in *Allocation axes*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Capacity for Agent Workloads."
+   ]
+  }
+ ]
+}

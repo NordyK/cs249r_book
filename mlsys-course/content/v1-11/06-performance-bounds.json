@@ -1,0 +1,107 @@
+{
+ "title": "Performance Bounds",
+ "summary": "Calculate the hardware ridge point from peak compute throughput and memory bandwidth.",
+ "source": {
+  "chapter": "v1-11",
+  "sections": [
+   "Performance Bounds",
+   "The roofline model",
+   "Hardware ridge points",
+   "Memory bandwidth bounds",
+   "Optimization by intensity regime"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Performance Bounds** in *Hardware Acceleration* (Vol I). By the end you should be able to:\n\n- Calculate the hardware ridge point from peak compute throughput and memory bandwidth\n- Apply the roofline equation to compute a modeled upper bound and identify whether the bandwidth or compute ceiling is lower\n- Analyze why rising compute-to-bandwidth ratios push newer hardware ridge points upward and increase the need for reuse-aware kernel design\n- Evaluate why increasing peak compute alone does not raise the simple roofline bound for a memory-bound kernel\n- Explain the significance of the ridge point in roofline performance modeling"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Hardware Acceleration, § Performance Bounds",
+   "md": "The compute units fix how fast an accelerator can calculate, and the memory system fixes how fast it can be fed. A kernel's performance is bounded by whichever of the two runs out first. Putting numbers on that statement takes three pieces: the roofline's ceilings for each precision path, the ridge point at which they meet, and the hardware balance that moves the ridge from one generation to the next. The ResNet-50 INT8 workload meets its sharpest lesson in these bounds."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The roofline model\n- Hardware ridge points\n- Memory bandwidth bounds\n- Optimization by intensity regime\n\nPay attention to: Roofline equation: Attainable Performance = min(R_peak, I * BW); Arithmetic intensity calculation and hardware ridge points; Memory-bound vs compute-bound regime diagnosis; Regime-specific optimization strategies (kernel fusion, tiling, ILP, quantization)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why has the hardware ridge point ($I_{\\text{ridge}}$) increased across successive GPU generations, and what pressure does this trend place on compiler and kernel developers?",
+   "md": "The ridge point rises when peak arithmetic throughput grows faster than memory bandwidth, because $I_{\\text{ridge}} = R_{\\text{peak}}/\\text{BW}$. That means newer devices require more operations per byte to reach their compute ceiling on the same precision path. For example, a kernel that once cleared an older ridge may fall below a newer one if its reuse pattern does not improve. The practical consequence is that compilers and kernel authors face stronger pressure to preserve locality through layout choices, tiling, and fusion while comparing like-for-like precision paths instead of explaining the trend with lower-precision headline peaks alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-11-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "An accelerator delivers $R_{\\text{peak}} = 1{,}000\\text{ TFLOP/s}$ (\\$10^{15}\\text{ FLOP/s}$) in FP16 and has a High-Bandwidth Memory (HBM) subsystem delivering $\\text{BW} = 2.0\\text{ TB/s}$ (\\$2\\times 10^{12}\\text{ bytes/s}$). What is the hardware balance point (ridge point $I_{\\text{ridge}}$) of this system?",
+     "explanation": "The correct answer is C. The ridge point is the hardware ratio $I_{\\text{ridge}} = \\frac{R_{\\text{peak}}}{\\text{BW}} = \\frac{10^{15}\\text{ FLOP/s}}{2.0 \\times 10^{12}\\text{ bytes/s}} = 500\\text{ FLOP/byte}$. That value marks where the simple roofline's compute and bandwidth ceilings are equal for this interface. It is a modeled threshold, not proof that a measured kernel actually reaches either ceiling; the other options come from arithmetic errors in the same ratio.",
+     "hint": "Think about: calculate the hardware ridge point from peak compute throughput and memory bandwidth.",
+     "type": "single",
+     "options": [
+      "\\$50 FLOP/byte",
+      "\\$200 FLOP/byte",
+      "\\$500 FLOP/byte",
+      "\\$2,000 FLOP/byte"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A developer runs a LayerNorm kernel on an accelerator with $R_{\\text{peak}} = 312\\text{ TFLOP/s}$ and $\\text{BW} = 1.5\\text{ TB/s}$ ($I_{\\text{ridge}} = 208\\text{ FLOP/byte}$). The LayerNorm has an arithmetic intensity of $I = 4\\text{ FLOP/byte}$. What is the maximum attainable performance under this simple roofline model, and what modeled ceiling is lower?",
+     "explanation": "The correct answer is A. The simple roofline gives $R_{\\text{attain}} = \\min(R_{\\text{peak}}, I \\cdot \\text{BW}) = \\min(312, 4 \\times 1.5) = 6.0\\text{ TFLOP/s}$. Because $I = 4$ FLOP/byte is far below the ridge point of 208 FLOP/byte, the lower modeled ceiling is the bandwidth line, not the compute peak. The compute-peak answer ignores arithmetic intensity, and the warp-scheduler and PCIe answers introduce bottlenecks that are not part of the stated roofline calculation. Profiling would still be needed to determine whether measured execution is actually limited by this interface ceiling or by additional overheads.",
+     "hint": "Think about: apply the roofline equation to compute a modeled upper bound and identify whether the bandwidth or compute ceiling is lower.",
+     "type": "single",
+     "options": [
+      "\\$6.0 TFLOP/s, the bandwidth ceiling",
+      "\\$312 TFLOP/s, the compute ceiling",
+      "\\$78 TFLOP/s, the warp-scheduler ceiling",
+      "\\$1.5 TFLOP/s, the PCIe ceiling"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "When a kernel operates in the memory-bound regime of the Roofline model ($I < I_{\\text{ridge}}$), doubling the accelerator's peak tensor compute capability ($R_{\\text{peak}}$) without changing memory bandwidth will double the kernel's execution speed.",
+     "explanation": "False. In the simple roofline, a kernel below the ridge is bounded by $I \\cdot \\text{BW}$, so raising only $R_{\\text{peak}}$ lifts the compute ceiling but does not raise the bandwidth ceiling. That does not prove measured speedup is exactly zero in every implementation, but the modeled bandwidth bound itself is unchanged.",
+     "hint": "Think about: evaluate why increasing peak compute alone does not raise the simple roofline bound for a memory-bound kernel.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In the Roofline model, the transition point on the horizontal axis where the memory-bandwidth ceiling intersects the peak-compute ceiling is known as the hardware ____ point.",
+     "explanation": "ridge. The ridge point ($I_{\\text{ridge}} = R_{\\text{peak}} / \\text{BW}$) defines the minimum arithmetic intensity required for an algorithm to potentially reach peak hardware computational throughput.",
+     "hint": "Think about: explain the significance of the ridge point in roofline performance modeling.",
+     "type": "fill",
+     "answer": [
+      "ridge"
+     ]
+    },
+    {
+     "q": "An engineer profiles a transformer inference workload and discovers that the attention Softmax kernel is heavily memory bandwidth bound. Which of the following optimization techniques directly targets intermediate-memory traffic in this kernel?",
+     "explanation": "The correct answer is B. Fusing scale, mask, and Softmax can reduce intermediate global-memory traffic by keeping temporary values on chip when cache, register, and shared-memory resources permit. That targets the bytes-moved side of the problem directly, even though it does not guarantee the kernel becomes compute-bound. Upgrading host RAM changes a different interface, increasing Tensor Core clock raises the compute ceiling rather than the memory-traffic pattern, and disabling scheduler flexibility does not address the diagnosed bottleneck.",
+     "hint": "Think about: select a memory-traffic-reduction optimization for a bandwidth-bound inference Softmax kernel.",
+     "type": "single",
+     "options": [
+      "Upgrading host CPU RAM to DDR5 to decrease kernel enqueue latency",
+      "Fusing the scale, mask, and Softmax stages into a single kernel to keep intermediates in registers or SRAM when resources allow",
+      "Increasing the clock frequency of the GPU Tensor Cores by \\$15\\%",
+      "Disabling warp scheduler out-of-order instruction issue"
+     ],
+     "answer": 1
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate the hardware ridge point from peak compute throughput and memory bandwidth.",
+    "You can now apply the roofline equation to compute a modeled upper bound and identify whether the bandwidth or compute ceiling is lower.",
+    "You can now analyze why rising compute-to-bandwidth ratios push newer hardware ridge points upward and increase the need for reuse-aware kernel design.",
+    "You can now evaluate why increasing peak compute alone does not raise the simple roofline bound for a memory-bound kernel."
+   ]
+  }
+ ]
+}

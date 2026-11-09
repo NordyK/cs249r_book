@@ -1,0 +1,60 @@
+{
+ "title": "Scheduling Concurrent Trajectories",
+ "summary": "Work through Scheduling Concurrent Trajectories.",
+ "source": {
+  "chapter": "v3-10",
+  "sections": [
+   "Scheduling Concurrent Trajectories",
+   "Fair sharing and the scheduling charge",
+   "Quota and capacity gates"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Scheduling Concurrent Trajectories** in *The Agent Harness* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Agent Harness, § Scheduling Concurrent Trajectories",
+   "md": "When the test suite for candidate `r18` finishes and the repair trajectory returns to `READY`, it rarely has the serving cluster to itself: an interactive user session and a backlog of repository maintenance tasks may already be waiting to query the model. If the harness simply dispatches requests as soon as tasks generate them, aggressive retry loops will monopolize model capacity; if it unconditionally favors interactive requests, large maintenance jobs can wait indefinitely."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Fair sharing and the scheduling charge\n- Quota and capacity gates"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Fair model-call scheduling matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Weighted deficit round-robin charged by each call's full input plus maximum output fixes a class's share of charge, not of calls, and fairness, provider quotas, and budgets are independent gates."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-10-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Scheduling Concurrent Trajectories** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A budget is an enforceable ceiling only if each operation is admitted when actual consumption plus outstanding reservations plus its worst-case liability plus a protected finalization reserve fits the allowance in every dimension.",
+      "Weighted deficit round-robin charged by each call's full input plus maximum output fixes a class's share of charge, not of calls, and fairness, provider quotas, and budgets are independent gates.",
+      "Withdrawing a result's eligibility to inform the model never clears the operation's obligation, and no trajectory reaches a terminal state until every obligation is settled or explicitly transferred.",
+      "Supervision needs one authoritative per-trajectory control record, written only by the harness, holding contract, lifecycle state, accounting, grants, current invocations, the operation table, and a live plan."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Fair model-call scheduling**: Weighted deficit round-robin charged by each call's full input plus maximum output fixes a class's share of charge, not of calls, and fairness, provider quotas, and budgets are independent gates."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Scheduling Concurrent Trajectories."
+   ]
+  }
+ ]
+}

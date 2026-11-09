@@ -1,0 +1,77 @@
+{
+ "title": "Heterogeneous SoC Design",
+ "summary": "Classify which SoC engine is typically most energy-efficient for a supported INT8 convolution workload.",
+ "source": {
+  "chapter": "v1-11",
+  "sections": [
+   "Heterogeneous SoC Design",
+   "Mobile SoC architecture evolution",
+   "Strategies for dynamic workload distribution",
+   "Power and thermal management",
+   "Software stack challenges"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Heterogeneous SoC Design** in *Hardware Acceleration* (Vol I). By the end you should be able to:\n\n- Classify which SoC engine is typically most energy-efficient for a supported INT8 convolution workload\n- Explain why automotive SoCs prioritize isolation and worst-case deadline guarantees over average-case throughput\n- Evaluate the memory movement and cache coherency trade-offs of unified SoC memory\n- Analyze the impact of thermal throttling and DVFS on sustained edge AI inference"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Hardware Acceleration, § Heterogeneous SoC Design",
+   "md": "Edge, mobile, and automotive deployments operate under strict physical constraints: sealed enclosures without active fans limit thermal dissipation to a few watts, while battery capacity caps total energy consumption. To deliver machine learning capabilities within these boundaries, heterogeneous system-on-chip (SoC) architectures integrate general-purpose CPU cores, GPU shader arrays, digital signal processors (DSPs), and specialized neural processing units (NPUs) onto a single silicon die sharing a unified memory subsystem."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Mobile SoC architecture evolution\n- Strategies for dynamic workload distribution\n- Power and thermal management\n- Software stack challenges\n\nPay attention to: Mobile SoC architecture: CPU, GPU, NPU/DSP, and unified LPDDR memory; Dynamic workload distribution based on latency, power, and throughput; Power and thermal management: DVFS, thermal throttling, and dark silicon; Automotive heterogeneous AI: ISO 26262 functional safety, lockstep redundancy, deterministic latency."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In automotive autonomous-driving SoCs, explain why mixed-criticality isolation, bandwidth reservations, and worst-case deadlines matter even when they can reduce average throughput.",
+   "md": "Automotive platforms run safety-critical perception and control alongside less critical workloads, so the system must guarantee that urgent tasks still meet their deadlines under contention rather than only performing well on average. Isolation mechanisms and bandwidth reservations prevent a noncritical workload from monopolizing shared memory or compute resources needed by a real-time pipeline. For example, reserving memory bandwidth for a perception path may lower average accelerator utilization, but it protects the worst-case execution time that braking or steering logic depends on. The practical consequence is that the design target is deadline reliability under mixed-criticality load, not maximum average throughput alone."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-11-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "On a modern mobile heterogeneous System-on-Chip (SoC) featuring big.LITTLE CPUs, a mobile GPU, and a dedicated NPU, which compute engine is typically the most energy-efficient choice for a supported INT8 convolution workload?",
+     "explanation": "The correct answer is C. For a supported INT8 convolution path, the NPU is designed specifically to execute quantized tensor operations with better energy efficiency than a general-purpose CPU or GPU path. The measured pipeline energy still depends on fallback operators, data movement, and thermal behavior, so specialization does not by itself determine the whole-system result. The big CPU core is less specialized for this workload, and the memory controller and hypervisor are not the units that execute the convolution itself.",
+     "hint": "Think about: classify which SoC engine is typically most energy-efficient for a supported INT8 convolution workload.",
+     "type": "single",
+     "options": [
+      "The high-performance 'big' CPU core running single-threaded FP32 instructions",
+      "The out-of-order system memory controller",
+      "The dedicated Neural Processing Unit (NPU) optimized for quantized INT8 tensor operations",
+      "The host operating system virtualization hypervisor"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In mobile SoCs with unified system memory (LPDDR), sharing physical RAM between the CPU, GPU, and NPU eliminates all data movement overhead between heterogeneous processors.",
+     "explanation": "False. While unified memory eliminates physical PCIe bus transfers and duplicate memory copies across discrete devices, data must still be moved across the shared on-chip interconnect and through different cache hierarchy domains. Furthermore, cache coherency protocols, differing tensor layout requirements (e.g., NCHW vs NHWC), and memory bus contention between competing SoC engines still incur significant latency and energy overhead.",
+     "hint": "Think about: evaluate the memory movement and cache coherency trade-offs of unified SoC memory.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Describe how Dynamic Voltage and Frequency Scaling (DVFS) and thermal throttling constrain sustained AI inference performance on edge and mobile devices.",
+   "md": "Mobile SoCs operate within a tight thermal design power (TDP) envelope (typically \\$3--5 W) with passive cooling. When continuous AI workloads generate sustained heat, the thermal management system triggers DVFS to lower operating voltage and clock frequencies, preventing device overheating. This thermal throttling causes execution time to degrade over time, meaning peak burst performance cannot be sustained for continuous video or audio streaming workloads without proactive power-budget scheduling."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify which SoC engine is typically most energy-efficient for a supported INT8 convolution workload.",
+    "You can now explain why automotive SoCs prioritize isolation and worst-case deadline guarantees over average-case throughput.",
+    "You can now evaluate the memory movement and cache coherency trade-offs of unified SoC memory.",
+    "You can now analyze the impact of thermal throttling and DVFS on sustained edge AI inference."
+   ]
+  }
+ ]
+}

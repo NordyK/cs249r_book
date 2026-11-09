@@ -1,0 +1,67 @@
+{
+ "title": "Scope of Supervised Fine-Tuning",
+ "summary": "Work through Scope of Supervised Fine-Tuning.",
+ "source": {
+  "chapter": "v3-16",
+  "sections": [
+   "Scope of Supervised Fine-Tuning",
+   "Procedure, contracts, and enforcement",
+   "Objective, behavior source, and artifact"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Scope of Supervised Fine-Tuning** in *Trajectory Fine-Tuning* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Trajectory Fine-Tuning, § Scope of Supervised Fine-Tuning",
+   "md": "Before turning an admitted record such as `trace_r19_01_redacted_v1` into a weight update, engineers must decide whether the failure it repaired belongs in the model's parameters at all. Fine-tuning a model to work around a missing prompt instruction or a broken tool schema bakes a temporary workaround into billions of weights, only for the behavior to break again the next time the interface changes. Modifying model weights is an expensive, high-blast-radius change reserved for behavioral failures that survive cheaper fixes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Procedure, contracts, and enforcement\n- Objective, behavior source, and artifact"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Three homes for behavior matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-16-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Scope of Supervised Fine-Tuning** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime.",
+      "A disagreement rate measured on reference prefixes bounds excess task cost only by min(H, H^2 eps), while the same rate on learner states with bounded recovery cost gives a linear bound, so where imitation error is measured sets the horizon penalty.",
+      "LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation.",
+      "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Three homes for behavior**: Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Three homes for behavior* preserves the authority limit of *Proposal boundary*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Three homes for behavior preserves the authority limit of Proposal boundary."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Scope of Supervised Fine-Tuning."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,79 @@
+{
+ "title": "Beyond One Accelerator",
+ "summary": "Justify the transition from monolithic dies to chiplet-based accelerator architectures.",
+ "source": {
+  "chapter": "v1-11",
+  "sections": [
+   "Beyond One Accelerator"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Beyond One Accelerator** in *Hardware Acceleration* (Vol I). By the end you should be able to:\n\n- Justify the transition from monolithic dies to chiplet-based accelerator architectures\n- Analyze how widening communication boundaries from package to node to cluster changes the cost of scaling neural network workloads\n- Explain how wafer-scale integration reduces some off-chip communication bottlenecks while leaving routing, thermal, and fault-tolerance constraints in place\n- Identify why moving from intra-node to inter-node communication makes distributed collectives more costly"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Hardware Acceleration, § Beyond One Accelerator",
+   "md": "A single accelerator holds the chapter's ResNet-50 workload and GPT-2 XL decoding comfortably in on-package memory, but larger workloads outgrow one device either because their arithmetic would take too long on it or because their weights and runtime state do not fit in its HBM. Multi-chip scaling still depends on an efficient per-device dataflow, since each accelerator must feed its own execution units, but communication adds further boundaries to the memory hierarchy."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Monolithic reticle limits and the shift to Multi-Chip Modules (MCM) / chiplets; Inter-chip bandwidth drops and NUMA effects across package boundaries; Wafer-scale integration vs board-level interconnects (NVLink, NVSwitch); Scale-out network bandwidth constraints compared to intra-node interconnects."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how communication boundaries change performance as a neural network workload scales from chiplets within a package to multiple accelerators within a node and then across nodes.",
+   "md": "As scaling moves outward from package-level chiplets to multiple accelerators in a node and then to separate nodes, communication generally crosses slower and more expensive boundaries. A tensor read that stays local to one chip or package can become more costly when it must traverse an intra-node fabric, and cost rises again when collectives extend across the network. For example, a partitioning that is acceptable within one node may become communication-heavy once activations or gradients must repeatedly cross the internode boundary. The practical consequence is that topology, locality, and collective patterns matter: performance depends not just on how much compute is added, but on which communication boundary the workload is forced to cross repeatedly."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-11-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why have accelerator architectures increasingly shifted from monolithic single-die designs toward Multi-Chip Module (MCM) and chiplet architectures?",
+     "explanation": "The correct answer is B. Monolithic silicon dies are physically bounded by optical lithography reticle limits (typically $\\approx 858\\text{ mm}^2$). Furthermore, manufacturing defect density causes wafer yield to drop exponentially as die area approaches the reticle limit, making large monolithic chips prohibitively expensive. Chiplet/MCM architectures break the system into smaller, high-yield dies interconnected via high-density silicon bridges or interposers, enabling much larger aggregate compute and memory capacity. The elimination of foundries is absurd; HBM is supported on monolithic dies (e.g., A100/H100); physical constants cannot be exceeded.",
+     "hint": "Think about: justify the transition from monolithic dies to chiplet-based accelerator architectures.",
+     "type": "single",
+     "options": [
+      "Chiplets eliminate all need for semiconductor fabrication foundries",
+      "Monolithic dies are constrained by the physical lithography reticle limit ($\\approx 858\\text{ mm}^2$) and suffer exponential yield loss as die size increases",
+      "Monolithic dies cannot support high-bandwidth memory (HBM) interfaces",
+      "Chiplets allow electrical signals to travel faster than the speed of light"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "What is the primary bottleneck introduced when scaling out from accelerators within one server to accelerators across separate servers?",
+     "explanation": "The correct answer is C. Scaling across servers pushes communication onto a narrower, higher-latency network boundary than the local accelerator fabric, so collectives such as all-reduce or all-to-all become more expensive and more likely to limit scaling. The floating-point-format claim is false, the CPU-emulation claim invents a mechanism that does not exist, and the synchronization claim gets the direction wrong because distributed training still has to exchange information across ranks.",
+     "hint": "Think about: identify why moving from intra-node to inter-node communication makes distributed collectives more costly.",
+     "type": "single",
+     "options": [
+      "Inter-node network adapters cannot transmit FP16 or BF16 floating-point values",
+      "Inter-node communication requires GPUs to switch to single-threaded CPU emulation mode",
+      "The communication boundary moves onto a much narrower and higher-latency network path, making collective communication more expensive",
+      "Inter-node scaling eliminates the need for gradient synchronization in distributed training"
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Describe the architectural rationale behind a wafer-scale accelerator and explain which multi-chip bottlenecks it reduces and which constraints remain.",
+   "md": "A wafer-scale design keeps much more computation and communication on one physical substrate instead of splitting it across many separately packaged chips, so it can reduce external communication boundaries that would otherwise require off-chip links and package crossings. That can lower some latency and increase local bandwidth for workloads that would have exchanged data across chip boundaries in a conventional multi-chip system. However, it does not make the entire wafer a uniform zero-cost machine: distance, routing capacity, thermal limits, fault tolerance, and manufacturing constraints still shape which communication patterns remain efficient. The practical implication is that wafer scale reduces some multi-chip bottlenecks, but it does not eliminate locality or systems-design constraints."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now justify the transition from monolithic dies to chiplet-based accelerator architectures.",
+    "You can now analyze how widening communication boundaries from package to node to cluster changes the cost of scaling neural network workloads.",
+    "You can now explain how wafer-scale integration reduces some off-chip communication bottlenecks while leaving routing, thermal, and fault-tolerance constraints in place.",
+    "You can now identify why moving from intra-node to inter-node communication makes distributed collectives more costly."
+   ]
+  }
+ ]
+}

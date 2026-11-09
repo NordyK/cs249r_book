@@ -1,0 +1,97 @@
+{
+ "title": "Inference Pipeline",
+ "summary": "Evaluate an inference batching policy using measured queueing and execution behavior under a strict latency SLO.",
+ "source": {
+  "chapter": "v1-05",
+  "sections": [
+   "Inference Pipeline",
+   "Operational phase differences",
+   "Memory and computational resources",
+   "Optimizing inference throughput and latency"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Inference Pipeline** in *Neural Computation* (Vol I). By the end you should be able to:\n\n- Evaluate an inference batching policy using measured queueing and execution behavior under a strict latency SLO\n- Explain how intermediate activation buffer recycling reduces peak memory consumption during inference\n- Justify why reduced precision is often easier to deploy for inference than for training while identifying the conditions needed for safe INT8 deployment\n- Analyze why end-to-end latency optimization must target the dominant request-path stages rather than only the neural inference kernel\n- Explain the monotonicity property of the softmax function and its impact on classification decision-making"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Neural Computation, § Inference Pipeline",
+   "md": "Training transforms randomly initialized weights into parameters that encode useful patterns, but deployment executes those parameters under a different resource profile. During inference, the same mathematical operators face a different operating regime. Online latency deadlines or offline throughput targets replace the training objective, gradients and optimizer state disappear from memory, and target execution environments range from milliwatt edge processors to multi-accelerator cloud servers. This transition reshapes how memory bandwidth, compute capacity, and pipeline stages govern system performance."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Operational phase differences\n- Memory and computational resources\n- Optimizing inference throughput and latency\n\nPay attention to: Serving batching policies for real-time latency SLOs vs batch throughput; Activation buffer recycling during inference; Quantization mechanics and numerical error tolerance in single-pass inference; End-to-end latency bottleneck analysis across neural and non-neural stages."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A computer vision inference service has a target $\\text{p99}$ latency SLO of \\$100\\text{ ms}$. For one measured representative request, the non-overlapping stages are: image JPEG decoding \\$45\\text{ ms}$, resizing and normalization \\$30\\text{ ms}$, neural network inference \\$15\\text{ ms}$, and JSON response serialization \\$25\\text{ ms}$. If inference alone becomes \\$2\\times$ faster, what is the new computed request latency, and why does that result alone still not establish whether the service meets the $\\text{p99}$ SLO? What should be profiled next?",
+   "md": "The measured request path is additive here: cutting neural inference from \\$15\\text{ ms}$ to \\$7.5\\text{ ms}$ changes total latency from \\$115\\text{ ms}$ to \\$107.5\\text{ ms}$, which still exceeds the \\$100\\text{ ms}$ target for this representative request. For example, the dominant remaining cost is the \\$75\\text{ ms}$ spent in decoding, resizing, and normalization before the model output is even serialized. But one post-speedup request does not determine $\\text{p99}$ compliance by itself; end-to-end percentiles require representative traffic, queueing, and request-mix data. The next step is to profile the dominant non-neural stages and then measure full end-to-end latency distributions under target traffic."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-05-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A real-time voice transcription service has a strict p99 end-to-end latency budget of \\$50 ms. In configuring the serving infrastructure for the acoustic model, which batching strategy best aligns with this requirement?",
+     "explanation": "The correct answer is C. A \\$50 ms deadline by itself does not determine a single correct batch size. The right policy is to measure arrival behavior, queueing delay, execution time for candidate batch limits, and the rest of the request path, then choose a maximum batch size plus bounded waiting that fits the end-to-end budget and validate it under representative traffic. A utilization-only rule ignores the latency cost of waiting to form batches, while a fixed large-batch rule can easily violate the SLO if arrivals are sparse or bursty.",
+     "hint": "Think about: evaluate an inference batching policy using measured queueing and execution behavior under a strict latency SLO",
+     "type": "single",
+     "options": [
+      "Choose the policy only from peak accelerator utilization: the largest stable batch is always best for a tight latency SLO.",
+      "Fix batch size at \\$64 and avoid any explicit waiting bound, because a consistent large batch is the most reliable way to manage tail latency.",
+      "Use measured arrival patterns, queueing behavior, batch-execution times, and other pipeline-stage latencies to choose a maximum batch size and an explicit waiting bound that fit within the end-to-end deadline, then validate the policy under representative traffic.",
+      "Minimize average latency on an unloaded test host, then keep that batch size in production even if arrival patterns and queueing behavior change."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Why can an inference serving runtime for a sequential feed-forward network achieve a significantly smaller memory footprint than a training runtime for the exact same model architecture, beyond the omission of optimizer states and gradients?",
+     "explanation": "The correct answer is B. Under the retained-activation training scheme used here, intermediate values needed by the backward pass are saved during the forward pass; checkpointing can instead recompute selected values. During inference, because there is no backward pass, an activation tensor is no longer needed once its downstream consuming layer has computed its output. The serving engine can therefore recycle memory using a ping-pong buffer of just two activation tensors for a sequential graph. Model weights are stored in standard floating-point or quantized formats rather than single-bit hashes. Sequential layers have data dependencies and cannot execute concurrently without inputs. Intermediate buffers reside in device memory rather than fitting entirely in registers.",
+     "hint": "Think about: explain how intermediate activation buffer recycling reduces peak memory consumption during inference",
+     "type": "single",
+     "options": [
+      "Inference converts all parameter tensors into single-bit binary hash tables.",
+      "Inference requires no backward pass, allowing intermediate activation buffers to be immediately recycled or overwritten once their single downstream consumer layer finishes execution.",
+      "Inference executes all network layers simultaneously in parallel, eliminating the need for intermediate buffers.",
+      "Inference executes exclusively within on-chip CPU registers, bypassing main memory completely."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Why is reduced numerical precision (such as 8-bit integer quantization, INT8) generally much more practical to deploy during inference than during model training?",
+     "explanation": "The correct answer is A. Inference avoids the small repeated parameter updates, gradients, and iterative optimizer behavior that make training especially sensitive to reduced precision, so lower precision is often a practical serving option. But it is not free: rounding still propagates through the forward computation and can change outputs, so the benefit depends on kernel and hardware support plus calibration and task-level validation. A claim that fitting weights in memory is sufficient ignores both execution support and quality effects, and a claim of universal INT8 speedup overstates the case because realized gains depend on the execution stack and workload shape.",
+     "hint": "Think about: justify why reduced precision is often easier to deploy for inference than for training while identifying the conditions needed for safe INT8 deployment",
+     "type": "single",
+     "options": [
+      "Inference has no small iterative parameter updates or gradient accumulation to preserve, so reduced precision is often practical to test, but rounding can still propagate through forward layers and any INT8 speedup requires supported kernels or hardware plus calibration and quality validation.",
+      "If the quantized weights fit in memory, that alone guarantees inference quality and latency comparable to higher precision.",
+      "A single calibration set is sufficient to guarantee correct INT8 behavior for every slice of future production traffic.",
+      "INT8 is universally faster whenever it reduces bytes moved, so if a model can run in INT8 it should replace FP32 or BF16 without further checks."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Applying the softmax function $\\hat{y}_i = \\frac{e^{z_i}}{\\sum_j e^{z_j}}$ to raw neural network output logits alters the argmax classification decision, meaning the class with the highest raw logit is not guaranteed to have the highest predicted probability.",
+     "explanation": "False. Because the exponential function e^z is strictly monotonically increasing, applying softmax preserves the exact relative ranking of all logits: argmax_i(z_i) = argmax_i(haty_i). Softmax scales logits into a normalized probability distribution summing to 1, but it never alters which class has the highest value or changes the top-1 prediction.",
+     "hint": "Think about: explain the monotonicity property of the softmax function and its impact on classification decision-making",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate an inference batching policy using measured queueing and execution behavior under a strict latency SLO.",
+    "You can now explain how intermediate activation buffer recycling reduces peak memory consumption during inference.",
+    "You can now justify why reduced precision is often easier to deploy for inference than for training while identifying the conditions needed for safe INT8 deployment.",
+    "You can now analyze why end-to-end latency optimization must target the dominant request-path stages rather than only the neural inference kernel."
+   ]
+  }
+ ]
+}

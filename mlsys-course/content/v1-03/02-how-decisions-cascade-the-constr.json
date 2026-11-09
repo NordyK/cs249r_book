@@ -1,0 +1,71 @@
+{
+ "title": "How Decisions Cascade: The Constraint Propagation Principle",
+ "summary": "Analyze dependent artifact rework and distinguish an assigned timing-sensitivity scenario from a project cost estimate.",
+ "source": {
+  "chapter": "v1-03",
+  "sections": [
+   "How Decisions Cascade: The Constraint Propagation Principle"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **How Decisions Cascade: The Constraint Propagation Principle** in *ML Lifecycle* (Vol I). By the end you should be able to:\n\n- Analyze dependent artifact rework and distinguish an assigned timing-sensitivity scenario from a project cost estimate\n- Analyze how problem-definition constraints propagate through data, modeling, validation, and deployment\n- Explain data cascades as compounding downstream failure chains caused by upstream data quality defects"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Lifecycle, § How Decisions Cascade: The Constraint Propagation Principle",
+   "md": "In the DR scenario, the in-visit requirement already ruled out cloud inference and so required edge deployment. The edge target's memory and power budgets then constrain model architecture, favoring compact MobileNet-class models (a family of small image models designed for phones and edge devices) over large ensembles (several models whose predictions are combined) and requiring automated image-quality checks at capture time. Each downstream constraint narrows the design space for upstream stages, coupling hardware limits directly to data collection and model design."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Dependency-sensitive rework when constraints surface late."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-03-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Which interpretation of the Constraint Propagation Principle is consistent with the chapter's treatment of discovering constraints late in the ML lifecycle?",
+     "explanation": "The correct answer is A. The chapter's constraint propagation principle holds that a constraint discovered late can force rework across affected upstream stages, and that estimating the actual rework requires tracing which datasets, trained weights, validation evidence, and deployment packages depended on the missing constraint. The linear, always-rebuild-everything, and cost-decreases-over-time alternatives are false universal claims that contradict the chapter's emphasis on dependency-sensitive rework.",
+     "hint": "Think about: analyze dependent artifact rework and distinguish an assigned timing-sensitivity scenario from a project cost estimate.",
+     "type": "single",
+     "options": [
+      "A. It holds that a late-discovered constraint can force rework across upstream stages, with the actual rework depending on which datasets, weights, validation evidence, and deployment packages relied on the missing constraint.",
+      "B. It establishes a universal linear rule: each later lifecycle stage adds the same fixed amount of rework regardless of what artifacts were affected.",
+      "C. It claims late-discovered constraints always force a complete rebuild of every downstream artifact, so the exact dependency structure does not matter.",
+      "D. It implies correction cost generally falls in later stages because downstream telemetry makes fixes easier than catching the issue early."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Constraints in the ML lifecycle propagate only backward, from deployment limits discovered late toward earlier stages.",
+     "explanation": "False. The chapter shows propagation in both directions. Backward propagation carries a deployment limit upstream, as when tight clinic bandwidth forces compressed inputs that the training data must then match. Forward propagation carries an early decision downstream: capturing fundus images at the resolution needed to see small hemorrhages fixes the model's input size, and with it the operation count every inference must pay on the clinic device. The stages therefore form a network of constraints rather than a one-way chain.",
+     "hint": "Think about: analyze how problem-definition constraints propagate through data, modeling, validation, and deployment.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "When a data quality failure introduced during data collection propagates downstream to cause compounding failures in model training, validation, and deployment, the resulting pattern is known as a(n) ____.",
+     "explanation": "data cascade. The chapter defines a data cascade as a chain of downstream failures triggered by bad data, the case of constraint propagation that travels specifically through data quality failures.",
+     "hint": "Think about: explain data cascades as compounding downstream failure chains caused by upstream data quality defects.",
+     "type": "fill",
+     "answer": [
+      "data cascade"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze dependent artifact rework and distinguish an assigned timing-sensitivity scenario from a project cost estimate.",
+    "You can now analyze how problem-definition constraints propagate through data, modeling, validation, and deployment.",
+    "You can now explain data cascades as compounding downstream failure chains caused by upstream data quality defects."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,69 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Evaluate why operating a research GPU cluster at near 100% utilization is counterproductive to organizational velocity.",
+ "source": {
+  "chapter": "v2-08",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Fleet Orchestration* (Vol II). By the end you should be able to:\n\n- Evaluate why operating a research GPU cluster at near 100% utilization is counterproductive to organizational velocity\n- Explain why policy misconfigurations rather than scheduling algorithm limitations are often the root cause of poor cluster efficiency\n- Evaluate when gang scheduling constraints can be relaxed in distributed machine learning workloads"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Orchestration, § Fallacies and Pitfalls",
+   "md": "Those policy-infrastructure mismatches recur as a small set of misconceptions that can make an apparently healthy scheduler waste expensive fleet capacity. A cluster running at 98 percent utilization can look healthy while researchers have stopped submitting jobs because wait times have stretched into weeks. Each misconception below follows the same pattern, in which optimizing one visible metric degrades the outcome the fleet exists to deliver."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: The 100% utilization trap and queuing delay explosions; Algorithmic sophistication vs. policy misconfiguration auditing; Misapplying gang scheduling to asynchronous or elastic workloads."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain the fallacy that 'more sophisticated scheduling algorithms always improve utilization,' and describe what operators should audit before replacing their cluster scheduler.",
+   "md": "Low cluster utilization and long wait times are more frequently caused by policy misconfigurations than algorithmic limitations. Before replacing or upgrading a scheduler, operators should audit: (1) Resource request inflation (users requesting 8 GPUs when 1 is needed); (2) Unconfigured gang scheduling timeouts; (3) Mismatched hardware partitions (e.g., jobs requiring A100s when A10s suffice); and (4) Stale fair-share decay parameters that fail to balance contention."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-08-13-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why is targeting near \\$100\\% GPU cluster utilization an operational anti-pattern for an interactive AI research and development organization?",
+     "explanation": "The correct answer is D. Simple queue models contain a \\$1/(1-rho) delay term as offered load approaches service capacity. This explains why headroom matters, but allocated-GPU utilization is not that model's load parameter. Actual targets depend on arrivals, job sizes, gang placement, and delay objectives; no universal 80–85 percent threshold predicts multi-day waits.",
+     "hint": "Think about: evaluate why operating a research GPU cluster at near 100% utilization is counterproductive to organizational velocity.",
+     "type": "single",
+     "options": [
+      "GPU hardware components melt if utilization exceeds \\$90\\% for more than 5 consecutive minutes.",
+      "Modern deep learning frameworks automatically downgrade model accuracy when cluster utilization exceeds \\$85\\%.",
+      "Operating above \\$95\\% utilization causes cloud providers to double their hourly billing rates without warning.",
+      "Near saturation, queueing delays can rise sharply and delay experimental feedback; allocation utilization alone does not establish a safe headroom target for the fleet."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Gang scheduling is strictly mandatory for every distributed ML workload, including asynchronous parameter-server training, hyperparameter sweeps, and elastic fine-tuning jobs.",
+     "explanation": "False. The required atomic group follows the execution dependencies, not the workload label or maximum request. Independent trials or asynchronous workers may progress separately, while elastic synchronous jobs still require their minimum viable tensor-, pipeline-, or collective groups and supported resize boundaries. Elasticity permits changing between complete feasible configurations; it does not make an incomplete synchronous group productive. Changes to synchronization or worker count still require quality validation.",
+     "hint": "Think about: evaluate when gang scheduling constraints can be relaxed in distributed machine learning workloads.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate why operating a research GPU cluster at near 100% utilization is counterproductive to organizational velocity.",
+    "You can now explain why policy misconfigurations rather than scheduling algorithm limitations are often the root cause of poor cluster efficiency.",
+    "You can now evaluate when gang scheduling constraints can be relaxed in distributed machine learning workloads."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,67 @@
+{
+ "title": "Limits of Single-Machine Serving",
+ "summary": "Classify a serving shortfall as a memory, throughput, or latency trigger and select replication or sharding accordingly.",
+ "source": {
+  "chapter": "v2-10",
+  "sections": [
+   "Limits of Single-Machine Serving"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Limits of Single-Machine Serving** in *Serving at Scale* (Vol II). By the end you should be able to:\n\n- Classify a serving shortfall as a memory, throughput, or latency trigger and select replication or sharding accordingly\n- Evaluate when a latency target justifies sharding a model that already fits on one device, measuring each phase against its own target\n- Distinguish average token cadence (TPOT) from per-gap time between tokens (TBT) when setting streaming latency targets"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Serving at Scale, § Limits of Single-Machine Serving",
+   "md": "A single accelerator fails a production endpoint in three ways: its memory fills before the model weights or caches fit, its throughput saturates below the arriving query rate, or its forward pass runs longer than a request's latency budget. Overcoming those limits requires distributing work across several devices within one machine or across machines over the network. @Tbl-distribution-triggers categorizes these three triggers and their matching distribution strategies, whose necessity depends on the permitted precision, placement, and service contract."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Memory, throughput, and latency as distinct triggers for distribution; Replication for throughput versus sharding for memory and latency; Per-phase measurement of sharding's latency benefit; TPOT as an average versus TBT as a per-gap target."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A 70B-parameter model needs roughly 140 GB of FP16 weights, more than one 80 GB accelerator holds, and quantization can make it fit on one device. Explain why the team might still shard it, and how they should decide.",
+   "md": "Fitting in memory removes the memory trigger, but the single-device execution time may still exceed the request latency budget. Sharding across several GPUs divides computation and weight traffic, yet it adds communication and synchronization, and it shortens compute-bound prefill and bandwidth-bound decode by different amounts. The team should measure the sharded configuration's prefill latency against the TTFT target and its decode latency against the TPOT target separately, and shard only if both phases gain more than the added communication costs."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-10-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A recommendation service must answer 100,000 queries per second within 10 ms. Its model fits comfortably on one machine, which peaks at 10,000 queries per second with optimal batching. Which strategy addresses the binding constraint?",
+     "explanation": "The correct answer is C. The model fits and a single request meets its budget, so the shortfall is aggregate throughput, which horizontal replication solves by multiplying independent replicas. Sharding addresses memory or per-request latency and adds communication without multiplying throughput. Larger batches cannot help because the 10,000-query peak already assumes optimal batching, and quantization does not reliably deliver a tenfold gain.",
+     "hint": "Think about: classify a serving shortfall as a memory, throughput, or latency trigger and select replication or sharding accordingly.",
+     "type": "single",
+     "options": [
+      "Shard the model with tensor parallelism across machines, because sharding is the general remedy whenever one machine is insufficient.",
+      "Quantize the weights so a single machine runs ten times faster.",
+      "Replicate the full model across at least ten machines and route requests among them, because the binding constraint is throughput rather than memory or per-request latency.",
+      "Raise the batch size on one machine until it reaches 100,000 queries per second."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A stream that meets its TPOT target cannot stall the reader, because TPOT bounds the gap between successive tokens.",
+     "explanation": "False. TPOT is the average of the gaps between tokens, so one long gap can stall the reader while the average still meets its target. Per-gap tail targets are stated as time between tokens (TBT), which must be monitored separately from average cadence.",
+     "hint": "Think about: distinguish average token cadence (TPOT) from per-gap time between tokens (TBT) when setting streaming latency targets.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify a serving shortfall as a memory, throughput, or latency trigger and select replication or sharding accordingly.",
+    "You can now evaluate when a latency target justifies sharding a model that already fits on one device, measuring each phase against its own target.",
+    "You can now distinguish average token cadence (TPOT) from per-gap time between tokens (TBT) when setting streaming latency targets."
+   ]
+  }
+ ]
+}

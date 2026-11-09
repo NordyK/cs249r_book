@@ -1,0 +1,95 @@
+{
+ "title": "The Node",
+ "summary": "Analyze why frequent tensor-parallel exchanges favor the fast interconnect domain and what must be measured before spanning slower links.",
+ "source": {
+  "chapter": "v2-02",
+  "sections": [
+   "The Node",
+   "Bandwidth hierarchy",
+   "Dense node designs",
+   "Node memory partitioning",
+   "Data loading and I/O pipeline",
+   "Node health and reliability"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Node** in *Compute Infrastructure* (Vol II). By the end you should be able to:\n\n- Analyze why frequent tensor-parallel exchanges favor the fast interconnect domain and what must be measured before spanning slower links\n- Rank the data-movement tiers across the node-and-cluster hierarchy to explain the bandwidth cliffs governing distributed parallelism placement\n- Justify memory-tier placement for training state by matching access frequency to interconnect bandwidth and calculating the freed HBM capacity\n- Compare intra-node topologies by mapping their connectivity structure to the communication patterns of AllToAll-heavy workloads\n- Identify GPUDirect Storage (GDS) as the architectural mechanism for bypassing host CPU memory during high-throughput data loading"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Compute Infrastructure, § The Node",
+   "md": "The running model needs more memory than one accelerator provides. A node supplies several accelerators in one chassis, but each retains its own memory; dividing the work creates communication that the local fabric must sustain. Tensor parallelism divides an operation across accelerators, pipeline parallelism assigns successive model stages to different groups, and data parallelism assigns different training examples to model replicas whose updates must be combined. These strategies impose different traffic patterns, and the node's internal fabric decides which of them it can carry at the speed the partition needs."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Bandwidth hierarchy\n- Dense node designs\n- Node memory partitioning\n- Data loading and I/O pipeline\n- Node health and reliability\n\nPay attention to: The node as the minimum aggregation unit to hold frontier training state; Bandwidth cliffs between HBM, intra-node NVLink, and inter-node InfiniBand; Asymmetric training state memory partitioning across HBM, host DRAM, and NVMe; AllToAll traffic across NVSwitch crossbar vs. ring topologies."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A training framework offloads Adam first- and second-moment optimizer states (FP32, 8 bytes per parameter total) to host DDR5 DRAM over PCIe Gen5, while keeping weights and activations in GPU HBM. Justify this asymmetric placement using access frequency and bandwidth requirements, and quantify the HBM capacity freed for a 175B-parameter model.",
+   "md": "Model weights and activations are accessed multiple times per layer during both forward and backward passes, demanding HBM's \\$3.35\\text{ TB/s}$ bandwidth to avoid stalling Tensor Cores. In contrast, Adam optimizer moments are accessed only once per training step during the parameter update, making them candidates for offload. PCIe Gen5 ($\\approx 64\\text{ GB/s}$) still imposes a transfer budget; the framework must verify that moving the state fits the update interval or can be overlapped. For a 175B-parameter model, the two FP32 moments require \\$175 \\times 10^9 \\times 8\\text{ bytes} = 1{,}400\\text{ GB}$ (\\$1.4\\text{ TB}$). Offloading them frees \\$1.4\\text{ TB}$ of premium HBM across the node/cluster, which can be repurposed for larger batch sizes, longer sequences, or larger model shards."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-02-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team considers running 8-way tensor parallelism across 8 separate single-GPU server nodes connected by InfiniBand NDR (\\$50\\text{ GB/s}$ per GPU), rather than within an 8-GPU DGX H100 node over NVSwitch (\\$450\\text{ GB/s}$ per direction per GPU). What is the primary system consequence on training step time?",
+     "explanation": "The correct answer is D. Tensor parallelism exchanges partial results within layers, so placement on the slower fabric can expose substantially more communication. The quoted per-direction rates are \\$450\\text{ GB/s}$ and \\$50\\text{ GB/s}$. The actual step-time penalty depends on message sizes, overlap, and workload shape; it is not fixed by the bandwidth ratio alone. Exchanging only stage-boundary activations describes pipeline parallelism.",
+     "hint": "Think about: analyze why frequent tensor-parallel exchanges favor the fast interconnect domain and what must be measured before spanning slower links.",
+     "type": "single",
+     "options": [
+      "Tensor parallelism transfers only stage-boundary activations, so the network difference produces less than a 1% change in step time.",
+      "InfiniBand protocols cannot transmit floating-point data, forcing CPU format conversions on every step.",
+      "Inter-node tensor parallelism requires optical circuit switching, causing laser thermal shutdown.",
+      "Tensor parallelism requires frequent layer-level exchanges; placing them on the $\\approx 9\\times$ slower per-direction fabric increases exposed communication and can substantially reduce MFU."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Rank the quoted peak data-movement bandwidth per GPU across the four primary hardware tiers in a modern DGX H100 cluster, from highest quoted bandwidth to lowest:",
+     "explanation": "The correct sequence is: (2) Intra-package HBM3 (approx 3.35 TB/s) rightarrow (3) Intra-node NVLink 4 (one direction, approx 450 GB/s) rightarrow (4) Host-to-device PCIe Gen5 x16 (approx 64 GB/s) rightarrow (1) Inter-node InfiniBand NDR (approx 50 GB/s per port). NVLink and the network port are compared in one direction; the \\$450/50 = 9 ratio compares per-GPU NVLink injection with one network port, not fabric bisection bandwidth. Adjacent entries in this four-tier ranking do not imply an order-of-magnitude drop at every boundary. The hierarchy favors placing frequent exchanges within the fast interconnect domain, subject to measured workload costs.",
+     "hint": "Think about: rank the data-movement tiers across the node-and-cluster hierarchy to explain the bandwidth cliffs governing distributed parallelism placement.",
+     "type": "order",
+     "items": [
+      "Intra-package HBM3",
+      "Host-to-device PCIe Gen5 x16.",
+      "Inter-node InfiniBand NDR"
+     ]
+    },
+    {
+     "q": "A Mixture-of-Experts (MoE) workload routes tokens dynamically across experts, producing heavy AllToAll collective traffic where every GPU in a node sends distinct token buffers to every other GPU. Why does an NVSwitch crossbar topology significantly outperform a physical GPU ring topology for this workload?",
+     "explanation": "The correct answer is A. In an AllToAll collective, all $N$ GPUs simultaneously exchange unique data with all other $N-1$ GPUs ($N \\times (N-1)$ distinct streams). An NVSwitch crossbar fabric provides non-blocking, full-bisection single-hop connectivity between all 8 GPUs. In contrast, a ring topology forces traffic between non-adjacent GPUs to traverse intermediate nodes, creating severe link contention and $\\mathcal{O}(N)$ multi-hop latency. The claim that NVSwitch eliminates inter-GPU communication is false because NVSwitch is a network switch. The claim that rings force FP64 is fabricated. The claim that NVSwitch raises on-package HBM bandwidth confuses the intra-node interconnect with on-package memory.",
+     "hint": "Think about: compare intra-node topologies by mapping their connectivity structure to the communication patterns of AllToAll-heavy workloads.",
+     "type": "single",
+     "options": [
+      "NVSwitch provides non-blocking full bisection bandwidth enabling any-GPU-to-any-GPU communication in a single hop, whereas a ring forces non-neighbor transfers through intermediate hops, causing link contention and $\\mathcal{O}(N)$ latency.",
+      "NVSwitch converts AllToAll network collectives into local register-file reads, eliminating inter-GPU data transfer entirely.",
+      "Ring topologies cannot support mixed precision, forcing all token embeddings to be cast to FP64.",
+      "NVSwitch increases individual GPU HBM3 bandwidth from \\$3.35\\text{ TB/s}$ to \\$19\\text{ TB/s}$."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: In a dual-socket server node hosting 8 GPUs across two CPU root complexes, explain how Non-Uniform Memory Access (NUMA) effects impact data loading throughput and what architectural scheduling rule prevents CPU-to-GPU bottlenecks.",
+   "md": "In the stated dual-socket topology, remote memory traffic also crosses the inter-socket link, which can add latency and contention. The penalty depends on the processor, transfer size, and concurrent traffic; there is no universal percentage. Measure ingestion and place data-loader workers, pinned buffers, NICs, and target GPUs in the same NUMA domain when the local path improves sustained throughput."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze why frequent tensor-parallel exchanges favor the fast interconnect domain and what must be measured before spanning slower links.",
+    "You can now rank the data-movement tiers across the node-and-cluster hierarchy to explain the bandwidth cliffs governing distributed parallelism placement.",
+    "You can now justify memory-tier placement for training state by matching access frequency to interconnect bandwidth and calculating the freed HBM capacity.",
+    "You can now compare intra-node topologies by mapping their connectivity structure to the communication patterns of AllToAll-heavy workloads."
+   ]
+  }
+ ]
+}

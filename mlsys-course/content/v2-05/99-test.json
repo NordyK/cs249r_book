@@ -1,0 +1,149 @@
+{
+ "title": "Test: Collective Communication",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-05-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "The mathematical identity that an AllReduce can be decomposed into an intra-group ____ phase (where each worker retains a reduced chunk) followed by an ____ phase (where workers circulate and concatenate the reduced chunks) forms the foundational communication mechanism behind both Ring AllReduce and ZeRO-3/FSDP memory sharding.",
+     "explanation": "ReduceScatter, AllGather (or Reduce-Scatter and All-Gather). In Ring AllReduce, this decomposition executes in two $N-1$ step phases; in FSDP, the AllGather is invoked per layer during the forward pass to reconstruct parameters, and the ReduceScatter is invoked during the backward pass to shard the accumulated gradients.",
+     "hint": "Think about: identify the fundamental two-phase decomposition of AllReduce into ReduceScatter and AllGather.",
+     "type": "fill",
+     "answer": [
+      "ReduceScatter, AllGather",
+      "ReduceScatter, AllGather (or Reduce Scatter and All Gather)",
+      "ReduceScatter, AllGather (or Reduce-Scatter and All-Gather)"
+     ]
+    },
+    {
+     "q": "Why can MoE token routing with AllToAll encounter contention and tail-latency limits even when its per-worker payload is smaller than that of a dense AllReduce?",
+     "explanation": "The correct answer is B. AllToAll has $N(N-1)$ potential directed peer relationships, so placement, routing, and load imbalance matter as well as total bytes. With a fixed total $M$-byte input per rank, uniform AllToAll sends $(N-1)M/N$ bytes per rank, not a quadratic volume. Traffic can still contend on a limited bisection or overloaded expert. The operation does not inherently require TCP or FP32.",
+     "hint": "Think about: compare the scaling constraints of AllToAll and AllReduce by analyzing logical connection density and network bisection contention.",
+     "type": "single",
+     "options": [
+      "AllToAll transfers more total bytes per GPU than AllReduce, requiring each GPU to send \\$2(N-1)M$ bytes instead of \\$2 \\frac{N-1}{N} M$ bytes.",
+      "AllToAll exchanges distinct payloads among many peers; routing skew and concurrent cross-fabric transfers can concentrate traffic on shared links and destinations.",
+      "AllToAll cannot execute over InfiniBand fabrics and must fall back to host CPU TCP/IP socket emulation.",
+      "AllToAll mandates single-precision FP32 representation, preventing BF16 or FP16 tensor transfers across remote experts."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "On an 8-node cluster with 8 GPUs per node, fast local NVLink, and eight independent 50 GB/s network ports per node, how can hierarchical AllReduce improve on a flat ring whose inter-node traffic is serialized through one port?",
+     "explanation": "The correct answer is C. Each inter-node rank receives an input shard of $M/8$, then sends \\$2(7/8)(M/8)$ bytes in its eight-node ring and receives the same volume. Summing over eight local ranks gives \\$2(7/8)M$ sent per node, not an eightfold reduction in aggregate optical bytes. Speedup comes from the declared local aggregation and independent-port mapping; a topology-aware flat implementation can change the comparison.",
+     "hint": "Think about: analyze hierarchical AllReduce by separating input shard size, sent volume, aggregate node traffic, and available port capacity.",
+     "type": "single",
+     "options": [
+      "Hierarchical AllReduce converts the floating-point values to 8-bit integers during the intra-node phase to save inter-node bandwidth.",
+      "Flat Ring AllReduce requires every GPU to establish an optical fiber connection directly to all 63 other GPUs in the cluster.",
+      "Local ReduceScatter creates one 125 MB shard per GPU from a 1 GB tensor; corresponding-rank AllReduces can distribute these shards across the eight ports, followed by local AllGather.",
+      "Hierarchical AllReduce executes without any inter-node network synchronization barriers."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In PyTorch DistributedDataParallel (DDP), how does bucket fusion balance the trade-off between communication startup latency ($\\alpha$) and the compute-communication overlap window?",
+     "explanation": "The correct answer is A. Fusion replaces many small reductions with fewer larger ones, amortizing startup cost. Each bucket waits for its last required gradient, so a larger bucket can delay launch enough to expose communication that smaller buckets could hide. The useful size depends on readiness, tensor sizes, achieved transfer duration, and collective ordering. Measure training-step time, including the final transfer and any backlog; larger buckets do not guarantee bandwidth saturation or only a slight delay. Fusion does not itself quantize gradients or change layer dimensions.",
+     "hint": "Think about: analyze the trade-off between startup latency amortization and communication launch delay in DDP bucket fusion.",
+     "type": "single",
+     "options": [
+      "Grouping multiple parameter gradients into a bucket amortizes per-collective startup overhead, but the bucket must wait until all required gradients are ready, reducing the available overlap window.",
+      "Bucket fusion compresses all gradient tensors into 8-bit integers before allocating them to ring communication buffers.",
+      "Bucket fusion permanently disables all gradient hooks and forces all communication to occur after optimizer step completion.",
+      "Bucket fusion ensures that all layers in the transformer model have mathematically identical parameter counts."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Sequence the hierarchy of communication cost models and diagnostic analyses in order from the simplest zero-overlap first-order sizing to real-world cluster validation:",
+     "explanation": "The correct order is: (2) compute critical message size $n^* = \\alpha \\cdot \\beta$ using the $\\alpha$-$\\beta$ model to classify latency vs bandwidth regimes, (3) profile processor overhead $o$ and overlappable latency $L_{\\text{lat}}$ using the LogP model to assess overlap feasibility with the backward pass, (1) empirically benchmark bare collectives with nccl-tests to capture cluster-specific reality gaps and contention. Engineers start with the analytical $\\alpha$-$\\beta$ model for initial sizing and regime classification; refine with the LogP model when designing compute-communication overlap to distinguish nonoverlappable processor overhead from overlappable wire transit; and finally validate against actual cluster behavior using bare collective benchmarks (`nccl-tests`) to expose hardware topology, network contention, and software runtime overheads.",
+     "hint": "Think about: order the progression of communication modeling techniques from analytical sizing to empirical cluster benchmarking.",
+     "type": "order",
+     "items": [
+      "compute critical message size $n^* = \\alpha \\cdot \\beta$ using the $\\alpha$-$\\beta$ model to classify latency vs bandwidth regimes",
+      "profile processor overhead $o$ and overlappable latency $L_{\\text{lat}}$ using the LogP model to assess overlap feasibility with the backward pass.",
+      "empirically benchmark bare collectives with nccl-tests to capture cluster-specific reality gaps and contention"
+     ]
+    },
+    {
+     "q": "On a supported hardware and transport path, the mechanism that lets a NIC read and write GPU memory without staging payloads through host DRAM is known as ____ RDMA.",
+     "explanation": "GPUDirect. A supported GPUDirect RDMA path lets the NIC access GPU memory without staging the payload through host DRAM. This removes that staging traffic, but does not guarantee a particular launch latency, eliminate CPU coordination, or prevent every source of host-memory contention. Measure the configured device, PCIe, NIC, and transport path.",
+     "hint": "Think about: identify GPUDirect RDMA as a mechanism for avoiding host-memory payload staging.",
+     "type": "fill",
+     "answer": [
+      "GPUDirect"
+     ]
+    },
+    {
+     "q": "Sequence the execution steps of a 4-GPU Ring AllReduce (\\$0 to 1 to 2 to 3 to 0) reducing a 4-chunk vector [A, B, C, D]:",
+     "explanation": "The correct order is: (3) each GPU partitions its local vector into $N=4$ equal chunks, (4) each GPU simultaneously sends chunk $k$ to its right neighbor and receives from its left neighbor, accumulating partial sums over $N-1$ steps, (2) rank $i$ owns a single fully aggregated chunk of the global sum, (1) each GPU forwards its fully reduced chunk around the ring for $N-1$ steps until all ranks possess the complete array. The algorithm first partitions the tensor into $N$ equal chunks; executes $N-1$ Scatter-Reduce steps where partial sums are accumulated; establishes that each rank holds one fully reduced chunk; and finishes with $N-1$ AllGather steps circulating the reduced chunks so every rank ends with the full result.",
+     "hint": "Think about: order the operational phases and dataflow transitions of a Ring AllReduce collective execution.",
+     "type": "order",
+     "items": [
+      "each GPU partitions its local vector into $N=4$ equal chunks",
+      "each GPU simultaneously sends chunk $k$ to its right neighbor and receives from its left neighbor, accumulating partial sums over $N-1$ steps.",
+      "rank $i$ owns a single fully aggregated chunk of the global sum",
+      "each GPU forwards its fully reduced chunk around the ring for $N-1$ steps until all ranks possess the complete array"
+     ]
+    },
+    {
+     "q": "Energy per transferred bit grows in proportion to physical distance, so a transfer that travels twice as far costs about twice the energy.",
+     "explanation": "False. Each broader path activates different components, such as on-package links, intra-node crossbars, serializers, optical transceivers, and switches, so distance alone does not set energy per bit. Two energy estimates can be compared only after their endpoints, interfaces, switches, and utilization match.",
+     "hint": "Think about: explain why energy per bit depends on the components inside an accounting boundary rather than on distance alone.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "An infrastructure engineer evaluates AllReduce algorithm selection for synchronizing gradients across a 256-GPU cluster with per-node launch latency $\\alpha = 5\\,\\mu\\text{s}$ and link bandwidth $\\beta = 50\\text{ GB/s}$. Using the log-aware crossover model $M_{\\text{crossover}} \\approx \\frac{N \\alpha \\beta}{\\log_2 N}$, within the simple full-message Tree versus Ring comparison, what is the crossover message size, and which modeled candidate has lower cost for a 500 KB activation tensor versus a 100 MB gradient bucket?",
+     "explanation": "The correct answer is D. The crossover is M_crossover approx frac256 × (5 × 10^-6 s) × (50 × 10^9 B/s)8 = 8 MB; Tree AllReduce wins for the 500 KB tensor (latency-dominated), while Ring AllReduce wins for the 100 MB bucket (bandwidth-dominated). Equating T_ring = 2(N-1)alpha + 2fracN-1NfracMbeta and T_tree = 2log_2 N × alpha + 2log_2 N × fracMbeta yields the crossover threshold M_crossover approx fracN alpha betalog_2 N. For N=256, log_2(256) = 8, so M_crossover approx frac256 × 5\\,mus × 50 GB/s8 = frac64 MB8 = 8 MB. For the 500 KB tensor (M < 8 MB), latency dominates, and Tree AllReduce wins by avoiding Ring's \\$2(255) × 5\\,mus = 2.55 ms startup delay. For the 100 MB bucket (M > 8 MB), bandwidth dominates, and Ring AllReduce wins by avoiding Tree's \\$8× bandwidth penalty. The \\$1.25 GB crossover miscalculates the formula, the \\$800 KB choice inverts algorithm assignments, and the \\$16 GB choice ignores message-size regime transitions. These are predictions for the stated two-model comparison, not a selection guarantee over optimized trees, hierarchy, or a contended runtime. Benchmark candidate collective duration and exposed step time.",
+     "hint": "Think about: calculate the approximate Ring-versus-simple-Tree crossover and identify lower modeled cost under stated assumptions.",
+     "type": "single",
+     "options": [
+      "The crossover is $M_{\\text{crossover}} \\approx 1.25\\text{ GB}$; Tree AllReduce should be selected for both tensors because $\\log_2(256) = 8$ is always smaller than 256.",
+      "The crossover is $M_{\\text{crossover}} \\approx 800\\text{ KB}$; Ring AllReduce should be selected for 500 KB, and Tree AllReduce for 100 MB.",
+      "The crossover is $M_{\\text{crossover}} \\approx 16\\text{ GB}$; Butterfly AllReduce should be selected for both tensors regardless of network topology.",
+      "The crossover is $M_{\\text{crossover}} \\approx \\frac{256 \\times (5 \\times 10^{-6}\\text{ s}) \\times (50 \\times 10^9\\text{ B/s})}{8} = 8\\text{ MB}$; Tree AllReduce wins for the 500 KB tensor (latency-dominated), while Ring AllReduce wins for the 100 MB bucket (bandwidth-dominated)."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Topology-unaware placement can concentrate collective traffic on a subset of network interfaces, reducing realized bandwidth even when nominal aggregate port capacity is unchanged.",
+     "explanation": "True. GPU-to-NIC affinity and the mapping of corresponding model shards determine which ports and paths carry a collective. Concentrating traffic on a few interfaces can leave others underused. The penalty depends on workload and topology; rail alignment alone neither reserves bandwidth nor removes contention.",
+     "hint": "Think about: evaluate how topology-unaware rank assignment causes NIC contention and degrades multi-rail collective bandwidth.",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "How does dimension-ordered reduction on a 3D torus network (such as Google TPU pods) optimize communication latency and link utilization compared to running a single global logical ring?",
+     "explanation": "The correct answer is B. Sequential full-message rings along X, Y, and Z reduce startup rounds from \\$2(XYZ-1) to \\$2[(X-1)+(Y-1)+(Z-1)]. Their bandwidth time is \\$2M[(X-1)/X+(Y-1)/Y+(Z-1)/Z]/beta, not the cost of one global ring. Direct-neighbor routing avoids arbitrary paths but does not eliminate other workloads' contention. Skipping an axis omits contributions; a central root recreates a bottleneck.",
+     "hint": "Think about: analyze how dimension-ordered reduction on torus topologies reduces latency hop complexity from multiplicative volume to additive perimeter.",
+     "type": "single",
+     "options": [
+      "It skips communication along the Z-axis by projecting all activations onto a 2D plane.",
+      "It executes axis-aligned rings in sequence, reducing startup rounds to \\$2[(X-1)+(Y-1)+(Z-1)] while trading extra full-message transfers for shorter rings.",
+      "It broadcasts full gradient tensors directly to all pod nodes simultaneously over optical circuit switches.",
+      "It routes all collective packets through a single central root TPU in the pod to minimize total wire length."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Which mechanisms make NCCL a useful candidate for GPU-resident collective communication on NVIDIA clusters?",
+     "explanation": "The correct answer is B. NCCL optimizes GPU-resident collectives through topology-aware transfers, fused reduction kernels, and parallel channels. GPUDirect paths avoid unnecessary host-memory staging when the hardware and configuration support them. CPU-centric paths can incur extra copies; CUDA-aware MPI can also communicate GPU buffers directly, so the advantage must be evaluated against the actual backend rather than assuming all MPI stages through host memory.",
+     "hint": "Think about: identify NCCL mechanisms that support GPU-resident collectives and explain why achieved performance requires measurement.",
+     "type": "single",
+     "options": [
+      "NCCL runs all collective communication on host CPU threads using OpenMP parallel loops.",
+      "NCCL combines supported GPUDirect paths, fused reduction and data movement, and parallel channels with topology-aware placement.",
+      "NCCL eliminates all network synchronization barriers by approximating gradient additions as stochastic random walks.",
+      "NCCL replaces InfiniBand hardware with standard TCP/IP operating system sockets."
+     ],
+     "answer": 1
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,62 @@
+{
+ "title": "Asynchronous Tool Dispatch",
+ "summary": "Work through Asynchronous Tool Dispatch.",
+ "source": {
+  "chapter": "v3-07",
+  "sections": [
+   "Asynchronous Tool Dispatch",
+   "Synchronous and asynchronous interfaces",
+   "Job handles",
+   "Resumption mechanisms",
+   "Job supervision and cancellation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Asynchronous Tool Dispatch** in *Tool Calling* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Tool Calling, § Asynchronous Tool Dispatch",
+   "md": "When an automated repair agent launches an extensive regression test suite, it rarely has any useful decision to make until the results arrive. A prompt return from that tool invocation is only an acknowledgment of receipt; the actual computation has only just begun. During the intervening minutes or hours, the agent runtime must supervise background execution, enforce resource budgets, and maintain system safety without freezing its control plane or burning inference tokens on idle waiting."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Synchronous and asynchronous interfaces\n- Job handles\n- Resumption mechanisms\n- Job supervision and cancellation"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Acknowledgment is not completion matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A long-running tool returns a job handle whose acknowledgment means only that work was queued, so status keeps last-observed-running distinct from unavailable and from failure, and detection belongs to the runtime."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-07-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Asynchronous Tool Dispatch** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A mutating tool over an endpoint without deduplication ships actuate, probe, and compensate together, with the probe written before dispatch against a captured baseline.",
+      "Read, set-desired-state, and produce-another-event classify what a repeated call does, a dimension orthogonal to the authority levels.",
+      "A long-running tool returns a job handle whose acknowledgment means only that work was queued, so status keeps last-observed-running distinct from unavailable and from failure, and detection belongs to the runtime.",
+      "Capture and staging are separate budgets, so the adapter drains both pipes, enforces byte limits, and stages a head-and-tail view with a typed notice of what was omitted and a handle to the rest."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Acknowledgment is not completion**: A long-running tool returns a job handle whose acknowledgment means only that work was queued, so status keeps last-observed-running distinct from unavailable and from failure, and detection belongs to the runtime."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Asynchronous Tool Dispatch."
+   ]
+  }
+ ]
+}

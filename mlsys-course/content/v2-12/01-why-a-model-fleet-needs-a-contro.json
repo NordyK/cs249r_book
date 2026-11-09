@@ -1,0 +1,67 @@
+{
+ "title": "Why a Model Fleet Needs a Control Plane",
+ "summary": "Explain the operational phase transition from single-model MLOps to fleet-scale platform operations.",
+ "source": {
+  "chapter": "v2-12",
+  "sections": [
+   "Why a Model Fleet Needs a Control Plane"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Why a Model Fleet Needs a Control Plane** in *ML Operations at Scale* (Vol II). By the end you should be able to:\n\n- Explain the operational phase transition from single-model MLOps to fleet-scale platform operations\n- Explain the architectural function of the control plane in enterprise ML platform operations\n- Evaluate the economic and operational failure modes of fragmented per-model infrastructure"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, ML Operations at Scale, § Why a Model Fleet Needs a Control Plane",
+   "md": "Consider a team of five engineers maintaining a single recommendation model. When the model's accuracy drifts as live data changes, they manually retrain it. When the API latency spikes, they manually scale the instances. Now, scale that same team to support five hundred models across dozens of product surfaces. The same engineering team cannot sustain that growth by performing machine learning operations (MLOps), the practices that version, deploy, monitor, and roll back production models, by hand for every model. Shared controls must preserve human accountability while automating routine coordination."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: Control Plane architecture across heterogeneous fleets; Combinatorial complexity growth from single to multi-model operations; Shared platform services vs. bespoke per-model pipelines."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: What is the primary architectural purpose of the Control Plane in an enterprise ML platform spanning datacenters, cloud clusters, and edge fleets?",
+   "md": "The Control Plane serves as the centralized steering and governance layer that keeps physical infrastructure, training pipelines, serving paths, edge runtimes, and policy rules observable, coordinated, and recoverable, preventing operational drift across the fleet."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-12-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why can manual, per-model operational maintenance become difficult to sustain as an organization expands to hundreds of models that share features, resources, and release dependencies?",
+     "explanation": "The correct answer is A. Shared features, contested resources, and independent alerts create interacting operational dependencies as the model portfolio grows. Manual per-model maintenance becomes difficult to sustain, motivating shared controls and automation. This is a scaling argument, not a theorem that every 500-model organization has the same complexity or requires one physical control-plane server.",
+     "hint": "Think about: explain the operational phase transition from single-model MLOps to fleet-scale platform operations.",
+     "type": "single",
+     "options": [
+      "Shared data dependencies, contested resources, and independent alert streams add coordination work that can exceed the capacity of manual per-model processes.",
+      "Modern deep learning framework compilers prohibit deploying more than one model graph per physical datacenter.",
+      "Single-model architectures run on asynchronous virtual memory subnets that cannot route traffic through standard TCP/IP gateways.",
+      "Network switches automatically drop telemetry packets when concurrent endpoint connections exceed ten."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Treating each model in an enterprise as an isolated, independent entity with bespoke pipelines remains an economically sound strategy as long as each individual model achieves high predictive accuracy.",
+     "explanation": "False. Predictive accuracy alone does not establish the economic case for isolated pipelines. Shared workloads can duplicate feature processing, strand capacity, and generate repeated alerts; compare those measured costs with the investment and coordination costs of shared controls.",
+     "hint": "Think about: evaluate the economic and operational failure modes of fragmented per-model infrastructure.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the operational phase transition from single-model MLOps to fleet-scale platform operations.",
+    "You can now explain the architectural function of the control plane in enterprise ML platform operations.",
+    "You can now evaluate the economic and operational failure modes of fragmented per-model infrastructure."
+   ]
+  }
+ ]
+}

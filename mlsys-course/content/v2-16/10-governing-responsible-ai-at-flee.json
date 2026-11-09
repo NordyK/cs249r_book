@@ -1,0 +1,86 @@
+{
+ "title": "Governing Responsible AI at Fleet Scale",
+ "summary": "Calculate and analyze the representation cost in medical imaging and subgroup data acquisition.",
+ "source": {
+  "chapter": "v2-16",
+  "sections": [
+   "Governing Responsible AI at Fleet Scale",
+   "Organizational structures and incentives",
+   "Data constraints and quality gaps",
+   "Balancing competing objectives",
+   "Scalability, maintenance, and evaluation standards",
+   "Implementation decision framework"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Governing Responsible AI at Fleet Scale** in *Responsible AI* (Vol II). By the end you should be able to:\n\n- Calculate and analyze the representation cost in medical imaging and subgroup data acquisition\n- Explain why inherited model components leave accountability with the deploying organization\n- Distinguish aggregate model improvement from individual remedy in accountable deployments\n- Analyze why responsible-AI evidence must share a claim scope and an evaluation boundary with the deployed system"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Responsible AI, § Governing Responsible AI at Fleet Scale",
+   "md": "The data science team wants to hold back deployment for a month to conduct rigorous fairness audits on a new generative model. The executive team, watching a competitor launch a similar feature, demands the model be deployed by Friday. Even when engineers know how to evaluate the relevant risks, the organizational structure, budget, and business priorities must give them the time and authority to act on that knowledge."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Organizational structures and incentives\n- Data constraints and quality gaps\n- Balancing competing objectives\n- Scalability, maintenance, and evaluation standards\n- Implementation decision framework\n\nPay attention to: The representation cost in data acquisition; Accountability for third-party and foundation-model dependencies; Individual remedy versus aggregate model improvement; Evidence standardization and evaluation boundaries."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A team's assurance case combines a demographic-parity result from one benchmark, a model-only explanation audit, and a compliance report produced by a separate tool. Explain why these individually valid results may not support a claim about the deployed system.",
+   "md": "The criterion, population, labels, threshold policy, and uncertainty belong to each claim, so a demographic-parity result on one benchmark does not establish equalized odds, or parity, in another deployment. A model-only result can also miss effects introduced by feature transformations, request routing, caching, or human review, so the evaluation boundary must match the deployment boundary. Unless the tools share identifiers linking their results to the same model, data, policy, and workflow versions, the assurance case may combine results that describe different systems."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-16-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In medical imaging ML pipelines, what is the 'representation cost' and why does the cost of acquiring representative training data scale with subgroup coverage rather than total image volume?",
+     "explanation": "The correct answer is C. The representation cost captures the reality that underrepresented patient populations (rural clinics, minority demographics, uncommon imaging equipment) are expensive to source, annotate, and harmonize (\\$50–\\$200/image plus 30%–50% harmonization overhead across 50+ hospital systems). Improving performance for marginalized groups requires budgeting specifically for demographic coverage gaps rather than simply acquiring more majority-class data. Government licensing fees are legal charges, not data engineering costs, network bandwidth cost is negligible by comparison, and GPU memory overhead is a hardware constraint.",
+     "hint": "Think about: calculate and analyze the representation cost in medical imaging and subgroup data acquisition.",
+     "type": "single",
+     "options": [
+      "It is an annual government licensing fee levied on deep learning medical devices",
+      "It represents the network bandwidth consumed when downloading public datasets from cloud buckets",
+      "It reflects the substantial financial and logistical cost (\\$125M+ in the chapter's sizing scenario) of acquiring, curating, and harmonizing clinical data from diverse geographic hospitals, specialized scanners, and underrepresented patient demographics",
+      "It is the GPU memory overhead required to store floating-point feature embeddings during distributed backpropagation"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A company builds a customer-facing assistant on a third-party foundation model whose vendor publishes safety evaluations and contractual controls. How does this dependency change the deploying organization's accountability?",
+     "explanation": "The correct answer is C. Third-party and foundation-model dependencies do not transfer accountability to the supplier. The deploying organization may inherit weights, safety evaluations, documentation, or contractual controls, but it still decides how the model is used and monitored. Procurement therefore records intended and prohibited uses, evaluation scope, version and change notification, incident disclosure, audit access, data handling, fallback behavior, and an exit plan. A vendor's evaluation covers its stated scope, not every downstream use.",
+     "hint": "Think about: explain why inherited model components leave accountability with the deploying organization.",
+     "type": "single",
+     "options": [
+      "Accountability transfers to the vendor, because the vendor trained the weights and evaluated their safety",
+      "Accountability is shared equally by contract, so the deploying organization need only monitor uptime",
+      "Accountability stays with the deploying organization, which still chooses the use, interface, retrieved context, user population, monitoring, and response process, so procurement needs the same rigor as an internal model gate",
+      "Accountability disappears for inherited components, because the vendor's evaluations already cover every downstream use"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "When an automated decision system wrongly denies some individuals a benefit, retraining the model next quarter to improve aggregate accuracy provides those individuals with adequate remedy.",
+     "explanation": "False. Aggregate model improvement is not a substitute for individual remedy, because retraining next quarter does not correct a benefit denied today. Affected people need a discoverable channel to challenge an outcome, a record of the evidence considered, a reviewer with authority to correct the decision, a response deadline, and a way to propagate the correction downstream. The 2020 A-level standardization, which produced a calculated grade below the teacher-assessed grade in 39.1 percent of cases, showed how quickly an aggregate method can outrun the remedy path its decisions require.",
+     "hint": "Think about: distinguish aggregate model improvement from individual remedy in accountable deployments.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate and analyze the representation cost in medical imaging and subgroup data acquisition.",
+    "You can now explain why inherited model components leave accountability with the deploying organization.",
+    "You can now distinguish aggregate model improvement from individual remedy in accountable deployments.",
+    "You can now analyze why responsible-AI evidence must share a claim scope and an evaluation boundary with the deployed system."
+   ]
+  }
+ ]
+}

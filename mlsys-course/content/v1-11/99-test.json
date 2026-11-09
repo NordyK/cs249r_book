@@ -1,0 +1,149 @@
+{
+ "title": "Test: Hardware Acceleration",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-11-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "Why does High-Bandwidth Memory (HBM) achieve significantly higher bandwidth (e.g., $>2\\text{ TB/s}$) than traditional GDDR6X memory (e.g., $\\approx 760\\text{ GB/s}$) while maintaining comparable or lower power per bit?",
+     "explanation": "The correct answer is D. HBM achieves ultra-high bandwidth by vertically stacking DRAM dies with Through-Silicon Vias (TSVs) and interfacing with the accelerator through a silicon interposer with extremely wide memory buses (1024 bits per stack vs. 32/64 bits for standard GDDR channels). Because physical wire distances over the silicon interposer are short and the bus is wide, HBM can run at lower pin clock frequencies, significantly reducing energy per bit ($pJ/\\text{bit}$) compared to driving high-frequency GDDR signals over long PCB traces. The higher clock frequency choice is incorrect because GDDR6X actually runs at higher pin clock frequencies than HBM. The optical photonics and error-correction elimination choices are physically false.",
+     "hint": "Think about: explain the architectural design differences and physical advantages of HBM over GDDR.",
+     "type": "single",
+     "options": [
+      "HBM operates at a \\$10× higher clock frequency than GDDR6X on standard PCB traces",
+      "HBM uses optical photonic signaling to transmit data across the motherboard",
+      "HBM eliminates all error correction codes and row buffer precharge cycles",
+      "HBM vertically stacks DRAM dies using Through-Silicon Vias (TSVs) and connects to the GPU via a wide 1024-bit per stack silicon interposer bus at lower clock speeds"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "The AI Memory Wall refers solely to the limited physical capacity (GBs) of GPU DRAM, meaning that if an accelerator has sufficient gigabytes to store model weights, memory bandwidth will never bottleneck execution.",
+     "explanation": "False. In this section, the AI memory wall is the gap between arithmetic throughput and memory bandwidth. Capacity is a separate feasibility constraint: a model can fit in memory and still run slowly if low-reuse kernels, such as LayerNorm or token-by-token decoding, are limited by bytes delivered per second rather than by available gigabytes.",
+     "hint": "Think about: distinguish memory-capacity limits from bandwidth bottlenecks in the AI memory wall.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "In the Roofline model, the transition point on the horizontal axis where the memory-bandwidth ceiling intersects the peak-compute ceiling is known as the hardware ____ point.",
+     "explanation": "ridge. The ridge point ($I_{\\text{ridge}} = R_{\\text{peak}} / \\text{BW}$) defines the minimum arithmetic intensity required for an algorithm to potentially reach peak hardware computational throughput.",
+     "hint": "Think about: explain the significance of the ridge point in roofline performance modeling.",
+     "type": "fill",
+     "answer": [
+      "ridge"
+     ]
+    },
+    {
+     "q": "What is the primary numerical difference between FP16 and BF16 as presented in this section?",
+     "explanation": "The correct answer is B. Both FP16 and BF16 are 16-bit floating-point formats, but BF16 keeps an 8-bit exponent like FP32, giving it a wider dynamic range, while FP16 devotes more bits to the stored fraction and therefore offers finer precision within a narrower range. The lower-byte-count claim is false because both use 16 bits, the integer claim is wrong because both are floating point, and the underflow claim is too strong because numerical behavior depends on the workload and execution path.",
+     "hint": "Think about: compare FP16 and BF16 in terms of dynamic range versus fraction precision using the format properties introduced in the section.",
+     "type": "single",
+     "options": [
+      "FP16 uses fewer total bits than BF16, so it always transfers less data",
+      "BF16 has a wider exponent range, while FP16 has more fraction precision within the same 16-bit width",
+      "FP16 is an integer format, whereas BF16 is floating point",
+      "BF16 always prevents gradient underflow, whereas FP16 cannot be used for training"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A team prunes \\$70\\% of the weights in a large language model using unstructured magnitude pruning, setting those weights to zero. However, when executing the pruned model on standard GPU dense Tensor Cores, inference latency is identical to or slower than the unpruned baseline. What is the primary cause of this pitfall?",
+     "explanation": "The correct answer is A. Standard dense Tensor Core paths still operate on dense matrix shapes, so setting many entries to zero does not by itself cause the hardware to skip those multiplies. If the model is converted to a general sparse format, metadata and irregular gathers can offset or erase the theoretical arithmetic reduction. The infinite-loop, thermal-downclock, and page-fault explanations invent mechanisms unrelated to why dense hardware often fails to speed up unstructured sparsity.",
+     "hint": "Think about: explain why unstructured sparsity often fails to accelerate inference on dense accelerator paths.",
+     "type": "single",
+     "options": [
+      "Standard dense hardware cannot skip arbitrary zero elements efficiently, and compact sparse formats add metadata and irregular access overhead",
+      "Floating-point units automatically convert zero values into infinite loops",
+      "Unstructured pruning forces the GPU driver to downclock memory bandwidth to prevent overheating",
+      "The operating system kernel intercepts every zero multiplication and raises a hardware page fault"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Place the following steps in the correct execution sequence for processing a matrix multiplication on an accelerator with Sparse Tensor Cores using 2:4 structured sparsity:",
+     "explanation": "The correct order is: (1) Fine-tune or prune the weight matrix to ensure exactly two non-zero values exist in every four-element contiguous group, (4) Compress the sparse weight matrix by storing only the non-zero values alongside metadata describing their positions, (2) Sparse Tensor Cores load compressed weights and decode metadata to gather matching input activation elements, (3) Multiply non-zero weights by gathered activations and accumulate into output partial sums on the sparse path. The sequence is necessary because the runtime path assumes weights already satisfy the 2:4 constraint and have been compressed with consistent metadata. Swapping compression ahead of pruning would encode the wrong pattern, and executing the sparse multiply before metadata-guided selection would leave the hardware without the positional information needed to match retained weights with the correct activations.",
+     "hint": "Think about: sequence the workflow for 2:4 structured sparse matrix multiplication from constraint formation through runtime sparse execution.",
+     "type": "order",
+     "items": [
+      "Fine-tune or prune the weight matrix to ensure exactly two non-zero values exist in every four-element contiguous group",
+      "Compress the sparse weight matrix by storing only the non-zero values alongside metadata describing their positions",
+      "Sparse Tensor Cores load compressed weights and decode metadata to gather matching input activation elements",
+      "Multiply non-zero weights by gathered activations and accumulate into output partial sums on the sparse path"
+     ]
+    },
+    {
+     "q": "An inference serving system processes dynamic batch sizes ranging from a batch of 1 to 32 concurrent decode requests, each contributing one token at the current step. Why does dynamic batching pose a significant challenge to runtime kernel selection and hardware efficiency?",
+     "explanation": "The correct answer is A. Changing batch size changes shape, available reuse, and parallel work, so a kernel configuration that is effective at one batch can be inefficient at another. Small batches may emphasize low-latency execution and limited reuse, while larger batches can expose more parallelism and justify different tiling or tactic choices. The precision-switching claim is invented, Tensor Cores are not limited to powers of two in that way, and DRAM bank power-down is not the core runtime-kernel-selection issue described here.",
+     "hint": "Think about: analyze why dynamic batch sizes make a single static kernel configuration inefficient across inference requests.",
+     "type": "single",
+     "options": [
+      "Optimal tile sizes, thread block configurations, and memory-reuse opportunities change across batch sizes, making a single static kernel inefficient across all shapes",
+      "Dynamic batching forces the GPU to switch from FP16 to FP64 precision for even batch sizes",
+      "Tensor Cores cannot execute matrix multiplication when batch dimensions are not powers of two",
+      "The GPU memory controller must physically power down DRAM banks when batch size decreases"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Memory allocated on the host CPU that is locked into physical RAM and prevents operating system paging, enabling direct DMA transfers over PCIe to the GPU, is called ____ host memory.",
+     "explanation": "pinned (or page-locked). Pinned host memory allows GPU DMA engines to transfer data asynchronously across the PCIe bus without CPU staging copies or page faults.",
+     "hint": "Think about: explain the role of pinned host memory in optimizing host-to-accelerator data transfers.",
+     "type": "fill",
+     "answer": [
+      "pinned",
+      "pinned (or page locked)",
+      "pinned (or page-locked)"
+     ]
+    },
+    {
+     "q": "How does an auto-tuning ML compiler (such as TVM/Ansor) differ from a traditional handwritten library approach (such as cuDNN) for kernel selection?",
+     "explanation": "The correct answer is C. Auto-tuning compiler systems search parameterized spaces of schedules such as tiling, unrolling, and thread mapping, then rank or measure candidates to produce kernels specialized to the target and shape. Handwritten libraries also use parameters, heuristics, and benchmarking tactics, but their emphasis is expert-designed implementations rather than open-ended schedule search by the compiler. The host-CPU claim is false, the infinite-runtime-search claim misstates how libraries operate, and 1-bit quantization is unrelated.",
+     "hint": "Think about: compare compiler-driven auto-tuning search with the expert-tuned implementation strategy emphasized by vendor libraries.",
+     "type": "single",
+     "options": [
+      "Auto-tuning compilers execute code only on the host CPU, whereas handwritten libraries run on GPUs",
+      "Handwritten libraries search an infinite combinatorial loop space at runtime, whereas auto-tuning compilers use static heuristics",
+      "Auto-tuning compilers explore large parameterized search spaces of loop transformations and tile sizes using cost models or measurements to generate custom kernels, whereas handwritten libraries emphasize expert-tuned implementations and heuristics",
+      "Auto-tuning compilers require all tensors to be quantized to 1-bit integers"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In the iron law of ML systems decomposition ($\\text{Time} = \\frac{D_{\\text{vol}}}{\\text{BW}} + \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}} + L_{\\text{lat}}$), the unaccelerated fraction $(1-p)$ is an immutable, fixed property of the model architecture regardless of the hardware intervention.",
+     "explanation": "False. The unaccelerated fraction $(1-p)$ is defined specifically by the hardware or system intervention rather than being an immutable architectural constant. For example, if an upgrade improves only the tensor computation unit ($R_{\\text{peak}}$), data transfer ($D_{\\text{vol}}/\\text{BW}$) acts as the unaccelerated fraction; however, if the memory subsystem or interconnect is also upgraded, data transfer time is reduced and the relative unaccelerated fraction shifts.",
+     "hint": "Think about: analyze how hardware interventions redefine the accelerated versus unaccelerated components of execution time.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "On a modern mobile heterogeneous System-on-Chip (SoC) featuring big.LITTLE CPUs, a mobile GPU, and a dedicated NPU, which compute engine is typically the most energy-efficient choice for a supported INT8 convolution workload?",
+     "explanation": "The correct answer is C. For a supported INT8 convolution path, the NPU is designed specifically to execute quantized tensor operations with better energy efficiency than a general-purpose CPU or GPU path. The measured pipeline energy still depends on fallback operators, data movement, and thermal behavior, so specialization does not by itself determine the whole-system result. The big CPU core is less specialized for this workload, and the memory controller and hypervisor are not the units that execute the convolution itself.",
+     "hint": "Think about: classify which SoC engine is typically most energy-efficient for a supported INT8 convolution workload.",
+     "type": "single",
+     "options": [
+      "The high-performance 'big' CPU core running single-threaded FP32 instructions",
+      "The out-of-order system memory controller",
+      "The dedicated Neural Processing Unit (NPU) optimized for quantized INT8 tensor operations",
+      "The host operating system virtualization hypervisor"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Place the following computing milestones in chronological order (from earliest to most recent) as hardware evolved toward modern AI accelerators:",
+     "explanation": "The correct order is (3) Integration of floating-point units (FPUs) and digital signal processors (DSPs) as discrete coprocessors -> (4) General-purpose programmable GPUs and SIMD instruction set extensions for 3D graphics and multimedia -> (2) Emergence of fixed-function media codecs and network processors for video/packet streaming -> (1) Introduction of dedicated Tensor Cores and TPUs for deep learning matrix operations. During the 1980s, discrete FPUs and DSPs accelerated arithmetic. The 1990s introduced SIMD extensions and early 3D GPUs. The 2000s expanded fixed-function media engines and network processors. The 2010s ushered in deep learning DSAs like Google TPUs (2015/2017) and NVIDIA Volta Tensor Cores (2017).",
+     "hint": "Think about: explain the historical evolution of hardware specialization from FPUs to modern AI accelerators.",
+     "type": "order",
+     "items": [
+      "General-purpose programmable GPUs and SIMD instruction set extensions for 3D graphics and multimedia",
+      "Emergence of fixed-function media codecs and network processors for video/packet streaming",
+      "Introduction of dedicated Tensor Cores and TPUs for deep learning matrix operations"
+     ]
+    }
+   ]
+  }
+ ]
+}

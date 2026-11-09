@@ -1,0 +1,67 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Work through Fallacies and Pitfalls.",
+ "source": {
+  "chapter": "v3-11",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Durable Execution* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Durable Execution, § Fallacies and Pitfalls",
+   "md": "Building durable agentic systems demands clarity about what persistent state actually guarantees. The most consequential engineering mistakes confuse a surviving record with evidence it cannot provide, or expend heavy recovery effort where structured logging has already eliminated the need."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Trajectory log matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Recovery state comes from an append-only, typed trajectory log, and the live trajectory record is a deterministic fold over that log."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-11-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Fallacies and Pitfalls** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Recovery state comes from an append-only, typed trajectory log, and the live trajectory record is a deterministic fold over that log.",
+      "Resume is an authorized continuation in ordered stages (prove the prefix, acquire ownership with a fencing epoch, restore by fold, reconcile in-doubt operations) rather than a restart.",
+      "Where a crash falls in the ordering decides whether an operation is not dispatched, in doubt, or established, and an absent intent proves non-dispatch only in a complete authoritative log prefix.",
+      "An admitted operation's identity, arguments, grant reference, and reservation must be durable under the declared failure domain before the request leaves, so no effect can exist without its intent on record."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Trajectory log**: Recovery state comes from an append-only, typed trajectory log, and the live trajectory record is a deterministic fold over that log."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Trajectory log* reconstructs *Durable intent before dispatch*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Trajectory log* reconstructs *Trajectory record*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Fallacies and Pitfalls."
+   ]
+  }
+ ]
+}

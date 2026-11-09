@@ -1,0 +1,67 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Work through Fallacies and Pitfalls.",
+ "source": {
+  "chapter": "v4-11",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Trajectory Planning* (Vol IV)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Trajectory Planning, § Fallacies and Pitfalls",
+   "md": "A planned trajectory remains physically feasible only as long as its environmental, dynamic, and computational assumptions hold true. In embodied systems, failures rarely stem from minor mathematical errors along the nominal interior of a path. Instead, they emerge at operational and physical seams: when dynamic obstacles intrude into an active swept volume, when concatenated action chunks excite mechanical resonances, when host inference pipelines miss scheduling deadlines, or when controllers attempt to stop faster than actuator dynamics permit."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Trajectory record matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: The planner hands over an immutable record naming frame, evidence epoch, seam state, parent intent-lease digest, and four MCU-clock deadlines in two tiers (high-rate chunk lease, hardware commitment cutoff) together with its latched stop."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-11-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Fallacies and Pitfalls** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Replacement latency runs from capture to MCU admission (about 115 ms against a 50 ms renewal and a 60 ms lease), so renewal is sustainable only by overlapping requests and every record must carry its own handoff tail.",
+      "The planner hands over an immutable record naming frame, evidence epoch, seam state, parent intent-lease digest, and four MCU-clock deadlines in two tiers (high-rate chunk lease, hardware commitment cutoff) together with its latched stop.",
+      "A collision-free path is executable only if every joint's position, velocity, acceleration, jerk, torque, and current stay within limits along the continuous interpolant, its seams, and its stop, which time parameterization must check.",
+      "Clearance and tool limits live in tool space but drives enforce joint limits, so tool-space quantities pass through the configuration-dependent Jacobian, whose weak direction near a singularity demands unbounded joint rates unless damped least squares trades accuracy for bounded rates."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Trajectory record**: The planner hands over an immutable record naming frame, evidence epoch, seam state, parent intent-lease digest, and four MCU-clock deadlines in two tiers (high-rate chunk lease, hardware commitment cutoff) together with its latched stop."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Trajectory record* is transported through *Delivered torque ceiling*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Trajectory record* is transported through *Freshest-proposal mailbox*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Fallacies and Pitfalls."
+   ]
+  }
+ ]
+}

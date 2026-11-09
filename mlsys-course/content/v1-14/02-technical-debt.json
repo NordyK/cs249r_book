@@ -1,0 +1,96 @@
+{
+ "title": "Technical Debt",
+ "summary": "Distinguish ML-specific technical debt mechanisms from ordinary code-focused software debt.",
+ "source": {
+  "chapter": "v1-14",
+  "sections": [
+   "Technical Debt",
+   "Boundary erosion",
+   "Correction cascades",
+   "Undeclared consumers and data dependencies",
+   "Feedback loops and configuration sprawl",
+   "Code and architecture debt",
+   "Technical debt in practice"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Technical Debt** in *ML Operations* (Vol I). By the end you should be able to:\n\n- Distinguish ML-specific technical debt mechanisms from ordinary code-focused software debt\n- Calculate a simplified breakeven time for pipeline automation and analyze how recurring manual work can consume engineering capacity as deployments scale\n- Analyze how correction cascades create fragile dependency chains and explain architectural methods to reduce the resulting maintenance risk\n- Evaluate the role of glue code in connecting ML components within a production system\n- Identify the CACE principle as the warning that local retraining changes can propagate through coupled learned dependencies"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Operations, § Technical Debt",
+   "md": "In traditional software systems, technical debt represents the future rework created when expedient shortcuts replace disciplined architecture. In machine learning systems, that debt compounds across the operations loop through statistical coupling and data dependencies that code review and unit tests cannot detect. A team that ships a model by copying feature scripts, skipping schema checks, and wiring predictions directly into downstream services reaches production quickly, only to spend the following year debugging silent regressions as external distributions shift and stale parameters break downstream consumers."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Boundary erosion\n- Correction cascades\n- Undeclared consumers and data dependencies\n- Feedback loops and configuration sprawl\n- Code and architecture debt\n- Technical debt in practice\n\nPay attention to: ML technical debt vs traditional software debt; the hidden infrastructure surface (1 of 10 components); compound cost of manual operations and breakeven math; debt patterns: boundary erosion (CACE), correction cascades, undeclared consumers, glue code."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why 'correction cascades' create a severe maintenance trap in production ML architectures, and state the primary architectural remedy.",
+   "md": "A correction cascade occurs when downstream models or patches are built to compensate for the residual errors of an upstream model, so changing the upstream component can change the residual distribution those downstream fixes expect. That means an upstream update may force downstream revalidation or retraining, turning one local repair into coordinated maintenance across the chain. The main remedy is to consolidate fixes into a cleaner upstream design when practical; if chained components are unavoidable, explicit versioned dependencies and joint validation are needed to contain the risk."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-14-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "According to Sculley et al. (2015), what additional mechanisms make technical debt in machine learning systems especially hard to detect and manage compared with ordinary code-focused debt?",
+     "explanation": "The correct answer is C. ML systems add debt through implicit statistical relationships, hidden data dependencies, and feedback loops that standard code-level checks may not expose, so predictive quality can degrade even while the service stays up. An answer based on unsupported frameworks or unserializable weights is simply false, and the \"more lines of mathematical code\" claim misses the chapter's point that the hard part is the surrounding system and its data couplings.",
+     "hint": "Think about: distinguish ML-specific technical debt mechanisms from ordinary code-focused software debt",
+     "type": "single",
+     "options": [
+      "Because ML frameworks prevent developers from running unit tests or continuous integration jobs",
+      "Because ML algorithms require more lines of raw mathematical code than supporting infrastructure software",
+      "Because ML debt accumulates through implicit statistical relationships, data dependencies, and feedback loops that can degrade predictive quality silently without throwing runtime exceptions",
+      "Because neural network parameters cannot be serialized to disk or stored in artifact registries"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A data engineering team spends 6 hours per week manually extracting features, executing training runs, and validating a customer churn model. Building an automated CI/CD retraining pipeline requires a one-time upfront investment of 120 engineering hours. In this simplified calculation, assume all 6 weekly hours are saved, automation has no ongoing maintenance cost, and each additional model would impose a similar manual cost if the process scaled linearly. What is the breakeven time for this automation investment, and what long-term capacity risk arises if the team remains manual?",
+     "explanation": "The correct answer is D. The simplified breakeven is \\$120 hours / 6 hours/week = 20 weeks. If the team keeps the workflow manual and each model keeps demanding similar recurring effort, routine maintenance grows roughly linearly with the number of deployed models and can crowd out new development. In practice, real automation upkeep or changing retraining frequency would move the breakeven, so 20 weeks is a model-based estimate rather than a universal rule.",
+     "hint": "Think about: calculate a simplified breakeven time for pipeline automation and analyze how recurring manual work can consume engineering capacity as deployments scale",
+     "type": "single",
+     "options": [
+      "Breakeven is 6 weeks; manual processes remain more cost-effective for multi-model deployments",
+      "Breakeven is 10 weeks; automated pipelines eliminate the need for future model monitoring",
+      "Breakeven is 40 weeks; manual maintenance has zero ongoing engineering cost after the first year",
+      "Breakeven is 20 weeks; manual maintenance scales linearly with the number of deployed models until routine operations consume a growing share of engineering capacity"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In production ML systems, 'glue code' refers to the core machine learning algorithm.",
+     "explanation": "False. Glue code is the integration code that connects ML libraries, data pipelines, feature processing, and serving infrastructure. It supports the model system around the algorithm rather than being the algorithm itself.",
+     "hint": "Think about: evaluate the role of glue code in connecting ML components within a production system",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The systemic vulnerability where changing one input feature's distribution or encoding during retraining can alter model behavior and the contributions of other features elsewhere in the system is known as the ____ principle.",
+     "explanation": "CACE. The CACE principle—\"Change Anything Changes Everything\"—warns that learned dependencies can couple features and components, so a local change may propagate into broader behavior changes after retraining.",
+     "hint": "Think about: identify the CACE principle as the warning that local retraining changes can propagate through coupled learned dependencies",
+     "type": "fill",
+     "answer": [
+      "CACE"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now distinguish ML-specific technical debt mechanisms from ordinary code-focused software debt.",
+    "You can now calculate a simplified breakeven time for pipeline automation and analyze how recurring manual work can consume engineering capacity as deployments scale.",
+    "You can now analyze how correction cascades create fragile dependency chains and explain architectural methods to reduce the resulting maintenance risk.",
+    "You can now evaluate the role of glue code in connecting ML components within a production system."
+   ]
+  }
+ ]
+}

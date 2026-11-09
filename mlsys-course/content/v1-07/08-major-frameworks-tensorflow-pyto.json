@@ -1,0 +1,83 @@
+{
+ "title": "Major Frameworks: TensorFlow, PyTorch, and JAX",
+ "summary": "Classify TensorFlow by its SavedModel-centered training-to-deployment architecture.",
+ "source": {
+  "chapter": "v1-07",
+  "sections": [
+   "Major Frameworks: TensorFlow, PyTorch, and JAX",
+   "TensorFlow",
+   "PyTorch",
+   "JAX",
+   "Design trade-offs compared"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Major Frameworks: TensorFlow, PyTorch, and JAX** in *ML Frameworks* (Vol I). By the end you should be able to:\n\n- Classify TensorFlow by its SavedModel-centered training-to-deployment architecture\n- Explain the pure functional transformation model that distinguishes JAX architecturally\n- Compare the developer velocity and production deployment trade-offs that shaped PyTorch and TensorFlow adoption\n- Analyze how functional purity enables aggressive whole-program compiler optimizations in JAX and XLA"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, ML Frameworks, § Major Frameworks: TensorFlow, PyTorch, and JAX",
+   "md": "A team that prototypes quickly but cannot deploy the resulting model, or deploys reliably but cannot debug training failures, has run into a framework design trade-off rather than a missing API call. Each major framework solves all three core problems but emphasizes a different path through them. TensorFlow couples eager development to graph capture and a broad deployment ecosystem. PyTorch begins with eager execution and adds capture, compilation, and export paths. JAX organizes differentiation, vectorization, and compilation as composable function transformations."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- TensorFlow\n- PyTorch\n- JAX\n- Design trade-offs compared\n\nPay attention to: Architectural design commitments of TensorFlow (SavedModel, TF Serving, TFLite), PyTorch (eager research, torch.compile), and JAX (pure functional transformations, XLA); JAX functional transformation engine: pure functions, stateless execution, and composable transforms (grad, jit, vmap); Research ergonomics versus production deployment evolution."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Compare the workflow and deployment trade-offs that led PyTorch to dominate academic research while TensorFlow established strong early dominance in enterprise production serving during the late 2010s.",
+   "md": "PyTorch's eager define-by-run execution model allowed researchers to write standard Python code, inspect intermediate tensors with standard debuggers (`pdb`), and iterate rapidly on dynamic architectures without upfront graph compilation friction. In contrast, TensorFlow's static graph architecture and `SavedModel` export pipeline provided production-grade deployment infrastructure (TensorFlow Serving, C++ deployment, robust mobile runtimes) that enterprises prioritized for stable, high-throughput serving pipelines."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-07-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Which framework ecosystem in the section is organized around `SavedModel` as a central boundary between Python-side development and multiple deployment paths such as server serving, mobile conversion, and browser execution?",
+     "explanation": "The correct answer is B. The section presents TensorFlow's architecture as centered on the SavedModel boundary: training-time Python workflows can serialize graph structure, weights, and signatures into an artifact that supports direct serving or target-specific conversion paths such as TensorFlow Lite and TensorFlow.js. That design emphasis is broader than just one runtime and is exactly what distinguishes TensorFlow in the chapter's platform comparison. The NumPy and scikit-learn answers do not provide the same graph-centered deployment architecture, and the PyTorch option misses that the chapter describes PyTorch as eager-first with a more fragmented deployment path rather than SavedModel-centered deployment.",
+     "hint": "Think about: classify TensorFlow by its SavedModel-centered training-to-deployment architecture",
+     "type": "single",
+     "options": [
+      "PyTorch eager execution as originally presented",
+      "TensorFlow ecosystem with SavedModel feeding Serving, Lite conversion, and TensorFlow.js paths",
+      "Pure NumPy with custom Python socket servers",
+      "Scikit-learn with standard pickle deserialization"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "What core programming-model commitment distinguishes JAX from both PyTorch and TensorFlow in the chapter's comparison, enabling transformations like `jax.grad`, `jax.vmap`, and `jax.jit` to compose when their contracts align?",
+     "explanation": "The correct answer is C. JAX is presented as a functional transformation system: users write pure functions, arrays are treated immutably, and transformations such as `grad`, `vmap`, and `jit` act on those functions when each one's outputs match what the next expects as inputs. The section is careful that composition is powerful but not arbitrary, since order still matters semantically. The mutable-object and global-state answers describe the opposite design direction, and the AST-parsing answer invents a mechanism not used in the chapter's explanation of JAX tracing and compilation.",
+     "hint": "Think about: explain the pure functional transformation model that distinguishes JAX architecturally",
+     "type": "single",
+     "options": [
+      "Dynamic class inheritance with mutable object references for all layer parameters",
+      "Global state mutation across all forward and backward passes",
+      "Pure functions over immutable array-like data, with transformations applied to functions rather than hidden mutable objects",
+      "Graph capture via AST string parsing of Python source files"
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Explain how JAX's requirement that functions must be pure and free of side effects enables the XLA compiler to generate highly optimized accelerator kernels through `jax.jit`.",
+   "md": "Because pure functions guarantee that outputs depend solely on explicit inputs with no hidden state mutations or side effects, the XLA compiler can safely trace the entire computation, reorder operations, eliminate common subexpressions, fuse entire subgraphs into single hardware kernels, and allocate static memory buffers without risk of altering observable program behavior."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify TensorFlow by its SavedModel-centered training-to-deployment architecture.",
+    "You can now explain the pure functional transformation model that distinguishes JAX architecturally.",
+    "You can now compare the developer velocity and production deployment trade-offs that shaped PyTorch and TensorFlow adoption.",
+    "You can now analyze how functional purity enables aggressive whole-program compiler optimizations in JAX and XLA."
+   ]
+  }
+ ]
+}

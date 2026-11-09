@@ -1,0 +1,77 @@
+{
+ "title": "The AI Systems Moment",
+ "summary": "Distinguish between physical execution failures and statistical trustworthiness failures within the dual-mandate framework.",
+ "source": {
+  "chapter": "v1-01",
+  "sections": [
+   "The AI Systems Moment"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The AI Systems Moment** in *Introduction* (Vol I). By the end you should be able to:\n\n- Distinguish between physical execution failures and statistical trustworthiness failures within the dual-mandate framework\n- Explain why traditional software health metrics such as uptime and exception logging are insufficient to verify ML system correctness\n- Analyze why data-defined behavior transforms AI deployment into a full-stack orchestration challenge\n- Identify the foundational term defining the dual constraints of ML systems engineering"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Introduction, § The AI Systems Moment",
+   "md": "A spoken question to a smartphone voice assistant sets off a chain of learned components. One model converts the audio to text, another infers what the user wants, a retrieval service gathers relevant information, and a generative model composes the reply, all within a few seconds and across a phone, a network, and a data center. Each stage runs under its own memory, latency, and energy budget, and a delay or error at any stage reaches the user."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: dual mandate of statistical uncertainty and physical constraints; three converging forces driving modern AI scale; silent vs loud failure modes in production ML systems."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why does the shift from code-defined logic to data-defined behavior turn large-scale AI deployment into an end-to-end orchestration problem rather than an isolated modeling exercise?",
+   "md": "When data defines system behavior, correctness depends on continuous data pipelines, feature consistency, and representative distributions rather than static code logic alone. Deploying these models at scale requires coordinating distributed accelerator clusters, memory hierarchies, and real-world latency budgets while managing the risk of silent statistical decay under shifting operational data."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-01-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A production autonomous vehicle perception model reliably detects obstacles under clear daytime conditions, but fails to identify a pedestrian at dusk even though all code executes without runtime exceptions and strictly within its 50 ms latency window. Which core challenge of ML systems engineering does this failure demonstrate?",
+     "explanation": "The correct answer is C. The dual mandate requires that an ML system satisfy both physical constraints (latency, compute, memory, power) and statistical trustworthiness (accurate, reliable predictions across operational domains). In this scenario, the perception stack met its physical execution budget (running in under 50 ms without crashing) but failed its statistical obligation because its learned representations did not generalize to dusk conditions. Thermal throttling or serial interconnect latency would manifest as latency spikes rather than silent perceptual misses. Compiling stochastic gradient descent relates to training pipelines rather than inference execution.",
+     "hint": "Think about: distinguish between physical execution failures and statistical trustworthiness failures within the dual-mandate framework.",
+     "type": "single",
+     "options": [
+      "The latency added by serial interconnect communication across distributed accelerators",
+      "A hardware execution failure caused by GPU thermal throttling and clock frequency scaling",
+      "The dual mandate requirement that learned behavior must remain statistically trustworthy while executing within physical execution constraints",
+      "The failure of traditional continuous integration pipelines to compile stochastic gradient descent operations"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In a production ML system, if all code executes without runtime exceptions, CPU and GPU utilization are normal, and latency requirements are met, the system is guaranteed to be operating correctly.",
+     "explanation": "False. Healthy execution telemetry shows that the software and hardware path is functioning, but it does not guarantee good predictions. In an ML system, the code can run correctly and on time while the live data has drifted away from the training distribution, causing silent degradation in prediction quality.",
+     "hint": "Think about: explain why traditional software health metrics such as uptime and exception logging are insufficient to verify ML system correctness.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "The fundamental engineering obligation requiring that an ML system's learned behavior be statistically trustworthy while the machine delivers that behavior within finite time, memory, energy, and cost budgets is known as the ____.",
+     "explanation": "dual mandate. It names the requirement to engineer trustworthy learned behavior together with feasible physical execution within the available budgets.",
+     "hint": "Think about: identify the foundational term defining the dual constraints of ML systems engineering.",
+     "type": "fill",
+     "answer": [
+      "dual mandate"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now distinguish between physical execution failures and statistical trustworthiness failures within the dual-mandate framework.",
+    "You can now explain why traditional software health metrics such as uptime and exception logging are insufficient to verify ML system correctness.",
+    "You can now analyze why data-defined behavior transforms AI deployment into a full-stack orchestration challenge.",
+    "You can now identify the foundational term defining the dual constraints of ML systems engineering."
+   ]
+  }
+ ]
+}

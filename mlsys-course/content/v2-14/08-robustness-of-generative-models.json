@@ -1,0 +1,59 @@
+{
+ "title": "Robustness of Generative Models",
+ "summary": "Explain why a generative reliability metric is meaningful only against a stated evidence source, prompt set, and decoding settings.",
+ "source": {
+  "chapter": "v2-14",
+  "sections": [
+   "Robustness of Generative Models"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Robustness of Generative Models** in *Robust AI* (Vol II). By the end you should be able to:\n\n- Explain why a generative reliability metric is meaningful only against a stated evidence source, prompt set, and decoding settings\n- Analyze uncertainty quantification techniques for semantic robustness in generative AI and evaluate their systems trade-offs"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Robust AI, § Robustness of Generative Models",
+   "md": "An aligned language model of the Archetype A (GPT-4/Llama-3) class can pass its safety evaluations and still comply with a harmful request once an automatically optimized suffix is appended to the prompt, and suffixes optimized against open models transfer to other models. That suffix is an adversarial example in token space, found by gradient-guided search over discrete tokens rather than continuous pixels. Generative models also fail without any attacker."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: hallucination as the generative form of silent failure; entropy and self-consistency as priced routing signals rather than factuality scores."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In large language models, robustness failures manifest as confident, fluent hallucinations rather than discrete label misclassifications. Describe two uncertainty quantification mechanisms used to detect semantic instability in generative AI and explain their systems trade-offs.",
+   "md": "Two mechanisms are token or sequence entropy and self-consistency sampling. Entropy and log-probability are cheap scores computed from one generation, but neither is a factuality score: a model can be confident in a false claim it learned. Self-consistency draws several answers for the same prompt and flags disagreement; each extra sample repeats the decode phase, so $k$ samples multiply that request's decode work roughly $k$-fold, with only the prompt's prefill shareable through cached key-value state. Both signals must be calibrated against task-specific errors, and self-consistency is best spent on requests whose cheap signals already indicate uncertainty, with a provisioned fallback path for flagged generations."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-14-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team reports that its retrieval-augmented assistant has a 3 percent hallucination rate and proposes quoting that figure for a new legal-research deployment. Which condition must hold before the figure says anything about the new deployment?",
+     "explanation": "The correct answer is A. A hallucination rate counts generated claims that a named reference does not support, and the measured rate depends on the model, the retrieval context, the prompt design, and the sampling settings, so it holds only for its prompt set and decoding settings. Entropy is an instability signal rather than a factuality score, agreement among correlated samples can repeat the same unsupported claim, and the rate is not a property of the weights alone.",
+     "hint": "Think about: explain why a generative reliability metric is meaningful only against a stated evidence source, prompt set, and decoding settings",
+     "type": "single",
+     "options": [
+      "The rate must be re-measured against a stated evidence source on the new domain's prompt set with the same retrieval context and decoding settings.",
+      "The model's mean token entropy on the new domain must be no higher than on the original domain.",
+      "The new deployment must use self-consistency sampling, because agreement among samples certifies factuality.",
+      "No condition is needed, because a hallucination rate is a property of the model weights alone."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain why a generative reliability metric is meaningful only against a stated evidence source, prompt set, and decoding settings.",
+    "You can now analyze uncertainty quantification techniques for semantic robustness in generative AI and evaluate their systems trade-offs."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,148 @@
+{
+ "title": "Test: Model Compression",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-10-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "Order the stages of finding a winning lottery ticket in a neural network according to the Lottery Ticket Hypothesis (LTH):",
+     "explanation": "The correct order is: (2) Train the dense unpruned network to convergence, (4) Prune the lowest-magnitude weights to create a sparse mask, (1) Reset surviving weights to their original initialization values ($W_0$), (3) Retrain the sparse subnetwork to convergence. First, dense training allows gradient descent to differentiate parameter importance. Second, magnitude pruning isolates the most critical connections to form a binary mask. Third, resetting surviving parameters to their exact initial values ($W_0$) isolates the subnetwork's topological initialization. Finally, retraining the sparse subnetwork validates whether it can match or exceed the original dense model's accuracy.",
+     "hint": "Think about: design an experimental procedure that sequences the iterative steps used to evaluate winning lottery tickets under the Lottery Ticket Hypothesis",
+     "type": "order",
+     "items": [
+      "Train the dense unpruned network to convergence",
+      "Prune the lowest-magnitude weights to create a sparse mask.",
+      "Retrain the sparse subnetwork to convergence"
+     ]
+    },
+    {
+     "q": "Order the stages of a practical compression decision procedure:",
+     "explanation": "The correct order is: (2) establish the limiting constraint from a decisive capacity bound or from profiling a feasible baseline, (3) map that constraint to candidate optimization levers, (1) test a low-cost candidate and measure all relevant quality and resource constraints, (4) if the candidate fails, consider recovery training or a structural candidate appropriate to the failed constraint. The team must first know what resource actually limits the deployment, then connect that diagnosis to plausible levers before choosing an initial candidate. Only after measuring the candidate against the deployment's real constraints does it make sense to escalate. Swapping testing with diagnosis would risk optimizing for the wrong bottleneck, while swapping escalation earlier would spend retraining effort before the simple candidate was fairly evaluated.",
+     "hint": "Think about: sequence a conditional compression workflow from bottleneck diagnosis through candidate testing and escalation",
+     "type": "order",
+     "items": [
+      "establish the limiting constraint from a decisive capacity bound or from profiling a feasible baseline",
+      "map that constraint to candidate optimization levers",
+      "test a low-cost candidate and measure all relevant quality and resource constraints",
+      "if the candidate fails, consider recovery training or a structural candidate appropriate to the failed constraint."
+     ]
+    },
+    {
+     "q": "A \\$13-billion-parameter FP16 language model fits on the target edge server only at short context, but the required production KV cache and workspace do not fit. Profiling that feasible short-context baseline shows autoregressive decoding is dominated by weight traffic. Which optimization is the most direct initial candidate to test?",
+     "explanation": "The correct answer is A. In the chapter's small-batch decoding regime, fetched weights can dominate latency, so lowering weight precision is the most direct way to attack both raw model size and streamed weight traffic. INT4 quarters raw weight bytes relative to FP16, while INT8 halves them. That makes weight-only PTQ a strong initial candidate, but not an automatic fix: feasibility still depends on the rest of memory usage, and realized speedup depends on the runtime path and overheads. Unstructured pruning and LayerNorm fusion do not target the dominant weight-byte bottleneck as directly.",
+     "hint": "Think about: select weight-only post-training quantization as the strongest first candidate for a weight-bandwidth-bound LLM deployment",
+     "type": "single",
+     "options": [
+      "Weight-only INT4 or INT8 post-training quantization (PTQ), because it directly shrinks raw weight bytes and can reduce weight-bandwidth pressure if the remaining memory budget also fits",
+      "Unstructured magnitude pruning with 90% target sparsity, because arbitrary sparse patterns run fastest on edge memory controllers",
+      "Neural Architecture Search from scratch, because searching a new architecture is the fastest way to resolve an immediate deployment deadline",
+      "LayerNorm operator fusion alone, because LayerNorm compute dominates total parameter storage in large language models"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Commodity SIMD vector units automatically achieve proportional latency reductions on weight matrices with \\$50\\% unstructured sparsity because vector lanes automatically skip zero values without overhead.",
+     "explanation": "False. A dense masked tensor still moves and processes zeros. To skip them, the runtime needs a compact sparse representation and a matching kernel, but that path adds metadata handling, irregular activation accesses, and possible load imbalance. Whether sparse execution wins depends on format, shape, batch size, and hardware; there is no universal sparsity percentage that guarantees proportional speedup.",
+     "hint": "Think about: reject the misconception that unstructured sparsity automatically accelerates dense SIMD hardware",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A ____ is the memory, time, and energy that a target device grants to each result a model produces, and model compression is the work of bringing a trained model's demands inside it.",
+     "explanation": "deployment budget. Memory capacity bounds the bytes of weights and activations that can stay resident, a frame rate or token rate bounds the milliseconds available for each result, and a battery or thermal envelope bounds the joules each result may consume. A trained model's demands were set by the accelerators it trained on, not by the device it must run on.",
+     "hint": "Think about: define the deployment budget and name the three resources it bounds.",
+     "type": "fill",
+     "answer": [
+      "deployment budget"
+     ]
+    },
+    {
+     "q": "If a neural network's parameter count is reduced by \\$4\\times$ via magnitude pruning, its deployed end-to-end inference latency on a standard mobile CPU is guaranteed to improve by approximately \\$4\\times$.",
+     "explanation": "False. A \\$4\\times$ parameter reduction does not imply a \\$4\\times$ latency reduction because sparse execution depends on layout, kernel support, tensor shape, and device behavior. On a standard mobile CPU, unstructured sparsity may still incur dense-like traffic or sparse-format overhead, and end-to-end latency also includes work outside the pruned layers.",
+     "hint": "Think about: reject the assumption that parameter-count reduction guarantees proportional end-to-end latency improvement",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **When fewer bits run faster**?",
+     "options": [
+      "Unstructured sparsity pays only past a break-even, since an index beside each value doubles per-element bytes and irregular gathers keep sparse kernels slower than dense until high sparsity, whereas 2:4 structured sparsity halves the payload with fixed metadata.",
+      "Parameter, FLOP, and bit-width reductions are upper bounds, so a compressed artifact is accepted only on a measured profile on the target (accuracy, calibration, latency, throughput, size, energy), and model-only speedups are capped by the non-model share of end-to-end latency.",
+      "Fewer bits speed a compute-bound layer only through a faster integer datapath but speed a bandwidth-bound decode in proportion to bytes removed, and only when dequantization is fused into the matmul, so the same precision change gives different gains in different regimes.",
+      "A deployment budget grants memory, time, and energy per result, and compression works three tiers (what the model computes, how many bits each value takes, how the result executes) after identifying the limiting term, since a phone vision model spends its frame on arithmetic and LLM decode spends its token on weight bytes."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is When fewer bits run faster itself, not a neighbouring idea.",
+     "explanation": "**When fewer bits run faster:** Fewer bits speed a compute-bound layer only through a faster integer datapath but speed a bandwidth-bound decode in proportion to bytes removed, and only when dequantization is fused into the matmul, so the same precision change gives different gains in different regimes."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Accuracy-efficiency frontier**?",
+     "options": [
+      "Truncated SVD replaces a matrix with two thin factors, but the saving becomes speed only if the two factor kernels and the staged intermediate cost less than the original dense kernel.",
+      "Unstructured sparsity pays only past a break-even, since an index beside each value doubles per-element bytes and irregular gathers keep sparse kernels slower than dense until high sparsity, whereas 2:4 structured sparsity halves the payload with fixed metadata.",
+      "Structure-preserving changes can move a dominated model toward the accuracy-efficiency frontier at little quality cost while structure-altering ones trade along it, so the engineer stops at an operating point that meets explicit quality and resource thresholds rather than at a visual knee.",
+      "A deployment budget grants memory, time, and energy per result, and compression works three tiers (what the model computes, how many bits each value takes, how the result executes) after identifying the limiting term, since a phone vision model spends its frame on arithmetic and LLM decode spends its token on weight bytes."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Accuracy-efficiency frontier itself, not a neighbouring idea.",
+     "explanation": "**Accuracy-efficiency frontier:** Structure-preserving changes can move a dominated model toward the accuracy-efficiency frontier at little quality cost while structure-altering ones trade along it, so the engineer stops at an operating point that meets explicit quality and resource thresholds rather than at a visual knee."
+    },
+    {
+     "q": "A team must compress a large transformer model for deployment across a fleet of commodity GPUs that lack dedicated sparse-matrix acceleration kernels. Which structural optimization technique is the strongest candidate for producing a smaller model that still executes efficiently on this hardware?",
+     "explanation": "The correct answer is C. Distillation trains a new compact dense student, so the deployed model can use ordinary dense kernels that commodity GPUs already execute efficiently. That makes it a strong candidate when sparse acceleration support is absent. Unstructured pruning still depends on sparse formats and kernels, low-rank factorization is an approximation rather than a zero-loss guarantee, and the section does not claim pruning can never remove layers or that binary quantization is broadly safe for this setting.",
+     "hint": "Think about: evaluate distillation as a structural optimization candidate when deployment hardware favors dense execution",
+     "type": "single",
+     "options": [
+      "Unstructured magnitude pruning, because sparse matrix multiplication routines run with zero memory overhead on all standard GPUs",
+      "Extreme binary weight quantization, because 1-bit representations eliminate all memory traffic without degrading language model perplexity",
+      "Knowledge distillation, because it transfers teacher behavior into a compact dense student architecture that runs well on standard dense GPU kernels",
+      "Low-rank factorization without fine-tuning, because mathematical decomposition guarantees zero loss in representation capacity"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In affine (asymmetric) quantization, the integer parameter ____ shifts the quantized grid so that real-valued zero maps exactly to an integer representation, ensuring that zero-padded tensor regions introduce no numerical bias.",
+     "explanation": "zero-point. The zero-point (or zero point, Z) provides an integer offset that ensures the real floating-point value \\$0.0 is mapped precisely to an integer without rounding error, which is crucial for preserving exact zero representations in padded convolutional feature maps and ReLU activations.",
+     "hint": "Think about: calculate the zero-point parameter in affine asymmetric quantization to preserve exact zero representations",
+     "type": "fill",
+     "answer": [
+      "zero point",
+      "zero-point"
+     ]
+    },
+    {
+     "q": "A mobile video-conferencing feature requires \\$30\\text{ FPS}$ background segmentation, but baseline FP32 MobileNetV2 runs at only \\$8\\text{ FPS}$. Applying INT8 quantization accelerates the model to \\$35\\text{ FPS}$ with a minor \\$0.4\\%$ drop in mIoU, satisfying the shipping requirement. Which region of the chapter's compression-accuracy Pareto frontier best describes this outcome?",
+     "explanation": "The correct answer is D. Region 2 (a moderate trade) represents the practical operational sweet spot where an engineer trades a small, tolerable accuracy concession for a massive efficiency gain (\\$8\\text{ FPS} \\to 35\\text{ FPS}$) that moves the application across a hard production requirement (\\$30\\text{ FPS}$). Placing it in region 1 (little or no quality loss) overlooks that INT8 rounding introduces real numerical quantization error, while placing it in region 3 (steep quality loss) confuses a successful deployment trade-off with catastrophic accuracy failure.",
+     "hint": "Think about: classify real-world deployment trade-offs into the three characteristic regions of the compression-accuracy Pareto frontier",
+     "type": "single",
+     "options": [
+      "Region 1 (little or no quality loss), because achieving 35 FPS proves that INT8 quantization incurs zero loss in segmentation boundary fidelity",
+      "Region 3 (steep quality loss), because any reduction in numerical precision destabilizes temporal consistency in video processing",
+      "An unfeasible operating point outside the Pareto frontier, because 35 FPS exceeds the maximum display refresh rate",
+      "Region 2 (a moderate trade), because a modest, acceptable drop in segmentation accuracy unlocks a 4.4× frame rate increase that satisfies the 30 FPS real-time shipping threshold"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A profile of a ViT-Base-sized model shows that the MLP blocks carry nearly two-thirds of FLOPs and the query, key, value, and output projections just under one-third, while layer normalization contributes almost no FLOPs yet claims a visible share of wall-clock latency. What is the primary systems lesson this profile teaches?",
+     "explanation": "The correct answer is D. The profile shows that FLOP-heavy components and latency-heavy components are not always the same. MLP and projection blocks dominate arithmetic work, while LayerNorm can consume noticeable time because it streams activations with low arithmetic intensity. The right response is heterogeneous optimization based on the bottleneck each component presents. A profiler showing high achieved arithmetic utilization in the heavy matmul region would further support a compute-focused intervention there, while LayerNorm may call for fusion or other memory-traffic reductions.",
+     "hint": "Think about: use layerwise profiling to choose bottleneck-specific optimizations instead of assuming one metric or one tactic fits the whole model",
+     "type": "single",
+     "options": [
+      "Optimization should focus exclusively on layer normalization because its latency share exceeds its FLOP share",
+      "A single global optimization technique (such as uniform pruning) must be applied equally across all layers to ensure balanced execution",
+      "Theoretical FLOP count is perfectly correlated with wall-clock execution time across all transformer layer types",
+      "Different components exhibit distinct physical bottlenecks, so optimization must be component-specific rather than uniform across the whole model"
+     ],
+     "answer": 3
+    }
+   ]
+  }
+ ]
+}

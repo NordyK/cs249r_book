@@ -1,0 +1,94 @@
+{
+ "title": "Multi-Model Training for Alignment and RLHF",
+ "summary": "Analyze the infrastructure asymmetry between training and inference models in multi-model RLHF.",
+ "source": {
+  "chapter": "v2-06",
+  "sections": [
+   "Multi-Model Training for Alignment and RLHF",
+   "The multi-model coordination problem",
+   "Infrastructure asymmetry between training and inference models",
+   "Resource requirements for PPO versus DPO",
+   "Sequence length variance and batching challenges"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Multi-Model Training for Alignment and RLHF** in *Distributed Training* (Vol II). By the end you should be able to:\n\n- Analyze the infrastructure asymmetry between training and inference models in multi-model RLHF\n- Compare the memory and execution pipeline requirements of PPO and DPO alignment architectures\n- Identify the binding resource bottleneck during the generation phase of online RLHF\n- Define temporal multiplexing as the scheduling strategy for alternating execution phases in RLHF\n- Evaluate the functional trade-offs between static DPO optimization and dynamic PPO exploration"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Distributed Training, § Multi-Model Training for Alignment and RLHF",
+   "md": "A cluster partitioned to train a single model cannot run post-training alignment in place, because reinforcement learning from human feedback (RLHF)} coordinates up to four distinct models inside a single training step. In proximal policy optimization (PPO), an active policy generates responses token by token, a preference-trained reward model scores them, a frozen reference copy constrains policy drift, and a learned value model estimates expected returns to guide the gradient update. Those roles carry sharply different memory footprints and alternate between memory-bandwidth-bound autoregressive generation and compute-bound backward passes."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The multi-model coordination problem\n- Infrastructure asymmetry between training and inference models\n- Resource requirements for PPO versus DPO\n- Sequence length variance and batching challenges\n\nPay attention to: PPO 4-model coordination (Policy, Reference, Reward, Value) and asymmetry; autoregressive rollout KV cache memory footprint vs backward compute; DPO simplification (2 models, elimination of online generation and KV cache); temporal multiplexing between inference rollout and training backward passes."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain how Direct Preference Optimization (DPO) simplifies cluster infrastructure compared to PPO, detailing which models and computational phases are eliminated.",
+   "md": "Standard offline DPO removes separate reward and value models and online autoregressive rollouts from the update loop. It trains on fixed preference pairs using a policy and a frozen reference, whose scores may be precomputed. Static-state savings depend on the PPO model sizes and placement. Removing rollout KV state eliminates a generation peak; it does not by itself enlarge update microbatches because both methods still need policy activations and other live buffers."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-06-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why does Proximal Policy Optimization (PPO) in multi-model RLHF create an infrastructure asymmetry challenge that does not exist in standard pretraining?",
+     "explanation": "The correct answer is A. The policy generates autoregressive rollouts, requiring a generation-time KV cache; policy and value updates require backward passes and optimizer state. Frozen reference and reward models score generated sequences without generating those sequences themselves. These phases have different memory and compute demands. Freezing scoring models does not eliminate the policy and value-model training work.",
+     "hint": "Think about: analyze the infrastructure asymmetry between training and inference models in multi-model RLHF",
+     "type": "single",
+     "options": [
+      "It combines policy and value-model training with policy-generated autoregressive rollouts and forward-only scoring by frozen reference and reward models.",
+      "All four models in PPO must be trained with identical optimizer hyperparameters on the same GPU",
+      "PPO requires all models to be converted to INT4 precision to enable cross-node gradient synchronization",
+      "PPO eliminates backward passes entirely, turning distributed training into a stateless inference service"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "During the autoregressive generation phase of PPO alignment for a 70B-parameter model, which growing runtime state can limit generation concurrency in accelerator memory?",
+     "explanation": "The correct answer is B. The KV cache grows with concurrent sequence count, context length, layer count, and KV-head width. It can limit how many rollouts fit beside model weights and other resident state. Small-batch decoding is often memory-bandwidth bound, but cache capacity and compute limits must be evaluated separately. Optimizer buffers and checkpoint I/O do not explain this per-sequence growth.",
+     "hint": "Think about: identify the binding resource bottleneck during the generation phase of online RLHF",
+     "type": "single",
+     "options": [
+      "FP32 Adam momentum and variance buffers stored on CPU hosts",
+      "Key-Value (KV) cache memory in GPU HBM, bounded by memory bandwidth during token-by-token generation",
+      "AllReduce gradient communication buffers across InfiniBand switches",
+      "Host filesystem NVMe write bandwidth for checkpoint dumping"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "The scheduling approach in RLHF distributed systems where the accelerator fleet alternates between an autoregressive rollout phase dominated by KV cache memory and a backward training phase dominated by matrix GEMM compute is known as ____.",
+     "explanation": "temporal multiplexing. Temporal multiplexing reconfigures hardware resources dynamically between inference-shaped sequence generation and training-shaped gradient backpropagation.",
+     "hint": "Think about: define temporal multiplexing as the scheduling strategy for alternating execution phases in RLHF",
+     "type": "fill",
+     "answer": [
+      "temporal multiplexing"
+     ]
+    },
+    {
+     "q": "Because Direct Preference Optimization (DPO) eliminates reward and value models and avoids online sequence generation, it is strictly superior to PPO for all model alignment and exploration tasks.",
+     "explanation": "False. DPO is restricted to optimizing against a static offline dataset of preference pairs, preventing the policy from generating novel outputs and exploring beyond the provided data. For tasks requiring iterative self-improvement and exploration (such as multi-step mathematical reasoning), PPO's online rollout and reward feedback loop can discover superior trajectories, justifying its higher infrastructure overhead.",
+     "hint": "Think about: evaluate the functional trade-offs between static DPO optimization and dynamic PPO exploration",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the infrastructure asymmetry between training and inference models in multi-model RLHF.",
+    "You can now compare the memory and execution pipeline requirements of PPO and DPO alignment architectures.",
+    "You can now identify the binding resource bottleneck during the generation phase of online RLHF.",
+    "You can now define temporal multiplexing as the scheduling strategy for alternating execution phases in RLHF."
+   ]
+  }
+ ]
+}

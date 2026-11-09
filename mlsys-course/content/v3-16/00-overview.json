@@ -1,0 +1,238 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v3-16",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Trajectory Fine-Tuning** (Vol III). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Trajectory Fine-Tuning, Purpose",
+   "md": "While prompt engineering and runtime guardrails guide an off-the-shelf model, fine-tuning modifies the neural network weights directly, embedding specialized decision policies and tool calling conventions into model parameters. However, training on multi-turn trajectories requires strict separation between agent proposals and external environment observations, so that imitation loss applies only to selected policy responses while environment feedback remains conditioning context."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Recovery Records as Training Data",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "Scope of Supervised Fine-Tuning",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Serializing Trajectories",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Observation Loss Masking",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Batching Variable-Length Trajectories",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Exposure Bias",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Schema Robustness",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Three homes for behavior**",
+     "Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime."
+    ],
+    [
+     "**Delivered-prefix serialization**",
+     "A training example reconstructs each selected response's input exactly as the model received it, truncations and redactions included, under a recorded tokenizer and template configuration."
+    ],
+    [
+     "**Loss masking**",
+     "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+    ],
+    [
+     "**Loss normalization**",
+     "Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed."
+    ],
+    [
+     "**Exposure bias**",
+     "A disagreement rate measured on reference prefixes bounds excess task cost only by min(H, H^2 eps), while the same rate on learner states with bounded recovery cost gives a linear bound, so where imitation error is measured sets the horizon penalty."
+    ],
+    [
+     "**Preference training**",
+     "When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context."
+    ],
+    [
+     "**Trajectory distillation**",
+     "A costly teacher configuration generates trajectories that pass the same admission as any demonstration, so distillation from sampled tokens is imitation rather than soft-target matching."
+    ],
+    [
+     "**Adapter state and modularity**",
+     "LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation."
+    ],
+    [
+     "**Schema augmentation**",
+     "A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas."
+    ],
+    [
+     "**Packed-example isolation**",
+     "Packing is only a memory layout, so block-diagonal attention, per-example label shifts, and position handling must leave each packed example's logits equal to its unpacked logits, a property tested rather than assumed."
+    ],
+    [
+     "**Closed-loop release criterion**",
+     "Loss values are comparable only under identical split, serialization, mask, and normalization, and promotion requires closed-loop task acceptance under the serving configuration, not lower loss."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v3-16-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Three homes for behavior",
+     "back": "Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime."
+    },
+    {
+     "front": "Delivered-prefix serialization",
+     "back": "A training example reconstructs each selected response's input exactly as the model received it, truncations and redactions included, under a recorded tokenizer and template configuration."
+    },
+    {
+     "front": "Loss masking",
+     "back": "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+    },
+    {
+     "front": "Loss normalization",
+     "back": "Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed."
+    },
+    {
+     "front": "Exposure bias",
+     "back": "A disagreement rate measured on reference prefixes bounds excess task cost only by min(H, H^2 eps), while the same rate on learner states with bounded recovery cost gives a linear bound, so where imitation error is measured sets the horizon penalty."
+    },
+    {
+     "front": "Preference training",
+     "back": "When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context."
+    },
+    {
+     "front": "Trajectory distillation",
+     "back": "A costly teacher configuration generates trajectories that pass the same admission as any demonstration, so distillation from sampled tokens is imitation rather than soft-target matching."
+    },
+    {
+     "front": "Adapter state and modularity",
+     "back": "LoRA cuts trainable parameters but parameter state falls only by the byte ratio of trainable to frozen state, and adapters give modularity, not isolation."
+    },
+    {
+     "front": "Schema augmentation",
+     "back": "A corpus with one static tool signature lets the policy memorize argument keys, so augmentation transforms the whole decision context coherently and robustness is measured on held-out schemas."
+    },
+    {
+     "front": "Packed-example isolation",
+     "back": "Packing is only a memory layout, so block-diagonal attention, per-example label shifts, and position handling must leave each packed example's logits equal to its unpacked logits, a property tested rather than assumed."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v3-16-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Three homes for behavior**?",
+     "options": [
+      "Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime.",
+      "A costly teacher configuration generates trajectories that pass the same admission as any demonstration, so distillation from sampled tokens is imitation rather than soft-target matching.",
+      "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained.",
+      "Loss values are comparable only under identical split, serialization, mask, and normalization, and promotion requires closed-loop task acceptance under the serving configuration, not lower loss."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Three homes for behavior itself, not a neighbouring idea.",
+     "explanation": "**Three homes for behavior:** Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Delivered-prefix serialization**?",
+     "options": [
+      "A disagreement rate measured on reference prefixes bounds excess task cost only by min(H, H^2 eps), while the same rate on learner states with bounded recovery cost gives a linear bound, so where imitation error is measured sets the horizon penalty.",
+      "A training example reconstructs each selected response's input exactly as the model received it, truncations and redactions included, under a recorded tokenizer and template configuration.",
+      "Loss values are comparable only under identical split, serialization, mask, and normalization, and promotion requires closed-loop task acceptance under the serving configuration, not lower loss.",
+      "Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Delivered-prefix serialization itself, not a neighbouring idea.",
+     "explanation": "**Delivered-prefix serialization:** A training example reconstructs each selected response's input exactly as the model received it, truncations and redactions included, under a recorded tokenizer and template configuration."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Loss masking**?",
+     "options": [
+      "A training example reconstructs each selected response's input exactly as the model received it, truncations and redactions included, under a recorded tokenizer and template configuration.",
+      "Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime.",
+      "When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context.",
+      "Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Loss masking itself, not a neighbouring idea.",
+     "explanation": "**Loss masking:** Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Loss normalization**?",
+     "options": [
+      "Loss values are comparable only under identical split, serialization, mask, and normalization, and promotion requires closed-loop task acceptance under the serving configuration, not lower loss.",
+      "Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed.",
+      "Packing is only a memory layout, so block-diagonal attention, per-example label shifts, and position handling must leave each packed example's logits equal to its unpacked logits, a property tested rather than assumed.",
+      "A training example reconstructs each selected response's input exactly as the model received it, truncations and redactions included, under a recorded tokenizer and template configuration."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Loss normalization itself, not a neighbouring idea.",
+     "explanation": "**Loss normalization:** Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Exposure bias**?",
+     "options": [
+      "Loss values are comparable only under identical split, serialization, mask, and normalization, and promotion requires closed-loop task acceptance under the serving configuration, not lower loss.",
+      "When several admissible continuations succeed but differ in cost or risk, DPO over selected spans raises the preferred record's reference-relative score against the dispreferred one from an identical context.",
+      "A training example reconstructs each selected response's input exactly as the model received it, truncations and redactions included, under a recorded tokenizer and template configuration.",
+      "A disagreement rate measured on reference prefixes bounds excess task cost only by min(H, H^2 eps), while the same rate on learner states with bounded recovery cost gives a linear bound, so where imitation error is measured sets the horizon penalty."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Exposure bias itself, not a neighbouring idea.",
+     "explanation": "**Exposure bias:** A disagreement rate measured on reference prefixes bounds excess task cost only by min(H, H^2 eps), while the same rate on learner states with bounded recovery cost gives a linear bound, so where imitation error is measured sets the horizon penalty."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Three homes for behavior: Fine-tuning changes only the proposal distribution, so stable procedure can move into weights, deployment-varying contracts stay in context, and enforcement stays in the runtime.",
+    "Delivered-prefix serialization: A training example reconstructs each selected response's input exactly as the model received it, truncations and redactions included, under a recorded tokenizer and template configuration.",
+    "Loss masking: Loss is placed only on selected policy-response positions while prompts, refused proposals, and observations stay as attended context with zero loss, because a trajectory has two authors and only one is trained.",
+    "Loss normalization: Token averaging and example averaging weight trajectories differently, so segmentation and microbatching silently re-weight the corpus unless the normalization rule is fixed."
+   ]
+  }
+ ],
+ "terms": []
+}

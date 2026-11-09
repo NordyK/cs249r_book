@@ -1,0 +1,102 @@
+{
+ "title": "Storage for Serving",
+ "summary": "Calculate cold-start load times for model weights from different storage tiers and explain why parallel striping shortens them.",
+ "source": {
+  "chapter": "v2-04",
+  "sections": [
+   "Storage for Serving",
+   "Retrieval indexes",
+   "Storage Technologies That Move Tiers",
+   "Storage Technologies That Move Tiers"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Storage for Serving** in *Data Storage* (Vol II). By the end you should be able to:\n\n- Calculate cold-start load times for model weights from different storage tiers and explain why parallel striping shortens them\n- Identify the shared resource that bounds a parallel weight load from host memory\n- Size a fleet-wide model rollout against shared storage tiers and identify its interference with co-tenant training\n- Compare the storage performance bottlenecks of vector retrieval graph traversal against training data streaming\n- Analyze the recall-latency-IOPS trade-off in graph-based high-dimensional vector search"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Data Storage, § Storage for Serving",
+   "md": "Where full-corpus training streams datasets for weeks and writes checkpoints in bursts, the weight-resident serving baseline of a later section reads the model weights once when a replica starts or recovers and then answers requests out of HBM, before KV-cache offload and retrieval indexes add serving-time I/O of their own."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Retrieval indexes\n- Storage Technologies That Move Tiers\n\nPay attention to: cold-start load time as the serving-side storage metric (350 GB of FP16 weights); parallel loading across striped drives and the host-memory bound on a warm DRAM load; model rollout as a fan-out read burst that mirrors a checkpoint storm; vector index storage footprint (\\$1B 1536-d vectors approx 6.1 TB FP32)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A warm replica keeps the \\$350\\text{ GB}$ of weights in host DRAM. Each GPU's own host link could move its \\$43.75\\text{ GB}$ shard in about 0.7 seconds, yet the full load takes about 1.8 seconds. Explain why.",
+   "md": "All eight shard transfers read from the same host memory, whose \\$200\\text{ GB/s}$ bandwidth must carry the whole \\$350\\text{ GB}$, which takes about 1.8 seconds. The per-GPU links run in parallel, so they are not the bottleneck; the shared host-memory bandwidth is. A warm replica therefore trades DRAM capacity for a host-memory-bound load that is still several times faster than a striped NVMe read."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-04-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A serving node must load the \\$350 GB of FP16 weights of a 175B-parameter model into accelerator memory. Which source gives the shortest cold start under the chapter's stated rates?",
+     "explanation": "The correct answer is A. Striping the weights across eight drives divides the load into \\$43.75\\text{ GB}$ shards that load concurrently, so the load takes \\$43.75 / 7 \\approx 6.2\\text{ s}$. One faster drive still moves all \\$350\\text{ GB}$ serially (\\$350 / 14 = 25\\text{ s}$), and the shared tiers are slower still for a single node.",
+     "hint": "Think about: calculate cold-start load times for model weights from different storage tiers and explain why parallel striping shortens them",
+     "type": "single",
+     "options": [
+      "Eight Gen4 NVMe drives read in parallel, each supplying one \\$43.75\\text{ GB}$ shard at \\$7\\text{ GB/s}$, for about 6.2 seconds.",
+      "A single Gen5 NVMe drive at \\$14 GB/s, for about 25 seconds.",
+      "The node's \\$4 GB/s share of the parallel file system, for about 87.5 seconds.",
+      "A single object-storage client at \\$1 GB/s, for about 5.8 minutes."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "A serving fleet of 100 replicas of a 175B-parameter model deploys a new version, so all replicas must read \\$35 TB of FP16 weights at once. Which statement correctly evaluates the shared sources?",
+     "explanation": "The correct answer is A. The rollout reads \\$35 TB in one burst, so time is volume divided by the aggregate rate the source can give the fleet: \\$35 TB / 100 GB/s approx 5.8 minutes, or \\$35 TB / 1 TB/s = 35 seconds. The faster option starves every training job sharing the file system, the read-side mirror of a checkpoint storm, which is why fleets stage new versions locally, roll updates across replica groups, or let loaded replicas supply the rest.",
+     "hint": "Think about: size a fleet-wide model rollout against shared storage tiers and identify its interference with co-tenant training",
+     "type": "single",
+     "options": [
+      "A \\$100\\text{ GB/s}$ object store finishes in about 5.8 minutes, while the \\$1\\text{ TB/s}$ parallel file system would take about 35 seconds but only by claiming the whole file system from co-tenant training jobs.",
+      "The parallel file system is always the right source because 35 seconds is shorter, and serving reads cannot interfere with training jobs.",
+      "The object store finishes in about 35 seconds because each replica reads only its own share of the weights.",
+      "Rollout time is independent of the source tier because each replica's load is limited by its own PCIe link."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "How does the storage performance bottleneck for a graph-based vector retrieval index at billion-vector scale contrast with the primary bottleneck of an ML training data loader?",
+     "explanation": "The correct answer is D. Vector retrieval traverses high-dimensional graph structures requiring high random-access IOPS and low point-lookup latency, whereas training data loaders require sustained high-bandwidth sequential streaming. Retrieval-augmented generation inverts the training access pattern: instead of streaming large contiguous shards sequentially, vector search algorithms (like HNSW or DiskANN) navigate sparse high-dimensional graph adjacency lists, issuing thousands of small, non-sequential pointer lookups where latency and random IOPS govern query response time. The sequential-streaming option inverts the two workloads. The burst-write claim confuses retrieval query serving with training checkpointing. The zero-storage claim ignores that billion-scale vector indexes span terabytes of storage.",
+     "hint": "Think about: compare the storage performance bottlenecks of vector retrieval graph traversal against training data streaming",
+     "type": "single",
+     "options": [
+      "Vector retrieval is bottlenecked by sequential streaming bandwidth (GB/s), whereas training data loaders are bottlenecked by random \\$4 KB read IOPS.",
+      "Vector retrieval requires continuous multi-terabyte burst writes, whereas training data loaders perform purely read-only operations.",
+      "Vector retrieval is strictly compute-bound on matrix multiplication units and generates zero storage device interaction.",
+      "Vector retrieval traverses high-dimensional graph structures requiring high random-access IOPS and low point-lookup latency, whereas training data loaders require sustained high-bandwidth sequential streaming."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In graph-based approximate nearest-neighbor search such as HNSW or DiskANN, increasing target recall from \\$90\\%$ to \\$99\\%$ generally requires exploring more graph nodes, increasing random storage accesses and query latency.",
+     "explanation": "True for graph-based ANN under otherwise comparable settings. Raising recall generally expands the search beam or visits more candidate nodes, increasing vector-distance computations and random DRAM or SSD accesses and therefore latency. This mechanism is specific to graph traversal; flat scans, IVF indexes, and PQ-based designs expose different controls and bottlenecks.",
+     "hint": "Think about: analyze the recall-latency-IOPS trade-off in graph-based high-dimensional vector search",
+     "type": "truefalse",
+     "answer": true
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A billion-entry vector index of 1536-dimensional FP32 embeddings consumes roughly \\$6.1 TB of raw vector data plus graph adjacency overhead. Explain why systems migrate from pure in-memory indexes (HNSW) to disk-backed graph indexes (DiskANN), and identify the primary hardware trade-off involved.",
+   "md": "The raw vectors alone occupy about \\$6.1 TB. At 50 to 100 adjacency bytes per entry, minimal graph links add only \\$50 to \\$100 GB; identifiers, allocator overhead, slack, and replication can add more. A disk-backed graph index keeps compact navigation representations in DRAM and fetches other data from SSD, trading lower DRAM capacity for random SSD access latency. The actual memory reduction and latency penalty depend on the representation, cache, and search settings."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate cold-start load times for model weights from different storage tiers and explain why parallel striping shortens them.",
+    "You can now identify the shared resource that bounds a parallel weight load from host memory.",
+    "You can now size a fleet-wide model rollout against shared storage tiers and identify its interference with co-tenant training.",
+    "You can now compare the storage performance bottlenecks of vector retrieval graph traversal against training data streaming."
+   ]
+  }
+ ]
+}

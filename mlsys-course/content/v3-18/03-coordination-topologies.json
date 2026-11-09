@@ -1,0 +1,62 @@
+{
+ "title": "Coordination Topologies",
+ "summary": "Work through Coordination Topologies.",
+ "source": {
+  "chapter": "v3-18",
+  "sections": [
+   "Coordination Topologies",
+   "Coordination arrangements",
+   "Dependency graphs and concurrency",
+   "Static plans and dynamic spawning",
+   "Supervision trees"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Coordination Topologies** in *Multi-Agent Coordination* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Multi-Agent Coordination, § Coordination Topologies",
+   "md": "In the authentication migration (`migration_task_01`), the interface worker and the caller worker can inspect the baseline snapshot (`repo_base_01`) in parallel, yet the caller's patch still depends on the interface definitions that its peer is actively modifying. Routing both workers through a single supervisor does not eliminate that underlying causal dependency. A runtime architecture that naively treats the supervisor's message-routing graph as the true dependency graph will prematurely accept and publish a caller patch built on stale interface assumptions."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Coordination arrangements\n- Dependency graphs and concurrency\n- Static plans and dynamic spawning\n- Supervision trees"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Slot-pool critical-path bound matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: With a fixed slot pool, a dependency graph's completion time is bounded below by both its critical path and its total slot work divided by the slots."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-18-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Coordination Topologies** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A credit window enforces free plus outstanding equal to W, bounding in-flight payload and, by Little's law, mean staleness at W/mu, which per-agent token budgets cannot do.",
+      "Reviewers share each candidate's difficulty, so correlated errors set an irreducible floor on majority-vote false approval that adding reviewers cannot remove.",
+      "Shared working directories produce lost updates and torn reads, and write sets collide with probability 1 - exp(-N(N-1)w^2/2F), so isolation is provided per worker and a merge is validated, not trusted.",
+      "With a fixed slot pool, a dependency graph's completion time is bounded below by both its critical path and its total slot work divided by the slots."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Slot-pool critical-path bound**: With a fixed slot pool, a dependency graph's completion time is bounded below by both its critical path and its total slot work divided by the slots."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Coordination Topologies."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,94 @@
+{
+ "title": "Hybrid Parallelism",
+ "summary": "Apply the hierarchy-aware bandwidth matching principle to place 3D parallelism dimensions onto hardware tiers.",
+ "source": {
+  "chapter": "v2-06",
+  "sections": [
+   "Hybrid Parallelism",
+   "The 3D training loop",
+   "Hybrid-parallelism worked example"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Hybrid Parallelism** in *Distributed Training* (Vol II). By the end you should be able to:\n\n- Apply the hierarchy-aware bandwidth matching principle to place 3D parallelism dimensions onto hardware tiers\n- Calculate per-GPU static memory requirements in a 3D hybrid parallelism configuration\n- Compare communication invocation counts under an explicitly specified hybrid schedule\n- Analyze communicator group sizes and partitioning in a large-scale 3D parallelism cluster\n- Evaluate how network topology design interacts with hierarchy-aware parallelism communication locality"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Distributed Training, § Hybrid Parallelism",
+   "md": "The …-parameter running example has now exhausted each parallelism family on its own. Data parallelism with ZeRO-3 makes the state fit, but the per-step parameter regather priced in a later section would take about … as long as the computation it serves, while tensor parallelism confined to one 8-GPU node still leaves several hundred gigabytes of training state per device. Because replication and state sharding (a later section) distribute examples and storage whereas tensor and pipeline partitioning (a later section) distribute layer computation, **hybrid parallelism** composes both families orthogonally."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The 3D training loop\n- Hybrid-parallelism worked example\n\nPay attention to: hierarchy-aware parallelism and bandwidth matching across hardware tiers; 3D training loop execution (TP within nodes, PP across nodes, DP across cluster); memory budget accounting for 3D layouts (weights + optimizer states vs HBM capacity); rail-optimized vs uniform fat-tree topologies for structured communication."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A 175B-parameter model uses mixed-precision Adam with 2-byte weights, 2-byte gradients, a 4-byte master copy, and two 4-byte moments per parameter. With tensor degree $t=8$ and pipeline degree $p=16$, calculate the ideally balanced static memory per GPU before data-parallel state sharding, and explain why tensor parallelism alone cannot fit this state on 80 GB GPUs.",
+   "md": "The 16-byte-per-parameter state totals \\$175×10^9×16=2,800 GB. Tensor parallelism alone leaves \\$2,800/8=350 GB per GPU, exceeding 80 GB. Adding 16 balanced pipeline stages reduces the static state to \\$2,800/(8×16)=21.875 GB per GPU. Activations, temporary parameter gathers, communication buffers, and uneven layer placement require additional headroom."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-06-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In a 3D parallelism layout whose device count is the product of the data-, pipeline-, and tensor-parallel degrees, what hardware-matching principle dictates mapping tensor parallelism intra-node while pipeline parallelism spans inter-node links?",
+     "explanation": "The correct answer is C. Tensor parallelism communicates inside each layer, so its exposed latency strongly favors the fastest local fabric. Pipeline parallelism exchanges boundary activations and gradients between stages and can tolerate slower links when enough compute separates transfers. Data parallelism can wrap both dimensions. This is bandwidth matching, not a universal minimum bandwidth or prohibition on inter-node tensor parallelism.",
+     "hint": "Think about: apply the hierarchy-aware bandwidth matching principle to place 3D parallelism dimensions onto hardware tiers",
+     "type": "single",
+     "options": [
+      "Pipeline parallelism requires more memory bandwidth than NVLink can provide, forcing it onto InfiniBand",
+      "Tensor parallelism requires only point-to-point transfers, making it insensitive to link latency",
+      "Hierarchy-aware parallelism maps frequent TP exchanges to the fastest local fabric and PP boundary transfers to slower inter-node links.",
+      "Data parallelism cannot execute across nodes that use tensor parallelism internally"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "For one rank in a balanced 3D layout with eight transformer layers per pipeline stage, 32 microbatches per update, two tensor-parallel reductions per layer in each pass, and one unbucketed data-parallel reduction after accumulation, order these communication patterns by invocation count per update, highest to lowest:",
+     "explanation": "(2) -> (3) -> (1). Tensor reductions recur within each layer of each microbatch. Pipeline transfers recur at stage boundaries for each microbatch. The specified unbucketed data-parallel reduction occurs once after accumulation. This ordering depends on the supplied layer count, schedule, and bucketing; it is not a universal ranking of bandwidth demand or exposed time.",
+     "hint": "Think about: compare communication invocation counts under an explicitly specified hybrid schedule",
+     "type": "order",
+     "items": [
+      "Tensor-parallel reductions",
+      "Pipeline stage-boundary transfers",
+      "Data-parallel gradient reduction"
+     ]
+    },
+    {
+     "q": "In a 16,384-GPU cluster configured with $\\text{TP}=8$, $\\text{PP}=16$, and $\\text{DP}=128$, how many GPUs participate in each individual data-parallel AllReduce communicator group?",
+     "explanation": "The correct answer is B. In 3D parallelism, the cluster contains $\\text{DP}=128$ complete model replicas, each partitioned across $\\text{TP} \\times \\text{PP} = 8 \\times 16 = 128$ distinct shard positions. For each shard position, the corresponding rank in every replica forms an independent data-parallel group of 128 GPUs that AllReduces its specific parameter shard. Participating in a single global collective of 16,384 GPUs would discard 3D partitioning. Confining DP groups to 8 or 16 GPUs confuses data-parallel replica count with tensor or pipeline dimensions.",
+     "hint": "Think about: analyze communicator group sizes and partitioning in a large-scale 3D parallelism cluster",
+     "type": "single",
+     "options": [
+      "\\$16,384 GPUs, because all accelerators in the cluster must synchronize in a single global collective",
+      "\\$128 GPUs, because each rank communicates only with its corresponding tensor-and-pipeline shard position across the 128 model replicas",
+      "\\$8 GPUs, matching the tensor-parallel degree within each local node",
+      "\\$16 GPUs, matching the pipeline stage depth across the cluster spine"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A uniform fat-tree network topology providing equal bisection bandwidth between all node pairs is always more cost-effective than a rail-optimized topology when training large language models with hierarchy-aware 3D parallelism.",
+     "explanation": "False. A rail-optimized fabric can reduce hardware and cabling costs when its connectivity matches the intended pipeline and data-parallel groups. The saving requires a workload and placement comparison; expert AllToAll traffic, mixed jobs, routing constraints, and contention can change the required fabric. Neither topology is always more cost-effective.",
+     "hint": "Think about: evaluate how network topology design interacts with hierarchy-aware parallelism communication locality",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the hierarchy-aware bandwidth matching principle to place 3D parallelism dimensions onto hardware tiers.",
+    "You can now calculate per-GPU static memory requirements in a 3D hybrid parallelism configuration.",
+    "You can now compare communication invocation counts under an explicitly specified hybrid schedule.",
+    "You can now analyze communicator group sizes and partitioning in a large-scale 3D parallelism cluster."
+   ]
+  }
+ ]
+}

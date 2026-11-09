@@ -1,0 +1,67 @@
+{
+ "title": "The System Is the Model",
+ "summary": "Apply the 'system is the model' thesis to diagnose a production regression that emerges from cross-layer interactions between preprocessing, quantization, and hardware runtimes.",
+ "source": {
+  "chapter": "v1-16",
+  "sections": [
+   "The System Is the Model"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The System Is the Model** in *Conclusion* (Vol I). By the end you should be able to:\n\n- Apply the 'system is the model' thesis to diagnose a production regression that emerges from cross-layer interactions between preprocessing, quantization, and hardware runtimes\n- Evaluate why component-level success metrics cannot guarantee end-to-end ML system correctness and reliability\n- Explain why production ML behavior is defined by the full end-to-end system rather than the weights file alone"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Conclusion, § The System Is the Model",
+   "md": "When a user asks a smartphone voice assistant a question, learned components convert speech to text, interpret intent, retrieve information, and generate a response within seconds (a later section). A failure in any stage, such as a drifted feature, a miscalibrated quantization range, or a queueing spike, degrades the answer even when the model weights are untouched."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: the 'system is the model' thesis as an integration claim across the stack; why locally optimized components can compose into globally failing systems."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: The conclusion argues that 'the system is the model.' Explain why treating the model solely as a static weights file (e.g., a 500 MB floating-point binary) fails in production, and define what constitutes the 'true model.'",
+   "md": "In production, model weights cannot function in isolation. The true model is the entire integrated pipeline: the data engineering pipeline that defines what features the model receives, the training infrastructure that determines what it learns, the serving runtime and hardware compiler that dictate how it executes, and the operational monitoring loop that tracks distribution drift. If upstream preprocessing changes or downstream hardware quantization clips values, model behavior degrades even if the weights file remains completely unchanged."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-16-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A production image classifier deployed across a mobile device fleet shows a 4-percentage-point drop in accuracy on specific handset cohorts. The weights file is unchanged, the compression team verified INT8 kernel speedups, and the serving team confirmed a P99 latency of 48 ms (under the 50 ms SLO). Which diagnostic posture is most consistent with the 'system is the model' thesis?",
+     "explanation": "The correct answer is B. Trace the interaction between INT8 quantization scaling factors and firmware-specific image preprocessing paths, because production behavior is defined by the weights combined with the data pipeline, runtime hardware, and monitoring loop. The central thesis of ML systems engineering is that 'the system is the model': the weights file is merely one component of a pipeline that includes data ingest, preprocessing, quantization scaling, hardware runtime execution, and drift monitoring. In the chapter's mobile deployment case study, no single component failed in isolation; rather, a subtle coupling between INT8 quantization assumptions and device-specific image preprocessing firmware caused the localized accuracy loss. Escalating solely to architecture ignores the physical substrate; dismissing the drop as noise ignores cohort-specific degradation; and blaming only the serving runtime overlooks upstream preprocessing and quantization interactions.",
+     "hint": "Think about: apply the 'system is the model' thesis to diagnose a production regression that emerges from cross-layer interactions between preprocessing, quantization, and hardware runtimes.",
+     "type": "single",
+     "options": [
+      "Focus the investigation exclusively on serving execution, because runtime inference is the only stage operating during production.",
+      "Trace the interaction between INT8 quantization scaling factors and firmware-specific image preprocessing paths, because production behavior is defined by the weights combined with the data pipeline, runtime hardware, and monitoring loop.",
+      "Escalate to the architecture team to train wider convolutional layers, because an unchanged weights file implies that any remaining error must stem from model capacity.",
+      "Treat the 4-point regression as acceptable random noise, because all engineering teams independently satisfied their local component metrics and the aggregate P99 latency is within budget."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "If every engineering team in an ML organization independently satisfies its isolated component metric (e.g., architecture achieves an \\$8.7\\times$ FLOP reduction, compression achieves \\$4\\times$ weight reduction, and serving meets its P99 latency SLO), the integrated system is mathematically guaranteed to meet its end-to-end accuracy and correctness requirements in production.",
+     "explanation": "False. Component correctness is necessary but insufficient for system correctness because ML systems exhibit complex cross-layer couplings across interfaces. An architectural change alters arithmetic intensity and operator support requirements; quantization introduces scaling factors and rounding errors; firmware-specific preprocessing pipelines may alter input color spaces or normalization; and serving dynamic batchers can alter tail latency distributions. When these components interact in production, subtle edge cases (such as quantization clipping on specific camera sensor firmware) create localized accuracy regressions that aggregate offline benchmarks and component-level SLOs never measure in isolation.",
+     "hint": "Think about: evaluate why component-level success metrics cannot guarantee end-to-end ML system correctness and reliability.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the 'system is the model' thesis to diagnose a production regression that emerges from cross-layer interactions between preprocessing, quantization, and hardware runtimes.",
+    "You can now evaluate why component-level success metrics cannot guarantee end-to-end ML system correctness and reliability.",
+    "You can now explain why production ML behavior is defined by the full end-to-end system rather than the weights file alone."
+   ]
+  }
+ ]
+}

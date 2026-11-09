@@ -1,0 +1,73 @@
+{
+ "title": "Policy Training Regimes",
+ "summary": "Work through Policy Training Regimes.",
+ "source": {
+  "chapter": "v4-06",
+  "sections": [
+   "Policy Training Regimes",
+   "The latch task as a reward problem",
+   "Behavioral cloning and its action targets",
+   "Mode averaging when demonstrations split",
+   "Compounding errors and recovery experience",
+   "Action chunking and multi-step trajectory prediction",
+   "Decoder latency and proposal deadlines",
+   "Offline reinforcement learning and out-of-distribution actions",
+   "Pretrained generalist policies and post-training"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Policy Training Regimes** in *Policy Training* (Vol IV)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Policy Training, § Policy Training Regimes",
+   "md": "When `latch-bc-01` binds against a sagged strike plate and `latch-sim-02` plunges into the nominal plate at …, neither failure can be repaired by training the same network for more epochs on the same dataset. Fixing an unvisited recovery state or an exploited contact solver requires changing the experience the learner sees."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The latch task as a reward problem\n- Behavioral cloning and its action targets\n- Mode averaging when demonstrations split\n- Compounding errors and recovery experience\n- Action chunking and multi-step trajectory prediction\n- Decoder latency and proposal deadlines\n- Offline reinforcement learning and out-of-distribution actions\n- Pretrained generalist policies and post-training"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Decoder renewal slack matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A decoder chosen for multimodality must fit the proposal deadline, since latency is encoding plus every dependent decoder evaluation, so the head and evaluation count that training picks decide schedulability."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-06-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Policy Training Regimes** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A decoder chosen for multimodality must fit the proposal deadline, since latency is encoding plus every dependent decoder evaluation, so the head and evaluation count that training picks decide schedulability.",
+      "Fitting values over a fixed log and acting greedily inflates values at actions the log never executed, and conservative objectives reduce that error but cannot create support the log lacks.",
+      "A simulator's contact model decides what the optimizer learns, and a soft penalty spring lets a policy pass through contacts the real plate would resist.",
+      "Sim-to-real mismatch decomposes into dynamics, sensing, appearance, and timing channels, each sized by paired probing, and randomization covers modeled parameters but never omitted mechanisms."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Decoder renewal slack**: A decoder chosen for multimodality must fit the proposal deadline, since latency is encoding plus every dependent decoder evaluation, so the head and evaluation count that training picks decide schedulability."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Decoder renewal slack* must fit the renewal budget bounded by *Memory-wall renewal ceiling*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Decoder renewal slack must fit the renewal budget bounded by Memory-wall renewal ceiling."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Policy Training Regimes."
+   ]
+  }
+ ]
+}

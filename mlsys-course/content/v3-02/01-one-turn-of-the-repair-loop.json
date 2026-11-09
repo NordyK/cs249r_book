@@ -1,0 +1,52 @@
+{
+ "title": "One Turn of the Repair Loop",
+ "summary": "Work through One Turn of the Repair Loop.",
+ "source": {
+  "chapter": "v3-02",
+  "sections": [
+   "One Turn of the Repair Loop"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **One Turn of the Repair Loop** in *The Foundation Model* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Foundation Model, § One Turn of the Repair Loop",
+   "md": "The repair agent (a later section) needs to inspect the connection-pool implementation before proposing a change. A model call that emits `read_file(\"src/pool.py\")` produces only an unexecuted text string. Of the six phases of a turn (a later section), only the call itself belongs to the model; checking the path, authorizing the read, running it, and returning the observation all belong to the runtime."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Output-bound call latency matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-02-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **One Turn of the Repair Loop** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Re-sending an append-only history submits H*S0 + Delta*H(H-1)/2 prompt tokens, compatible prefix reuse cuts fresh prefill to S0 + (H-1)*Delta, and latency, work, and billed dollars remain separate accounts.",
+      "Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever.",
+      "Representation granularity, serialization, and constraint mechanism are independent interface axes judged on accepted outcomes under matched budgets, with a deadline acting as an admission filter and every initiated trial kept in the denominator.",
+      "Model output is a proposal with zero ambient authority: the runtime validates, authorizes, executes, and returns the observation, so a tool request is never an effect and a model claim is never an observation."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Output-bound call latency**: Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through One Turn of the Repair Loop."
+   ]
+  }
+ ]
+}

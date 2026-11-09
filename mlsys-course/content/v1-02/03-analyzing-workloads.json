@@ -1,0 +1,96 @@
+{
+ "title": "Analyzing Workloads",
+ "summary": "Apply the iron law and bottleneck principle to distinguish single-request serialized latency from steady-state pipelined completion interval.",
+ "source": {
+  "chapter": "v1-02",
+  "sections": [
+   "Analyzing Workloads",
+   "The bottleneck principle",
+   "Workload archetypes"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Analyzing Workloads** in *System Paradigms* (Vol I). By the end you should be able to:\n\n- Apply the iron law and bottleneck principle to distinguish single-request serialized latency from steady-state pipelined completion interval\n- Classify ML workloads into archetypes based on their dominant iron law bottlenecks and reference lighthouse models\n- Explain why improving a nonlimiting stage can lower sequential request latency without increasing ideal pipelined throughput\n- Sequence a hierarchical feasibility screen for embedded deployment and distinguish flash screening from separate SRAM/runtime-memory validation\n- Classify ML workloads exhibiting high arithmetic intensity into the Compute-bound archetype"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, System Paradigms, § Analyzing Workloads",
+   "md": "Which of the three physical walls a system hits first is not a fixed property of a model family. A vision network that saturates accelerator compute units during batched training can stall on memory bandwidth when serving one image at a time, and a model that runs effortlessly in a data center can overheat a phone in under a minute."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- The bottleneck principle\n- Workload archetypes\n\nPay attention to: Additive vs. max form of the iron law and bottleneck principle; The energy of wireless transmission vs. local computation; Four workload archetypes and five reference lighthouse models."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why shortening a stage that is not the bottleneck can still reduce the latency of one sequential request, even though it does not improve ideal pipelined throughput once the pipeline is full.",
+   "md": "Shortening any stage on a sequential request's dependent path reduces that request's total latency because the additive form sums all required stages. In a pipelined stream, however, ideal steady-state throughput is set by the slowest overlapped stage, so making a faster nonlimiting stage even shorter does not change the completion interval after the pipeline fills. For example, reducing compute time helps a single request finish sooner, but if memory or $T_{\\text{IO}}$ remains the longest stage, the assembly-line rate stays unchanged. The practical consequence is that engineers should separate latency optimization for one request from throughput optimization for a continuous stream."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-02-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "When analyzing ML system performance, when should an engineer apply the additive form of the iron law ($T = \\frac{D_{\\text{vol}}}{\\text{BW}} + \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}} + L_{\\text{lat}}$) versus the bottleneck principle's max form ($T_{\\text{pipelined}} \\ge \\max\\left(\\frac{D_{\\text{vol}}}{\\text{BW}}, \\frac{O}{R_{\\text{peak}} \\cdot \\eta_{\\text{hw}}}, T_{\\text{IO}}\\right) + L_{\\text{lat}}$)?",
+     "explanation": "The correct answer is A. The additive form models one request's serialized latency when data movement, compute, and fixed overhead lie on the dependent path and therefore add. The max form is for pipelined steady-state throughput: after the pipeline fills, the time between completed tasks is at least the slowest overlapped stage, with $L_{\\text{lat}}$ added separately because nonoverlapped overhead sits outside the $\\max(\\cdot)$. The cloud-versus-TinyML answer confuses execution structure with deployment location, and the batch-size rule is not the governing distinction.",
+     "hint": "Think about: apply the iron law and bottleneck principle to distinguish single-request serialized latency from steady-state pipelined completion interval.",
+     "type": "single",
+     "options": [
+      "Use the additive form for single-request serialized latency, and the max form for steady-state pipelined completion interval after the pipeline fills, where overlapped stages are bounded by the slowest one.",
+      "Use the additive form exclusively for cloud workloads, and the max form exclusively for microcontroller TinyML workloads.",
+      "Use the additive form when batch size is greater than 128, and the max form when batch size equals 1.",
+      "Use the additive form during model training only, and the max form during on-device model quantization."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Which pairing correctly matches a workload archetype to its dominant physical bottleneck and canonical lighthouse model?",
+     "explanation": "The correct answer is B. Bandwidth-bound workloads, exemplified by autoregressive language models such as GPT-2 and Llama, perform sequential token decoding where generating each token requires streaming large parameter matrices through memory, making memory bandwidth ($\\text{BW}$) the primary bottleneck. The option pairing Compute-bound with DLRM confuses dense arithmetic with sparse embedding lookups. The option pairing Capacity-bound with ResNet-50 misclassifies a dense convolution model as an irregular lookup table. The option pairing Power-bound with petabyte-scale distributed training contradicts the kilobyte memory and milliwatt power constraints of TinyML.",
+     "hint": "Think about: classify ML workloads into archetypes based on their dominant iron law bottlenecks and reference lighthouse models.",
+     "type": "single",
+     "options": [
+      "Compute-bound rightarrow dominated by irregular table lookups and cache misses rightarrow DLRM",
+      "Bandwidth-bound rightarrow dominated by dense parameter streaming during autoregressive token decode rightarrow GPT-2/Llama",
+      "Capacity-bound rightarrow dominated by dense FLOP throughput at high arithmetic intensity rightarrow ResNet-50",
+      "Power-bound rightarrow dominated by petabyte-scale distributed training rightarrow Keyword Spotting (KWS)"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Order the steps of the hierarchical deployment feasibility evaluation for the Smart Doorbell scenario from initial problem framing to latency verification:",
+     "explanation": "The correct order is: (2) Define the application mission targets (person at the door, required quality, and responsiveness budget), (4) Select a candidate platform and model for the task (for example, a visual wake-word model on an ESP32-S3), (1) Check Level 1 storage fit by screening whether the visual wake-word model's weights fit in flash, (3) Check Level 2 timing constraints by evaluating per-inference latency against the interaction budget. The sequence is necessary because the budget and task define what \"fit\" means, the candidate must be chosen before it can be screened, and the scorecard checks flash before latency. Passing the flash check does not prove complete memory fit: SRAM for activations and runtime state still has to be checked separately.",
+     "hint": "Think about: sequence a hierarchical feasibility screen for embedded deployment and distinguish flash screening from separate SRAM/runtime-memory validation.",
+     "type": "order",
+     "items": [
+      "Check Level 1 storage fit by screening whether the visual wake-word model's weights fit in flash",
+      "Check Level 2 timing constraints by evaluating per-inference latency against the interaction budget"
+     ]
+    },
+    {
+     "q": "An ML workload characterized by high arithmetic intensity where throughput is bounded by peak FLOP/s ($R_{\\text{peak}}$) rather than memory bandwidth, such as dense convolutional neural network training, belongs to the ____ archetype.",
+     "explanation": "Compute-bound. Compute-bound workloads perform many floating-point operations per byte of memory loaded ($I = \\text{FLOPs/byte}$), ensuring that processor arithmetic units remain saturated and execution time is dominated by the compute term ($O / (R_{\\text{peak}} \\cdot \\eta_{\\text{hw}})$) of the iron law.",
+     "hint": "Think about: classify ML workloads exhibiting high arithmetic intensity into the Compute-bound archetype.",
+     "type": "fill",
+     "answer": [
+      "Compute bound",
+      "Compute-bound"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now apply the iron law and bottleneck principle to distinguish single-request serialized latency from steady-state pipelined completion interval.",
+    "You can now classify ML workloads into archetypes based on their dominant iron law bottlenecks and reference lighthouse models.",
+    "You can now explain why improving a nonlimiting stage can lower sequential request latency without increasing ideal pipelined throughput.",
+    "You can now sequence a hierarchical feasibility screen for embedded deployment and distinguish flash screening from separate SRAM/runtime-memory validation."
+   ]
+  }
+ ]
+}

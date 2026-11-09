@@ -1,0 +1,100 @@
+{
+ "title": "Hardware-Level Security Vulnerabilities",
+ "summary": "Analyze the impact of speculative execution CPU vulnerabilities on multi-tenant ML infrastructure.",
+ "source": {
+  "chapter": "v2-13",
+  "sections": [
+   "Hardware-Level Security Vulnerabilities",
+   "Hardware bugs",
+   "Physical attacks",
+   "Fault injection attacks",
+   "Side-channel attacks",
+   "Leaky interfaces",
+   "Supply chain risks"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Hardware-Level Security Vulnerabilities** in *Security & Privacy* (Vol II). By the end you should be able to:\n\n- Analyze the impact of speculative execution CPU vulnerabilities on multi-tenant ML infrastructure\n- Explain how physical fault injection alters assembly-level neural network execution\n- Evaluate the vulnerability of edge ML accelerators to differential power analysis side-channel attacks\n- Evaluate the security risk of unsecured hardware debug interfaces on production edge ML devices\n- Classify vulnerability vectors across the sequential stages of the hardware supply chain lifecycle"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Security & Privacy, § Hardware-Level Security Vulnerabilities",
+   "md": "When a serving team moves model weights into production, it often treats encryption, access control, and API policy as the security boundary. Hardware attacks break that assumption. A processor can leak across isolation domains, a field device can be opened, a bus or power rail can expose signals, and a counterfeit component can enter the system before deployment begins. Hardware therefore belongs inside the threat model, as the substrate that can invalidate software controls after those controls appear to pass."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Hardware bugs\n- Physical attacks\n- Fault injection attacks\n- Side-channel attacks\n- Leaky interfaces\n- Supply chain risks\n\nPay attention to: Speculative execution and processor isolation bugs (Meltdown/Spectre); Assembly-level fault injection mechanisms (ReLU branch suppression); Power analysis side channels on ML accelerators; Learned (deep-learning) side-channel analysis of power traces."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In laser fault injection experiments on embedded neural network microcontrollers (e.g., Breier et al., 2018), researchers targeted the assembly instructions implementing the ReLU activation function. Explain the assembly-level mechanism of this attack and its effect on the model's output.",
+   "md": "In the illustrated ReLU implementation, a laser-induced instruction skip targets `jmp end`, the jump that normally bypasses the zeroing block after the activation value has been retained. Skipping that jump lets execution enter the zeroing block, forcing the activation to zero and potentially corrupting downstream classification. The demonstrated mechanism is a control-flow fault, not extraction or modification of stored weights."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-13-07-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Vulnerabilities like Meltdown and Spectre exploit transient execution in modern processors. What microarchitectural mechanism can let an attacker infer protected data across an intended isolation boundary?",
+     "explanation": "The correct answer is A. Transient execution can leave cache effects even when its architectural results are discarded. Spectre exploits prediction to induce a victim to access data along a transient path; Meltdown exploits a permission-enforcement weakness during transient execution. Their prerequisites differ, but both can turn residual microarchitectural state into an observation channel. The other choices concern memory corruption, numerical representation, or bus encryption rather than this transient-execution channel.",
+     "hint": "Think about: analyze the impact of speculative execution CPU vulnerabilities on multi-tenant ML infrastructure.",
+     "type": "single",
+     "options": [
+      "Transient instructions can encode protected data in cache state that remains measurable after the processor discards their architectural effects.",
+      "Speculative execution permanently overwrites physical DRAM cells with ciphertext keys without notifying the OS kernel.",
+      "The CPU floating-point unit truncates FP32 tensor activations to INT8 during branch prediction.",
+      "Speculative branch predictors disable hardware-level AES encryption engines on PCIe accelerator interconnects."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An attacker places an oscilloscope probe near the power rail of an edge ML microcontroller running a proprietary convolutional network. How can the attacker infer model architecture or recover layer weights without accessing the device's firmware or API?",
+     "explanation": "The correct answer is B. Power observations can carry signals correlated with data and operations, providing evidence for architecture or parameter inference. Recovery still requires suitable measurements, implementation knowledge, and a reproducible learned or statistical relationship. Merely placing a probe does not establish extraction; packet injection and firmware replacement use different attack paths.",
+     "hint": "Think about: evaluate the vulnerability of edge ML accelerators to differential power analysis side-channel attacks.",
+     "type": "single",
+     "options": [
+      "By sending malformed TCP packets that trigger core dumps over the microcontroller's UART interface.",
+      "By measuring instruction-dependent power consumption waveforms where current draw varies with weight values, multiplication operand hamming weights, and ReLU pre-activation signs.",
+      "By overwriting the microcontroller's secure boot ROM keys using over-the-air firmware updates.",
+      "By inducing thermal shutdown to force the microcontroller to reboot into an unauthenticated recovery bootloader."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A production edge device exposes an unauthenticated JTAG/SWD interface that permits reads of plaintext model weights in flash. Physical access to that interface can bypass host software permissions for those reads.",
+     "explanation": "True. Under the stated read-access and plaintext assumptions, the debug path exposes weights independently of host permissions. A connector alone does not defeat correctly enforced debug locks or encryption whose keys remain unavailable.",
+     "hint": "Think about: evaluate the security risk of unsecured hardware debug interfaces on production edge ML devices.",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "Traditional side-channel cryptanalysis required expert analysts to manually filter noise, align oscilloscope waveforms, and apply statistical correlation power analysis. What key capability do convolutional neural networks provide when applied to side-channel trace analysis?",
+     "explanation": "The correct answer is C. A CNN can learn features associated with intermediate computations from suitable labeled traces. Predictions then support candidate-key scoring across measurements; useful transfer must be evaluated. The classifier does not mathematically break AES without observations or remove the device's power consumption.",
+     "hint": "Think about: analyze how convolutional neural networks automate and scale side-channel cryptanalysis.",
+     "type": "single",
+     "options": [
+      "They mathematically break 256-bit AES encryption keys in $\\mathcal{O}(1)$ time without requiring physical measurement traces.",
+      "They replace hardware security modules with software-only virtual enclaves that simulate quantum annealing.",
+      "They learn leakage features from labeled traces and predict secret-dependent intermediate values, which an attacker combines with known inputs to score candidate keys.",
+      "They prevent the physical device from consuming electrical power during sensitive cryptographic operations."
+     ],
+     "answer": 2
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the impact of speculative execution CPU vulnerabilities on multi-tenant ML infrastructure.",
+    "You can now explain how physical fault injection alters assembly-level neural network execution.",
+    "You can now evaluate the vulnerability of edge ML accelerators to differential power analysis side-channel attacks.",
+    "You can now evaluate the security risk of unsecured hardware debug interfaces on production edge ML devices."
+   ]
+  }
+ ]
+}

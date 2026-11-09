@@ -1,0 +1,79 @@
+{
+ "title": "Software Faults",
+ "summary": "Analyze the accumulation mechanics and failure risks of accelerator memory leaks in distributed training.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "Software Faults",
+   "Software fault properties and propagation",
+   "Software fault detection and prevention"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Software Faults** in *Fault Tolerance* (Vol II). By the end you should be able to:\n\n- Analyze the accumulation mechanics and failure risks of accelerator memory leaks in distributed training\n- Compare synchronization failure modes across distributed parallel training paradigms\n- Justify why silent software transformations in data pipelines present higher business and compute risk than fail-stop software errors\n- Design a layered software validation pipeline in which each gate exercises a specific invariant and authorizes a specific decision"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, § Software Faults",
+   "md": "A team spends three months testing a large language model (LLM) against complex prompt-level failure cases, only to realize that its preprocessing script kept only the last 512 tokens of each input, silently discarding the system prompt on long requests. The example exposes an ordinary source of ML failure that algorithmic testing can miss. A logic error in a data loader or prompt assembler can preserve valid tensor shapes while changing the computation's meaning, allowing the pipeline to continue without a crash."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Software fault properties and propagation\n- Software fault detection and prevention\n\nPay attention to: Memory management bugs and accelerator memory leak accumulation dynamics; Concurrency failures: race conditions, deadlocks, and pipeline stalls in distributed training; Data pipeline silent bugs (token truncation, label masking) vs fail-stop syntax errors; Reliability evidence gates (boundary unit tests, integration replay, fault injection, restore drills) and the decisions each authorizes."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Contrast a pipeline deadlock with a data race condition in distributed parallel training in terms of their system symptoms and impact on model convergence.",
+   "md": "A deadlock prevents progress because stages wait on cyclic dependencies; utilization may be low or misleadingly high if communication kernels spin. A data race allows unsynchronized accesses to mutable state, producing timing-dependent results or corrupted updates while execution continues. Neither fault has a universal utilization percentage, so diagnosis requires progress counters, dependency traces, and correctness checks."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why are GPU memory leaks in 70B+ parameter distributed training pipelines particularly destructive and difficult to diagnose compared to standard CPU memory leaks?",
+     "explanation": "The correct answer is C. Model, gradient, optimizer, and activation state can leave little accelerator-memory headroom. Retaining a graph or tensor every step gradually consumes that headroom until allocation fails, potentially far from the leak’s origin. Changing precision affects capacity but does not fix the leak; ordinary device allocations do not automatically spill to disk.",
+     "hint": "Think about: analyze the accumulation mechanics and failure risks of accelerator memory leaks in distributed training.",
+     "type": "single",
+     "options": [
+      "GPU memory is dynamically swapped to NVMe disk automatically, causing unpredictable I/O thrashing rather than out-of-memory errors.",
+      "GPU allocators immediately throw segmentation faults upon the first unreleased tensor, preventing any batch execution.",
+      "Accelerator memory is scarce (40–80 GB per device) and shared across weights, optimizer state, and activations; a small leak per batch gradually builds over hundreds of steps until triggering an un-checkpointed OOM crash mid-run.",
+      "GPU memory leaks only occur when using mixed-precision BF16 formats and disappear entirely when switching to FP32 weights."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A preprocessing change silently truncates prompts and discards the system prompt. Sequence the reliability gates in the order that should catch the defect, from earliest and cheapest to the final proof that recovery works:",
+     "explanation": "The correct sequence is (2) -> (3) -> (1).\n- (2) The boundary unit test catches the tokenizer defect before any distributed execution.\n- (3) Integration replay confirms that batch shapes and metadata survive the full input path.\n- (1) Fault injection demonstrates that, if corruption does slip through, the detector fires and recovery satisfies its objectives before corrupted state commits.",
+     "hint": "Think about: design a layered software validation pipeline in which each gate exercises a specific invariant and authorizes a specific decision.",
+     "type": "order",
+     "items": [
+      "A boundary unit test asserting that tokenizer limits, system prompts, and masks survive preprocessing",
+      "An integration replay that follows one recorded batch through loading, sharding, collation, and model input construction",
+      "A fault-injection test showing that the resulting alert blocks publication or rolls back to a known-good state"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Justify why a silent data preprocessing defect (such as unintended prompt truncation or incorrect token masking) presents a much higher compute and financial risk than a syntax error that crashes on the first batch.",
+   "md": "A syntax error usually stops execution early and gives direct feedback, limiting wasted work. A silent preprocessing defect can preserve valid shapes while changing the objective, allowing expensive training to continue before evaluation exposes the problem. The loss depends on when the defect is detected, which state or data it affected, and whether valid checkpoints permit recovery; it need not invalidate the entire run."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the accumulation mechanics and failure risks of accelerator memory leaks in distributed training.",
+    "You can now compare synchronization failure modes across distributed parallel training paradigms.",
+    "You can now justify why silent software transformations in data pipelines present higher business and compute risk than fail-stop software errors.",
+    "You can now design a layered software validation pipeline in which each gate exercises a specific invariant and authorizes a specific decision."
+   ]
+  }
+ ]
+}

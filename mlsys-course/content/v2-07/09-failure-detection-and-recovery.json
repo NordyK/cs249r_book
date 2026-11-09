@@ -1,0 +1,113 @@
+{
+ "title": "Failure Detection and Recovery",
+ "summary": "Calculate the total recovery time budget and compound daily compute loss across large accelerator clusters.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "Failure Detection and Recovery",
+   "Failure detection mechanisms",
+   "Recovery procedures",
+   "Warm restart vs. cold restart",
+   "Recovery automation pipeline",
+   "Stragglers versus fail-stop failures"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Failure Detection and Recovery** in *Fault Tolerance* (Vol II). By the end you should be able to:\n\n- Calculate the total recovery time budget and compound daily compute loss across large accelerator clusters\n- Compare warm and cold restart mechanisms for distributed training failure recovery\n- Evaluate the economic and throughput break-even criteria for proactively replacing stragglers\n- Design the end-to-end operational stages of an automated failure recovery pipeline\n- Analyze the trade-off between detection latency and false positive failure declarations in heartbeat monitoring"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, § Failure Detection and Recovery",
+   "md": "A GPU silently hangs, dropping its utilization to zero while its peer GPUs wait indefinitely at an AllReduce barrier. On the chapter's …-GPU cluster, every minute the system takes to notice this hung rank and reboot the node costs about … in idle compute. Checkpoints preserve state, but the recovery process itself determines how much compute a failure wastes. In the accounting of the Fleet Law (a later section), that waiting belongs to the synchronization term SynchronizationTime(DeviceCount)."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Failure detection mechanisms\n- Recovery procedures\n- Warm restart vs. cold restart\n- Recovery automation pipeline\n- Stragglers versus fail-stop failures\n\nPay attention to: Decomposition of recovery time: $T_{\\text{recovery}} = T_{\\text{detect}} + T_{\\text{restart}} + T_{\\text{load}} + T_{\\text{warmup}}$; Failure detection mechanisms: heartbeats, adaptive timeouts, collective timeouts, loss spike anomaly detection; Warm restart vs cold restart trade-offs (state preservation vs software complexity); Automated recovery pipelines (monitoring, classification, action selection, validation)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Compare a warm restart with a cold restart for a single-GPU failure in a 1,000-GPU cluster in terms of recovery latency, memory state guarantees, and software complexity.",
+   "md": "A cold restart stops the worker group and restores a valid checkpoint, trading a full reload and warmup for simpler state handling. A warm restart keeps surviving processes, but a replacement must reconstruct state at the survivors' committed step or the group must roll back to a common recovery point; combining an older shard with advanced survivor state is unsafe. The chapter's 4–10-minute cold and 30–90-second warm ranges are planning examples, not guarantees. Warm recovery additionally requires runtime support for membership changes and communicator reconstruction, with cold restart as a safety net."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A 10,000-GPU training job experiences a GPU failure. The cluster implements cold restart, where $T_{\\text{detect}} = 30\\text{ s}$, $T_{\\text{restart}} = 3\\text{ min}$, $T_{\\text{load}} = 36\\text{ s}$, and $T_{\\text{warmup}} = 2\\text{ min}$. If the cluster MTBF is 5 hours, what is the daily compute loss incurred solely from recovery time?",
+     "explanation": "The correct answer is D. Recovery takes \\$30+180+36+120=366$ seconds, or 6.1 minutes. At \\$24/5=4.8$ failures per day, the first-order lost time is \\$4.8\\times6.1=29.28$ minutes per day. Across 10,000 GPUs this is \\$10{,}000\\times29.28/60=4{,}880$ GPU-hours, about 2.03 percent of daily capacity. The other choices fail to combine failure frequency, recovery duration, and fleet size.",
+     "hint": "Think about: calculate the total recovery time budget and compound daily compute loss across large accelerator clusters.",
+     "type": "single",
+     "options": [
+      "Approximately 0.5 minutes daily, wasting 5 GPU-hours per day.",
+      "Approximately 6.6 minutes daily, wasting 100 GPU-hours per day.",
+      "Approximately 15 minutes daily, wasting 500 GPU-hours per day.",
+      "Approximately 29.3 minutes daily, wasting roughly 4,880 GPU-hours per day across the fleet."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In a compute-dominated 1,000-GPU synchronous job, one GPU remains at half speed, reducing useful cluster throughput by approximately half. What comparison determines whether replacing it is worth the interruption?",
+     "explanation": "The correct answer is B. If the slowdown is expected to persist for $K$ useful updates, replacement pays off when $K(t_{\\mathrm{slow}}-t_{\\mathrm{healthy}})>T_{\\mathrm{restart}}+T_{\\mathrm{replay}}$. The restart budget includes waiting for replacement capacity and restoring state. A transient may clear before this threshold; cluster MTBF does not determine the remaining slowdown horizon.",
+     "hint": "Think about: evaluate the economic and throughput break-even criteria for proactively replacing stragglers.",
+     "type": "single",
+     "options": [
+      "Throughput drops by only 0.1% (1/1000th); the straggler should always be tolerated to avoid restart overhead.",
+      "Compare the useful work lost during replacement, restart, and replay with the work recovered by removing the slowdown over its expected remaining duration.",
+      "Cluster throughput remains 100% because asynchronous gradient buffering absorbs all rank jitter.",
+      "Throughput drops by 100% because any slow rank immediately triggers an NCCL assertion crash."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Sequence the six sequential operational stages executed by the chapter’s stated cold-restart recovery path after classifying a hard worker failure:",
+     "explanation": "The correct sequence is (2) -> (1) -> (5) -> (3) -> (6) -> (4).\n- (2) Job Termination: Tear down dead communicator across surviving workers.\n- (1) Resource Reclamation: Isolate and drain failed node; provision replacement.\n- (5) Job Restart: Launch replacement container and re-initialize execution runtime.\n- (3) Checkpoint Loading: Workers load durable parameter and optimizer shards.\n- (6) State Synchronization: Reconstruct NCCL communicators and verify step parity.\n- (4) Training Resumption: Restore the recorded input-stream position and sampling state, then resume training.",
+     "hint": "Think about: design the end-to-end operational stages of an automated failure recovery pipeline.",
+     "type": "order",
+     "items": [
+      "Job Termination: Broadcast termination signal to tear down invalidated communicator",
+      "Resource Reclamation: Scheduler marks defective node as draining and requests spare node",
+      "Job Restart: Launch fresh container processes and re-initialize training runtime binary",
+      "Checkpoint Loading: Workers read local partition state shards from distributed storage",
+      "State Synchronization: Workers execute rendezvous and re-initialize NCCL communicators",
+      "Training Resumption: Data loaders restore recorded position and sampling state, and training resumes"
+     ]
+    },
+    {
+     "q": "In heartbeat failure detection ($T_{\\text{timeout}} = H + k\\sigma_d$), reducing the safety multiplier $k$ to a very small value (e.g., $k=1$) is universally optimal because it minimizes detection latency $T_{\\text{detect}}$ without any operational downsides.",
+     "explanation": "False. A smaller multiplier shortens the waiting threshold but can increase false failure declarations when healthy workers are delayed. The resulting recovery can discard useful work. Whether those costs exceed faster detection benefits depends on measured delay tails, failure rates and recovery costs; there is no universally optimal multiplier.",
+     "hint": "Think about: analyze the trade-off between detection latency and false positive failure declarations in heartbeat monitoring.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "During pretraining of a foundation model, the training loss curve exhibits gradual divergence over 50 steps without any thrown exceptions or NaNs in the logs. Based on common ML failure signatures, which failure hypothesis and investigation path should be considered?",
+     "explanation": "The correct answer is D. Silent corruption or rank desynchronization is a plausible failure class and warrants independent checks and replay. Gradual loss divergence alone does not diagnose faulty hardware: data defects and numerical instability can look similar. Isolate the cause before draining a node, and restore a validated earlier checkpoint when state is corrupted. Increasing the learning rate without diagnosis can worsen the incident.",
+     "hint": "Think about: analyze root causes from training loss curve signatures and select appropriate recovery responses.",
+     "type": "single",
+     "options": [
+      "Learning rate warm-up is too fast; double the learning rate and continue training.",
+      "A disk full error occurred on the central coordinator; delete log files to resume execution.",
+      "The tokenizer encountered an unknown character; restart training from Step 0.",
+      "Silent data corruption or subtle distributed rank desynchronization may have occurred; investigate with independent replay, quarantine confirmed faulty hardware, and roll back to a known-good checkpoint prior to divergence."
+     ],
+     "answer": 3
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate the total recovery time budget and compound daily compute loss across large accelerator clusters.",
+    "You can now compare warm and cold restart mechanisms for distributed training failure recovery.",
+    "You can now evaluate the economic and throughput break-even criteria for proactively replacing stragglers.",
+    "You can now design the end-to-end operational stages of an automated failure recovery pipeline."
+   ]
+  }
+ ]
+}

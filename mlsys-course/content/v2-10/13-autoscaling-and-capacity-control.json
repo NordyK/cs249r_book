@@ -1,0 +1,63 @@
+{
+ "title": "Autoscaling and Capacity Control",
+ "summary": "Analyze the components of autoscaling response latency and evaluate strategies for mitigating cold-start delays.",
+ "source": {
+  "chapter": "v2-10",
+  "sections": [
+   "Autoscaling and Capacity Control",
+   "Scaling response time",
+   "Cold start and predictive scaling",
+   "Warm pool management",
+   "Spot and preemptible instances"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Autoscaling and Capacity Control** in *Serving at Scale* (Vol II). By the end you should be able to:\n\n- Analyze the components of autoscaling response latency and evaluate strategies for mitigating cold-start delays\n- Structure the graceful termination and state-preservation workflow for preemptible/spot inference instances"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Serving at Scale, § Autoscaling and Capacity Control",
+   "md": "A serving autoscaler that reacts only to average accelerator utilization can scale in the wrong direction. Decode can saturate memory bandwidth while arithmetic units appear idle, long prompts can consume prefill capacity before request count rises, and queued work can violate an SLO while fleet-wide utilization remains moderate. The control signal must represent outstanding work relative to phase-specific service capacity. Every replica the controller adds is also a claim on accelerators that training jobs may hold, so fleet-level arbitration with training bounds how quickly and how far serving can grow."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Scaling response time\n- Cold start and predictive scaling\n- Warm pool management\n- Spot and preemptible instances\n\nPay attention to: Cold-start delay and ready capacity; Graceful termination."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: When a cloud provider issues a 2-minute termination warning for a spot/preemptible GPU inference instance, describe a four-step shutdown sequence that reduces disruption within the remaining time budget.",
+   "md": "First stop admission and deregister the replica. Then drain admitted requests within the remaining deadline. Preserve recoverable session history or transferable state where the service supports it; otherwise plan bounded retries or reconstruction on healthy replicas. Finally terminate workers before reclamation. This sequence reduces disruption but cannot guarantee every long request finishes or that all KV state can be copied within two minutes."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-10-13-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In an illustrative fresh-replica startup, fetching 140 GB of model artifacts takes five minutes while detection and controller decisions take seconds. Why are pre-warmed pools or predictive scaling useful?",
+     "explanation": "The correct answer is A. Reactive decisions cannot supply ready capacity faster than provisioning, artifact loading, and warmup complete. A pre-warmed pool avoids much of that delay; forecasting starts the work before expected demand. Five minutes is a scenario assumption governed by effective storage bandwidth and cache state, not a universal cold-start duration or a reason to disable telemetry.",
+     "hint": "Think about: analyze the components of autoscaling response latency and evaluate strategies for mitigating cold-start delays.",
+     "type": "single",
+     "options": [
+      "Artifact loading dominates this scenario, so pre-warmed pools or advance provisioning can make capacity ready before the surge",
+      "AutoscalingDecisionTime dominates (10–15 minutes evaluating autoscaling PID loops); mitigated by switching to manual scaling.",
+      "AutoscalingDetectionTime dominates (30 minutes gathering Prometheus metrics); mitigated by removing metric telemetry entirely.",
+      "ReplicaWarmupTime dominates (1–2 hours running CUDA kernel JIT compilation); mitigated by disabling Tensor Cores."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the components of autoscaling response latency and evaluate strategies for mitigating cold-start delays.",
+    "You can now structure the graceful termination and state-preservation workflow for preemptible/spot inference instances."
+   ]
+  }
+ ]
+}

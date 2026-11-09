@@ -1,0 +1,61 @@
+{
+ "title": "Verifying Candidates",
+ "summary": "Work through Verifying Candidates.",
+ "source": {
+  "chapter": "v3-03",
+  "sections": [
+   "Verifying Candidates",
+   "Checking whole outputs vs. intermediate steps",
+   "How base rates limit check precision",
+   "How search exploits imperfect checks"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Verifying Candidates** in *Test-Time Compute* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Test-Time Compute, § Verifying Candidates",
+   "md": "In a connection-pool repair, clean compilation confirms only syntax and types, and even a targeted concurrency test exercises only a handful of thread schedules and can miss a race condition. Every verification check answers a bounded question, never the whole question of whether a candidate is safe to ship. Engineers therefore have to decide which checks to run, whether to attach them to finished candidates or to intermediate steps, and how much trust to place in a passing verdict when valid candidates are rare."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Checking whole outputs vs. intermediate steps\n- How base rates limit check precision\n- How search exploits imperfect checks"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Revisable candidate plans matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Recording a candidate as a dependency graph of artifacts with evidence provenance lets a refuting observation invalidate exactly its descendants while retained branches keep their support."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-03-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Verifying Candidates** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A step check that rejects a fraction r of b children gives an effective branching factor b(1-r), so a tree stays finite on its own only when r > 1-1/b and otherwise needs hard caps.",
+      "Test-time compute is a per-decision allowance that sets the attempt cost in C_eff, so it pays only when it raises acceptance faster than cost, and difficulty should route the budget.",
+      "pass@k = 1-(1-p)^k caps any selector that returns an unchanged pool member, while realized accuracy is set by the selector, so coverage near 98 percent can coexist with a vote that plateaus near half.",
+      "Recording a candidate as a dependency graph of artifacts with evidence provenance lets a refuting observation invalidate exactly its descendants while retained branches keep their support."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Revisable candidate plans**: Recording a candidate as a dependency graph of artifacts with evidence provenance lets a refuting observation invalidate exactly its descendants while retained branches keep their support."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Verifying Candidates."
+   ]
+  }
+ ]
+}

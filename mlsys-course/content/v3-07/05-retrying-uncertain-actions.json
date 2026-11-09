@@ -1,0 +1,62 @@
+{
+ "title": "Retrying Uncertain Actions",
+ "summary": "Work through Retrying Uncertain Actions.",
+ "source": {
+  "chapter": "v3-07",
+  "sections": [
+   "Retrying Uncertain Actions",
+   "Delayed attempts",
+   "Idempotent actions",
+   "Operation identity and endpoint contracts",
+   "Reconciliation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Retrying Uncertain Actions** in *Tool Calling* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Tool Calling, § Retrying Uncertain Actions",
+   "md": "Permission to initiate the staging restart `POST /containers/srv-stage-04/restart` does not settle what happened when its socket times out. At that timeout, the client cannot tell whether the request was dropped in transit, delayed in a network queue, still running inside the daemon, halted after partially reconfiguring the service, or completed with only its acknowledgment lost. A client-side timeout records only that the caller stopped waiting for a response; it conveys no information about endpoint execution state."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Delayed attempts\n- Idempotent actions\n- Operation identity and endpoint contracts\n- Reconciliation"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Operation identity matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: A logical operation ID names one intended effect across attempts, each attempt gets a fresh attempt ID, and the ID is safe only under an endpoint contract that binds it to caller, scope, and arguments."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-07-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Retrying Uncertain Actions** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A mutating tool over an endpoint without deduplication ships actuate, probe, and compensate together, with the probe written before dispatch against a captured baseline.",
+      "A shared tool protocol cuts integration to N_host + N_tool adapters, but listed tools supply only interface syntax: descriptions are untrusted input and admitted schemas must be bound to the server instance.",
+      "A logical operation ID names one intended effect across attempts, each attempt gets a fresh attempt ID, and the ID is safe only under an endpoint contract that binds it to caller, scope, and arguments.",
+      "A schema settles only structure, so any precondition that depends on current state (an expected version, a canonical path) must be enforced atomically with the effect at the endpoint."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Operation identity**: A logical operation ID names one intended effect across attempts, each attempt gets a fresh attempt ID, and the ID is safe only under an endpoint contract that binds it to caller, scope, and arguments."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Retrying Uncertain Actions."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,77 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Identify the pitfall of relying on aggregate metrics to assess system fairness.",
+ "source": {
+  "chapter": "v1-15",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Responsible Engineering* (Vol I). By the end you should be able to:\n\n- Identify the pitfall of relying on aggregate metrics to assess system fairness\n- Explain why proxy variables defeat naive attribute removal and specify the necessary statistical and monitoring countermeasures\n- Evaluate why documentation without operational enforcement fails to prevent deployment scope creep\n- Evaluate why training-only carbon accounting fails to capture lifecycle environmental impacts in production ML"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Responsible Engineering, § Fallacies and Pitfalls",
+   "md": "Teams can still fail after assembling assessment frameworks, fairness metrics, explainability mechanisms, efficiency analyses, and governance infrastructure. A team may retrofit fairness after benchmark success, trust aggregate accuracy, or treat compliance evidence as paperwork rather than system behavior, drawing on intuitions from traditional software engineering where bugs are local and testing is deterministic."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: aggregate metric concealment of subgroup disparity; proxy variable reconstruction of sensitive attributes; documentation without enforcement fails under scope creep; training-only environmental accounting misses dominant inference term."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A team removes race and gender columns from their training dataset, asserting that \"the model cannot discriminate on features it cannot see.\" Drawing on the Amazon recruiting and Optum healthcare cases, explain why this naive attribute removal creates false confidence, and identify the specific engineering analyses required.",
+   "md": "Naive attribute removal fails because non-sensitive features act as proxy variables that reconstruct protected attributes through statistical correlations: Amazon's tool penalized terms such as 'women's' and women's colleges without a gender label, and Optum's algorithm used healthcare spending as a proxy for need, under-enrolling Black patients because of unequal historical access to care. Eliminating protected attributes creates false confidence while preserving discriminatory patterns. Engineers must instead conduct proxy and causal correlation analyses, perform disaggregated subgroup evaluations across demographic slices, implement constrained optimization objectives (such as equal opportunity constraints), and monitor per-group production outcomes continuously."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-15-06-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A deployed automated lending model achieves an impressive 88% overall accuracy on its global test set. However, a disaggregated audit reveals that qualified minority applicants experience a 60% True Positive Rate compared to 90% for majority applicants (a 30 percentage-point gap) and face \\$4× higher false rejection rates. Which engineering pitfall does this scenario illustrate?",
+     "explanation": "The correct answer is A. The Flaw of Averages demonstrates that aggregate accuracy is a weighted average across all samples that masks severe performance degradation in minority subgroups. A model can boast 88% aggregate accuracy while rejecting qualified minority applicants at \\$4× the majority rate (\\$40\\% vs. \\$10\\% False Negative Rate). The documentation-as-accountability choice addresses written model cards versus active deployment checks, not metric aggregation. The model-weights governance choice refers to post-training compliance, not metric illusions. The edge power budget choice confuses physical hardware limits with statistical evaluation metrics.",
+     "hint": "Think about: identify the pitfall of relying on aggregate metrics to assess system fairness.",
+     "type": "single",
+     "options": [
+      "Relying on aggregate metrics to assess fairness, which conceals severe subgroup disparities behind strong overall averages (the Flaw of Averages).",
+      "Treating documentation as sufficient accountability, assuming a model card automatically prevents operational misuse.",
+      "The belief that model weights are exempt from data governance and right-to-erasure regulations.",
+      "Assuming that edge deployment power budgets scale linearly with dataset sample size."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Because a model card explicitly specifies that a vision model is \"not validated for high-stakes medical or security screening,\" publishing the model card guarantees operational compliance without requiring technical access controls or deployment release checks.",
+     "explanation": "False. This illustrates the pitfall of treating documentation as sufficient accountability. A model card provides transparency but has no technical enforcement mechanism. When downstream teams repurpose an artifact, documentation alone cannot prevent scope creep. True accountability requires operationalizing model card constraints through technical deployment checks, RBAC permissions, monitoring alerts, and automated policy enforcement that actively block unvalidated deployments.",
+     "hint": "Think about: evaluate why documentation without operational enforcement fails to prevent deployment scope creep.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "For a high-traffic production ML service, measuring and reporting only the electricity consumed during model training runs provides an accurate accounting of the system's long-term environmental carbon footprint.",
+     "explanation": "False. Training-only accounting omits recurring inference and provisioned serving equipment. The chapter's illustrative service-demand scenario has an inference-to-training dollar-cost ratio of about 40:1, and its separate accelerator-carbon accounting also shows inference dominance under the stated power and traffic assumptions. The 73% inference and 2% training shares describe dollar TCO, not carbon shares. Responsible carbon accounting measures lifecycle energy and applies the relevant grid and facility boundaries, including idle energy and other omitted impacts; the dominant term depends on the deployment.",
+     "hint": "Think about: evaluate why training-only carbon accounting fails to capture lifecycle environmental impacts in production ML.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now identify the pitfall of relying on aggregate metrics to assess system fairness.",
+    "You can now explain why proxy variables defeat naive attribute removal and specify the necessary statistical and monitoring countermeasures.",
+    "You can now evaluate why documentation without operational enforcement fails to prevent deployment scope creep.",
+    "You can now evaluate why training-only carbon accounting fails to capture lifecycle environmental impacts in production ML."
+   ]
+  }
+ ]
+}

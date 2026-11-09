@@ -1,0 +1,83 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Analyze why benchmark data pruning ratios fail to transfer to specialized production domains.",
+ "source": {
+  "chapter": "v1-09",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Data Selection* (Vol I). By the end you should be able to:\n\n- Analyze why benchmark data pruning ratios fail to transfer to specialized production domains\n- Analyze violations of the Selection Inequality in complex data selection architectures\n- Evaluate the pitfall of aggregate metric optimization under severe class imbalance\n- Evaluate the misconception that high synthetic fidelity rules out recursive-training failure modes"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Selection, § Fallacies and Pitfalls",
+   "md": "Scaling a training corpus tenfold can multiply storage, I/O, and accelerator bills while barely moving test accuracy. Yet an uncalibrated selection filter can just as easily spend more time scoring candidates than it saves in training or silently erase a safety-critical rare class. The entries below range from mistaken beliefs about what data selection can achieve to failures that arise when a correct strategy meets a systems bottleneck or when a benchmark result is applied uncritically to a new domain."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: Benchmark pruning ratio transfer fallacy; Selection inequality overhead pitfall; Aggregate accuracy vs minority class erasure; Recursive synthetic training collapse."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why is evaluating a data selection strategy solely on aggregate validation accuracy a dangerous pitfall when dealing with imbalanced datasets?",
+   "md": "In imbalanced datasets, aggregate accuracy is heavily dominated by majority classes. A data pruning algorithm could discard \\$90\\% of rare minority or safety-critical examples to optimize overall compute while aggregate accuracy appears unchanged, completely compromising model performance on rare real-world failure modes."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-09-10-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A research paper reports that an EL2N coreset selection method successfully pruned \\$50\\%$ of CIFAR-10 with \\$0\\%$ loss in accuracy. A medical imaging team applies the exact same \\$50\\%$ pruning ratio to a rare tumor detection dataset and suffers a disastrous \\$28\\%$ drop in recall. What fallacy explains this failure?",
+     "explanation": "The correct answer is D. Pruning ratios calibrated on balanced, homogeneous academic benchmarks like CIFAR-10 rarely transfer to specialized production domains like medical imaging. In domains with extreme class imbalance or subtle pathological features, a \\$50\\% global prune disproportionately discards rare minority samples and critical edge cases, causing severe domain-specific performance drops. Hardware precision and class counts are irrelevant to this transfer fallacy.",
+     "hint": "Think about: analyze why benchmark data pruning ratios fail to transfer to specialized production domains.",
+     "type": "single",
+     "options": [
+      "The team failed to use GPU acceleration during the inference pass",
+      "The team used float32 precision instead of bfloat16 mixed precision",
+      "CIFAR-10 contains more total classes than medical imaging datasets",
+      "Assuming that benchmark coreset pruning ratios transfer directly to specialized, highly imbalanced production domains with rare failure modes"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "A team implements an elaborate multi-stage active learning pipeline that reduces training dataset size by \\$40\\%. However, the continuous clustering, proxy scoring, and cross-worker all-gather synchronization take 3 times longer than the GPU time saved during training. Which pitfall does this represent?",
+     "explanation": "The correct answer is A. This is the canonical violation of the Selection Inequality: an engineering team designs a selection algorithm that successfully reduces sample count, but the computational and synchronization overhead of scoring and filtering ($T_{\\text{selection}}$) exceeds the training time saved on the reduced subset, leading to a net increase in total wall-clock time. Model collapse relates to recursive generative training, NVMe alignment relates to I/O access patterns, and the smoothness assumption belongs to semi-supervised learning.",
+     "hint": "Think about: analyze violations of the Selection Inequality in complex data selection architectures.",
+     "type": "single",
+     "options": [
+      "Violating the Selection Inequality by incurring selection overheads that exceed downstream training savings ($T_{\\text{selection}} > \\Delta T_{\\text{train}}$)",
+      "Encountering model collapse due to recursive generator loops",
+      "Failing to implement 4 KB small-read alignment on host NVMe storage",
+      "Violating the smoothness assumption in semi-supervised consistency regularization"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Because modern high-capacity generative models produce photorealistic images and fluent text, a model trained on recursively generated synthetic data will never suffer performance degradation.",
+     "explanation": "False. The chapter warns that recursive synthetic training can cause model collapse by progressively eroding rare patterns and compounding earlier errors. High generator quality can reduce the risk in some settings, but it does not make degradation impossible.",
+     "hint": "Think about: evaluate the misconception that high synthetic fidelity rules out recursive-training failure modes.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze why benchmark data pruning ratios fail to transfer to specialized production domains.",
+    "You can now analyze violations of the Selection Inequality in complex data selection architectures.",
+    "You can now evaluate the pitfall of aggregate metric optimization under severe class imbalance.",
+    "You can now evaluate the misconception that high synthetic fidelity rules out recursive-training failure modes."
+   ]
+  }
+ ]
+}

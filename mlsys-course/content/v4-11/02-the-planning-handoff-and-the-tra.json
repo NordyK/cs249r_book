@@ -1,0 +1,67 @@
+{
+ "title": "The Planning Handoff and the Trajectory Record",
+ "summary": "Work through The Planning Handoff and the Trajectory Record.",
+ "source": {
+  "chapter": "v4-11",
+  "sections": [
+   "The Planning Handoff and the Trajectory Record",
+   "Mapping tool motion to joint limits",
+   "The trajectory record and its deadlines"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Planning Handoff and the Trajectory Record** in *Trajectory Planning* (Vol IV)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Trajectory Planning, § The Planning Handoff and the Trajectory Record",
+   "md": "If the planner hands over raw joint setpoints for the reach toward the mug without binding them to the obstacle geometry, the active intent lease, and a pre-checked stop, the arm can chase an expired target or coast past its clearance the moment the next inference cycle stalls. To prevent that failure, the planner consumes the belief record, which supplies obstacle geometry and clearance. It also consumes the intent lease, which supplies the grounded goal, task tolerances, effort ceilings, and the expiry time that bounds the lease (IntentLeaseExpiry)."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Mapping tool motion to joint limits\n- The trajectory record and its deadlines"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Manipulator Jacobian matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Clearance and tool limits live in tool space but drives enforce joint limits, so tool-space quantities pass through the configuration-dependent Jacobian, whose weak direction near a singularity demands unbounded joint rates unless damped least squares trades accuracy for bounded rates."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-11-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Planning Handoff and the Trajectory Record** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Replacement latency runs from capture to MCU admission (about 115 ms against a 50 ms renewal and a 60 ms lease), so renewal is sustainable only by overlapping requests and every record must carry its own handoff tail.",
+      "Sampling planners, trajectory optimization and MPC, and learned chunks differ in the work they do, not in what they must prove, and a solver's deadline, not its convergence, decides admission.",
+      "Clearance and tool limits live in tool space but drives enforce joint limits, so tool-space quantities pass through the configuration-dependent Jacobian, whose weak direction near a singularity demands unbounded joint rates unless damped least squares trades accuracy for bounded rates.",
+      "Receding-horizon MPC handles constraints explicitly and gains recursive feasibility only through a terminal invariant set, and its solve time against the period decides whether its output can be admitted."
+     ],
+     "answer": 2,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Manipulator Jacobian**: Clearance and tool limits live in tool space but drives enforce joint limits, so tool-space quantities pass through the configuration-dependent Jacobian, whose weak direction near a singularity demands unbounded joint rates unless damped least squares trades accuracy for bounded rates."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Manipulator Jacobian* maps tool constraints into joints for *Kinodynamic feasibility*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Manipulator Jacobian maps tool constraints into joints for Kinodynamic feasibility."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through The Planning Handoff and the Trajectory Record."
+   ]
+  }
+ ]
+}

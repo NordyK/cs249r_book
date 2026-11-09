@@ -1,0 +1,61 @@
+{
+ "title": "The Cost of a Model Call",
+ "summary": "Work through The Cost of a Model Call.",
+ "source": {
+  "chapter": "v3-02",
+  "sections": [
+   "The Cost of a Model Call",
+   "Where a call spends its time",
+   "Estimating per-call hardware work",
+   "How multi-turn history drives up input cost"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Cost of a Model Call** in *The Foundation Model* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, The Foundation Model, § The Cost of a Model Call",
+   "md": "On the repair agent's first turn, reading a long prompt of repository context and tool schemas takes less accelerator time than generating a short reply, yet across a multi-turn repair loop, resending that growing prompt history balloons into hundreds of thousands of input tokens. Counting a call as a single black-box unit, or summing input and output tokens into one unweighted total, hides which phase actually drives latency and cluster work."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Where a call spends its time\n- Estimating per-call hardware work\n- How multi-turn history drives up input cost"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Output-bound call latency matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-02-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Cost of a Model Call** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever.",
+      "Model output is a proposal with zero ambient authority: the runtime validates, authorizes, executes, and returns the observation, so a tool request is never an effect and a model claim is never an observation.",
+      "Reduction order and serving-path changes flip contested argmax choices even at temperature zero, so the runtime logs model revision, serving configuration, and sampling settings with every call and replays recorded responses when behavior must be reproduced.",
+      "Representation granularity, serialization, and constraint mechanism are independent interface axes judged on accepted outcomes under matched budgets, with a deadline acting as an admission filter and every initiated trial kept in the denominator."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Output-bound call latency**: Prefill is bounded by arithmetic and unbatched decode by weight bandwidth, so one output token costs roughly as much time as several hundred prompt tokens and output length is the primary latency lever."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through The Cost of a Model Call."
+   ]
+  }
+ ]
+}

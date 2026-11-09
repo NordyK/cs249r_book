@@ -1,0 +1,69 @@
+{
+ "title": "Cloud ML: Computational Power",
+ "summary": "Evaluate the listed edge-server budget to identify the dominant role of operational labor.",
+ "source": {
+  "chapter": "v1-02",
+  "sections": [
+   "Cloud ML: Computational Power",
+   "Cloud infrastructure and scale",
+   "Cloud ML trade-offs and constraints"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Cloud ML: Computational Power** in *System Paradigms* (Vol I). By the end you should be able to:\n\n- Evaluate the listed edge-server budget to identify the dominant role of operational labor\n- Explain the data-gravity principle and its implications for data-movement costs in cloud systems\n- Classify the operational and legal boundaries of data erasure regulations (GDPR) on deployed ML models"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, System Paradigms, § Cloud ML: Computational Power",
+   "md": "At the top of that physical gradient sits Cloud ML, which pools power, cooling, and accelerators in centralized data centers to serve workloads that no local machine can hold. The estimated resources needed to train GPT-3 show why this tier exists: … of computation, equivalent to … running for approximately … at the reported sustained rate, and about … of electricity."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Cloud infrastructure and scale\n- Cloud ML trade-offs and constraints\n\nPay attention to: Centralized data center scale and training throughput; The distance penalty, GDPR/HIPAA compliance, and Cloud vs. Edge TCO; The Voice Assistant Wall and infrastructure/economic limits of pure cloud processing."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: What is the data-gravity principle in cloud ML, and why does it make moving multi-terabyte raw sensor datasets to the cloud economically and physically problematic?",
+   "md": "The data-gravity principle states that as data volume ($D_{\\text{vol}}$) grows, the time and cost of moving the data to remote compute eventually exceed the cost of moving the computation (a model and its code) to the data, because transfer time grows with the data while shipping the computation costs roughly the same however much data waits. For massive sensor streams (such as hundreds of raw video feeds generating tens of gigabytes per second), the raw upload can exceed uplink capacity; uplink service and storage costs may also matter, while cloud egress applies to later outbound transfers rather than the upload itself. Local computation can reduce transport, but compressed frames, features, or event summaries may also change the comparison. Evaluate the transmitted representation and complete local and remote paths before choosing placement."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-02-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "In the chapter's 3-year budget comparison for an on-premises edge server deployment serving 1 million inferences per day, what is the largest component of the edge system's listed annual budget in the chapter's scenario?",
+     "explanation": "The correct answer is B. In the chapter's illustrative edge-server budget, engineering labor (e.g., 0.1 FTE DevOps support per server/site, totaling ~\\$15,000/year) accounts for roughly 69% of the listed annual edge budget, far exceeding hardware CapEx (~\\$5,000/year), power (~\\$315/year), or cooling (~\\$95/year). Teams that focus solely on minimizing hardware purchase costs systematically underestimate the total cost of ownership. The choices identifying hardware amortization, electricity, or cooling as the dominant cost do not match this scenario. The comparison is a partial budget: cloud operating labor and edge redundancy are not priced, so it does not establish a matched total-cost ranking.",
+     "hint": "Think about: evaluate the listed edge-server budget to identify the dominant role of operational labor.",
+     "type": "single",
+     "options": [
+      "GPU hardware silicon purchase price amortized over 3 years",
+      "DevOps engineering labor required to maintain, update, and manage on-premises edge infrastructure",
+      "Electricity costs for running the server 24/7",
+      "Dedicated server room air-conditioning and cooling overhead"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Under GDPR Article 17 (Right to Erasure), when a user requests deletion of their data, an organization is legally mandated to retrain from scratch every ML model that ever encountered that user's training samples.",
+     "explanation": "False. GDPR Article 17 provides a right to erasure across source data stores, derived feature pipelines, caches, and logs where specified grounds apply, but it is technology-neutral and does not prescribe retraining every trained model as the sole mandatory remediation. Organizations evaluate risk, data persistence, and technical measures appropriate to the system.",
+     "hint": "Think about: classify the operational and legal boundaries of data erasure regulations (GDPR) on deployed ML models.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate the listed edge-server budget to identify the dominant role of operational labor.",
+    "You can now explain the data-gravity principle and its implications for data-movement costs in cloud systems.",
+    "You can now classify the operational and legal boundaries of data erasure regulations (GDPR) on deployed ML models."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,88 @@
+{
+ "title": "Systematic Threat Analysis and Risk Assessment",
+ "summary": "Classify ML security threats across a 2x2 likelihood-impact prioritization matrix to guide engineering resource allocation.",
+ "source": {
+  "chapter": "v2-13",
+  "sections": [
+   "Systematic Threat Analysis and Risk Assessment",
+   "Security threat modeling for ML systems",
+   "Threat prioritization framework"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Systematic Threat Analysis and Risk Assessment** in *Security & Privacy* (Vol II). By the end you should be able to:\n\n- Classify ML security threats across a 2x2 likelihood-impact prioritization matrix to guide engineering resource allocation\n- Analyze the necessary structural components of an ML threat model to ensure actionable engineering controls\n- Evaluate threat vector scenarios across the access type, knowledge level, and lifecycle timing taxonomy\n- Design fail-safe default mechanisms for automated ML pipelines under active attack\n- Evaluate vulnerability persistence across the ML data pipeline lifecycle"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Security & Privacy, § Systematic Threat Analysis and Risk Assessment",
+   "md": "An authenticated request can still probe a model for memorized data, and an accepted training sample can still carry a backdoor. Network security and user authentication therefore need a threat model that includes learned behavior. Training data can be manipulated to embed backdoors, input perturbations can exploit learned decision boundaries, and systematic API queries can expose enough behavior to train a substitute. Each attack uses an interface the system needs for ordinary work."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Security threat modeling for ML systems\n- Threat prioritization framework\n\nPay attention to: Threat prioritization matrix (Likelihood vs Impact); Four fields of an operational threat model (Asset, Boundary, Adversary, Control); Threat vector taxonomy (Access type, Knowledge level, Timing); Fail-safe defaults and minimal attack surface."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A security audit notes that an ML platform's risk assessment consists only of a qualitative list of potential failure modes without actionable boundaries. Name the four essential fields required for a complete, operational ML threat model and explain the role of the boundary field.",
+   "md": "The four essential fields of an operational ML threat model are Asset (what must remain confidential, intact, or available), Boundary (where trust levels change), Adversary (permitted capabilities, knowledge, and goal), and Control (the permission, mechanism, or observable signal that constrains the attack or supports a response). The Boundary field defines the exact interface where trust transitions, such as between external user prompts and system instructions, raw training data and the model registry, or shared tenant processes on an accelerator, determining where enforcement must occur."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-13-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A public image-classification API admits untrusted annotations. Its threat assessment finds poisoning both likely and severely damaging, while accessible behavioral extraction has limited competitive impact in this deployment. How should the team prioritize these threats?",
+     "explanation": "The correct answer is A. Under the supplied likelihood and impact assessments, poisoning warrants priority controls on data admission and provenance; query budgets and output restrictions are proportionate starting points for extraction. Their effectiveness still requires evaluation. These placements are deployment assumptions, not permanent ranks of attack families; sensitive data or greater copying harm could change them.",
+     "hint": "Think about: classify ML security threats across a 2x2 likelihood-impact prioritization matrix to guide engineering resource allocation.",
+     "type": "single",
+     "options": [
+      "Data poisoning is High-Likelihood / High-Impact requiring automated dataset validation; model extraction is High-Likelihood / Low-to-Moderate-Impact addressed via rate limiting and output truncation.",
+      "Both threats are Low-Likelihood / Low-Impact and should be deferred until a physical hardware breach occurs.",
+      "Model extraction is Low-Likelihood / High-Impact requiring full homomorphic encryption; data poisoning is High-Likelihood / Low-Impact requiring only API key rotation.",
+      "Data poisoning is Low-Likelihood / High-Impact requiring physical air-gaps; model extraction is Low-Likelihood / Low-Impact requiring no action."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "An adversary queries an open prediction endpoint, records confidence scores, and trains a surrogate. The actor knows the task and output format but has no weights, source code, architecture details, or training records. How should access, auxiliary knowledge, and timing be classified?",
+     "explanation": "The correct answer is B. Prediction queries provide black-box access, while the supplied task and interface knowledge must be recorded separately. Querying the live model is inference-time activity. Model visibility does not determine all auxiliary knowledge or grant write access; no installation or configuration change is described.",
+     "hint": "Think about: evaluate threat vector scenarios across the access type, knowledge level, and lifecycle timing taxonomy.",
+     "type": "single",
+     "options": [
+      "White-box access, full knowledge, training-time attack.",
+      "Black-box access, limited task/interface knowledge, inference-time attack.",
+      "Gray-box access, full knowledge, deployment-time attack.",
+      "Black-box access, limited task/interface knowledge, postdeployment configuration attack."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Compromising raw data during the data collection or labeling stage creates transient vulnerabilities that are automatically eradicated whenever the model is retrained on subsequent data iterations.",
+     "explanation": "False. Poisoned samples, labels, or triggers can survive retraining if the next run reuses compromised data or an affected checkpoint. Retraining alone does not establish their removal. Provenance tracking and dataset auditing help locate compromised inputs; the team must also assess affected artifacts and verify the repaired training path.",
+     "hint": "Think about: evaluate vulnerability persistence across the ML data pipeline lifecycle.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: An ML pipeline cannot establish a caller's authorization, while a separate behavioral monitor flags an unusual but potentially legitimate workload. Explain the fail-safe default for the first case and how to choose a response to the second.",
+   "md": "A request whose authority cannot be established must receive no additional privileges; for example, deny an unauthenticated registry write. A behavioral anomaly instead calls for a response based on evidence and the consequences of continued operation and interruption. The policy may reject a request, suspend a release, use a verified fallback, or isolate a component while preserving essential service; the anomaly score alone cannot choose safely."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now classify ML security threats across a 2x2 likelihood-impact prioritization matrix to guide engineering resource allocation.",
+    "You can now analyze the necessary structural components of an ML threat model to ensure actionable engineering controls.",
+    "You can now evaluate threat vector scenarios across the access type, knowledge level, and lifecycle timing taxonomy.",
+    "You can now design fail-safe default mechanisms for automated ML pipelines under active attack."
+   ]
+  }
+ ]
+}

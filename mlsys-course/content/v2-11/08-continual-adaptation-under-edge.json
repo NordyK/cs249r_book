@@ -1,0 +1,83 @@
+{
+ "title": "Continual Adaptation Under Edge Budgets",
+ "summary": "Evaluate why repeated local improvements require retained-behavior checks and a recoverable baseline.",
+ "source": {
+  "chapter": "v2-11",
+  "sections": [
+   "Continual Adaptation Under Edge Budgets",
+   "Learning from unlabeled sensor streams",
+   "Continual adaptation and catastrophic forgetting"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Continual Adaptation Under Edge Budgets** in *Edge Intelligence* (Vol II). By the end you should be able to:\n\n- Evaluate why repeated local improvements require retained-behavior checks and a recoverable baseline\n- Compare Elastic Weight Consolidation (EWC) and Experience Replay in terms of memory scaling and privacy trade-offs\n- Design a self-supervised contrastive learning workflow for continuous on-device sensor adaptation\n- Calculate the memory overhead incurred by Elastic Weight Consolidation on edge devices"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Edge Intelligence, § Continual Adaptation Under Edge Budgets",
+   "md": "A keyboard model that adapts each night for a year passes through hundreds of admitted update windows, and each window moves it a little further from the version that was validated at release. Every update the chapter has built so far was judged one at a time, by whether it fit the memory budget, passed the admission test, and improved a local metric. Repeated across a deployment's lifetime, those individually acceptable updates compound."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Learning from unlabeled sensor streams\n- Continual adaptation and catastrophic forgetting\n\nPay attention to: Cumulative adaptation, retained-task evaluation, and recoverable baselines; Unlabeled sensor stream exploitation via contrastive learning (SimCLR); Lifelong learning without forgetting (Elastic Weight Consolidation Fisher penalty vs Replay buffers); Stability-plasticity trade-off on edge memory budgets."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: An on-device sensor application receives a continuous unlabeled stream. Explain how contrastive learning can construct a useful local training signal while respecting memory, energy, and retention limits. What must be checked before treating nearby observations as positive pairs?",
+   "md": "Positive pairs must preserve task-relevant content; nearby frames across a scene change may not, and apparent negatives may depict the same event. A bounded pair or feature buffer limits retention, but the complete update still needs profiled model, activation, optimizer, energy, and foreground budgets. Training from fixed cached features changes only the downstream trainable path; changing the encoder requires compatible replay state or refreshed features. Pair validity and retained-task quality need separate evaluation."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-11-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A keyboard adapts nightly for a year. Each update fits its device budget and improves a metric on recent typing. Why must acceptance also check previously learned behavior against a recoverable baseline?",
+     "explanation": "The correct answer is C. Repeated updates can erode earlier behavior even when each improves recent data. A frozen backbone does not freeze predictions when its head or adapters change. Acceptance therefore needs retained-task evaluation and a compatible baseline to restore if the accumulated trajectory becomes unacceptable.",
+     "hint": "Think about: evaluate why repeated local improvements require retained-behavior checks and a recoverable baseline.",
+     "type": "single",
+     "options": [
+      "Passing the memory and energy tests guarantees that earlier-task predictions remain unchanged.",
+      "Freezing the backbone prevents head or adapter updates from changing any earlier-task prediction.",
+      "Individually useful updates can accumulate into forgetting; retained-task evidence and a compatible recovery point remain necessary.",
+      "Improving the recent-data metric establishes quality for all past tasks, so a recovery point is unnecessary."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In lifelong on-device learning without catastrophic forgetting, Elastic Weight Consolidation (EWC) and Experience Replay offer distinct memory-compute trade-offs. Under which deployment condition is EWC architecturally preferred over Experience Replay?",
+     "explanation": "The correct answer is D. EWC replaces a replay buffer with parameter-sized importance scores and reference values. A compact model may make that state affordable when retaining examples is prohibited. Memory depends on precision and retained task history; a basic same-precision implementation adds two parameter-sized arrays beyond current weights, and separate task penalties can add more. Very large models can therefore make EWC impractical.",
+     "hint": "Think about: compare Elastic Weight Consolidation (EWC) and Experience Replay in terms of memory scaling and privacy trade-offs.",
+     "type": "single",
+     "options": [
+      "When model weights exceed 100 billion parameters and local RAM is strictly 64 KB.",
+      "When the device has unlimited flash storage but cannot perform floating-point addition.",
+      "When the device must continuously store raw 4K video feeds for retrospective auditing.",
+      "When the model is relatively compact and storing past private data samples in a replay buffer violates strict privacy regulations or storage constraints."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In lifelong edge learning, Elastic Weight Consolidation (EWC) requires zero additional memory overhead beyond the standard model weights because Fisher Information scores are computed and discarded instantaneously during the forward pass.",
+     "explanation": "False. In addition to current parameters, a basic EWC implementation stores importance scores and reference parameter values. At equal precision, these two extra arrays add twice the current parameter storage, making three times that storage in total before other training state. Separate task histories can require more.",
+     "hint": "Think about: calculate the memory overhead incurred by Elastic Weight Consolidation on edge devices.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now evaluate why repeated local improvements require retained-behavior checks and a recoverable baseline.",
+    "You can now compare Elastic Weight Consolidation (EWC) and Experience Replay in terms of memory scaling and privacy trade-offs.",
+    "You can now design a self-supervised contrastive learning workflow for continuous on-device sensor adaptation.",
+    "You can now calculate the memory overhead incurred by Elastic Weight Consolidation on edge devices."
+   ]
+  }
+ ]
+}

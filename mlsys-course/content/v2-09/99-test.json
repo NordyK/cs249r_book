@@ -1,0 +1,147 @@
+{
+ "title": "Test: Fleet Efficiency",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v2-09-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "In PyTorch DistributedDataParallel, arrange the following events in the sequence that overlaps gradient communication with the backward pass:",
+     "explanation": "The correct order is (2) -> (4) -> (1) -> (3). A gradient bucket can be reduced as soon as the backward pass has produced it, so a hook dispatches a non-blocking AllReduce on a side stream while backward propagation continues on the main stream, and the two streams synchronize only before the optimizer step. These loose dependencies are why the data-axis exchange can be hidden, unlike model-axis AllReduce operations whose result the next operation needs.",
+     "hint": "Think about: order the runtime sequence of bucketed gradient overlap and explain why its dependencies allow hiding.",
+     "type": "order",
+     "items": [
+      "the backward pass computes the gradients that fill a bucket",
+      "a backward hook launches an asynchronous AllReduce of the bucket on a communication stream.",
+      "the compute stream continues the backward pass on earlier layers while the bucket is transferred",
+      "the communication stream is synchronized with the compute stream before the optimizer step"
+     ]
+    },
+    {
+     "q": "Applying the loss-share decomposition to Llama 3 405B on its dedicated cluster (scheduling goodput 1, runtime goodput about 0.90, program goodput about 0.41), which split of its held capacity is correct?",
+     "explanation": "The correct answer is A. With scheduling goodput of one, the runtime share is \\$1 - 0.90 = 0.10, the program share is the program loss weighted by what the runtime boundary passed, \\$0.90 × 0.59 approx 0.53, and useful work is \\$0.90 × 0.41 approx 0.37; the three parts add to one. Charging the program's 59% loss against full capacity subtracts the runtime loss twice. Removing every interruption could therefore recover at most a tenth of the held capacity, while the program boundary held most of the gap.",
+     "hint": "Think about: apply the loss-share decomposition to split a gap in useful work among the goodput factors.",
+     "type": "single",
+     "options": [
+      "About 10% lost at the runtime boundary, 53% at the program boundary, and 37% becoming progress at the ideal rate",
+      "About 10% lost at the runtime boundary, 59% at the program boundary, and 31% becoming progress, because each factor's loss is charged against full capacity",
+      "About 59% lost at the runtime boundary and 10% at the program boundary, because the program factor is measured first",
+      "About 37% lost at the runtime boundary, 41% at the program boundary, and 22% becoming progress"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Because the running example's runtime goodput of about 0.90 matches the at least 0.90 implied for Llama 3 405B, the two jobs should call on the same owners to improve it.",
+     "explanation": "False. The agreement hides a difference in kind. The Llama 3 run, dedicated and spread over 128$\\times$ as many devices, had to hold its loss down in the failure-driven terms that grow with device count. The running example loses almost nothing there and nearly all of its loss to input waits and preemption. The same value of a factor can point to different owners, so the report carries the terms, not only their sum.",
+     "hint": "Think about: interpret a runtime goodput value through its composition rather than its sum.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Order the three records used to localize a goodput shortfall, from first consulted to last:",
+     "explanation": "The correct order is (3) -> (2) -> (1). Scheduler records cover every job at no extra cost and settle scheduling goodput, but cannot see inside a held allocation. The job timeline settles runtime goodput and detects, without explaining, retained steps that run slower than planned. Step traces are costly, perturb the step, and cover only their window, so they are collected only after the cheaper records show that the retained steps themselves are slow. A trace taken first can call a job healthy while it loses a third of its held time to restarts that no trace window contained.",
+     "hint": "Think about: order the localization records and explain what each can and cannot establish.",
+     "type": "order",
+     "items": [
+      "scheduler records of allocation intervals and gang-complete times.",
+      "the job timeline from the gang-complete timestamp to release",
+      "step traces from selected ranks over a short window"
+     ]
+    },
+    {
+     "q": "The chapter counts a serving replica's loss in its accounting only if the loss would remain with the request stream switched off. Which loss belongs to the serving analysis instead?",
+     "explanation": "The correct answer is C. A request waiting behind a long batch exists only because arrivals are uneven, so it fails the boundary test and belongs to serving. Weight loading and warmup, a decode step below its bandwidth limit, and reserved headroom all remain with requests switched off, so they are counted here, averaged over windows of hours to weeks. How much headroom a latency target requires is still a serving decision.",
+     "hint": "Think about: apply the boundary test that separates fleet-efficiency losses from serving losses.",
+     "type": "single",
+     "options": [
+      "Time the replica spends loading weights and warming up before it serves",
+      "A decode step that streams weights more slowly than the node's memory bandwidth allows",
+      "A request that waits behind a long batch because requests arrive unevenly",
+      "Capacity the replica holds in reserve for bursts, running below its ideal rate"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A straggling rank that slows every synchronous step should be charged to runtime goodput, because the reliability layer is the one that decides whether to replace the node.",
+     "explanation": "False. The boundary decides where a loss is counted, and the cause decides who fixes it. The job holds a complete allocation and keeps every step, but those steps run below their ideal, so the straggler is a program goodput loss. Charging it there makes program goodput fall when the straggler appears and recover when the node is replaced, while the replacement decision stays with the reliability layer, which weighs that gain against the runtime goodput a restart costs.",
+     "hint": "Think about: apply the first-boundary rule to charge a straggler's cost to the correct factor.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Two pools report the same low scheduling goodput. In pool X, capacity sat free while the queue was empty; in pool Y, capacity sat free while gangs waited. Which reading of the scheduler records is correct?",
+     "explanation": "The correct answer is B. A low scheduling goodput describes the pool, not its scheduler, and the same value calls for opposite remedies, so queue depth is recorded beside every interval of free capacity. Scheduler records, not step traces, settle this factor, because nothing that happens inside an allocation enters it.",
+     "hint": "Think about: interpret scheduler records to separate a capacity planning loss from a policy loss.",
+     "type": "single",
+     "options": [
+      "Both pools need a better placement policy, because scheduling goodput measures the competence of the scheduler",
+      "Pool X is larger than its demand, a capacity planning question, while pool Y has capacity stranded by placement, quota, or fragmentation, a policy question",
+      "Pool X has a fragmentation problem and pool Y has more capacity than its demand",
+      "Neither value can be interpreted without step traces from the jobs in each pool"
+     ],
+     "answer": 1
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Fleet profiling by hierarchy and sampling**?",
+     "options": [
+      "Trace volume grows with device count, so a fleet localizes the lost factor from the cheapest records first (scheduler records, then job timelines, then step traces) and captures short targeted traces or statistical samples only where the suspected factor lives.",
+      "A lever that raises one factor and lowers another is judged by the product, and the efficiency frontier places operating points by goodput, cost, and time to result.",
+      "Capacity counts only while held by a complete allocation, so partial gangs, fragmentation, and unmet demand are scheduling losses whose levers belong to orchestration.",
+      "A goodput or optimization claim is valid only against a fixed contract that names the factor and window measured along with the workload and quality gate, system state, timing boundary, load-generation mode, and repeated trials with tails, so cold-start and warmed trials are reported apart."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Fleet profiling by hierarchy and sampling itself, not a neighbouring idea.",
+     "explanation": "**Fleet profiling by hierarchy and sampling:** Trace volume grows with device count, so a fleet localizes the lost factor from the cheapest records first (scheduler records, then job timelines, then step traces) and captures short targeted traces or statistical samples only where the suspected factor lives."
+    },
+    {
+     "q": "Program goodput is the ratio of the retained steps' ____ execution time to their actual execution time, so code, compiler, and communication inefficiency are charged against a named reference.",
+     "explanation": "ideal. For arithmetic-bound training and prefill steps, the ideal is the time to perform the model's required operations at peak rate, which makes program goodput equal to MFU; for bandwidth-bound decode it is the bandwidth floor, which makes it MBU.",
+     "hint": "Think about: recall the definition of program goodput and its named ideal.",
+     "type": "fill",
+     "answer": [
+      "ideal"
+     ]
+    },
+    {
+     "q": "Eager submission of one forward pass of the 70B model costs roughly 12–24 ms of host time, while the serving replica's batch-one decode floor is about 5.2 ms per token. What does graph replay change, and what limits it?",
+     "explanation": "The correct answer is C. Because eager dispatch can exceed the bandwidth floor, eager decode can be dispatch-bound before it is bandwidth-bound, and graph replay targets exactly that interval. It does not fuse kernels or reduce bytes; fusion and tiling shorten the data term. The evidence of success is that launch gaps disappear from the kernel timeline. The replica's per-layer AllReduce, about 32.8 KB at batch one, is latency-bound and cannot be hidden because the next operation needs its result, so fewer exchanges or cheaper launches are what shorten it.",
+     "hint": "Think about: evaluate graph replay by the term it shortens and the capture constraints that limit it.",
+     "type": "single",
+     "options": [
+      "It fuses the pass's element-wise kernels, removing intermediate HBM traffic, and works for any input shape",
+      "It lowers the bandwidth floor of decode by keeping the weights in on-chip memory",
+      "It shortens only the host-dispatch part of the latency term by resubmitting a captured kernel sequence in one request; shapes, memory addresses, and control flow must match the capture, so varying shapes need one captured variant per shape bucket",
+      "It hides the per-layer tensor-parallel AllReduce behind computation, removing the communication term"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "A team reports that its job's retained steps run at 48% MFU, above the 41% of Llama 3 405B, and concludes that the job uses the fleet well. Why is the conclusion unsupported?",
+     "explanation": "The correct answer is C. MFU divides by the time spent on retained steps, so it cannot see capacity the job never held or held time that kept no progress. Only the product of the three factors states how much of the fleet becomes useful work. MFU excludes recomputation, which hardware FLOPs utilization counts, and multiplying fleet MFU by scaling efficiency would charge exposed time twice.",
+     "hint": "Think about: evaluate why a high MFU does not establish efficient use of the fleet.",
+     "type": "single",
+     "options": [
+      "MFU above 45% is not achievable on these accelerators, so the measurement must be wrong",
+      "MFU overstates program goodput because it counts recomputation as useful work",
+      "MFU measures only program goodput; with the pool's scheduling goodput of 0.65 and the job's runtime goodput of 0.90, MPG is about 0.28",
+      "MFU must first be multiplied by the job's scaling efficiency before it can be compared with Llama 3"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Scheduling goodput divides by in-service capacity. Accelerators out of service for repair or maintenance are left out of the denominator, and their downtime is reported beside the product as the pool's ____.",
+     "explanation": "availability. Dividing by installed capacity instead would fold hardware reliability into scheduling goodput, so the measurement contract records which denominator was used, and two reports that differ on it cannot be compared.",
+     "hint": "Think about: recall how out-of-service capacity is reported in scheduling goodput accounting.",
+     "type": "fill",
+     "answer": [
+      "availability"
+     ]
+    }
+   ]
+  }
+ ]
+}

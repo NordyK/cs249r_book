@@ -1,0 +1,75 @@
+{
+ "title": "Storage Economics",
+ "summary": "Calculate the break-even point and cost savings of local NVMe data staging versus repeated cloud object storage streaming.",
+ "source": {
+  "chapter": "v2-04",
+  "sections": [
+   "Storage Economics",
+   "Tiering strategies"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Storage Economics** in *Data Storage* (Vol II). By the end you should be able to:\n\n- Calculate the break-even point and cost savings of local NVMe data staging versus repeated cloud object storage streaming\n- Justify storage infrastructure capital investments by quantifying the opportunity cost of storage-induced accelerator idle time\n- Evaluate build-versus-buy trade-offs for large-scale storage infrastructure using capital expenditure, operational costs, and data egress fees\n- Explain the concept of data egress fees charged when reading datasets across cloud network boundaries"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Data Storage, § Storage Economics",
+   "md": "Checkpoints, training shards, and the lineage that binds them now each have a place in the hierarchy, and every placement carries a price set by the tier that holds the bytes and by how often they cross a billing boundary. ML storage economics is therefore not simply about choosing the cheapest capacity tier; the design objective is to minimize total cost of data delivery, which combines recurring storage charges, cross-boundary transfer fees, request and retrieval fees, and the opportunity cost of idle accelerators."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Tiering strategies\n\nPay attention to: Total Cost of Data Delivery vs raw capacity storage price; egress fees, request costs, and idle GPU opportunity costs (the storage iceberg); stream vs stage economics and break-even epoch calculations; build vs buy tradeoffs for on-prem parallel file systems vs cloud object storage."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In a 1,000-GPU cluster where compute time is billed at $\\$2.00$ per GPU-hour, an undersized storage system introduces an additional 20 percentage points of input stalls (reducing the active compute fraction from \\$90\\%$ to \\$70\\%$). Calculate the daily cost of this lost compute capacity and explain why investing in high-performance storage is economically rational.",
+   "md": "At the stated rate, the cluster costs $\\$48,000$ per day. An additional 20 percentage points of wall-clock capacity lost to input stalls corresponds to $\\$9,600$ per day, or $\\$288,000$ over 30 days. This is a capacity-cost estimate, not guaranteed cash savings: a storage investment pays back only if its cost is below the value of stalls actually removed and the recovered capacity reduces runtime or serves useful work."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-04-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team trains a vision model on a \\$50 TB dataset stored in cloud object storage (\\$0.02/GB-month) for 20 epochs across 4 training runs per year. Reading from object storage across a network boundary incurs a \\$0.09/GB data egress fee. Staging the dataset onto local NVMe caches costs \\$0.10/GB-month. What does the economic analysis reveal about streaming vs. staging?",
+     "explanation": "The correct answer is C. Staging data once to local NVMe per run saves roughly \\$282,000 per year compared to streaming from object storage every epoch, breaking even after just 5 epochs per run. Streaming \\$50 TB across 20 epochs costs \\$90,000 in egress per run (\\$360,000/year for 4 runs) plus \\$12,000/year in object storage. Staging once per run incurs only \\$18,000/year in egress plus \\$60,000/year for local NVMe and \\$12,000/year in object storage (total \\$90,000/year), yielding \\$282,000 in net annual savings. The break-even point occurs at roughly 4.3 epochs per run. The streaming-is-cheaper option ignores the massive compounding cost of repeated multi-epoch egress. The egress-is-negligible claim inverts reality: egress charges dominate monthly capacity pricing. The tape archive suggestion is unviable for active multi-run training feeds.",
+     "hint": "Think about: calculate the break-even point and cost savings of local NVMe data staging versus repeated cloud object storage streaming",
+     "type": "single",
+     "options": [
+      "Streaming directly from object storage every epoch is cheaper because local NVMe drives add unnecessary provisioned storage overhead.",
+      "Egress fees are negligible compared to monthly storage costs, making tier selection purely a matter of operational convenience.",
+      "Staging data once to local NVMe per run saves roughly $\\$282,000$ per year compared to streaming from object storage every epoch, breaking even after just 5 epochs per run.",
+      "The team should migrate the dataset to cold tape archive to eliminate both egress fees and provisioned storage costs."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "An enterprise evaluates building an on-premises 1 PB parallel file system ($\\$3\\text{M to } \\$5\\text{M}$ capex plus $\\$500\\text{k/year}$ opex) versus storing the 1 PB corpus in cloud object storage ($\\$240\\text{k/year}$ storage) and paying $\\$0.09/\\text{GB}$ egress fees for 10 full-dataset reads per year ($\\$900\\text{k/year}$ egress). What is the realistic financial payback horizon for building the on-premises system under these parameters?",
+     "explanation": "The correct answer is A. Between 4.7 and 7.8 years, because net annual cloud delivery savings ($\\$640\\text{k/year}$) require multiple years to amortize the multi-million dollar initial hardware expenditure. Cloud delivery costs $\\$1.14\\text{M/year}$ ($\\$240\\text{k}$ storage + $\\$900\\text{k}$ egress). Subtracting on-premises annual operations ($\\$500\\text{k}$) leaves net annual savings of $\\$640\\text{k/year}$. Dividing the $\\$3\\text{M}$ to $\\$5\\text{M}$ capex by $\\$640\\text{k}$ gives a break-even range of roughly 4.7 to 7.8 years. The 6-month claim is overly optimistic and ignores fixed facility, power, and operational overheads. The 20-year claim fails to account for the $\\$900\\text{k}$ annual egress cost in the cloud model. The perpetually free claim is factually false.",
+     "hint": "Think about: evaluate build-versus-buy trade-offs for large-scale storage infrastructure using capital expenditure, operational costs, and data egress fees",
+     "type": "single",
+     "options": [
+      "Between 4.7 and 7.8 years, because net annual cloud delivery savings ($\\$640\\text{k/year}$) require multiple years to amortize the multi-million dollar initial hardware expenditure.",
+      "Less than 6 months, because cloud egress fees make any on-premises storage investment instantly profitable.",
+      "Exactly 20 years, because on-premises operational overhead exceeds all cloud storage and egress fees combined.",
+      "There is no payback horizon because cloud object storage is perpetually free for research and training workloads."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate the break-even point and cost savings of local NVMe data staging versus repeated cloud object storage streaming.",
+    "You can now justify storage infrastructure capital investments by quantifying the opportunity cost of storage-induced accelerator idle time.",
+    "You can now evaluate build-versus-buy trade-offs for large-scale storage infrastructure using capital expenditure, operational costs, and data egress fees.",
+    "You can now explain the concept of data egress fees charged when reading datasets across cloud network boundaries."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,226 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v3-04",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **Context Engineering** (Vol III). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Context Engineering, Purpose",
+   "md": "An agent's context window is a finite and expensive resource, not an unbounded repository for raw text. Naively accumulating tool outputs, conversational turns, and retrieved snippets exhausts token capacity, inflates prefill latency, and spreads attention across material the next decision does not need. Fitting is not the same as being usable."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Carrying a Repair Across Turns",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "The Working-Set Decision",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Usable Working Context",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Staging the Next Invocation",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "Context Compaction",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Structured Progress Records",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Context Invalidation",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Working-set partition**",
+     "Before each call the runtime selects a bounded working set and splits the input allowance S_max - K_max among instructions, tool declarations, task state, and observations, and appended observations are the term that grows and displaces task state."
+    ],
+    [
+     "**Usable working context**",
+     "Usable context is an empirical property of a model, configuration, representation, and workload found by decision-level evaluation, because attention dilutes a target key as staged keys accumulate and position matters."
+    ],
+    [
+     "**Change-rate ordering**",
+     "Staging the request as root, trunk, and leaf by change rate keeps the longest exact token prefix reusable, so volatile fields belong in the leaf, although correctness always overrides cache economics."
+    ],
+    [
+     "**Scope rule**",
+     "An observation is evidence only for the artifact versions and execution conditions under which it was gathered, and provenance labels on untrusted spans guide interpretation but enforce nothing."
+    ],
+    [
+     "**Context compaction**",
+     "Every compaction is a lossy transform that can silently drop evidence a later decision needs, so the runtime pins a protected-field set and keeps handles to raw records."
+    ],
+    [
+     "**Audited progress records**",
+     "A model-written continuation record is an untrusted candidate that a host-side audit checks against a runtime-owned field inventory, the event log, and the workspace version before it replaces history."
+    ],
+    [
+     "**Context invalidation**",
+     "A verified write withdraws current-state authority from bound observations and flags dependent conclusions for reassessment, without erasing their historical truth."
+    ],
+    [
+     "**Context policy evaluation**",
+     "Context policies are compared as complete policies on accepted outcomes under a fixed model, tools, budget, and fixture, and retention or compression ratios are diagnostics with explicit denominators, not verdicts."
+    ],
+    [
+     "**Hysteretic compaction scheduling**",
+     "Separating a trigger watermark from a post-compaction target sets compaction cadence, and the amortized pass cost is judged against cost per accepted task, not local turn cost."
+    ]
+   ]
+  },
+  {
+   "type": "flashcards",
+   "id": "v3-04-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Working-set partition",
+     "back": "Before each call the runtime selects a bounded working set and splits the input allowance S_max - K_max among instructions, tool declarations, task state, and observations, and appended observations are the term that grows and displaces task state."
+    },
+    {
+     "front": "Usable working context",
+     "back": "Usable context is an empirical property of a model, configuration, representation, and workload found by decision-level evaluation, because attention dilutes a target key as staged keys accumulate and position matters."
+    },
+    {
+     "front": "Change-rate ordering",
+     "back": "Staging the request as root, trunk, and leaf by change rate keeps the longest exact token prefix reusable, so volatile fields belong in the leaf, although correctness always overrides cache economics."
+    },
+    {
+     "front": "Scope rule",
+     "back": "An observation is evidence only for the artifact versions and execution conditions under which it was gathered, and provenance labels on untrusted spans guide interpretation but enforce nothing."
+    },
+    {
+     "front": "Context compaction",
+     "back": "Every compaction is a lossy transform that can silently drop evidence a later decision needs, so the runtime pins a protected-field set and keeps handles to raw records."
+    },
+    {
+     "front": "Audited progress records",
+     "back": "A model-written continuation record is an untrusted candidate that a host-side audit checks against a runtime-owned field inventory, the event log, and the workspace version before it replaces history."
+    },
+    {
+     "front": "Context invalidation",
+     "back": "A verified write withdraws current-state authority from bound observations and flags dependent conclusions for reassessment, without erasing their historical truth."
+    },
+    {
+     "front": "Context policy evaluation",
+     "back": "Context policies are compared as complete policies on accepted outcomes under a fixed model, tools, budget, and fixture, and retention or compression ratios are diagnostics with explicit denominators, not verdicts."
+    },
+    {
+     "front": "Hysteretic compaction scheduling",
+     "back": "Separating a trigger watermark from a post-compaction target sets compaction cadence, and the amortized pass cost is judged against cost per accepted task, not local turn cost."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v3-04-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Working-set partition**?",
+     "options": [
+      "Separating a trigger watermark from a post-compaction target sets compaction cadence, and the amortized pass cost is judged against cost per accepted task, not local turn cost.",
+      "Before each call the runtime selects a bounded working set and splits the input allowance S_max - K_max among instructions, tool declarations, task state, and observations, and appended observations are the term that grows and displaces task state.",
+      "Context policies are compared as complete policies on accepted outcomes under a fixed model, tools, budget, and fixture, and retention or compression ratios are diagnostics with explicit denominators, not verdicts.",
+      "A verified write withdraws current-state authority from bound observations and flags dependent conclusions for reassessment, without erasing their historical truth."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Working-set partition itself, not a neighbouring idea.",
+     "explanation": "**Working-set partition:** Before each call the runtime selects a bounded working set and splits the input allowance S_max - K_max among instructions, tool declarations, task state, and observations, and appended observations are the term that grows and displaces task state."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Usable working context**?",
+     "options": [
+      "A verified write withdraws current-state authority from bound observations and flags dependent conclusions for reassessment, without erasing their historical truth.",
+      "Before each call the runtime selects a bounded working set and splits the input allowance S_max - K_max among instructions, tool declarations, task state, and observations, and appended observations are the term that grows and displaces task state.",
+      "Usable context is an empirical property of a model, configuration, representation, and workload found by decision-level evaluation, because attention dilutes a target key as staged keys accumulate and position matters.",
+      "An observation is evidence only for the artifact versions and execution conditions under which it was gathered, and provenance labels on untrusted spans guide interpretation but enforce nothing."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Usable working context itself, not a neighbouring idea.",
+     "explanation": "**Usable working context:** Usable context is an empirical property of a model, configuration, representation, and workload found by decision-level evaluation, because attention dilutes a target key as staged keys accumulate and position matters."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Change-rate ordering**?",
+     "options": [
+      "A model-written continuation record is an untrusted candidate that a host-side audit checks against a runtime-owned field inventory, the event log, and the workspace version before it replaces history.",
+      "An observation is evidence only for the artifact versions and execution conditions under which it was gathered, and provenance labels on untrusted spans guide interpretation but enforce nothing.",
+      "Separating a trigger watermark from a post-compaction target sets compaction cadence, and the amortized pass cost is judged against cost per accepted task, not local turn cost.",
+      "Staging the request as root, trunk, and leaf by change rate keeps the longest exact token prefix reusable, so volatile fields belong in the leaf, although correctness always overrides cache economics."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Change-rate ordering itself, not a neighbouring idea.",
+     "explanation": "**Change-rate ordering:** Staging the request as root, trunk, and leaf by change rate keeps the longest exact token prefix reusable, so volatile fields belong in the leaf, although correctness always overrides cache economics."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Scope rule**?",
+     "options": [
+      "A model-written continuation record is an untrusted candidate that a host-side audit checks against a runtime-owned field inventory, the event log, and the workspace version before it replaces history.",
+      "Staging the request as root, trunk, and leaf by change rate keeps the longest exact token prefix reusable, so volatile fields belong in the leaf, although correctness always overrides cache economics.",
+      "An observation is evidence only for the artifact versions and execution conditions under which it was gathered, and provenance labels on untrusted spans guide interpretation but enforce nothing.",
+      "Usable context is an empirical property of a model, configuration, representation, and workload found by decision-level evaluation, because attention dilutes a target key as staged keys accumulate and position matters."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Scope rule itself, not a neighbouring idea.",
+     "explanation": "**Scope rule:** An observation is evidence only for the artifact versions and execution conditions under which it was gathered, and provenance labels on untrusted spans guide interpretation but enforce nothing."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Context compaction**?",
+     "options": [
+      "Context policies are compared as complete policies on accepted outcomes under a fixed model, tools, budget, and fixture, and retention or compression ratios are diagnostics with explicit denominators, not verdicts.",
+      "A verified write withdraws current-state authority from bound observations and flags dependent conclusions for reassessment, without erasing their historical truth.",
+      "Staging the request as root, trunk, and leaf by change rate keeps the longest exact token prefix reusable, so volatile fields belong in the leaf, although correctness always overrides cache economics.",
+      "Every compaction is a lossy transform that can silently drop evidence a later decision needs, so the runtime pins a protected-field set and keeps handles to raw records."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is Context compaction itself, not a neighbouring idea.",
+     "explanation": "**Context compaction:** Every compaction is a lossy transform that can silently drop evidence a later decision needs, so the runtime pins a protected-field set and keeps handles to raw records."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Working-set partition: Before each call the runtime selects a bounded working set and splits the input allowance S_max - K_max among instructions, tool declarations, task state, and observations, and appended observations are the term that grows and displaces task state.",
+    "Usable working context: Usable context is an empirical property of a model, configuration, representation, and workload found by decision-level evaluation, because attention dilutes a target key as staged keys accumulate and position matters.",
+    "Change-rate ordering: Staging the request as root, trunk, and leaf by change rate keeps the longest exact token prefix reusable, so volatile fields belong in the leaf, although correctness always overrides cache economics.",
+    "Scope rule: An observation is evidence only for the artifact versions and execution conditions under which it was gathered, and provenance labels on untrusted spans guide interpretation but enforce nothing."
+   ]
+  }
+ ],
+ "terms": []
+}

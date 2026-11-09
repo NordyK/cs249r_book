@@ -1,0 +1,109 @@
+{
+ "title": "Structural Optimization: Changing What the Model Computes",
+ "summary": "Compare structured and unstructured pruning in terms of how well each maps to efficient execution on commodity accelerators.",
+ "source": {
+  "chapter": "v1-10",
+  "sections": [
+   "Structural Optimization: Changing What the Model Computes",
+   "Pruning",
+   "Low-rank factorization",
+   "Knowledge distillation",
+   "Efficient architecture design",
+   "Neural architecture search",
+   "Adaptive computation methods"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Structural Optimization: Changing What the Model Computes** in *Model Compression* (Vol I). By the end you should be able to:\n\n- Compare structured and unstructured pruning in terms of how well each maps to efficient execution on commodity accelerators\n- Design an experimental procedure that sequences the iterative steps used to evaluate winning lottery tickets under the Lottery Ticket Hypothesis\n- Evaluate distillation as a structural optimization candidate when deployment hardware favors dense execution\n- Calculate parameter and arithmetic reduction factors for low-rank matrix factorization and evaluate the resulting rank-capacity trade-off\n- Evaluate the economic and architectural conditions that justify custom Neural Architecture Search versus adopting established efficient architectures"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Model Compression, § Structural Optimization: Changing What the Model Computes",
+   "md": "At the top of the optimization stack, **efficient model representation** modifies *what* the model computes because trained networks routinely carry far more parameters than inference requires. A standard ResNet-50 trained on ImageNet, for example, contains over 25 million parameters, yet careful magnitude pruning and retraining can remove about 80 percent of its weights for roughly a one-point loss in top-1 accuracy. Although that extra capacity aids gradient optimization during training, parameters that do not improve the deployed predictions still consume memory capacity, bandwidth, arithmetic, and energy on every query."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Pruning\n- Low-rank factorization\n- Knowledge distillation\n- Efficient architecture design\n- Neural architecture search\n- Adaptive computation methods\n\nPay attention to: structured vs. unstructured pruning and accelerator execution patterns; Lottery Ticket Hypothesis experimental workflow; knowledge distillation on hardware lacking sparse kernels; low-rank factorization mathematics and memory/compute trade-offs."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A square weight matrix of size \\$4096 × 4096 in a transformer layer is decomposed using low-rank factorization at rank r = 128. Calculate the theoretical reduction factor in both parameter count and multiply-accumulate (MAC) operations, and explain what trade-off this structural approximation introduces.",
+   "md": "The original matrix contains \\$4096 \\times 4096 = 16{,}777{,}216$ parameters (\\$16.78\\text{M}$ MACs per vector product). Factoring into two matrices of dimensions \\$4096 \\times 128$ and \\$128 \\times 4096$ requires \\$2 \\times (4096 \\times 128) = 1{,}048{,}576$ parameters (\\$1.05\\text{M}$ MACs). This yields an exact theoretical reduction factor of $\\frac{4096^2}{2 \\times 4096 \\times 128} = \\frac{4096}{256} = 16\\times$ for both parameter storage and arithmetic operations. The trade-off is that factorization restricts the layer's representational capacity to a low-dimensional subspace of rank 128, which can degrade model expressiveness and task accuracy unless recovered through subsequent fine-tuning, while introducing the runtime overhead of launching two consecutive matrix multiplication kernels."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-10-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team prunes ResNet-50 to \\$50\\%$ sparsity using unstructured magnitude pruning and observes only a \\$1.1\\times$ speedup on a commodity GPU. Switching to structured channel pruning at the exact same \\$50\\%$ sparsity yields a \\$1.8\\times$ speedup. Which systems mechanism best explains this difference?",
+     "explanation": "The correct answer is B. Structured channel pruning produces smaller dense tensors that still map well to standard dense kernels. Unstructured sparsity can reduce nonzeros, but exploiting it requires sparse encodings and matching kernels, which add metadata handling, irregular activation gathers, and possible load imbalance. The idea that random sparse accesses are automatically coalesced ignores the execution problem the section emphasizes, and equal nominal sparsity does not mean structured pruning removes more weights.",
+     "hint": "Think about: compare structured and unstructured pruning in terms of how well each maps to efficient execution on commodity accelerators",
+     "type": "single",
+     "options": [
+      "Structured pruning removes more total weight parameters than unstructured pruning at any given nominal sparsity percentage",
+      "Structured pruning removes entire contiguous channels or filters, allowing smaller dense kernels to execute efficiently, whereas unstructured sparsity needs sparse storage, metadata, and irregular activation access",
+      "Unstructured magnitude pruning requires zero retraining or fine-tuning, whereas structured channel pruning requires full retraining from scratch",
+      "Commodity GPU memory controllers automatically coalesce random non-zero memory addresses into single-cycle burst transfers"
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Order the stages of finding a winning lottery ticket in a neural network according to the Lottery Ticket Hypothesis (LTH):",
+     "explanation": "The correct order is: (2) Train the dense unpruned network to convergence, (4) Prune the lowest-magnitude weights to create a sparse mask, (1) Reset surviving weights to their original initialization values ($W_0$), (3) Retrain the sparse subnetwork to convergence. First, dense training allows gradient descent to differentiate parameter importance. Second, magnitude pruning isolates the most critical connections to form a binary mask. Third, resetting surviving parameters to their exact initial values ($W_0$) isolates the subnetwork's topological initialization. Finally, retraining the sparse subnetwork validates whether it can match or exceed the original dense model's accuracy.",
+     "hint": "Think about: design an experimental procedure that sequences the iterative steps used to evaluate winning lottery tickets under the Lottery Ticket Hypothesis",
+     "type": "order",
+     "items": [
+      "Train the dense unpruned network to convergence",
+      "Prune the lowest-magnitude weights to create a sparse mask.",
+      "Retrain the sparse subnetwork to convergence"
+     ]
+    },
+    {
+     "q": "A team must compress a large transformer model for deployment across a fleet of commodity GPUs that lack dedicated sparse-matrix acceleration kernels. Which structural optimization technique is the strongest candidate for producing a smaller model that still executes efficiently on this hardware?",
+     "explanation": "The correct answer is C. Distillation trains a new compact dense student, so the deployed model can use ordinary dense kernels that commodity GPUs already execute efficiently. That makes it a strong candidate when sparse acceleration support is absent. Unstructured pruning still depends on sparse formats and kernels, low-rank factorization is an approximation rather than a zero-loss guarantee, and the section does not claim pruning can never remove layers or that binary quantization is broadly safe for this setting.",
+     "hint": "Think about: evaluate distillation as a structural optimization candidate when deployment hardware favors dense execution",
+     "type": "single",
+     "options": [
+      "Unstructured magnitude pruning, because sparse matrix multiplication routines run with zero memory overhead on all standard GPUs",
+      "Extreme binary weight quantization, because 1-bit representations eliminate all memory traffic without degrading language model perplexity",
+      "Knowledge distillation, because it transfers teacher behavior into a compact dense student architecture that runs well on standard dense GPU kernels",
+      "Low-rank factorization without fine-tuning, because mathematical decomposition guarantees zero loss in representation capacity"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "An engineering organization is deciding between running a custom Neural Architecture Search (NAS) from scratch versus adopting an established NAS-discovered family (such as MobileNetV3 or EfficientNet). Which circumstance most strongly justifies investing in custom NAS?",
+     "explanation": "The correct answer is A. Custom Neural Architecture Search (NAS) incurs substantial compute expenditure (historically hundreds to thousands of GPU-days), making it justifiable primarily when targeting novel hardware accelerators whose physical constraints are not served by existing architectures, or when extreme deployment scale (billions of daily inferences) allows modest per-query latency and energy gains to rapidly amortize the upfront search cost. For standard hardware, existing NAS-designed architectures (e.g., EfficientNet, MobileNetV3) provide proven efficiency out of the box without incurring search expenses. Fast prototyping and low-volume applications cannot justify the substantial time and compute cost required by NAS.",
+     "hint": "Think about: evaluate the economic and architectural conditions that justify custom Neural Architecture Search versus adopting established efficient architectures",
+     "type": "single",
+     "options": [
+      "Novel or custom hardware accelerators with unique memory hierarchies or massive production deployment scale where small per-inference efficiency gains amortize large one-time search costs",
+      "Standard GPU clusters running established vision benchmarks where off-the-shelf architectures like MobileNetV3 already fit latency budgets",
+      "Rapid prototyping projects with a total engineering timeline under one week and fewer than 10 available GPUs",
+      "Small-scale enterprise applications processing fewer than 1,000 queries per day on cloud instances"
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: Compare one-shot pruning with an iterative schedule that removes 10 percentage points of the original weights in each of 8 rounds with recovery between rounds. Explain why staged recovery can help, and what controlled comparison is needed before concluding that the iterative schedule is better.",
+   "md": "Iterative pruning removes capacity in stages, giving the surviving weights chances to recover after each cut, so it is often a strong candidate when high sparsity is the goal. For example, eight rounds of removing \\$10$ percentage points of the original weights each can reach \\$80\\%$ total sparsity while interleaving recovery. But the chapter does not claim this always beats one-shot pruning at the same final target: the outcome depends on the recovery budget, architecture, and pruning procedure. The practical implication is to compare schedules fairly at matched recovery effort instead of assuming staged pruning is universally superior."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare structured and unstructured pruning in terms of how well each maps to efficient execution on commodity accelerators.",
+    "You can now design an experimental procedure that sequences the iterative steps used to evaluate winning lottery tickets under the Lottery Ticket Hypothesis.",
+    "You can now evaluate distillation as a structural optimization candidate when deployment hardware favors dense execution.",
+    "You can now calculate parameter and arithmetic reduction factors for low-rank matrix factorization and evaluate the resulting rank-capacity trade-off."
+   ]
+  }
+ ]
+}

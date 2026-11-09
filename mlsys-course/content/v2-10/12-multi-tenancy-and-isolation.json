@@ -1,0 +1,83 @@
+{
+ "title": "Multi-Tenancy and Isolation",
+ "summary": "Compare the architectural mechanisms and isolation guarantees of deployment-level versus request-level bulkheads.",
+ "source": {
+  "chapter": "v2-10",
+  "sections": [
+   "Multi-Tenancy and Isolation",
+   "Noisy neighbor problems",
+   "Resource quotas and fair sharing",
+   "Priority scheduling",
+   "Bulkhead pattern"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Multi-Tenancy and Isolation** in *Serving at Scale* (Vol II). By the end you should be able to:\n\n- Compare the architectural mechanisms and isolation guarantees of deployment-level versus request-level bulkheads\n- Analyze the causes of head-of-line blocking in FCFS LLM scheduling and the operational trade-offs of KV-cache preemption\n- Identify the max-min fairness principle applied to multi-tenant inference resource allocation"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Serving at Scale, § Multi-Tenancy and Isolation",
+   "md": "Consider a critical customer-support chatbot running on the same GPU server as an experimental computer vision script. If the experimental workload monopolizes the PCIe bus or memory bandwidth, the chatbot can miss its latency target. Sharing saves capacity only when the resulting interference remains within each service's contract. Fleet quotas, fair-share hierarchies, and priority preemption decide how much of the cluster a serving system receives; the problem here is controlling contention among the tenants who share that allocation, request by request."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Noisy neighbor problems\n- Resource quotas and fair sharing\n- Priority scheduling\n- Bulkhead pattern\n\nPay attention to: Deployment and request bulkheads; Max-min fair allocation."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-10-12-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Which statement best distinguishes deployment-level bulkheads from request-level bulkheads in a multi-tenant inference platform?",
+     "explanation": "The correct answer is D. Dedicated replicas reduce direct contention between tenant tiers, while request-level caps bound individual work within shared processes. Dedicated replicas do not guarantee complete failure isolation: power, networks, storage, and control planes can still be shared. Rate limits and deadlines complement placement, rather than replacing hardware capacity planning.",
+     "hint": "Think about: compare the architectural mechanisms and isolation guarantees of deployment-level versus request-level bulkheads.",
+     "type": "single",
+     "options": [
+      "Deployment-level bulkheads enforce rate limits using software counters; request-level bulkheads isolate GPU power supplies.",
+      "Deployment-level bulkheads apply only to batch inference; request-level bulkheads apply only to interactive chat.",
+      "Deployment-level bulkheads dynamically quantize weights to INT4; request-level bulkheads dynamically compile CUDA graphs.",
+      "Deployment-level bulkheads physically isolate tenant tiers onto dedicated GPU replicas, while request-level bulkheads cap input/output token lengths and execution time within shared processes."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "Why is pure First-Come-First-Served (FCFS) scheduling problematic for multi-tenant LLM serving, and what mechanism does preemptive scheduling use to resolve it?",
+     "explanation": "The correct answer is D. Preemption can run at token boundaries, but the victim state must remain in HBM, move to host memory, or be rebuilt on resumption. These alternatives consume capacity, transfer bandwidth, or prefill compute. The policy must compare those costs with deadlines; preemption does not change model precision or replace tensor-parallel collectives.",
+     "hint": "Think about: analyze the causes of head-of-line blocking in FCFS LLM scheduling and the operational trade-offs of KV-cache preemption.",
+     "type": "single",
+     "options": [
+      "FCFS requires excessive GPU memory for block tables; preemptive scheduling replaces block tables with static pointers.",
+      "FCFS causes extreme AllReduce communication overhead; preemptive scheduling converts tensor parallelism to pipeline parallelism.",
+      "FCFS forces all requests to run at INT4 precision; preemptive scheduling dynamically promotes high-priority requests to FP16.",
+      "FCFS can let long requests occupy scarce slots while short requests wait; preemption pauses selected requests and manages their KV state to admit other work"
+     ],
+     "answer": 3
+    },
+    {
+     "q": "When multiple tenants with unequal demand compete for a shared GPU pool, the fair-allocation algorithm that maximizes the minimum allocation by bounding per-tenant consumption using token generation rate (tokens/sec) is called ____ fairness.",
+     "explanation": "max-min (or Max-Min / max-min fairness). Max-min fairness allocates equal capacity up to each tenant's demand, redistributing unused headroom from low-demand tenants to high-demand tenants.",
+     "hint": "Think about: identify the max-min fairness principle applied to multi-tenant inference resource allocation.",
+     "type": "fill",
+     "answer": [
+      "max min (or Max Min / max min fairness)",
+      "max-min",
+      "max-min (or Max-Min / max-min fairness)"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare the architectural mechanisms and isolation guarantees of deployment-level versus request-level bulkheads.",
+    "You can now analyze the causes of head-of-line blocking in FCFS LLM scheduling and the operational trade-offs of KV-cache preemption.",
+    "You can now identify the max-min fairness principle applied to multi-tenant inference resource allocation."
+   ]
+  }
+ ]
+}

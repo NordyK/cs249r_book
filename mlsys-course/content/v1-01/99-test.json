@@ -1,0 +1,151 @@
+{
+ "title": "Test: Introduction",
+ "kind": "test",
+ "summary": "Check what you learned across the whole chapter.",
+ "blocks": [
+  {
+   "type": "quiz",
+   "id": "v1-01-test",
+   "pass_score": 0.7,
+   "questions": [
+    {
+     "q": "The Viola-Jones face detection algorithm achieved real-time execution on early-2000s CPUs by using a cascade of simple rectangular features that evaluated an average of about ten features per candidate region, although the full cascade contained over 6,000 features.",
+     "explanation": "True. Viola-Jones exemplified the statistical learning era: expert feature engineering (integral image rectangular features) and a cascaded classifier allowed early rejection of non-face regions, achieving real-time performance within narrow domains while remaining constrained by manual feature engineering when applied to new tasks.",
+     "hint": "Think about: explain how cascaded classifiers and hand-engineered features enabled real-time inference during the statistical learning era.",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **D·A·M diagnosis**?",
+     "options": [
+      "Across Data, Algorithm, and Machine, execution time factors as samples per task times FLOPs per sample times seconds per FLOP (where the first two multiply to total operations O), and unpacks on hardware into bytes moved over bandwidth plus operations over peak rate times utilization plus fixed overhead, with ideal overlap giving the larger of the first two plus overhead, so a faster component helps only through the share of time it changes.",
+      "General methods that turn computation into capability have repeatedly overtaken encoded human knowledge, so each AI era traded one limiting constraint for the next and today's limit is the infrastructure: memory, bandwidth, power, and orchestration.",
+      "Every ML system must show both that its learned behavior is trustworthy and that the machine delivers it within time, memory, energy, and cost budgets, so an accurate but slow model and a fast model trained on unrepresentative data are both failures.",
+      "Attributing a symptom to Data, Algorithm, or Machine chooses the evidence and the class of fix, and relieving the limiting constraint moves the bottleneck across the triad, so diagnosis is a loop of diagnose, intervene, and re-measure."
+     ],
+     "answer": 3,
+     "hint": "Look for the statement whose subject is D·A·M diagnosis itself, not a neighbouring idea.",
+     "explanation": "**D·A·M diagnosis:** Attributing a symptom to Data, Algorithm, or Machine chooses the evidence and the class of fix, and relieving the limiting constraint moves the bottleneck across the triad, so diagnosis is a loop of diagnose, intervene, and re-measure."
+    },
+    {
+     "q": "The development paradigm where engineering teams hold model architecture code relatively fixed and systematically improve dataset quality, labels, and coverage to program model behavior is known as ____ AI.",
+     "explanation": "data-centric. It emphasizes improving the data while holding the code comparatively fixed to shape model behavior.",
+     "hint": "Think about: identify the term for data-centric AI versus model-centric AI.",
+     "type": "fill",
+     "answer": [
+      "data centric",
+      "data-centric"
+     ]
+    },
+    {
+     "q": "In Andrej Karpathy's Software 1.0 vs. Software 2.0 framing, how do the roles of source code, the compiler, and debugging map to machine learning workflows?",
+     "explanation": "The correct answer is A. In Software 2.0, learned weights shaped by training data act as source code, and the training loop (stochastic gradient descent) plays the role of the compiler that produces those weights from the curated examples. Debugging still traces execution, but it also expands to the data and the learned behavior. Treating Python scripts or raw datasets as source code misplaces where the program logic lives, and treating hardware or serving runtimes as compilers confuses the execution platform with the training process that produces the weights.",
+     "hint": "Think about: compare the structural components of Software 1.0 with their Software 2.0 counterparts.",
+     "type": "single",
+     "options": [
+      "Learned weights shaped by training data act as source code, the training loop (stochastic gradient descent) acts as the compiler, and debugging expands from execution traces to the data and learned behavior.",
+      "Python scripts act as source code, the deep learning framework acts as the compiler, and debugging focuses on stepping through tensor operations in an interactive debugger.",
+      "Training datasets act as source code, GPU hardware acts as the compiler, and debugging focuses on profiling memory bandwidth utilization.",
+      "Pretrained model weights act as source code, inference serving runtimes act as the compiler, and debugging focuses on network packet inspection."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "In the D·A·M intersection landscape, the intersection between Algorithm and Machine ($\\text{A} \\cap \\text{M}$) addresses the core question of 'How to ____', focusing on how the model's mathematical work is mapped onto hardware execution and data movement efficiently.",
+     "explanation": "Execute Efficiently. In the D·A·M taxonomy, the Algorithm-Machine intersection (A ∩ M) asks how the model's computation is carried out on physical hardware so arithmetic and movement are organized efficiently.",
+     "hint": "Think about: identify the core engineering focus of the Algorithm-Machine intersection in the D·A·M taxonomy.",
+     "type": "fill",
+     "answer": [
+      "Execute Efficiently"
+     ]
+    },
+    {
+     "q": "An ML engineering team trains a 70-billion-parameter language model. When profiling the distributed cluster, they notice that accelerator compute engines remain idle for 45% of execution time waiting for batch tensors to be loaded from remote object storage over the network. Along which D·A·M axis does the primary limiting constraint lie, and which intersection represents the appropriate optimization space?",
+     "explanation": "The correct answer is C. The bottleneck is data movement and storage throughput starving the compute engines, placing the constraint along the Data axis. The corresponding design space is the $\\text{Data} \\cap \\text{Machine}$ intersection ('How to Move Information'), which includes I/O bandwidth optimization, asynchronous prefetching, efficient storage formats, and memory hierarchy management. Optimizing mixed precision quantization ($\\text{A} \\cap \\text{M}$) accelerates compute execution but does not resolve storage starvation. Curriculum learning ($\\text{D} \\cap \\text{A}$) selects which samples to present but does not fix I/O pipeline bandwidth.",
+     "hint": "Think about: analyze the limiting constraint in an ML system using the D·A·M taxonomy and identify the corresponding optimization intersection.",
+     "type": "single",
+     "options": [
+      "Machine axis; $\\text{Algorithm} \\cap \\text{Machine}$ (mixed precision quantization and kernel fusion)",
+      "Algorithm axis; $\\text{Data} \\cap \\text{Algorithm}$ (curriculum learning and active data selection)",
+      "Data axis; $\\text{Data} \\cap \\text{Machine}$ (I/O pipelining, prefetching, and storage memory hierarchy)",
+      "Workload axis; $\\text{Data} \\cap \\text{Algorithm} \\cap \\text{Machine}$ (reinforcement learning from human feedback)"
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Which historical transition correctly pairs an AI era with the primary systems bottleneck that limited its scalability and forced the transition to the subsequent paradigm?",
+     "explanation": "The correct answer is D. Expert systems hit the knowledge acquisition bottleneck because extracting and maintaining consistent rules was bound by the serial bandwidth of human experts; statistical learning overcame this by estimating probabilities from data, but hit the feature engineering bottleneck because humans still had to manually design feature extractors (e.g., SIFT, HOG); deep learning overcame this by learning representations end-to-end from raw data. Compute throughput and GPU memory bandwidth constrained deep learning, not early symbolic or expert systems. Formal logic ambiguity was the logic bottleneck of symbolic AI, not statistical learning.",
+     "hint": "Think about: compare the four historical AI eras across their primary limiting systems bottlenecks.",
+     "type": "single",
+     "options": [
+      "Symbolic AI was limited by compute throughput, forcing the transition to expert systems; Deep Learning was limited by human rule maintenance, forcing the transition to statistical learning.",
+      "Expert Systems were limited by GPU memory bandwidth, forcing the transition to statistical learning; Statistical Learning was limited by formal logic ambiguity, forcing the transition to deep learning.",
+      "Statistical Learning was limited by a complete lack of training labels, forcing the transition to symbolic logic; Symbolic AI was limited by hardware integer arithmetic, forcing the transition to neural networks.",
+      "Expert Systems were limited by the knowledge acquisition bottleneck (serial human expert elicitation bandwidth), forcing the transition to statistical learning; Statistical Learning was limited by the feature engineering bottleneck (manual extraction of hand-crafted representations), forcing the transition to deep learning."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In a production ML system, if all code executes without runtime exceptions, CPU and GPU utilization are normal, and latency requirements are met, the system is guaranteed to be operating correctly.",
+     "explanation": "False. Healthy execution telemetry shows that the software and hardware path is functioning, but it does not guarantee good predictions. In an ML system, the code can run correctly and on time while the live data has drifted away from the training distribution, causing silent degradation in prediction quality.",
+     "hint": "Think about: explain why traditional software health metrics such as uptime and exception logging are insufficient to verify ML system correctness.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Data defines behavior**?",
+     "options": [
+      "Training data plus the optimization procedure produce the program, so changing the dataset changes system behavior as surely as changing source code, and debugging, versioning, and review must extend to the data.",
+      "General methods that turn computation into capability have repeatedly overtaken encoded human knowledge, so each AI era traded one limiting constraint for the next and today's limit is the infrastructure: memory, bandwidth, power, and orchestration.",
+      "Attributing a symptom to Data, Algorithm, or Machine chooses the evidence and the class of fix, and relieving the limiting constraint moves the bottleneck across the triad, so diagnosis is a loop of diagnose, intervene, and re-measure.",
+      "ML adds a failure route in which code, runtime, and health checks stay green while predictive quality falls as the operating population shifts or training and serving transforms diverge, and locally accuracy falls by a fitted sensitivity times the divergence (eq-degradation), where divergence prompts investigation and labeled outcomes establish loss."
+     ],
+     "answer": 0,
+     "hint": "Look for the statement whose subject is Data defines behavior itself, not a neighbouring idea.",
+     "explanation": "**Data defines behavior:** Training data plus the optimization procedure produce the program, so changing the dataset changes system behavior as surely as changing source code, and debugging, versioning, and review must extend to the data."
+    },
+    {
+     "q": "A computer vision test suite evaluates a \\$224×224 RGB image classifier on 50,000 validation images. Why does passing 100% of these test cases still leave a substantial 'verification gap' in production?",
+     "explanation": "The correct answer is B. The verification gap, the disparity between what a test set covers and the inputs a deployed system meets, arises because the input space of \\$224{\\times}224$ 8-bit RGB images contains \\$256^{150{,}528}$ possible configurations (a number with over 300,000 digits in base 10), whereas a 50,000-image test set evaluates a vanishingly small fraction. Predeployment testing provides statistical evidence over sampled inputs, not exhaustive mathematical proof. Explanations invoking integer precision describe quantization effects rather than the fundamental input-space disparity. Explanations suggesting batch-size limits or backward pass requirements in production confuse inference serving with training mechanics.",
+     "hint": "Think about: calculate and explain the mathematical origin of the verification gap in high-dimensional ML systems.",
+     "type": "single",
+     "options": [
+      "Validation sets evaluate floating-point weights, whereas production inference engines always run in integer precision.",
+      "The total input space of possible pixel configurations (\\$256^150,528, spanning over 300,000 decimal digits) vastly exceeds the sample coverage of any finite test set, making exhaustive testing mathematically impossible.",
+      "Convolutional neural networks cannot generalize beyond the exact batch size used during validation testing.",
+      "Test suites only evaluate forward inference passes, whereas production systems must continuously execute backward gradient updates."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "Place the four historical AI engineering eras in chronological order based on when their primary paradigm dominated, and identify the key bottleneck that constrained each era:",
+     "explanation": "The correct order is (3) -> (2) -> (4) -> (1).\n- (3) Symbolic AI Era (1950s–1970s): Constrained by the logic bottleneck (brittle hand-coded rules unable to handle real-world ambiguity).\n- (2) Expert Systems Era (1970s–1980s): Constrained by the knowledge acquisition bottleneck (serial human expert elicitation bandwidth).\n- (4) Statistical Learning Era (1990s–2000s): Constrained by the feature engineering bottleneck (manual extraction of hand-crafted features prior to statistical classification).\n- (1) Deep Learning Era (2010s–present): Constrained by the compute and infrastructure bottleneck (hardware scaling, memory bandwidth, and distributed coordination).",
+     "hint": "Think about: classify the chronological progression of AI engineering eras and their respective systems bottlenecks.",
+     "type": "order",
+     "items": [
+      "Symbolic AI Era",
+      "Expert Systems Era",
+      "Statistical Learning Era",
+      "Deep Learning Era"
+     ]
+    },
+    {
+     "q": "Place the six ML project responsibilities in their initial progression from defining the task to maintaining the deployed system:",
+     "explanation": "The correct order is (4) -> (5) -> (2) -> (1) -> (6) -> (3).\n- (4) Problem Definition: Specify the task, operating population, constraints, and acceptance requirements.\n- (5) Data Collection & Preparation: Gather representative evidence and construct the inputs used for learning.\n- (2) Model Development & Training: Choose and train a model within the resource budget.\n- (1) Evaluation & Validation: Assess task quality and system requirements under a stated protocol.\n- (6) Deployment & Integration: Integrate the validated artifact into its operating environment.\n- (3) Monitoring & Maintenance: Gather production evidence and diagnose whether earlier work needs revision.\nThis is an initial progression, not a rule that every alert repeats every stage.",
+     "hint": "Think about: classify the sequential stages of the ML system lifecycle.",
+     "type": "order",
+     "items": [
+      "Problem Definition",
+      "Data Collection & Preparation",
+      "Model Development & Training",
+      "Evaluation & Validation",
+      "Deployment & Integration",
+      "Monitoring & Maintenance"
+     ]
+    }
+   ]
+  }
+ ]
+}

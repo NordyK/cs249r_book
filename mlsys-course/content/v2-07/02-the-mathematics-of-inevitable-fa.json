@@ -1,0 +1,67 @@
+{
+ "title": "The Mathematics of Inevitable Failure",
+ "summary": "Work through The Mathematics of Inevitable Failure.",
+ "source": {
+  "chapter": "v2-07",
+  "sections": [
+   "The Mathematics of Inevitable Failure",
+   "Composing component reliability",
+   "Cluster MTBF calculation"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **The Mathematics of Inevitable Failure** in *Fault Tolerance* (Vol II)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fault Tolerance, § The Mathematics of Inevitable Failure",
+   "md": "A single data-center GPU can run for years without a hardware fault, yet a synchronous job spanning ten thousand of those same GPUs is interrupted every few hours. System reliability engineering explains why individual device longevity erodes so quickly when thousands of components must stay healthy at the same time. Each component has a failure rate ComponentFailureRate, measured in failures per unit time. When ComponentFailureRate is constant, the probability that a single component survives without failure until time TimeInstant follows an exponential distribution, as in a later section:"
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Composing component reliability\n- Cluster MTBF calculation"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Fleet failure rate matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Independent constant-rate failures compose in series, so system MTBF = MTTF/N turns a 50,000-hour GPU into an interruption every few hours on a 10,000-GPU cluster, and correlated hazards over shared power, switches, and cooling come on top."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-07-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **The Mathematics of Inevitable Failure** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Independent constant-rate failures compose in series, so system MTBF = MTTF/N turns a 50,000-hour GPU into an interruption every few hours on a 10,000-GPU cluster, and correlated hazards over shared power, switches, and cooling come on top.",
+      "Expected waste delta/tau + tau/(2M) is minimized at tau* = sqrt(2 delta M), a shallow optimum that tightens only by sqrt(2) when MTBF halves, while the optimized overhead sqrt(2 delta/M) grows as sqrt(N) because M falls as 1/N.",
+      "ECC and link CRCs protect stored and transmitted bits but never arithmetic, so a live worker can feed a wrong gradient into a correct AllReduce, and because full redundancy costs 100 to 200 percent of compute, fleets use selective check-and-verify.",
+      "Each failure pays T_detect + T_restart + T_load + T_warmup on top of lost rework, which comes to dominate as clusters grow, and epochs, leases, and write fencing stop a stale worker from corrupting the recovered state."
+     ],
+     "answer": 0,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Fleet failure rate**: Independent constant-rate failures compose in series, so system MTBF = MTTF/N turns a 50,000-hour GPU into an interruption every few hours on a 10,000-GPU cluster, and correlated hazards over shared power, switches, and cooling come on top."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Fleet failure rate* makes consistent recovery necessary for *Silent data corruption verification*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Fleet failure rate* makes consistent recovery necessary for *Synchronous tight coupling*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through The Mathematics of Inevitable Failure."
+   ]
+  }
+ ]
+}

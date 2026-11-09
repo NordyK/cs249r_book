@@ -1,0 +1,72 @@
+{
+ "title": "Fault-Tolerant System Synthesis",
+ "summary": "Work through Fault-Tolerant System Synthesis.",
+ "source": {
+  "chapter": "v3-12",
+  "sections": [
+   "Fault-Tolerant System Synthesis",
+   "Mechanism composition",
+   "Outstanding effects worksheet",
+   "Fault-test plan",
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Fallacies and Pitfalls",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fault-Tolerant System Synthesis** in *Failure Recovery* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Failure Recovery, § Fault-Tolerant System Synthesis",
+   "md": "A single turbulent hour during an automated connection-pool repair can exercise every recovery mechanism introduced across this chapter. In rapid succession, a cloud environment provisioning reply drops over the network, the executing worker node crashes along with its ephemeral local storage, the integration testing service throttles under load, and a malformed or adversarial repository document steers the agent's next patch proposal. At each boundary the runtime establishes three facts: what durable evidence it holds, which state transition that evidence permits, and which unfulfilled obligations remain with an accountable owner."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Mechanism composition\n- Outstanding effects worksheet\n- Fault-test plan\n- Fallacies and Pitfalls\n- Summary"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Compensation matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-12-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Fault-Tolerant System Synthesis** develops one of the chapter's claims. Which one?",
+     "options": [
+      "A trajectory saga durably registers each effectful step's cleanup template before dispatch, not after the step returns, so a crash never leaves an effect without its compensator.",
+      "An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past.",
+      "One bounded repair attempt beats immediate unwind-and-rebuild iff its measured success rate exceeds p* = C_repair / C_fallback, evaluated separately in time and dollars.",
+      "Scoped circuit breakers, a single retry owner, and bulkheads bound three different quantities when many trajectories share one dependency."
+     ],
+     "answer": 1,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Compensation**: An external service and the runtime log share no atomic commit, so an established effect is remediated only by a separately committed forward operation that restores declared postconditions, not the past."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Compensation* is registered as recovery work by *Trajectory saga*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Compensation is registered as recovery work by Trajectory saga."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Fault-Tolerant System Synthesis."
+   ]
+  }
+ ]
+}

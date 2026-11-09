@@ -1,0 +1,67 @@
+{
+ "title": "Ingestion Overhead and Memory Bus Contention",
+ "summary": "Work through Ingestion Overhead and Memory Bus Contention.",
+ "source": {
+  "chapter": "v4-08",
+  "sections": [
+   "Ingestion Overhead and Memory Bus Contention",
+   "MIPI CSI-2 DMA ingress and zero-copy buffers",
+   "Memory bus contention and observation age"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Ingestion Overhead and Memory Bus Contention** in *Sensor Perception* (Vol IV)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol IV, Sensor Perception, § Ingestion Overhead and Memory Bus Contention",
+   "md": "A common architectural pitfall in early physical AI prototypes is connecting multiple high-resolution cameras through standard USB or Ethernet ports and ingesting frames using naive user-space libraries, such as OpenCV's `VideoCapture` or default ROS image transport nodes. In this unoptimized baseline, every incoming frame is copied from kernel USB request blocks into a driver ring buffer, copied a second time into user-space process memory, and copied a third time across the PCIe bus into GPU memory."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- MIPI CSI-2 DMA ingress and zero-copy buffers\n- Memory bus contention and observation age"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Observation age matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Observation age runs from the exposure midpoint to dispatch, accumulates stage by stage (exposure, readout, transport, DMA, ISP, backbone, dispatch), and is paid in blind travel that no later stage returns."
+  },
+  {
+   "type": "quiz",
+   "id": "v4-08-05-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Ingestion Overhead and Memory Bus Contention** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Every metric claim rests on intrinsics, extrinsics, and inter-sensor time offsets composed along a frame tree at the capture instant, and angular and timing errors scale with range and turn rate.",
+      "Sequential capture stages add their durations while overlapped or streamed stages replace the sum, and the waterfall shows which stage spends the age budget.",
+      "Out-of-distribution and input-support monitors flag into the health bitmask and can demote a camera to LiDAR-only operation, but they cannot certify what the transducer itself got wrong.",
+      "Observation age runs from the exposure midpoint to dispatch, accumulates stage by stage (exposure, readout, transport, DMA, ISP, backbone, dispatch), and is paid in blind travel that no later stage returns."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Observation age**: Observation age runs from the exposure midpoint to dispatch, accumulates stage by stage (exposure, readout, transport, DMA, ISP, backbone, dispatch), and is paid in blind travel that no later stage returns."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Observation age* spends the freshness budget set by *Observation age*.",
+     "answer": false,
+     "hint": "Which later concept does this idea actually connect to?",
+     "explanation": "False. The book links *Observation age* spends the freshness budget set by *Measurement freshness deadline*."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Ingestion Overhead and Memory Bus Contention."
+   ]
+  }
+ ]
+}

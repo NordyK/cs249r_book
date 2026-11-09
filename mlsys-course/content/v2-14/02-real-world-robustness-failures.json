@@ -1,0 +1,95 @@
+{
+ "title": "Real-World Robustness Failures",
+ "summary": "Analyze the architectural dependency lessons exposed by cloud infrastructure outages.",
+ "source": {
+  "chapter": "v2-14",
+  "sections": [
+   "Real-World Robustness Failures",
+   "Cloud infrastructure failures",
+   "Edge and embedded failures"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Real-World Robustness Failures** in *Robust AI* (Vol II). By the end you should be able to:\n\n- Analyze the architectural dependency lessons exposed by cloud infrastructure outages\n- Explain how synchronization and optimizer updates propagate silent corruption into persistent ML state\n- Analyze perception failure modes in safety-critical autonomous systems\n- Explain how hazard and response-time constraints determine embedded validation and fallback obligations\n- Order the propagation stages of silent data corruption in distributed ML pipelines"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Robust AI, § Real-World Robustness Failures",
+   "md": "A shared storage outage stops a service outright, whereas a perception or classification error leaves it running with an unsafe result. Separating those two outcomes ensures that a successful request or an operational processor is never mistaken for evidence of a valid prediction. While deliberate input-level attacks are best documented through the controlled field studies of a later section, operational failures in the field expose the other pillars across three deployment tiers."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Cloud infrastructure failures\n- Edge and embedded failures\n\nPay attention to: AWS S3 outage cascading into ML services that assumed cloud invariants; silent data corruption propagating through distributed compute pipelines; Uber ATG pedestrian fatality and object classification instability; embedded safety-critical constraints and low recoverability."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: The chapter describes a defective CPU that returned zero in a file-size calculation, causing a decompression pipeline to omit files without raising a fault. Explain how an analogous undetected error can persist and propagate through distributed ML training, and why its blast radius depends on synchronization and checkpointing.",
+   "md": "A corrupted gradient or activation can alter an optimizer update, and gradient synchronization can distribute that error to replicas. The resulting parameter and optimizer state can persist through later steps and checkpoints, so recovery may require a clean checkpoint and replay of affected work. Conventional data-processing systems can also propagate corruption into persistent state and downstream decisions. The ML-specific mechanism is the embedding of an error in learned parameters; neither a bit flip nor successful execution alone establishes the final quality impact."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-14-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "During the February 2017 AWS S3 outage, dependent services such as EC2 launches, EBS snapshot-dependent volumes, and Lambda experienced elevated error rates. Which design assumption does this incident most directly invalidate for robust ML systems?",
+     "explanation": "The correct answer is C. That regional cloud storage availability can be treated as an absolute invariant rather than a probabilistic dependency in the serving pipeline. The outage cascaded through EC2, EBS, and Lambda because these subsystems assumed regional S3 availability was guaranteed; when maintenance removed capacity, dependent services failed despite their own application code remaining unchanged. The computational footprint of deep neural networks does not explain an external storage outage. Adversarial inputs and Byzantine gradient aggregation describe unrelated threat models that played no role in the storage infrastructure failure.",
+     "hint": "Think about: analyze the architectural dependency lessons exposed by cloud infrastructure outages",
+     "type": "single",
+     "options": [
+      "That deep neural networks are too computationally intensive for cloud object stores and must be compressed.",
+      "That adversarial inputs are the dominant cause of availability loss in production inference services.",
+      "That regional cloud storage availability can be treated as an absolute invariant rather than a probabilistic dependency in the serving pipeline.",
+      "That distributed training clusters must enforce Byzantine-tolerant gradient aggregation to prevent worker dropouts."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In the March 2018 Uber ATG pedestrian fatality in Tempe, the vehicle perception stack detected the pedestrian 5.6 seconds prior to impact but did not recognize the imminent collision until 1.2 seconds before impact. Which perception and tracking mechanism described in the chapter contributed to that delay?",
+     "explanation": "The correct answer is A. Repeated reclassification discarded trajectory history, contributing to the delayed recognition of the collision course. The chapter also describes action suppression and an operator who did not intervene in time, so the classification mechanism is not a complete explanation of the crash. The other choices introduce a total sensor failure, geographic cause, or cloud dependency that the case does not establish.",
+     "hint": "Think about: analyze perception failure modes in safety-critical autonomous systems",
+     "type": "single",
+     "options": [
+      "Object classification instability, where the model toggled between 'vehicle', 'other', and 'bicycle', resetting the trajectory prediction history on each reclassification.",
+      "Complete radar transceiver hardware failure that left the vehicle with zero sensor measurements.",
+      "A sudden geographic covariate shift that rendered the obstacle detection model unable to process Arizona road layouts.",
+      "A cloud network disconnection that prevented the on-vehicle computer from receiving remote classification confirmations."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "During a safety-critical embedded maneuver such as autonomous landing, a sensor or software fault can cause irreversible harm before remote intervention, so validation must cover both the fault and the local response within the maneuver’s deadline.",
+     "explanation": "True. A critical control interval can leave too little time for remote repair or human intervention. Maintenance may remain possible between those intervals, and the system may have a local fallback. Cloud retries and rollback likewise restore execution without establishing prediction correctness. Validation must match the application’s hazards and response deadline rather than assume that every embedded system is unrecoverable or every cloud error is harmless.",
+     "hint": "Think about: explain how hazard and response-time constraints determine embedded validation and fallback obligations",
+     "type": "truefalse",
+     "answer": true
+    },
+    {
+     "q": "Order the stages of a silent data corruption cascade in a distributed ML system from initial hardware fault to final production failure:",
+     "explanation": "The correct order is: (2) An undetected bit flip occurs in the ALU or memory during forward-backward computation on a single worker node, (4) Corrupted gradients are broadcast and aggregated across all workers during AllReduce synchronization, (1) Contaminated parameters persist through optimizer updates and are saved into a checkpoint artifact, (3) The deployed model serves degraded or erratic predictions while standard latency and uptime health checks stay green. In this stipulated cascade, an undetected fault corrupts a gradient (2), synchronization spreads the corrupted contribution (4), the resulting update persists in parameters and a saved checkpoint (1), and the deployed artifact produces degraded predictions (3). A bit flip need not cause every stage; detection, update dynamics, clean-checkpoint recovery, and behavioral validation can interrupt the cascade.",
+     "hint": "Think about: order the propagation stages of silent data corruption in distributed ML pipelines",
+     "type": "order",
+     "items": [
+      "An undetected bit flip occurs in the ALU or memory during forward-backward computation on a single worker node",
+      "Corrupted gradients are broadcast and aggregated across all workers during AllReduce synchronization.",
+      "Contaminated parameters persist through optimizer updates and are saved into a checkpoint artifact",
+      "The deployed model serves degraded or erratic predictions while standard latency and uptime health checks stay green"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now analyze the architectural dependency lessons exposed by cloud infrastructure outages.",
+    "You can now explain how synchronization and optimizer updates propagate silent corruption into persistent ML state.",
+    "You can now analyze perception failure modes in safety-critical autonomous systems.",
+    "You can now explain how hazard and response-time constraints determine embedded validation and fallback obligations."
+   ]
+  }
+ ]
+}

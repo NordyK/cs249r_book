@@ -1,0 +1,69 @@
+{
+ "title": "Fallacies and Pitfalls",
+ "summary": "Calculate the end-to-end effect of a compute-only upgrade and explain why a local throughput gain need not justify a fleet purchase.",
+ "source": {
+  "chapter": "v2-01",
+  "sections": [
+   "Fallacies and Pitfalls",
+   "Summary",
+   "Summary"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Fallacies and Pitfalls** in *Introduction* (Vol II). By the end you should be able to:\n\n- Calculate the end-to-end effect of a compute-only upgrade and explain why a local throughput gain need not justify a fleet purchase\n- Separate fixed-work execution speed from evidence that a changed training configuration reaches a quality target sooner\n- Analyze how physical safety, latency-distance physics, and strict thermal limits create qualitative differences between edge and cloud ML systems"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Introduction, § Fallacies and Pitfalls",
+   "md": "The following fallacies and pitfalls capture architectural mistakes that waste development resources, miss performance targets, or deploy systems critically mismatched to their operating constraints. Each represents a pattern observed repeatedly in the transition from single-machine ML to the machine learning fleet."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Summary\n\nPay attention to: Faster-accelerator fallacy and end-to-end compute-only upgrade arithmetic; Compute budget versus wall-clock prediction and changed-update time-to-quality evidence; The scaled-down-cloud fallacy and qualitative differences in edge deployment (latency-distance physics, power budgets)."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A common fallacy treats edge ML systems as simply smaller, resource-constrained versions of cloud servers. Using the chapter's autonomous vehicle example (a car traveling at 120 km/h with a 100 ms inference delay), explain why edge deployment constraints differ qualitatively rather than merely quantitatively from cloud data centers.",
+   "md": "At 120 km/h, a vehicle moves about 3.33 meters in 100 ms, so processing delay contributes directly to reaction distance. Edge deployment must therefore satisfy the application's physical deadline as well as device-specific power, thermal, and connectivity limits. Dedicated cloud cooling and elastic capacity cannot simply be assumed on the device. These are workload-specific constraints, not a universal battery lifetime or throttling multiplier for all edge hardware."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-01-08-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "On the 1,024-GPU reference job, a modeled training step of 8.71 s splits into 7.25 s of local computation, 0.53 s of pipeline bubble, and 0.93 s of exposed tensor-parallel and gradient exchange. Accelerators twice as fast halve the computation and the bubble, which is idle time measured in stage computation, but leave the exchange unchanged. What happens to step time, and what does this imply for the purchase decision?",
+     "explanation": "The correct answer is A. The bubble is idle time measured in stage computation, so it halves along with the computation. The halved terms take (7.25 + 0.53)/2 = 3.89 s; adding the unchanged 0.93 s exchange gives 4.82 s, and 8.71/4.82 is about 1.8. Faster arithmetic helps, but its datasheet ratio does not carry through the communication term, and the larger the share of the step that communication occupies, the further the gain falls short. The purchase decision needs the measured fleet decomposition and any additional changes to memory, links, or overlap. These step values are modeled, not measured.",
+     "hint": "Think about: calculate the end-to-end effect of a compute-only upgrade and explain why a local throughput gain need not justify a fleet purchase.",
+     "type": "single",
+     "options": [
+      "Step time falls from 8.71 s to about 4.82 s, a \\$1.8\\times$ speedup rather than \\$2\\times$; the unchanged communication caps the gain.",
+      "Step time falls from 8.71 s to about 4.36 s because doubling accelerator throughput halves every distributed cost.",
+      "Step time falls to about 5.09 s, a \\$1.7× speedup, because only the 7.25 s of computation halves while the bubble and the exchange stay fixed.",
+      "Step time falls to about 5.75 s, a \\$1.5× speedup, because faster accelerators expose twice as much of the gradient exchange."
+     ],
+     "answer": 0
+    },
+    {
+     "q": "For the same fixed work with no overlap, configuration A takes 1.0 s of compute, 0.8 s of communication, and 0.2 s of coordination per step, while configuration B takes 0.5 s, 0.8 s, and 0.3 s respectively. Since B has a shorter step, it must reach the same target model quality sooner even if its update semantics change.",
+     "explanation": "False. The supplied execution budgets give 2.0 s per step for A and 1.6 s for B, a 20% reduction for that fixed-work comparison. Reaching a quality target also depends on how many useful updates are required and how much progress survives interruptions. If update semantics change, compare measured learning curves and recovery costs under the same target and evaluation protocol. A shorter step alone does not establish shorter time to quality.",
+     "hint": "Think about: separate fixed-work execution speed from evidence that a changed training configuration reaches a quality target sooner.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now calculate the end-to-end effect of a compute-only upgrade and explain why a local throughput gain need not justify a fleet purchase.",
+    "You can now separate fixed-work execution speed from evidence that a changed training configuration reaches a quality target sooner.",
+    "You can now analyze how physical safety, latency-distance physics, and strict thermal limits create qualitative differences between edge and cloud ML systems."
+   ]
+  }
+ ]
+}

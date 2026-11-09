@@ -1,0 +1,94 @@
+{
+ "title": "Communication Libraries and Runtimes",
+ "summary": "Identify NCCL mechanisms that support GPU-resident collectives and explain why achieved performance requires measurement.",
+ "source": {
+  "chapter": "v2-05",
+  "sections": [
+   "Communication Libraries and Runtimes",
+   "Backend selection",
+   "Calibrating collective communication models"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Communication Libraries and Runtimes** in *Collective Communication* (Vol II). By the end you should be able to:\n\n- Identify NCCL mechanisms that support GPU-resident collectives and explain why achieved performance requires measurement\n- Design a multi-environment communication runtime configuration by selecting among NCCL, Gloo, and MPI based on hardware platform and workload constraints\n- Explain how bare collective benchmarking (`nccl-tests`) isolates physical network fabric performance from framework-level software bottlenecks\n- Identify the diagnostic and logging purpose of the `NCCL_DEBUG` environment variable\n- Order the progression of communication modeling techniques from analytical sizing to empirical cluster benchmarking"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Collective Communication, § Communication Libraries and Runtimes",
+   "md": "Production libraries implement the ring, tree, and hierarchical schedules, so the engineering decision is which library preserves the chapter's cost, topology, and overlap assumptions on the target hardware."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Backend selection\n- Calibrating collective communication models\n\nPay attention to: NCCL GPU-specific optimizations: GPUDirect RDMA, kernel fusion, channel pipelining, topology detection; MPI: HPC foundation, persistent collectives, non-blocking collectives, CPU coordination, host memory copies; Gloo: cross-platform portability, development and CI testing, CPU fallback, shared memory transport; Library selection matrix: mapping hardware and deployment constraints to communication runtimes."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: When debugging a multi-node distributed training job that runs at 50% of expected throughput, what diagnostic information does running nccl-tests provide compared to profiling the PyTorch training loop directly?",
+   "md": "Running nccl-tests measures bare collective performance for the tested message sizes, rank placement, and network conditions. Healthy isolated results shift investigation toward training-specific overlap, bucket sizes, input stalls, and shared-resource contention. They do not rule out intermittent faults or congestion that occurs only during training. Reproduce the application placement and traffic pattern before excluding the fabric."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-05-11-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Which mechanisms make NCCL a useful candidate for GPU-resident collective communication on NVIDIA clusters?",
+     "explanation": "The correct answer is B. NCCL optimizes GPU-resident collectives through topology-aware transfers, fused reduction kernels, and parallel channels. GPUDirect paths avoid unnecessary host-memory staging when the hardware and configuration support them. CPU-centric paths can incur extra copies; CUDA-aware MPI can also communicate GPU buffers directly, so the advantage must be evaluated against the actual backend rather than assuming all MPI stages through host memory.",
+     "hint": "Think about: identify NCCL mechanisms that support GPU-resident collectives and explain why achieved performance requires measurement.",
+     "type": "single",
+     "options": [
+      "NCCL runs all collective communication on host CPU threads using OpenMP parallel loops.",
+      "NCCL combines supported GPUDirect paths, fused reduction and data movement, and parallel channels with topology-aware placement.",
+      "NCCL eliminates all network synchronization barriers by approximating gradient additions as stochastic random walks.",
+      "NCCL replaces InfiniBand hardware with standard TCP/IP operating system sockets."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "An ML engineering team is setting up distributed training across three environments: (1) local developer laptops running macOS for unit testing, (2) an HPC cluster using Slurm where legacy CPU nodes perform data preprocessing, and (3) an 8-node NVIDIA H100 cluster for large-scale model pretraining. According to the chapter library selection guide, which backend mapping is recommended?",
+     "explanation": "The correct answer is C. Gloo for macOS development (cross-platform portability without CUDA), MPI for CPU preprocessing (mature CPU optimizations), and NCCL for H100 multi-GPU training (GPUDirect RDMA and NVLink awareness). Gloo requires no CUDA runtime or specialized networking, making it ideal for local laptop development and CI testing across macOS, Linux, and Windows. MPI provides decades of mature CPU-level communication optimizations and native Slurm integration for CPU-only data preprocessing pipelines. NCCL is the standard specialized backend for multi-GPU NVIDIA clusters to exploit NVLink, NVSwitch, and GPUDirect RDMA. Assigning NCCL to macOS or CPU nodes is impossible because NCCL is strictly NVIDIA GPU-dependent, and using Gloo on H100 nodes sacrifices GPUDirect and NVLink saturation.",
+     "hint": "Think about: design a multi-environment communication runtime configuration by selecting among NCCL, Gloo, and MPI based on hardware platform and workload constraints.",
+     "type": "single",
+     "options": [
+      "NCCL for macOS development, NCCL for CPU preprocessing, and Gloo for H100 training.",
+      "MPI for macOS development, NCCL for CPU preprocessing, and Gloo for H100 training.",
+      "Gloo for macOS development (cross-platform portability without CUDA), MPI for CPU preprocessing (mature CPU optimizations), and NCCL for H100 multi-GPU training (GPUDirect RDMA and NVLink awareness).",
+      "Gloo for all three environments because a single unified backend always outperforms specialized hardware libraries."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "Setting the environment variable NCCL_DEBUG=INFO modifies the mathematical reduction operator in NCCL from floating-point summation to exact integer bitwise addition to guarantee deterministic gradient aggregation across runs.",
+     "explanation": "False. `NCCL_DEBUG=INFO` is strictly an observability and diagnostic logging flag. It outputs runtime metadata to standard error, including detected physical hardware topology, GPU-to-NIC affinities, selected collective algorithms (e.g., Ring vs. Tree), channel counts, and communication protocols (e.g., Simple vs. LL/LL128). It does not alter the mathematical semantics, reduction operators, or numerical precision of collective operations.",
+     "hint": "Think about: identify the diagnostic and logging purpose of the `NCCL_DEBUG` environment variable.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "Sequence the hierarchy of communication cost models and diagnostic analyses in order from the simplest zero-overlap first-order sizing to real-world cluster validation:",
+     "explanation": "The correct order is: (2) compute critical message size $n^* = \\alpha \\cdot \\beta$ using the $\\alpha$-$\\beta$ model to classify latency vs bandwidth regimes, (3) profile processor overhead $o$ and overlappable latency $L_{\\text{lat}}$ using the LogP model to assess overlap feasibility with the backward pass, (1) empirically benchmark bare collectives with nccl-tests to capture cluster-specific reality gaps and contention. Engineers start with the analytical $\\alpha$-$\\beta$ model for initial sizing and regime classification; refine with the LogP model when designing compute-communication overlap to distinguish nonoverlappable processor overhead from overlappable wire transit; and finally validate against actual cluster behavior using bare collective benchmarks (`nccl-tests`) to expose hardware topology, network contention, and software runtime overheads.",
+     "hint": "Think about: order the progression of communication modeling techniques from analytical sizing to empirical cluster benchmarking.",
+     "type": "order",
+     "items": [
+      "compute critical message size $n^* = \\alpha \\cdot \\beta$ using the $\\alpha$-$\\beta$ model to classify latency vs bandwidth regimes",
+      "profile processor overhead $o$ and overlappable latency $L_{\\text{lat}}$ using the LogP model to assess overlap feasibility with the backward pass.",
+      "empirically benchmark bare collectives with nccl-tests to capture cluster-specific reality gaps and contention"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now identify NCCL mechanisms that support GPU-resident collectives and explain why achieved performance requires measurement.",
+    "You can now design a multi-environment communication runtime configuration by selecting among NCCL, Gloo, and MPI based on hardware platform and workload constraints.",
+    "You can now explain how bare collective benchmarking (`nccl-tests`) isolates physical network fabric performance from framework-level software bottlenecks.",
+    "You can now identify the diagnostic and logging purpose of the `NCCL_DEBUG` environment variable."
+   ]
+  }
+ ]
+}

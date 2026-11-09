@@ -1,0 +1,68 @@
+{
+ "title": "Context Reuse and Retry Budgets",
+ "summary": "Work through Context Reuse and Retry Budgets.",
+ "source": {
+  "chapter": "v3-19",
+  "sections": [
+   "Context Reuse and Retry Budgets",
+   "Pricing prefix cache hits",
+   "The price of compaction",
+   "Reasoning and retry budgets"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Context Reuse and Retry Budgets** in *Agent Economics* (Vol III)."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol III, Agent Economics, § Context Reuse and Retry Budgets",
+   "md": "Across the turns of a repair, the same prompt prefix recurs call after call. Context engineering arranges the request so that the stable part comes first, and the serving system keeps the key-value (KV) attention state of that prefix so the next call need not recompute it. Reuse lowers cost, but it is not free, and it competes with two other purchases the runtime can make: compacting the context, which shortens the prompt but discards reusable state, and buying more attempts, which raises coverage but multiplies the bill."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Pricing prefix cache hits\n- The price of compaction\n- Reasoning and retry budgets"
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In two or three sentences, explain why Cohort cost per accepted task matters for the system this section describes.",
+   "md": "Compare your answer with the book's claim: Measured cost per accepted task is the sum of every initiated task's account, each charge in exactly one category, divided by the distinct tasks accepted under one declared contract."
+  },
+  {
+   "type": "quiz",
+   "id": "v3-19-03-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "type": "single",
+     "q": "The section **Context Reuse and Retry Budgets** develops one of the chapter's claims. Which one?",
+     "options": [
+      "Deterministic code, a fixed workflow, a bounded loop, and delegation are compared under one acceptance contract by cost per resolved task including human fallback, not by automated cost per automated acceptance.",
+      "Ideal prefix reuse bills the quadratic re-send at the cached rate, which lowers its coefficient without removing it, so a compaction pays back only after enough turns to recover its rewrite and lost cache.",
+      "A speedup g applied to a fraction f of the measured critical path gives T' = T[(1-f) + f/g] and a ceiling of 1/(1-f), which a baseline profile reveals before anything is bought.",
+      "Measured cost per accepted task is the sum of every initiated task's account, each charge in exactly one category, divided by the distinct tasks accepted under one declared contract."
+     ],
+     "answer": 3,
+     "hint": "Re-read the excerpt and the section map: which idea is this section building toward?",
+     "explanation": "This section develops **Cohort cost per accepted task**: Measured cost per accepted task is the sum of every initiated task's account, each charge in exactly one category, divided by the distinct tasks accepted under one declared contract."
+    },
+    {
+     "type": "truefalse",
+     "q": "True or false: in the book's concept map, *Cohort cost per accepted task* counts only outcomes accepted under *Task acceptance contract*.",
+     "answer": true,
+     "hint": "Think about which later idea this concept feeds.",
+     "explanation": "True. Cohort cost per accepted task counts only outcomes accepted under Task acceptance contract."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You have worked through Context Reuse and Retry Budgets."
+   ]
+  }
+ ]
+}

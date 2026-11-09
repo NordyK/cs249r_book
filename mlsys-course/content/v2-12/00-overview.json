@@ -1,0 +1,256 @@
+{
+ "title": "Overview: the big ideas",
+ "summary": "The chapter's key concepts and how its sections fit together.",
+ "source": {
+  "chapter": "v2-12",
+  "sections": [
+   "Purpose",
+   "concept map"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "Welcome to **ML Operations at Scale** (Vol II). This overview gives you the chapter's big ideas before the section-by-section lessons. Read the claims once, flip the flashcards, then take the warm-up quiz: it is fine to miss questions here, the lessons that follow fill the gaps."
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, ML Operations at Scale, Purpose",
+   "md": "One model is a project. A hundred models form a system of systems whose dependencies and failures cannot be managed one model at a time. A data-pipeline change may affect models built by several teams, while a deployment failure may require coordinated rollbacks across interconnected services. The team making a change may not know every consumer, and the team seeing a regression may not control its cause."
+  },
+  {
+   "type": "flow",
+   "title": "The path through this chapter",
+   "nodes": [
+    {
+     "label": "Why a Model Fleet Needs a Control Plane",
+     "detail": "Lesson 1 covers this section."
+    },
+    {
+     "label": "The N-Models Problem",
+     "detail": "Lesson 2 covers this section."
+    },
+    {
+     "label": "Governance of State and Change",
+     "detail": "Lesson 3 covers this section."
+    },
+    {
+     "label": "Feature Store Operations",
+     "detail": "Lesson 4 covers this section."
+    },
+    {
+     "label": "CI/CD for ML at Scale",
+     "detail": "Lesson 5 covers this section."
+    },
+    {
+     "label": "Monitoring at Scale",
+     "detail": "Lesson 6 covers this section."
+    },
+    {
+     "label": "Production Debugging and Incident Respon",
+     "detail": "Lesson 7 covers this section."
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "headers": [
+    "Concept",
+    "The claim to remember"
+   ],
+   "rows": [
+    [
+     "**Operational load follows coupling**",
+     "Once models share features, embeddings, pipelines, alerts, and capacity, the operational object is the dependency graph, so pairwise conflicts grow toward N^2/2 and a new model's marginal cost depends on how it couples to the portfolio."
+    ],
+    [
+     "**Dependency-aware registry**",
+     "Per-model validation does not establish compatibility along a chain, so the registry records upstream and downstream edges whose traversal yields the impact set, and a release names a compatible version set whose rollback unit may span a pipeline."
+    ],
+    [
+     "**Feature consistency contract**",
+     "A feature store makes training-serving consistency a testable platform invariant only if freshness SLOs name their timestamp contract and point-in-time joins filter on availability time rather than event time."
+    ],
+    [
+     "**Staged rollout exposure budget**",
+     "Rollout risk is probability of regression times per-unit impact times exposed units, so a canary stage lasts at least its planned sample over traffic share, and the slowest outcome the release must observe sets the schedule."
+    ],
+    [
+     "**Evaluation contract**",
+     "A fleet release is accepted against one versioned record that pins, for the same artifact, offline, system, responsibility, online, and recovery evidence, each with an owner and an invalidation rule fixed before exposure."
+    ],
+    [
+     "**Hierarchical fleet alerting**",
+     "With M independent checks the chance of at least one false alert 1 - (1 - p)^M approaches certainty, so monitoring routes by a business, portfolio, model, and infrastructure hierarchy with an owner per level, correlates anomalies to find shared causes, joins metrics, logs, and traces under stable identifiers across jobs, models, and infrastructure, and runs calibrated drift statistics whose responsibility ends when evidence reaches the model owner's update decision."
+    ],
+    [
+     "**SLO vector of budgets**",
+     "An endpoint can return HTTP 200 while serving stale features or degraded predictions, so each service carries an SLO vector (availability, latency, freshness, quality) with burn rates, and any exhausted dimension stops promotion."
+    ],
+    [
+     "**Utilization as the economic invariant**",
+     "Owned capacity pays a capital step then a shallow operating slope while rental grows with use, so ownership wins only above a sustained useful-utilization threshold whose value depends on the cost boundary drawn, and the same invariant prices every headroom reserve."
+    ],
+    [
+     "**Fleet experiment budgeting**",
+     "A release experiment's sample grows as one over the squared effect size, uncorrected multiple tests and peeking inflate false rejections, and interference between concurrent experiments must be budgeted like sample size."
+    ],
+    [
+     "**Incident containment and attribution**",
+     "ML incidents can leave every service-health signal green, so response applies a known safe containment before root cause is certain, attributes by which models degrade together, and converts each incident into a control."
+    ],
+    [
+     "**ML platform as a product**",
+     "An internal ML platform centralizes recurring operational judgment at a chosen abstraction level and needs its own SLOs, interface compatibility guarantees, and retirement dates, judged by the work it removes from model teams; namespace tenancy and the team's placement (centralized, embedded, or hybrid) decide where its invariants are enforced."
+    ],
+    [
+     "**Platform break-even**",
+     "Platform benefit-cost ratio is linear in the number of models at fixed savings, so break-even portfolio size moves with savings per model and platform cost, and recovered hours are capacity, not cash, until spending is avoided; savings per model come from measured recurring technical debt, ranked by impact times frequency times benefit over resolution cost."
+    ],
+    [
+     "**Lifecycle TCO**",
+     "TCO = C_train + C_infer + C_data + C_iter over one accounting horizon with each cost counted once, the dominant term, which shifts with workload regime, picks the optimization, and FinOps makes the accounting act by metering spend per team, service, and model under attribution rules that shape incentives and an owner who can stop a run."
+    ],
+    [
+     "**Capacity planning under lead time**",
+     "Capacity takes months to years to acquire while traffic changes in days, so the plan sizes the fleet from the token budget and sustained throughput, follows the longest supply or facility prerequisite as its critical path, and treats late capacity as a reliability failure, not a procurement delay."
+    ]
+   ]
+  },
+  {
+   "type": "callout",
+   "kind": "key",
+   "title": "Formulas you will meet",
+   "md": "$$\\text{ROI}_{\\text{platform}} = \\frac{N_{\\text{models}} \\times T_{\\text{saved}} \\times C_{\\text{engineer}}}{C_{\\text{platform}}}$$\n\n$$\\text{Paydown Priority} = \\frac{\\text{Impact} \\times \\text{Frequency} \\times \\text{Benefit}}{\\text{Resolution Cost}}$$\n\n$$L_{\\text{freshness}} = T_{\\text{available}} - T_{\\text{event}}$$\n\n$$t_{\\text{stage}} = \\frac{n_{\\text{samples\\_needed}}}{r_{\\text{requests}} \\times p_{\\text{stage}}}$$"
+  },
+  {
+   "type": "flashcards",
+   "id": "v2-12-cards-concepts",
+   "title": "Key concepts",
+   "cards": [
+    {
+     "front": "Operational load follows coupling",
+     "back": "Once models share features, embeddings, pipelines, alerts, and capacity, the operational object is the dependency graph, so pairwise conflicts grow toward N^2/2 and a new model's marginal cost depends on how it couples to the portfolio."
+    },
+    {
+     "front": "Dependency-aware registry",
+     "back": "Per-model validation does not establish compatibility along a chain, so the registry records upstream and downstream edges whose traversal yields the impact set, and a release names a compatible version set whose rollback unit may span a pipeline."
+    },
+    {
+     "front": "Feature consistency contract",
+     "back": "A feature store makes training-serving consistency a testable platform invariant only if freshness SLOs name their timestamp contract and point-in-time joins filter on availability time rather than event time."
+    },
+    {
+     "front": "Staged rollout exposure budget",
+     "back": "Rollout risk is probability of regression times per-unit impact times exposed units, so a canary stage lasts at least its planned sample over traffic share, and the slowest outcome the release must observe sets the schedule."
+    },
+    {
+     "front": "Evaluation contract",
+     "back": "A fleet release is accepted against one versioned record that pins, for the same artifact, offline, system, responsibility, online, and recovery evidence, each with an owner and an invalidation rule fixed before exposure."
+    },
+    {
+     "front": "Hierarchical fleet alerting",
+     "back": "With M independent checks the chance of at least one false alert 1 - (1 - p)^M approaches certainty, so monitoring routes by a business, portfolio, model, and infrastructure hierarchy with an owner per level, correlates anomalies to find shared causes, joins metrics, logs, and traces under stable identifiers across jobs, models, and infrastructure, and runs calibrated drift statistics whose responsibility ends when evidence reaches the model owner's update decision."
+    },
+    {
+     "front": "SLO vector of budgets",
+     "back": "An endpoint can return HTTP 200 while serving stale features or degraded predictions, so each service carries an SLO vector (availability, latency, freshness, quality) with burn rates, and any exhausted dimension stops promotion."
+    },
+    {
+     "front": "Utilization as the economic invariant",
+     "back": "Owned capacity pays a capital step then a shallow operating slope while rental grows with use, so ownership wins only above a sustained useful-utilization threshold whose value depends on the cost boundary drawn, and the same invariant prices every headroom reserve."
+    },
+    {
+     "front": "Fleet experiment budgeting",
+     "back": "A release experiment's sample grows as one over the squared effect size, uncorrected multiple tests and peeking inflate false rejections, and interference between concurrent experiments must be budgeted like sample size."
+    },
+    {
+     "front": "Incident containment and attribution",
+     "back": "ML incidents can leave every service-health signal green, so response applies a known safe containment before root cause is certain, attributes by which models degrade together, and converts each incident into a control."
+    }
+   ]
+  },
+  {
+   "type": "quiz",
+   "id": "v2-12-quiz-warmup",
+   "title": "Warm-up: match the big ideas",
+   "questions": [
+    {
+     "type": "single",
+     "q": "Which statement captures **Operational load follows coupling**?",
+     "options": [
+      "A release experiment's sample grows as one over the squared effect size, uncorrected multiple tests and peeking inflate false rejections, and interference between concurrent experiments must be budgeted like sample size.",
+      "Once models share features, embeddings, pipelines, alerts, and capacity, the operational object is the dependency graph, so pairwise conflicts grow toward N^2/2 and a new model's marginal cost depends on how it couples to the portfolio.",
+      "Owned capacity pays a capital step then a shallow operating slope while rental grows with use, so ownership wins only above a sustained useful-utilization threshold whose value depends on the cost boundary drawn, and the same invariant prices every headroom reserve.",
+      "A feature store makes training-serving consistency a testable platform invariant only if freshness SLOs name their timestamp contract and point-in-time joins filter on availability time rather than event time."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Operational load follows coupling itself, not a neighbouring idea.",
+     "explanation": "**Operational load follows coupling:** Once models share features, embeddings, pipelines, alerts, and capacity, the operational object is the dependency graph, so pairwise conflicts grow toward N^2/2 and a new model's marginal cost depends on how it couples to the portfolio."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Dependency-aware registry**?",
+     "options": [
+      "TCO = C_train + C_infer + C_data + C_iter over one accounting horizon with each cost counted once, the dominant term, which shifts with workload regime, picks the optimization, and FinOps makes the accounting act by metering spend per team, service, and model under attribution rules that shape incentives and an owner who can stop a run.",
+      "Per-model validation does not establish compatibility along a chain, so the registry records upstream and downstream edges whose traversal yields the impact set, and a release names a compatible version set whose rollback unit may span a pipeline.",
+      "With M independent checks the chance of at least one false alert 1 - (1 - p)^M approaches certainty, so monitoring routes by a business, portfolio, model, and infrastructure hierarchy with an owner per level, correlates anomalies to find shared causes, joins metrics, logs, and traces under stable identifiers across jobs, models, and infrastructure, and runs calibrated drift statistics whose responsibility ends when evidence reaches the model owner's update decision.",
+      "A release experiment's sample grows as one over the squared effect size, uncorrected multiple tests and peeking inflate false rejections, and interference between concurrent experiments must be budgeted like sample size."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Dependency-aware registry itself, not a neighbouring idea.",
+     "explanation": "**Dependency-aware registry:** Per-model validation does not establish compatibility along a chain, so the registry records upstream and downstream edges whose traversal yields the impact set, and a release names a compatible version set whose rollback unit may span a pipeline."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Feature consistency contract**?",
+     "options": [
+      "Rollout risk is probability of regression times per-unit impact times exposed units, so a canary stage lasts at least its planned sample over traffic share, and the slowest outcome the release must observe sets the schedule.",
+      "A fleet release is accepted against one versioned record that pins, for the same artifact, offline, system, responsibility, online, and recovery evidence, each with an owner and an invalidation rule fixed before exposure.",
+      "A feature store makes training-serving consistency a testable platform invariant only if freshness SLOs name their timestamp contract and point-in-time joins filter on availability time rather than event time.",
+      "A release experiment's sample grows as one over the squared effect size, uncorrected multiple tests and peeking inflate false rejections, and interference between concurrent experiments must be budgeted like sample size."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Feature consistency contract itself, not a neighbouring idea.",
+     "explanation": "**Feature consistency contract:** A feature store makes training-serving consistency a testable platform invariant only if freshness SLOs name their timestamp contract and point-in-time joins filter on availability time rather than event time."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Staged rollout exposure budget**?",
+     "options": [
+      "A release experiment's sample grows as one over the squared effect size, uncorrected multiple tests and peeking inflate false rejections, and interference between concurrent experiments must be budgeted like sample size.",
+      "Rollout risk is probability of regression times per-unit impact times exposed units, so a canary stage lasts at least its planned sample over traffic share, and the slowest outcome the release must observe sets the schedule.",
+      "An internal ML platform centralizes recurring operational judgment at a chosen abstraction level and needs its own SLOs, interface compatibility guarantees, and retirement dates, judged by the work it removes from model teams; namespace tenancy and the team's placement (centralized, embedded, or hybrid) decide where its invariants are enforced.",
+      "ML incidents can leave every service-health signal green, so response applies a known safe containment before root cause is certain, attributes by which models degrade together, and converts each incident into a control."
+     ],
+     "answer": 1,
+     "hint": "Look for the statement whose subject is Staged rollout exposure budget itself, not a neighbouring idea.",
+     "explanation": "**Staged rollout exposure budget:** Rollout risk is probability of regression times per-unit impact times exposed units, so a canary stage lasts at least its planned sample over traffic share, and the slowest outcome the release must observe sets the schedule."
+    },
+    {
+     "type": "single",
+     "q": "Which statement captures **Evaluation contract**?",
+     "options": [
+      "Once models share features, embeddings, pipelines, alerts, and capacity, the operational object is the dependency graph, so pairwise conflicts grow toward N^2/2 and a new model's marginal cost depends on how it couples to the portfolio.",
+      "An endpoint can return HTTP 200 while serving stale features or degraded predictions, so each service carries an SLO vector (availability, latency, freshness, quality) with burn rates, and any exhausted dimension stops promotion.",
+      "A fleet release is accepted against one versioned record that pins, for the same artifact, offline, system, responsibility, online, and recovery evidence, each with an owner and an invalidation rule fixed before exposure.",
+      "Rollout risk is probability of regression times per-unit impact times exposed units, so a canary stage lasts at least its planned sample over traffic share, and the slowest outcome the release must observe sets the schedule."
+     ],
+     "answer": 2,
+     "hint": "Look for the statement whose subject is Evaluation contract itself, not a neighbouring idea.",
+     "explanation": "**Evaluation contract:** A fleet release is accepted against one versioned record that pins, for the same artifact, offline, system, responsibility, online, and recovery evidence, each with an owner and an invalidation rule fixed before exposure."
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "Operational load follows coupling: Once models share features, embeddings, pipelines, alerts, and capacity, the operational object is the dependency graph, so pairwise conflicts grow toward N^2/2 and a new model's marginal cost depends on how it couples to the portfolio.",
+    "Dependency-aware registry: Per-model validation does not establish compatibility along a chain, so the registry records upstream and downstream edges whose traversal yields the impact set, and a release names a compatible version set whose rollback unit may span a pipeline.",
+    "Feature consistency contract: A feature store makes training-serving consistency a testable platform invariant only if freshness SLOs name their timestamp contract and point-in-time joins filter on availability time rather than event time.",
+    "Staged rollout exposure budget: Rollout risk is probability of regression times per-unit impact times exposed units, so a canary stage lasts at least its planned sample over traffic share, and the slowest outcome the release must observe sets the schedule."
+   ]
+  }
+ ],
+ "terms": []
+}

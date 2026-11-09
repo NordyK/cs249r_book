@@ -1,0 +1,104 @@
+{
+ "title": "Comparing and Choosing Architectures",
+ "summary": "Use the workload-profile assumptions to predict why transformer prefill and decode can land on different sides of the iron law.",
+ "source": {
+  "chapter": "v1-06",
+  "sections": [
+   "Comparing and Choosing Architectures",
+   "Arithmetic intensity across workloads",
+   "Workload profiles",
+   "Shared building blocks",
+   "Architecture selection framework",
+   "Architecture selection in practice"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Comparing and Choosing Architectures** in *Network Architectures* (Vol I). By the end you should be able to:\n\n- Use the workload-profile assumptions to predict why transformer prefill and decode can land on different sides of the iron law\n- Explain how weight reuse determines whether data movement dominates an architecture family's energy per inference\n- Explain the iterative scale-down loop in the Architecture Selection Decision Framework when models breach memory or latency ceilings\n- Apply the chapter's deployment-screening framework to justify why MobileNetV2 is a candidate for validation in the wildlife edge scenario\n- Analyze what arithmetic-intensity values do and do not imply under a roofline model, and identify the additional measurement needed before classifying a convolution as compute bound"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Network Architectures, § Comparing and Choosing Architectures",
+   "md": "The three requests that opened this chapter can now be costed in numbers. A single ResNet-50 frame performs about … of arithmetic against … of FP32 weights, and each convolutional filter is reused across its feature map, creating opportunities to keep arithmetic units busy. A single GPT-2 token at batch size one performs about … against … of FP16 weights. Streaming those weights once gives a weight-only arithmetic intensity of roughly …, making bandwidth a likely limit."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Arithmetic intensity across workloads\n- Workload profiles\n- Shared building blocks\n- Architecture selection framework\n- Architecture selection in practice\n\nPay attention to: Workload profile: parameters, activations, intensity regime, parallel axis, and limiting iron-law term per family (prefill vs. decode); How weight reuse sets each family's energy cost behind the intensity column; Portable building blocks and their costs: residual gradient conditioning, BatchNorm vs. LayerNorm; Decision framework scale-down loop and the wildlife monitoring case study."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: In the wildlife monitoring edge deployment case study (50 species classification on a 2 W battery-powered Cortex-A53 device with 512 MB RAM and a <500 ms latency target), explain why MobileNetV2 (0.75 width multiplier with INT8 quantization) was selected as the candidate to validate over ResNet-50 and KWS DS-CNN.",
+   "md": "MobileNetV2 was selected as the candidate because its compact weight footprint and lower operation count make it plausible for the device budget. ResNet-50's FP32 model weights alone exceed the chapter's 100 MB model allocation within the 512 MB total system budget before accounting for activations, runtime overhead, and the rest of the application, while its heavier compute load separately pressures latency and energy. The DS-CNN keyword-spotting model is not rejected because a 200K-parameter model can never classify 50 species, but because its published workload is an audio task, so its reported accuracy and latency do not validate this visual deployment. The practical consequence is that the chapter treats MobileNetV2's roughly 209 ms estimate on the assumed throughput as a screening calculation, then requires target-device measurement of end-to-end latency, peak memory, thermal behavior, seasonal battery qualification, full-system energy, and representative task accuracy before deployment."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-06-09-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "The workload profile gives the transformer two rows, prefill and decode, even though both run the same weights. Under the table's representative reuse and streaming assumptions, which statement correctly explains why the limiting iron-law term can differ between them at small batch size?",
+     "explanation": "The correct answer is B. The table is explicit that these are representative regimes under stated assumptions, not universal bottlenecks. In prefill, processing many prompt tokens together can reuse weights across the sequence and raise effective intensity enough for the compute term to matter; in small-batch decode, one-token-at-a-time execution rereads weights and accesses the KV cache with much lower reuse, so the data term is often the limiter. The capacity answer overstates a special case, and the serial-latency answer confuses decode with recurrent processing.",
+     "hint": "Think about: use the workload-profile assumptions to predict why transformer prefill and decode can land on different sides of the iron law.",
+     "type": "single",
+     "options": [
+      "Prefill is limited by the data term because it must read the whole prompt from storage, while decode is limited by the compute term because each token requires a full forward pass.",
+      "Prefill processes all $S$ prompt tokens together, which can raise effective reuse and arithmetic intensity enough for the compute term to dominate under the stated assumptions; decode processes one token at a time with reread weights and a growing KV cache, so the data term often dominates at small batch.",
+      "Both phases are limited by memory capacity, because the KV cache always exceeds device memory.",
+      "Decode is compute bound because its $\\mathcal{O}(S^2)$ attention scores dominate, while prefill is latency bound because tokens are processed serially."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "The chapter notes that the intensity column of the workload profile doubles as an energy column. Which statement correctly explains why a batch-one MLP or transformer decode step spends far more energy per useful operation than a convolutional layer, even on the same accelerator?",
+     "explanation": "The correct answer is D. Moving a 32-bit value from DRAM costs far more energy than one multiply-accumulate, so what decides a family's energy is how many operations each loaded weight feeds. A batch-one dense layer or decode step streams every weight once per request and spends most of its energy moving it; a convolution amortizes each filter load over the whole feature map, so the locality that makes it compute bound also makes it energy efficient. The first two choices misplace the cost in arithmetic, and the third ignores the difference in reuse.",
+     "hint": "Think about: explain how weight reuse determines whether data movement dominates an architecture family's energy per inference.",
+     "type": "single",
+     "options": [
+      "The MLP and decode step perform more multiply-accumulates per weight than a convolution, so their arithmetic energy is higher.",
+      "The CNN's spatial locality lets it skip most of its multiply-accumulates, so it performs less arithmetic overall.",
+      "All three load weights from DRAM once per batch, so their energy per operation is the same; only latency differs.",
+      "The MLP and decode step load each weight from DRAM and use it about once per request, so DRAM traffic dominates their energy, while a convolution reuses each filter load across every position of its feature map and amortizes that movement."
+     ],
+     "answer": 3
+    },
+    {
+     "q": "In the systematic Architecture Selection Decision Framework, if a candidate model fails the inference speed or memory budget constraint check on the target device, the engineer must immediately abandon on-device edge execution and route all inference to a cloud data center.",
+     "explanation": "False. The Architecture Selection Decision Framework provides an iterative 'Scale Down' loop: when a model breaches memory or latency constraints, the team should first apply model compression (such as INT8 quantization, pruning, or structural width multipliers) or evaluate a more efficient architectural variant (such as MobileNet instead of ResNet) before abandoning local edge deployment.",
+     "hint": "Think about: explain the iterative scale-down loop in the Architecture Selection Decision Framework when models breach memory or latency ceilings.",
+     "type": "truefalse",
+     "answer": false
+    },
+    {
+     "q": "A production profiler reveals that a model's embedding tables consume over 1 TB of memory across cluster nodes, inference requests perform sparse random row lookups rather than dense matrix multiplies, and accelerator compute units remain over 95% idle. Which lighthouse archetype best represents this workload's dominant system constraint?",
+     "explanation": "The correct answer is A. A terabyte-scale parameter footprint dominated by sparse, random embedding table lookups with largely idle compute units is the hallmark signature of DLRM (Deep Learning Recommendation Model). DLRM models are memory-capacity-bound and memory-latency-bound, requiring model-parallel table sharding across cluster memory. The ResNet-50 archetype represents compute-bound dense convolutions with high arithmetic intensity. The GPT-2 archetype represents bandwidth-bound autoregressive decoding dominated by streaming weights per token. The MobileNetV2 archetype represents latency-constrained mobile vision with depthwise separable convolutions.",
+     "hint": "Think about: classify a production workload by matching its profile signature (table size, access pattern, compute utilization) to the correct lighthouse archetype.",
+     "type": "single",
+     "options": [
+      "DLRM, because the limiting constraint is memory capacity for terabyte-scale embedding tables accessed via sparse, irregular memory gathers.",
+      "ResNet-50, because it stresses dense matrix floating-point throughput across regular convolutional grids.",
+      "GPT-2, because autoregressive decoding is the canonical memory-bandwidth-limited serving workload.",
+      "MobileNetV2, because depthwise-separable convolutions produce low arithmetic intensity on server GPUs."
+     ],
+     "answer": 0
+    }
+   ]
+  },
+  {
+   "type": "reveal",
+   "prompt": "Explain it: A dense MLP layer running batch-1 FP32 inference reports an arithmetic intensity of approx 0.5 FLOP/byte, while an image convolution bottleneck layer achieves >50 FLOP/byte on the same accelerator. Using the roofline model and an accelerator ridge point of \\$150 FLOP/byte, explain what follows from these numbers and what additional convolution measurement is needed before calling the convolution compute bound. Also explain why upgrading to an accelerator with double the peak TFLOP/s but unchanged memory bandwidth will not speed up the batch-1 MLP.",
+   "md": "The batch-1 MLP is clearly below the \\$150\\text{ FLOP/byte}$ ridge point, so under this streamed-weight model it is in the bandwidth-bound regime. The convolution's $>50\\text{ FLOP/byte}$ is higher, but it still does not by itself prove a compute-bound regime because values above 50 can still lie below the \\$150\\text{ FLOP/byte}$ ridge; the next measurement is the convolution's effective realized intensity, including the traffic pattern for that kernel on this machine, and then comparing it directly with the ridge point. The practical consequence is that doubling peak TFLOP/s without raising memory bandwidth will not help the batch-1 MLP, because its limit is bytes delivered per second, not arithmetic ceiling."
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now use the workload-profile assumptions to predict why transformer prefill and decode can land on different sides of the iron law.",
+    "You can now explain how weight reuse determines whether data movement dominates an architecture family's energy per inference.",
+    "You can now explain the iterative scale-down loop in the Architecture Selection Decision Framework when models breach memory or latency ceilings.",
+    "You can now apply the chapter's deployment-screening framework to justify why MobileNetV2 is a candidate for validation in the wildlife edge scenario."
+   ]
+  }
+ ]
+}

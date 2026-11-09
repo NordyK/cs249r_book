@@ -1,0 +1,76 @@
+{
+ "title": "Architectural Trade-Offs",
+ "summary": "Compare responsible AI capabilities and architectural constraints across Cloud, Edge, Mobile, and TinyML environments.",
+ "source": {
+  "chapter": "v2-16",
+  "sections": [
+   "Architectural Trade-Offs",
+   "Design trade-offs",
+   "Computational overhead of responsible AI techniques",
+   "Resource requirements and equity implications"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Architectural Trade-Offs** in *Responsible AI* (Vol II). By the end you should be able to:\n\n- Compare responsible AI capabilities and architectural constraints across Cloud, Edge, Mobile, and TinyML environments\n- Explain the tension between data locality in federated learning and global observability required for fairness auditing\n- Classify and sequence responsible AI interventions across the ML lifecycle"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Responsible AI, § Architectural Trade-Offs",
+   "md": "A centralized audit can join predictions, demographic attributes, and delayed outcomes when access to those records is authorized. A federated model running on a million smartphones may provide no such joined dataset. The same fairness criterion then requires a different evidence path, such as restricted aggregate statistics or a separately governed audit sample. Deployment architecture determines where the evidence can be assembled and who can act on it."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Design trade-offs\n- Computational overhead of responsible AI techniques\n- Resource requirements and equity implications\n\nPay attention to: Mapping principles across ML lifecycle phases; Deployment environment matrix (Cloud, Edge, Mobile, TinyML); Data visibility and federated evidence paths."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Why does federated learning across mobile devices make group-level fairness auditing substantially more difficult than in centralized cloud architectures?",
+   "md": "Local data and protected attributes are not automatically visible to the coordinator. Group-level metrics therefore require an authorized evidence path, such as suitable client summaries, privacy-preserving aggregation, or carefully governed evaluation data. Such measurements must account for client participation and missing labels; keeping training records local alone neither provides global fairness evidence nor proves fairness measurement impossible."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-16-04-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "Why do resource-constrained TinyML deployments emphasize validated local safety envelopes and lightweight checks rather than continuous on-device SHAP explanations or large rolling fairness analyses?",
+     "explanation": "The correct answer is A. TinyML limits the cost and availability of runtime analysis, but does not universally prohibit storage, monitoring, or firmware updates. Bounded event records, input checks, and watchdogs may fit locally; heavier subgroup analysis can occur during fleet synchronization or servicing. The assurance case must state actual connectivity and update limits. Cloud TPUs and register-width claims confuse implementation constraints with the mathematical definitions.",
+     "hint": "Think about: compare responsible AI capabilities and architectural constraints across Cloud, Edge, Mobile, and TinyML environments.",
+     "type": "single",
+     "options": [
+      "Tight compute, memory, power, and connectivity budgets limit heavy runtime analysis; local checks must be paired with fleet or servicing evidence and a defined update or retirement path.",
+      "Because TinyML devices execute exclusively on cloud tensor processing units where telemetry logging is prohibited by law",
+      "Because embedded C++ compilers automatically convert nonlinear deep neural networks into linear decision trees",
+      "Because differential privacy guarantees are mathematically impossible on 32-bit microcontroller registers"
+     ],
+     "answer": 0
+    },
+    {
+     "q": "Order the following engineering actions for embedding responsible AI constraints across the ML lifecycle from earliest to latest development phase:",
+     "explanation": "The correct order is (2) Representative sampling and consent collection protocols [Data Collection], (1) In-processing bias-aware loss constraints and DP-SGD noise injection [Model Training], (5) Group-level disaggregated metric evaluation and stress testing [Evaluation], (3) Decision threshold policy calibration and human override routing [Deployment], (4) Subgroup drift telemetry and rolling metric alerting [Monitoring]. Responsible AI begins at data ingestion, guides training optimization, verifies constraints during evaluation, configures serving policies at deployment, and tracks behavioral drift in continuous production monitoring.",
+     "hint": "Think about: classify and sequence responsible AI interventions across the ML lifecycle.",
+     "type": "order",
+     "items": [
+      "Representative sampling and consent collection protocols",
+      "In-processing bias-aware loss constraints and DP-SGD noise injection",
+      "Group-level disaggregated metric evaluation and stress testing.",
+      "Decision threshold policy calibration and human override routing",
+      "Subgroup drift telemetry and rolling metric alerting"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now compare responsible AI capabilities and architectural constraints across Cloud, Edge, Mobile, and TinyML environments.",
+    "You can now explain the tension between data locality in federated learning and global observability required for fairness auditing.",
+    "You can now classify and sequence responsible AI interventions across the ML lifecycle."
+   ]
+  }
+ ]
+}

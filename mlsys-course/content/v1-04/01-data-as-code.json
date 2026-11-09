@@ -1,0 +1,67 @@
+{
+ "title": "Data as Code",
+ "summary": "Explain why deduplication must precede splitting to preserve the trust boundary between training and evaluation data.",
+ "source": {
+  "chapter": "v1-04",
+  "sections": [
+   "Data as Code"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Data as Code** in *Data Engineering* (Vol I). By the end you should be able to:\n\n- Explain why deduplication must precede splitting to preserve the trust boundary between training and evaluation data\n- Justify applying core software-engineering practices (immutable versioning, automated regression tests, and split trust boundaries) to datasets under the data-as-source-code paradigm\n- Evaluate split strategies to prevent data leakage across train/test trust boundaries in speech and audio ML pipelines"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol I, Data Engineering, § Data as Code",
+   "md": "A missing accent in a speech corpus, a mislabeled class, or a feature computed one way in training and another in serving becomes a defect in system behavior with no line of code to point to. Because a machine learning system learns its behavior from data, the trained model is a compressed summary of its training set. It can represent only the evidence that data contains, and it treats the data's labels as the definition of a correct answer."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "Pay attention to: the data-as-code principle and the dataset as a build artifact; data as source code in ML systems; trust boundaries and data leakage prevention."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: Explain why treating training data as the 'source code' of a machine learning system necessitates software-engineering practices such as immutable snapshot versioning, automated regression testing, and explicit split boundaries.",
+   "md": "In machine learning, model behavior is compiled from data through optimization rather than hand-written procedural code; modifying or deleting a training record alters the compiled artifact (the learned weights) just as altering source code changes a compiled binary executable. Because real-world distributions shift continuously—unlike inert source code—datasets require immutable versioned snapshots to reproduce training runs, automated regression tests to prevent silent data corruption, and strict trust boundaries between train, validation, and test splits to prevent data leakage from invalidating generalization estimates."
+  },
+  {
+   "type": "quiz",
+   "id": "v1-04-01-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A team is building a training dataset from distributed sensor logs. They discover that the same event can appear in multiple log partitions. They add a pipeline step that identifies duplicate records and keeps one canonical copy. Where must this step run, and why?",
+     "explanation": "The correct answer is C. Splitting creates the trust boundary between training and evaluation; a duplicate that crosses it lets the model be scored on evidence it trained on, so evaluation looks better than deployment will. Deduplicating after the split cannot remove that leak, and duplicates also overweight repeated examples in what the model learns, so they are not merely a storage cost.",
+     "hint": "Think about: explain why deduplication must precede splitting to preserve the trust boundary between training and evaluation data.",
+     "type": "single",
+     "options": [
+      "After splitting, because each split should be cleaned independently so that evaluation data is never touched by training-side processing.",
+      "Only on the training split, because duplicates in validation and test data do not affect the trained model.",
+      "Before splitting, because a duplicated record that lands on both sides of the split leaks the same evidence into evaluation and inflates the measured quality.",
+      "Anywhere in the pipeline, because duplicates only waste storage and compute and do not change what the model learns."
+     ],
+     "answer": 2
+    },
+    {
+     "q": "In a keyword-spotting dataset, randomly partitioning audio recordings into an 80/20 train/test split at the individual audio file level maintains a valid trust boundary for estimating real-world generalization.",
+     "explanation": "False. Randomly partitioning audio files without grouping by speaker allows recordings of the same speaker (or augmented variants of the same source utterance) to appear in both training and test sets. This creates data leakage across the trust boundary, causing evaluation metrics to reflect memorization of familiar voices and acoustic environments rather than true generalization to unseen deployment speakers. Audio datasets require speaker-independent and time-aware splits.",
+     "hint": "Think about: evaluate split strategies to prevent data leakage across train/test trust boundaries in speech and audio ML pipelines.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain why deduplication must precede splitting to preserve the trust boundary between training and evaluation data.",
+    "You can now justify applying core software-engineering practices (immutable versioning, automated regression tests, and split trust boundaries) to datasets under the data-as-source-code paradigm.",
+    "You can now evaluate split strategies to prevent data leakage across train/test trust boundaries in speech and audio ML pipelines."
+   ]
+  }
+ ]
+}

@@ -1,0 +1,69 @@
+{
+ "title": "Distributed Scheduling Complexity",
+ "summary": "Explain the roles of admission, placement, and reconciliation in a cluster scheduler.",
+ "source": {
+  "chapter": "v2-08",
+  "sections": [
+   "Distributed Scheduling Complexity",
+   "Admission, placement, and reconciliation",
+   "Failure as a scheduling input"
+  ]
+ },
+ "blocks": [
+  {
+   "type": "text",
+   "md": "This lesson follows **Distributed Scheduling Complexity** in *Fleet Orchestration* (Vol II). By the end you should be able to:\n\n- Explain the roles of admission, placement, and reconciliation in a cluster scheduler\n- Identify the ownership guarantees required before reusing resources after a network partition\n- Evaluate the mathematical relationship between individual component reliability and aggregate fleet failure frequency in large GPU clusters"
+  },
+  {
+   "type": "from_book",
+   "source": "Vol II, Fleet Orchestration, § Distributed Scheduling Complexity",
+   "md": "A single-machine scheduler works inside one operating-system boundary, where three properties hold closely enough to design around: it observes resource state directly and consistently, its allocation decisions take effect atomically, and failures are nearly binary (the machine is up or it is down). Device faults and delayed cleanup still occur, but they do not hide behind a network. A cluster scheduler surrenders all three properties."
+  },
+  {
+   "type": "callout",
+   "kind": "note",
+   "title": "Map of the section",
+   "md": "The section is organised as:\n\n- Admission, placement, and reconciliation\n- Failure as a scheduling input\n\nPay attention to: Admission, placement, and reconciliation as separate control-plane decisions; Safe reuse of accelerators after a partition: revocation and fencing; Failure as a scheduling input at fleet scale."
+  },
+  {
+   "type": "reveal",
+   "prompt": "Think first: A scheduler control plane separates admission control, placement, and reconciliation. State what each decides, and explain why keeping them separate helps an operator diagnose a job that has not started.",
+   "md": "Admission decides whether a job may enter the runnable set under quota, priority, gang, and safety constraints. Placement binds an admitted job to a feasible set of nodes given accelerator capability, topology, power, storage, and network capacity. Reconciliation compares desired allocations with observed node and job state and starts, retries, evicts, or fences work until they agree. Separating them distinguishes an admission denial (for example, quota) from a placement failure (no feasible nodes) and from a reconciliation problem (allocation granted but not realized on the nodes)."
+  },
+  {
+   "type": "quiz",
+   "id": "v2-08-02-quiz",
+   "title": "Check your understanding",
+   "questions": [
+    {
+     "q": "A network partition cuts the scheduler off from four nodes running a training job, and their heartbeats time out. What must hold before the scheduler reassigns those nodes' GPUs to another job?",
+     "explanation": "The correct answer is B. A timeout can trigger recovery, but it does not prove the old execution has stopped; reassigning without revocation or fencing risks two owners of the same devices when the partition heals. Waiting for the partition to heal is one policy choice, not a requirement, and priority orders requests without preventing duplicate ownership.",
+     "hint": "Think about: identify the ownership guarantees required before reusing resources after a network partition.",
+     "type": "single",
+     "options": [
+      "Nothing beyond the timeout, because a missed heartbeat proves the old processes have stopped.",
+      "The old allocation must be revoked with confirmed cleanup or fenced, for example by rejecting stale allocation generations, so the old work cannot keep using or writing through those GPUs.",
+      "The partition must heal first, because no recovery may begin while nodes are unreachable.",
+      "The new job must run at higher priority, because priority resolves conflicting ownership."
+     ],
+     "answer": 1
+    },
+    {
+     "q": "A hypothetical per-device annual hardware-fault probability of 0.001 is sufficient to conclude that all-cause interruptions will remain rare during multi-week jobs on a 10,000-GPU fleet.",
+     "explanation": "False. That hypothetical probability covers only the stated device-fault event. Job interruptions also depend on worker count, runtime faults, links, hosts, and shared power or storage domains. A fleet interruption model must include those causes and their dependencies; a device-level annual figure does not establish a measured all-cause job failure rate.",
+     "hint": "Think about: evaluate the mathematical relationship between individual component reliability and aggregate fleet failure frequency in large GPU clusters.",
+     "type": "truefalse",
+     "answer": false
+    }
+   ]
+  },
+  {
+   "type": "summary",
+   "points": [
+    "You can now explain the roles of admission, placement, and reconciliation in a cluster scheduler.",
+    "You can now identify the ownership guarantees required before reusing resources after a network partition.",
+    "You can now evaluate the mathematical relationship between individual component reliability and aggregate fleet failure frequency in large GPU clusters."
+   ]
+  }
+ ]
+}
